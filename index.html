@@ -11,6 +11,8 @@
         --fg: #2b1f17;
         --accent: #b84a2d;
         --panel: #fff7ee;
+        --line: #2b1f17;
+        --muted: #6b584a;
       }
       * {
         box-sizing: border-box;
@@ -19,94 +21,304 @@
         margin: 0;
         font-family: "Georgia", "Times New Roman", serif;
         background:
-          radial-gradient(circle at 20% 20%, #fdf6ea 0%, transparent 45%),
-          radial-gradient(circle at 80% 10%, #f7e6d1 0%, transparent 50%),
+          radial-gradient(circle at 15% 10%, #fdf6ea 0%, transparent 45%),
+          radial-gradient(circle at 85% 5%, #f7e6d1 0%, transparent 50%),
           var(--bg);
         color: var(--fg);
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
       }
-      .card {
-        width: min(720px, 92vw);
+      .page {
+        max-width: 1200px;
+        margin: 24px auto 60px;
+        padding: 0 16px 32px;
+      }
+      .title {
+        text-align: center;
+        font-size: clamp(2rem, 3vw, 2.8rem);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 8px 0 18px;
+      }
+      .sheet {
         background: var(--panel);
-        border: 2px solid var(--fg);
-        border-radius: 16px;
-        padding: 32px 28px;
+        border: 2px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
         box-shadow: 0 18px 40px rgba(43, 31, 23, 0.18);
       }
-      h1 {
-        margin: 0 0 12px;
-        font-size: clamp(2.2rem, 3vw, 3rem);
-        letter-spacing: 0.04em;
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      .header {
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+      }
+      .header .panel:first-child {
+        grid-column: span 2;
+      }
+      .row-3 {
+        grid-template-columns: 1.1fr 1.4fr 1fr;
+      }
+      .row-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .panel {
+        position: relative;
+        border: 2px solid var(--line);
+        border-radius: 14px;
+        padding: 14px 12px 10px;
+        background: #fff;
+        min-height: 72px;
+      }
+      .panel-label {
+        position: absolute;
+        top: -12px;
+        left: 12px;
+        padding: 2px 8px;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+      }
+      .panel input,
+      .panel textarea,
+      .panel select {
+        width: 100%;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-family: inherit;
+        font-size: 1rem;
+      }
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+      .abilities {
+        display: grid;
+        gap: 12px;
+      }
+      .ability {
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 10px;
+        background: #fff;
+        text-align: center;
+      }
+      .ability h3 {
+        margin: 0 0 8px;
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
       }
-      p {
-        margin: 0 0 10px;
-        line-height: 1.5;
-        font-size: 1.05rem;
+      .ability input {
+        text-align: center;
+        font-size: 1.2rem;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .stats .panel {
+        min-height: 60px;
+      }
+      .section-title {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 0 0 6px;
       }
       #roll-btn {
-        margin-top: 16px;
         padding: 10px 18px;
         font-size: 1rem;
         font-family: inherit;
         border-radius: 12px;
-        border: 2px solid var(--fg);
+        border: 2px solid var(--line);
         background: var(--accent);
         color: #fff;
         cursor: pointer;
       }
-      #roll-btn:active {
-        transform: translateY(1px);
-      }
       #roll-result {
-        margin-top: 12px;
-        font-size: 1.1rem;
+        margin-top: 10px;
+        font-size: 1rem;
       }
-      .status {
-        display: inline-flex;
+      .actions {
+        display: flex;
+        gap: 12px;
         align-items: center;
-        gap: 8px;
-        margin-top: 8px;
-        padding: 6px 12px;
-        border: 1px solid var(--fg);
-        border-radius: 999px;
-        font-size: 0.9rem;
-        background: #fff;
+        flex-wrap: wrap;
       }
-      .dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #c9a227;
-      }
-      code {
-        background: #fff;
-        padding: 2px 6px;
-        border-radius: 6px;
-        border: 1px solid #e7d6c0;
+      @media (max-width: 960px) {
+        .header,
+        .row-3,
+        .row-2 {
+          grid-template-columns: 1fr;
+        }
+        .header .panel:first-child {
+          grid-column: auto;
+        }
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <main class="card">
-      <h1>DnD Plataform</h1>
-      <p>Conectado con Firebase (configuracion pendiente).</p>
-      <p>
-        Edita <code>firebaseConfig</code> en este archivo para apuntar a tu
-        proyecto.
-      </p>
-      <button id="roll-btn" type="button">Tirar d20</button>
-      <div id="roll-result" aria-live="polite"></div>
-      <div class="status">
-        <span class="dot" aria-hidden="true"></span>
-        Estado: listo para conectar
-      </div>
-    </main>
+    <div class="page">
+      <div class="title">DnD Plataform</div>
+      <section class="sheet">
+        <div class="grid header">
+          <div class="panel">
+            <div class="panel-label">Character Name</div>
+            <input id="character-name" type="text" placeholder="Aria Nightshade" />
+          </div>
+          <div class="panel">
+            <div class="panel-label">Class & Level</div>
+            <input id="class-level" type="text" placeholder="Rogue 3" />
+          </div>
+          <div class="panel">
+            <div class="panel-label">Background</div>
+            <input id="background" type="text" placeholder="Urchin" />
+          </div>
+          <div class="panel">
+            <div class="panel-label">Player Name</div>
+            <input id="player-name" type="text" placeholder="Player" />
+          </div>
+          <div class="panel">
+            <div class="panel-label">Race</div>
+            <input id="race" type="text" placeholder="Elf" />
+          </div>
+          <div class="panel">
+            <div class="panel-label">Alignment</div>
+            <input id="alignment" type="text" placeholder="CG" />
+          </div>
+          <div class="panel">
+            <div class="panel-label">Experience Points</div>
+            <input id="xp" type="number" min="0" placeholder="900" />
+          </div>
+        </div>
+
+        <div class="grid row-3" style="margin-top: 16px;">
+          <div class="abilities">
+            <div class="ability">
+              <h3>Strength</h3>
+              <input id="str" type="number" min="1" max="20" placeholder="10" />
+            </div>
+            <div class="ability">
+              <h3>Dexterity</h3>
+              <input id="dex" type="number" min="1" max="20" placeholder="10" />
+            </div>
+            <div class="ability">
+              <h3>Constitution</h3>
+              <input id="con" type="number" min="1" max="20" placeholder="10" />
+            </div>
+            <div class="ability">
+              <h3>Intelligence</h3>
+              <input id="int" type="number" min="1" max="20" placeholder="10" />
+            </div>
+            <div class="ability">
+              <h3>Wisdom</h3>
+              <input id="wis" type="number" min="1" max="20" placeholder="10" />
+            </div>
+            <div class="ability">
+              <h3>Charisma</h3>
+              <input id="cha" type="number" min="1" max="20" placeholder="10" />
+            </div>
+          </div>
+
+          <div>
+            <div class="stats">
+              <div class="panel">
+                <div class="panel-label">Armor Class</div>
+                <input id="ac" type="number" min="0" placeholder="15" />
+              </div>
+              <div class="panel">
+                <div class="panel-label">Initiative</div>
+                <input id="initiative" type="text" placeholder="+2" />
+              </div>
+              <div class="panel">
+                <div class="panel-label">Speed</div>
+                <input id="speed" type="text" placeholder="30 ft" />
+              </div>
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <div class="panel-label">Hit Point Maximum</div>
+              <input id="hp-max" type="number" min="0" placeholder="24" />
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <div class="panel-label">Current Hit Points</div>
+              <input id="hp-current" type="number" min="0" placeholder="18" />
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <div class="panel-label">Temporary Hit Points</div>
+              <input id="hp-temp" type="number" min="0" placeholder="0" />
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <div class="panel-label">Hit Dice</div>
+              <input id="hit-dice" type="text" placeholder="3d8" />
+            </div>
+            <div class="panel" style="margin-top: 12px;">
+              <div class="panel-label">Death Saves</div>
+              <input id="death-saves" type="text" placeholder="Success: 0 / Fail: 0" />
+            </div>
+          </div>
+
+          <div>
+            <div class="panel" style="min-height: 120px;">
+              <div class="panel-label">Personality Traits</div>
+              <textarea id="traits"></textarea>
+            </div>
+            <div class="panel" style="min-height: 100px; margin-top: 12px;">
+              <div class="panel-label">Ideals</div>
+              <textarea id="ideals"></textarea>
+            </div>
+            <div class="panel" style="min-height: 100px; margin-top: 12px;">
+              <div class="panel-label">Bonds</div>
+              <textarea id="bonds"></textarea>
+            </div>
+            <div class="panel" style="min-height: 100px; margin-top: 12px;">
+              <div class="panel-label">Flaws</div>
+              <textarea id="flaws"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid row-2" style="margin-top: 16px;">
+          <div class="panel" style="min-height: 200px;">
+            <div class="panel-label">Attacks & Spellcasting</div>
+            <textarea id="attacks" placeholder="Shortsword +5 1d6+3"></textarea>
+          </div>
+          <div class="panel" style="min-height: 200px;">
+            <div class="panel-label">Features & Traits</div>
+            <textarea id="features"></textarea>
+          </div>
+        </div>
+
+        <div class="grid row-2" style="margin-top: 16px;">
+          <div class="panel" style="min-height: 180px;">
+            <div class="panel-label">Other Proficiencies & Languages</div>
+            <textarea id="proficiencies"></textarea>
+          </div>
+          <div class="panel" style="min-height: 180px;">
+            <div class="panel-label">Equipment</div>
+            <textarea id="equipment"></textarea>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top: 16px;">
+          <div class="panel-label">Live Dice (Shared)</div>
+          <div class="actions">
+            <button id="roll-btn" type="button">Roll d20</button>
+            <div id="roll-result" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+    </div>
 
     <script type="module">
-      // Firebase v9+ (modular). Completa tu configuracion real aqui.
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
       import {
@@ -137,15 +349,15 @@
 
       function renderRoll(data) {
         if (!data) {
-          resultEl.textContent = "Todavia no hay tiradas.";
+          resultEl.textContent = "No rolls yet.";
           return;
         }
-        const who = data.by || "alguien";
+        const who = data.by || "someone";
         const when = data.at ? new Date(data.at.seconds * 1000) : null;
         const time = when
-          ? when.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
-          : "ahora";
-        resultEl.textContent = `Ultima tirada: ${data.value} (por ${who} a las ${time})`;
+          ? when.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+          : "now";
+        resultEl.textContent = `Last roll: ${data.value} (by ${who} at ${time})`;
       }
 
       onSnapshot(rollRef, (snap) => {
@@ -156,12 +368,12 @@
         const value = Math.floor(Math.random() * 20) + 1;
         await setDoc(rollRef, {
           value,
-          by: "anonimo",
+          by: "anonymous",
           at: serverTimestamp(),
         });
       });
 
-      console.log("Firebase inicializado", app.name);
+      console.log("Firebase initialized", app.name);
     </script>
   </body>
 </html>
