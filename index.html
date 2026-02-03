@@ -288,6 +288,94 @@
         background: #f6f1e8;
         cursor: pointer;
       }
+      .item-panel {
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        width: min(360px, 92vw);
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        z-index: 1001;
+        background: #fff;
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 16px 16px 18px;
+        box-shadow: 0 16px 30px rgba(43, 31, 23, 0.2);
+        display: none;
+      }
+      .item-panel.open {
+        display: block;
+      }
+      .item-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .item-panel-title {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+      .item-panel-close {
+        border: 2px solid var(--line);
+        background: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+      }
+      .item-panel-close:hover {
+        background: #f6f1e8;
+      }
+      .item-panel-body {
+        display: grid;
+        gap: 8px;
+        color: var(--fg);
+      }
+      .item-row {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 8px;
+        align-items: baseline;
+        font-size: 0.95rem;
+      }
+      .item-row strong {
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .item-tooltip {
+        position: relative;
+        cursor: help;
+      }
+      .item-tooltip::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 0;
+        top: 100%;
+        margin-top: 6px;
+        min-width: 160px;
+        max-width: 280px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: #1f1711;
+        color: #fff7ee;
+        font-size: 0.82rem;
+        line-height: 1.25;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-4px);
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 5;
+        white-space: normal;
+      }
+      .item-tooltip:hover::after {
+        opacity: 1;
+        transform: translateY(0);
+      }
       @media (max-width: 960px) {
         .layout {
           grid-template-columns: 1fr;
@@ -305,6 +393,10 @@
           left: 12px;
           bottom: 12px;
           width: min(360px, 94vw);
+        }
+        .item-panel {
+          right: 12px;
+          top: 12px;
         }
       }
     </style>
@@ -537,6 +629,13 @@
       <div class="sticky-roll-title">Dice Roll</div>
       <div id="roll-result">No rolls yet.</div>
     </aside>
+    <aside class="item-panel" id="item-panel" aria-live="polite" aria-label="Item details">
+      <div class="item-panel-header">
+        <h2 class="item-panel-title" id="item-panel-title">Item</h2>
+        <button class="item-panel-close" id="item-panel-close" type="button" aria-label="Close item details">✕</button>
+      </div>
+      <div class="item-panel-body" id="item-panel-body"></div>
+    </aside>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -599,6 +698,10 @@
       const attackRollBtn = document.getElementById("attack-roll");
       const attackProfEl = document.getElementById("attack-prof");
       const addWeaponBtn = document.getElementById("add-weapon");
+      const itemPanel = document.getElementById("item-panel");
+      const itemPanelTitle = document.getElementById("item-panel-title");
+      const itemPanelBody = document.getElementById("item-panel-body");
+      const itemPanelClose = document.getElementById("item-panel-close");
       const equipmentListEl = document.getElementById("equipment-list");
       let equipmentItems = [];
       let isRemoteUpdate = false;
@@ -692,126 +795,125 @@
         }
       }
 
-      const weaponList = [
-        "Club",
-        "Dagger",
-        "Greatclub",
-        "Handaxe",
-        "Javelin",
-        "Light Hammer",
-        "Mace",
-        "Quarterstaff",
-        "Sickle",
-        "Spear",
-        "Unarmed Strike",
-        "Crossbow, Light",
-        "Dart",
-        "Shortbow",
-        "Sling",
-        "Battleaxe",
-        "Flail",
-        "Glaive",
-        "Greataxe",
-        "Greatsword",
-        "Halberd",
-        "Lance",
-        "Longsword",
-        "Maul",
-        "Morningstar",
-        "Pike",
-        "Rapier",
-        "Scimitar",
-        "Shortsword",
-        "Trident",
-        "War Pick",
-        "Warhammer",
-        "Whip",
-        "Blowgun",
-        "Crossbow, Hand",
-        "Crossbow, Heavy",
-        "Longbow",
-        "Net",
+      const weaponTable = [
+        { name: "Club", damage: "1d4 Bludgeoning", properties: "Light", mastery: "Slow", weight: "2 lb.", cost: "1 SP", category: "Simple Melee Weapons" },
+        { name: "Dagger", damage: "1d4 Piercing", properties: "Finesse, Light, Thrown (Range 20/60)", mastery: "Nick", weight: "1 lb.", cost: "2 GP", category: "Simple Melee Weapons" },
+        { name: "Greatclub", damage: "1d8 Bludgeoning", properties: "Two-Handed", mastery: "Push", weight: "10 lb.", cost: "2 SP", category: "Simple Melee Weapons" },
+        { name: "Handaxe", damage: "1d6 Slashing", properties: "Light, Thrown (Range 20/60)", mastery: "Vex", weight: "2 lb.", cost: "5 GP", category: "Simple Melee Weapons" },
+        { name: "Javelin", damage: "1d6 Piercing", properties: "Thrown (Range 30/120)", mastery: "Slow", weight: "2 lb.", cost: "5 SP", category: "Simple Melee Weapons" },
+        { name: "Light Hammer", damage: "1d4 Bludgeoning", properties: "Light, Thrown (Range 20/60)", mastery: "Nick", weight: "2 lb.", cost: "2 GP", category: "Simple Melee Weapons" },
+        { name: "Mace", damage: "1d6 Bludgeoning", properties: "—", mastery: "Sap", weight: "4 lb.", cost: "5 GP", category: "Simple Melee Weapons" },
+        { name: "Quarterstaff", damage: "1d6 Bludgeoning", properties: "Versatile (1d8)", mastery: "Topple", weight: "4 lb.", cost: "2 SP", category: "Simple Melee Weapons" },
+        { name: "Sickle", damage: "1d4 Slashing", properties: "Light", mastery: "Nick", weight: "2 lb.", cost: "1 GP", category: "Simple Melee Weapons" },
+        { name: "Spear", damage: "1d6 Piercing", properties: "Thrown (Range 20/60), Versatile (1d8)", mastery: "Sap", weight: "3 lb.", cost: "1 GP", category: "Simple Melee Weapons" },
+        { name: "Dart", damage: "1d4 Piercing", properties: "Finesse, Thrown (Range 20/60)", mastery: "Vex", weight: "1/4 lb.", cost: "5 CP", category: "Simple Ranged Weapons" },
+        { name: "Light Crossbow", damage: "1d8 Piercing", properties: "Ammunition (Range 80/320; Bolt), Loading, Two-Handed", mastery: "Slow", weight: "5 lb.", cost: "25 GP", category: "Simple Ranged Weapons" },
+        { name: "Shortbow", damage: "1d6 Piercing", properties: "Ammunition (Range 80/320; Arrow), Two-Handed", mastery: "Vex", weight: "2 lb.", cost: "25 GP", category: "Simple Ranged Weapons" },
+        { name: "Sling", damage: "1d4 Bludgeoning", properties: "Ammunition (Range 30/120; Bullet)", mastery: "Slow", weight: "—", cost: "1 SP", category: "Simple Ranged Weapons" },
+        { name: "Battleaxe", damage: "1d8 Slashing", properties: "Versatile (1d10)", mastery: "Topple", weight: "4 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
+        { name: "Flail", damage: "1d8 Bludgeoning", properties: "—", mastery: "Sap", weight: "2 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
+        { name: "Glaive", damage: "1d10 Slashing", properties: "Heavy, Reach, Two-Handed", mastery: "Graze", weight: "6 lb.", cost: "20 GP", category: "Martial Melee Weapons" },
+        { name: "Greataxe", damage: "1d12 Slashing", properties: "Heavy, Two-Handed", mastery: "Cleave", weight: "7 lb.", cost: "30 GP", category: "Martial Melee Weapons" },
+        { name: "Greatsword", damage: "2d6 Slashing", properties: "Heavy, Two-Handed", mastery: "Graze", weight: "6 lb.", cost: "50 GP", category: "Martial Melee Weapons" },
+        { name: "Halberd", damage: "1d10 Slashing", properties: "Heavy, Reach, Two-Handed", mastery: "Cleave", weight: "6 lb.", cost: "20 GP", category: "Martial Melee Weapons" },
+        { name: "Lance", damage: "1d10 Piercing", properties: "Heavy, Reach, Two-Handed (unless mounted)", mastery: "Topple", weight: "6 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
+        { name: "Longsword", damage: "1d8 Slashing", properties: "Versatile (1d10)", mastery: "Sap", weight: "3 lb.", cost: "15 GP", category: "Martial Melee Weapons" },
+        { name: "Maul", damage: "2d6 Bludgeoning", properties: "Heavy, Two-Handed", mastery: "Topple", weight: "10 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
+        { name: "Morningstar", damage: "1d8 Piercing", properties: "—", mastery: "Sap", weight: "4 lb.", cost: "15 GP", category: "Martial Melee Weapons" },
+        { name: "Pike", damage: "1d10 Piercing", properties: "Heavy, Reach, Two-Handed", mastery: "Push", weight: "18 lb.", cost: "5 GP", category: "Martial Melee Weapons" },
+        { name: "Rapier", damage: "1d8 Piercing", properties: "Finesse", mastery: "Vex", weight: "2 lb.", cost: "25 GP", category: "Martial Melee Weapons" },
+        { name: "Scimitar", damage: "1d6 Slashing", properties: "Finesse, Light", mastery: "Nick", weight: "3 lb.", cost: "25 GP", category: "Martial Melee Weapons" },
+        { name: "Shortsword", damage: "1d6 Piercing", properties: "Finesse, Light", mastery: "Vex", weight: "2 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
+        { name: "Trident", damage: "1d8 Piercing", properties: "Thrown (Range 20/60), Versatile (1d10)", mastery: "Topple", weight: "4 lb.", cost: "5 GP", category: "Martial Melee Weapons" },
+        { name: "Warhammer", damage: "1d8 Bludgeoning", properties: "Versatile (1d10)", mastery: "Push", weight: "5 lb.", cost: "15 GP", category: "Martial Melee Weapons" },
+        { name: "War Pick", damage: "1d8 Piercing", properties: "Versatile (1d10)", mastery: "Sap", weight: "2 lb.", cost: "5 GP", category: "Martial Melee Weapons" },
+        { name: "Whip", damage: "1d4 Slashing", properties: "Finesse, Reach", mastery: "Slow", weight: "3 lb.", cost: "2 GP", category: "Martial Melee Weapons" },
+        { name: "Blowgun", damage: "1 Piercing", properties: "Ammunition (Range 25/100; Needle), Loading", mastery: "Vex", weight: "1 lb.", cost: "10 GP", category: "Martial Ranged Weapons" },
+        { name: "Hand Crossbow", damage: "1d6 Piercing", properties: "Ammunition (Range 30/120; Bolt), Light, Loading", mastery: "Vex", weight: "3 lb.", cost: "75 GP", category: "Martial Ranged Weapons" },
+        { name: "Heavy Crossbow", damage: "1d10 Piercing", properties: "Ammunition (Range 100/400; Bolt), Heavy, Loading, Two-Handed", mastery: "Push", weight: "18 lb.", cost: "50 GP", category: "Martial Ranged Weapons" },
+        { name: "Longbow", damage: "1d8 Piercing", properties: "Ammunition (Range 150/600; Arrow), Heavy, Two-Handed", mastery: "Slow", weight: "2 lb.", cost: "50 GP", category: "Martial Ranged Weapons" },
+        { name: "Musket", damage: "1d12 Piercing", properties: "Ammunition (Range 40/120; Bullet), Loading, Two-Handed", mastery: "Slow", weight: "10 lb.", cost: "500 GP", category: "Martial Ranged Weapons" },
+        { name: "Pistol", damage: "1d10 Piercing", properties: "Ammunition (Range 30/90; Bullet), Loading", mastery: "Vex", weight: "3 lb.", cost: "250 GP", category: "Martial Ranged Weapons" },
       ];
-      const weaponDamage = {
-        "Club": "1d4",
-        "Dagger": "1d4",
-        "Greatclub": "1d8",
-        "Handaxe": "1d6",
-        "Javelin": "1d6",
-        "Light Hammer": "1d4",
-        "Mace": "1d6",
-        "Quarterstaff": "1d6",
-        "Sickle": "1d4",
-        "Spear": "1d6",
-        "Unarmed Strike": "1",
-        "Crossbow, Light": "1d8",
-        "Dart": "1d4",
-        "Shortbow": "1d6",
-        "Sling": "1d4",
-        "Battleaxe": "1d8",
-        "Flail": "1d8",
-        "Glaive": "1d10",
-        "Greataxe": "1d12",
-        "Greatsword": "2d6",
-        "Halberd": "1d10",
-        "Lance": "1d12",
-        "Longsword": "1d8",
-        "Maul": "2d6",
-        "Morningstar": "1d8",
-        "Pike": "1d10",
-        "Rapier": "1d8",
-        "Scimitar": "1d6",
-        "Shortsword": "1d6",
-        "Trident": "1d6",
-        "War Pick": "1d8",
-        "Warhammer": "1d8",
-        "Whip": "1d4",
-        "Blowgun": "1",
-        "Crossbow, Hand": "1d6",
-        "Crossbow, Heavy": "1d10",
-        "Longbow": "1d8",
-        "Net": "",
+      const weaponAliases = {
+        "Crossbow, Light": "Light Crossbow",
+        "Crossbow, Hand": "Hand Crossbow",
+        "Crossbow, Heavy": "Heavy Crossbow",
       };
-      const weaponAbility = {
-        "Club": "str",
-        "Dagger": "finesse",
-        "Greatclub": "str",
-        "Handaxe": "str",
-        "Javelin": "str",
-        "Light Hammer": "str",
-        "Mace": "str",
-        "Quarterstaff": "str",
-        "Sickle": "str",
-        "Spear": "str",
-        "Unarmed Strike": "str",
-        "Crossbow, Light": "dex",
-        "Dart": "finesse",
-        "Shortbow": "dex",
-        "Sling": "dex",
-        "Battleaxe": "str",
-        "Flail": "str",
-        "Glaive": "str",
-        "Greataxe": "str",
-        "Greatsword": "str",
-        "Halberd": "str",
-        "Lance": "str",
-        "Longsword": "str",
-        "Maul": "str",
-        "Morningstar": "str",
-        "Pike": "str",
-        "Rapier": "finesse",
-        "Scimitar": "finesse",
-        "Shortsword": "finesse",
-        "Trident": "str",
-        "War Pick": "str",
-        "Warhammer": "str",
-        "Whip": "finesse",
-        "Blowgun": "dex",
-        "Crossbow, Hand": "dex",
-        "Crossbow, Heavy": "dex",
-        "Longbow": "dex",
-        "Net": "dex",
+      const masteryDescriptions = {
+        Cleave: "On a melee hit, you can make an extra attack vs a second creature within 5 ft and reach. No ability mod to that damage unless negative. Once per turn.",
+        Graze: "On a miss, deal damage equal to the ability modifier used. Same damage type.",
+        Nick: "The extra Light-weapon attack can be part of the Attack action instead of a Bonus Action. Once per turn.",
+        Push: "On a hit, you can push a Large or smaller creature up to 10 ft away.",
+        Sap: "On a hit, the target has disadvantage on its next attack roll before your next turn.",
+        Slow: "On a hit, reduce target Speed by 10 ft until your next turn. Does not stack beyond 10 ft.",
+        Topple: "On a hit, target makes a Con save (DC 8 + ability mod + prof). Fail: Prone.",
+        Vex: "On a hit, you have advantage on your next attack roll vs that creature before your next turn ends.",
       };
+      const propertyDescriptions = {
+        Ammunition: "Requires ammo. Each attack expends one. You need a free hand to load a one-handed weapon.",
+        Finesse: "Use STR or DEX for attack and damage; same mod for both.",
+        Heavy: "Disadvantage on attacks if STR < 13 (melee) or DEX < 13 (ranged).",
+        Light: "After attacking with a Light weapon, you can make one extra Light-weapon attack as a Bonus Action; no ability mod to that damage unless negative.",
+        Loading: "You can fire only one piece of ammo per action/bonus action/reaction.",
+        Range: "Normal/long range. Disadvantage beyond normal; can't attack beyond long.",
+        Reach: "Adds 5 ft to your reach for attacks and opportunity attacks.",
+        Thrown: "Can be thrown; draw it as part of the attack. Use the same ability mod as melee with it.",
+        "Two-Handed": "Requires two hands to attack.",
+        Versatile: "Use one or two hands. Parentheses show damage when used with two hands.",
+      };
+      const weaponByName = new Map(weaponTable.map((weapon) => [weapon.name, weapon]));
+      const weaponList = weaponTable.map((weapon) => weapon.name);
+
+      function resolveWeaponName(name) {
+        if (weaponByName.has(name)) return name;
+        const alias = weaponAliases[name];
+        return alias && weaponByName.has(alias) ? alias : name;
+      }
+
+      function getWeaponData(name) {
+        const resolved = resolveWeaponName(name);
+        return weaponByName.get(resolved) || null;
+      }
+
+      function getDamageDie(damage) {
+        if (!damage) return "";
+        return damage.split(" ")[0];
+      }
+
+      function getWeaponAttackAbility(weapon) {
+        if (!weapon) return "str";
+        if (weapon.properties && weapon.properties.includes("Finesse")) return "finesse";
+        if (weapon.category && weapon.category.includes("Ranged")) return "dex";
+        return "str";
+      }
+
+      function buildPropertiesTooltip(properties) {
+        if (!properties || properties === "—") return "No properties.";
+        const parts = properties.split(",").map((part) => part.trim());
+        return parts
+          .map((part) => {
+            const base = part.split(" (")[0].trim();
+            const desc = propertyDescriptions[base] || "";
+            const parenMatch = part.match(/\\(([^)]+)\\)/);
+            const extra = parenMatch ? ` Range: ${parenMatch[1]}.` : "";
+            return desc ? `${base}: ${desc}${extra}` : part;
+          })
+          .join(" ");
+      }
+
+      function getItemTooltip(label, value, weapon) {
+        if (label === "Mastery") {
+          return masteryDescriptions[weapon.mastery] || `Mastery: ${weapon.mastery}`;
+        }
+        if (label === "Properties") {
+          return buildPropertiesTooltip(weapon.properties);
+        }
+        if (label === "Range") {
+          return `Range: ${value} (normal/long).`;
+        }
+        return `${label}: ${value}`;
+      }
 
       function rollDiceDetailed(dice) {
         if (!dice) return 0;
@@ -859,19 +961,27 @@
         if (!equipmentListEl) return;
         equipmentListEl.innerHTML = "";
         equipmentItems.forEach((name) => {
+          const weapon = getWeaponData(name);
+          const displayName = weapon?.name || name;
           const row = document.createElement("div");
           row.className = "equipment-item";
           const label = document.createElement("div");
-          label.textContent = name;
+          label.textContent = displayName;
+          label.style.cursor = "pointer";
+          label.addEventListener("click", () => {
+            openItemPanel(displayName);
+          });
           row.appendChild(label);
-          const dice = weaponDamage[name] || "";
+          const dice = getDamageDie(weapon?.damage);
           if (dice) {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "equipment-dmg";
             btn.textContent = dice;
             btn.addEventListener("click", () => {
-              rollDamage(dice, `${name} Damage (${dice})`, weaponAbility[name]);
+              const ability = getWeaponAttackAbility(weapon);
+              const labelText = `${displayName} Damage (${dice})`;
+              rollDamage(dice, labelText, ability);
             });
             row.appendChild(btn);
           } else {
@@ -1107,16 +1217,14 @@
         if (!attackRollBtn) return;
         attackRollBtn.addEventListener("click", () => {
           const weaponName = equipmentSelect?.value;
-          const ability =
-            weaponName && weaponAbility[weaponName]
-              ? weaponAbility[weaponName]
-              : "str";
+          const weapon = getWeaponData(weaponName);
+          const ability = getWeaponAttackAbility(weapon);
           const abilityKey =
             ability === "finesse"
               ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
               : ability;
           const modValue = toNumber(abilityMods[abilityKey]?.value);
-          const label = weaponName ? `${weaponName} Attack` : "Attack Roll";
+          const label = weapon?.name ? `${weapon.name} Attack` : "Attack Roll";
           const parts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: modValue }];
           if (attackProfEl?.checked) {
             const prof = toNumber(proficiencyBonusEl?.value);
@@ -1126,8 +1234,68 @@
         });
       }
 
+      function openItemPanel(name) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody) return;
+        const weapon = getWeaponData(name);
+        if (!weapon) return;
+        const [dice, ...typeParts] = (weapon.damage || "").split(" ");
+        const damageType = typeParts.join(" ");
+        const ability = getWeaponAttackAbility(weapon);
+        const abilityLabel =
+          ability === "finesse" ? "Finesse (STR/DEX)" : ability.toUpperCase();
+        const rangeMatch = weapon.properties.match(/Range\\s*([0-9/]+)/i);
+        const rangeValue = rangeMatch ? rangeMatch[1] : null;
+        itemPanelTitle.textContent = weapon.name;
+        itemPanelBody.innerHTML = "";
+        const rows = [
+          ["Category", weapon.category.replace(" Weapons", "")],
+          ["Type", weapon.category.includes("Ranged") ? "Ranged" : "Melee"],
+          ["Damage", dice || "—"],
+          ["Damage Type", damageType || "—"],
+          ["Attack Ability", abilityLabel],
+          ["Properties", weapon.properties === "—" ? "None" : weapon.properties],
+          ["Mastery", weapon.mastery || "—"],
+          ["Weight", weapon.weight || "—"],
+          ["Cost", weapon.cost || "—"],
+        ];
+        if (rangeValue) {
+          rows.splice(4, 0, ["Range", rangeValue]);
+        }
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          val.setAttribute("data-tooltip", getItemTooltip(label, value, weapon));
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
+      }
+
+      function setupItemPanel() {
+        if (!itemPanel || !itemPanelClose) return;
+        itemPanelClose.addEventListener("click", (event) => {
+          event.stopPropagation();
+          itemPanel.classList.remove("open");
+          itemPanel.setAttribute("aria-hidden", "true");
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            itemPanel.classList.remove("open");
+            itemPanel.setAttribute("aria-hidden", "true");
+          }
+        });
+      }
+
       setupRollables();
       setupAttackRoll();
+      setupItemPanel();
       console.log("Firebase initialized", app.name);
     </script>
   </body>
