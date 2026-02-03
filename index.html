@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+  <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -38,6 +38,12 @@
         text-transform: uppercase;
         margin: 8px 0 18px;
       }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
       .sheet {
         background: var(--panel);
         border: 2px solid var(--line);
@@ -45,49 +51,23 @@
         padding: 18px;
         box-shadow: 0 18px 40px rgba(43, 31, 23, 0.18);
       }
-      .layout {
+      .sheet-grid {
         display: grid;
-        grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
-        gap: 18px;
-        align-items: start;
+        grid-template-columns: 1fr 1.2fr 1fr;
+        gap: 16px;
       }
-      .dice-panel {
-        background: #fff;
-        border: 2px solid var(--line);
-        border-radius: 16px;
-        padding: 16px;
-        box-shadow: 0 12px 24px rgba(43, 31, 23, 0.15);
-      }
-      .dice-title {
-        margin: 0 0 12px;
-        font-size: 0.95rem;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        color: var(--muted);
-      }
-      .grid {
+      .header-grid {
         display: grid;
-        gap: 14px;
-      }
-      .header {
         grid-template-columns: 2fr 1fr 1fr 1fr;
-      }
-      .header .panel:first-child {
-        grid-column: span 2;
-      }
-      .row-3 {
-        grid-template-columns: 1.1fr 1.4fr 1fr;
-      }
-      .row-2 {
-        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
       }
       .panel {
         position: relative;
         border: 2px solid var(--line);
         border-radius: 14px;
-        padding: 14px 12px 10px;
+        padding: 12px;
         background: #fff;
-        min-height: 72px;
       }
       .panel-label {
         position: absolute;
@@ -109,15 +89,16 @@
         border-radius: 8px;
         padding: 8px 10px;
         font-family: inherit;
-        font-size: 1rem;
+        font-size: 0.98rem;
+        background: #fff;
       }
       textarea {
-        min-height: 90px;
+        min-height: 110px;
         resize: vertical;
       }
       .abilities {
         display: grid;
-        gap: 12px;
+        gap: 10px;
       }
       .ability {
         border: 2px solid var(--line);
@@ -128,28 +109,61 @@
       }
       .ability h3 {
         margin: 0 0 8px;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
+      .ability .ability-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
       .ability input {
         text-align: center;
-        font-size: 1.2rem;
+        font-size: 1.05rem;
       }
-      .stats {
+      .list {
+        display: grid;
+        gap: 8px;
+      }
+      .list-item {
+        display: grid;
+        grid-template-columns: 18px 1fr 70px;
+        align-items: center;
+        gap: 8px;
+      }
+      .list-item input[type="number"],
+      .list-item input[type="text"] {
+        width: 70px;
+        text-align: center;
+        padding: 6px 4px;
+      }
+      .stats-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 10px;
       }
-      .stats .panel {
-        min-height: 60px;
+      .small-input {
+        text-align: center;
       }
-      .section-title {
-        font-size: 0.9rem;
+      .section-stack {
+        display: grid;
+        gap: 12px;
+      }
+      }
+      .dice-panel {
+        background: #fff;
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 24px rgba(43, 31, 23, 0.15);
+      }
+      .dice-title {
+        margin: 0 0 12px;
+        font-size: 0.95rem;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.12em;
         color: var(--muted);
-        margin: 0 0 6px;
       }
       #roll-btn {
         padding: 10px 18px;
@@ -175,16 +189,14 @@
         .layout {
           grid-template-columns: 1fr;
         }
-        .header,
-        .row-3,
-        .row-2 {
+        .header-grid {
           grid-template-columns: 1fr;
         }
-        .header .panel:first-child {
-          grid-column: auto;
+        .sheet-grid {
+          grid-template-columns: 1fr;
         }
-        .stats {
-          grid-template-columns: 1fr 1fr;
+        .stats-grid {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -193,142 +205,208 @@
     <div class="page">
       <div class="title">DnD Plataform</div>
       <div class="layout">
-        <section class="sheet">
-          <div class="grid header">
+        <section class="sheet" aria-label="Character Sheet">
+          <div class="header-grid">
             <div class="panel">
               <div class="panel-label">Character Name</div>
-              <input id="character-name" type="text" placeholder="Aria Nightshade" />
+              <input id="character-name" type="text" />
             </div>
             <div class="panel">
               <div class="panel-label">Class & Level</div>
-              <input id="class-level" type="text" placeholder="Rogue 3" />
+              <input id="class-level" type="text" />
             </div>
             <div class="panel">
               <div class="panel-label">Background</div>
-              <input id="background" type="text" placeholder="Urchin" />
+              <input id="background" type="text" />
             </div>
             <div class="panel">
               <div class="panel-label">Player Name</div>
-              <input id="player-name" type="text" placeholder="Player" />
+              <input id="player-name" type="text" />
             </div>
             <div class="panel">
               <div class="panel-label">Race</div>
-              <input id="race" type="text" placeholder="Elf" />
+              <input id="race" type="text" />
             </div>
             <div class="panel">
               <div class="panel-label">Alignment</div>
-              <input id="alignment" type="text" placeholder="CG" />
+              <input id="alignment" type="text" />
             </div>
             <div class="panel">
               <div class="panel-label">Experience Points</div>
-              <input id="xp" type="number" min="0" placeholder="900" />
+              <input id="xp" type="number" min="0" />
+            </div>
+            <div class="panel">
+              <div class="panel-label">Inspiration</div>
+              <input id="inspiration" type="text" />
+            </div>
+            <div class="panel">
+              <div class="panel-label">Proficiency Bonus</div>
+              <input id="proficiency-bonus" type="text" />
             </div>
           </div>
 
-          <div class="grid row-3" style="margin-top: 16px;">
-            <div class="abilities">
-              <div class="ability">
-                <h3>Strength</h3>
-                <input id="str" type="number" min="1" max="20" placeholder="10" />
+          <div class="sheet-grid">
+            <div class="section-stack">
+              <div class="abilities">
+                <div class="ability">
+                  <h3>Strength</h3>
+                  <div class="ability-row">
+                    <input id="str-score" type="number" min="1" max="30" placeholder="Score" />
+                    <input id="str-mod" type="text" placeholder="Mod" />
+                  </div>
+                </div>
+                <div class="ability">
+                  <h3>Dexterity</h3>
+                  <div class="ability-row">
+                    <input id="dex-score" type="number" min="1" max="30" placeholder="Score" />
+                    <input id="dex-mod" type="text" placeholder="Mod" />
+                  </div>
+                </div>
+                <div class="ability">
+                  <h3>Constitution</h3>
+                  <div class="ability-row">
+                    <input id="con-score" type="number" min="1" max="30" placeholder="Score" />
+                    <input id="con-mod" type="text" placeholder="Mod" />
+                  </div>
+                </div>
+                <div class="ability">
+                  <h3>Intelligence</h3>
+                  <div class="ability-row">
+                    <input id="int-score" type="number" min="1" max="30" placeholder="Score" />
+                    <input id="int-mod" type="text" placeholder="Mod" />
+                  </div>
+                </div>
+                <div class="ability">
+                  <h3>Wisdom</h3>
+                  <div class="ability-row">
+                    <input id="wis-score" type="number" min="1" max="30" placeholder="Score" />
+                    <input id="wis-mod" type="text" placeholder="Mod" />
+                  </div>
+                </div>
+                <div class="ability">
+                  <h3>Charisma</h3>
+                  <div class="ability-row">
+                    <input id="cha-score" type="number" min="1" max="30" placeholder="Score" />
+                    <input id="cha-mod" type="text" placeholder="Mod" />
+                  </div>
+                </div>
               </div>
-              <div class="ability">
-                <h3>Dexterity</h3>
-                <input id="dex" type="number" min="1" max="20" placeholder="10" />
+
+              <div class="panel">
+                <div class="panel-label">Saving Throws</div>
+                <div class="list">
+                  <div class="list-item"><input type="checkbox" /><span>Strength</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Dexterity</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Constitution</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Intelligence</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Wisdom</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Charisma</span><input type="text" /></div>
+                </div>
               </div>
-              <div class="ability">
-                <h3>Constitution</h3>
-                <input id="con" type="number" min="1" max="20" placeholder="10" />
+
+              <div class="panel">
+                <div class="panel-label">Skills</div>
+                <div class="list">
+                  <div class="list-item"><input type="checkbox" /><span>Acrobatics (Dex)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Animal Handling (Wis)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Arcana (Int)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Athletics (Str)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Deception (Cha)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>History (Int)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Insight (Wis)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Intimidation (Cha)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Investigation (Int)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Medicine (Wis)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Nature (Int)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Perception (Wis)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Performance (Cha)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Persuasion (Cha)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Religion (Int)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Sleight of Hand (Dex)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Stealth (Dex)</span><input type="text" /></div>
+                  <div class="list-item"><input type="checkbox" /><span>Survival (Wis)</span><input type="text" /></div>
+                </div>
               </div>
-              <div class="ability">
-                <h3>Intelligence</h3>
-                <input id="int" type="number" min="1" max="20" placeholder="10" />
-              </div>
-              <div class="ability">
-                <h3>Wisdom</h3>
-                <input id="wis" type="number" min="1" max="20" placeholder="10" />
-              </div>
-              <div class="ability">
-                <h3>Charisma</h3>
-                <input id="cha" type="number" min="1" max="20" placeholder="10" />
+
+              <div class="panel">
+                <div class="panel-label">Passive Wisdom (Perception)</div>
+                <input id="passive-perception" class="small-input" type="number" min="0" />
               </div>
             </div>
 
-            <div>
-              <div class="stats">
-                <div class="panel">
-                  <div class="panel-label">Armor Class</div>
-                  <input id="ac" type="number" min="0" placeholder="15" />
+            <div class="section-stack">
+              <div class="panel">
+                <div class="panel-label">Combat</div>
+                <div class="stats-grid">
+                  <div>
+                    <label for="ac">Armor Class</label>
+                    <input id="ac" class="small-input" type="number" min="0" />
+                  </div>
+                  <div>
+                    <label for="initiative">Initiative</label>
+                    <input id="initiative" class="small-input" type="text" />
+                  </div>
+                  <div>
+                    <label for="speed">Speed</label>
+                    <input id="speed" class="small-input" type="text" />
+                  </div>
                 </div>
-                <div class="panel">
-                  <div class="panel-label">Initiative</div>
-                  <input id="initiative" type="text" placeholder="+2" />
-                </div>
-                <div class="panel">
-                  <div class="panel-label">Speed</div>
-                  <input id="speed" type="text" placeholder="30 ft" />
-                </div>
               </div>
-              <div class="panel" style="margin-top: 12px;">
-                <div class="panel-label">Hit Point Maximum</div>
-                <input id="hp-max" type="number" min="0" placeholder="24" />
+
+              <div class="panel">
+                <div class="panel-label">Hit Points</div>
+                <label for="hp-max">Hit Point Maximum</label>
+                <input id="hp-max" type="number" min="0" />
+                <label for="hp-current">Current Hit Points</label>
+                <input id="hp-current" type="number" min="0" />
+                <label for="hp-temp">Temporary Hit Points</label>
+                <input id="hp-temp" type="number" min="0" />
               </div>
-              <div class="panel" style="margin-top: 12px;">
-                <div class="panel-label">Current Hit Points</div>
-                <input id="hp-current" type="number" min="0" placeholder="18" />
+
+              <div class="panel">
+                <div class="panel-label">Hit Dice & Death Saves</div>
+                <label for="hit-dice">Hit Dice</label>
+                <input id="hit-dice" type="text" />
+                <label for="death-saves">Death Saves (Success/Fail)</label>
+                <input id="death-saves" type="text" />
               </div>
-              <div class="panel" style="margin-top: 12px;">
-                <div class="panel-label">Temporary Hit Points</div>
-                <input id="hp-temp" type="number" min="0" placeholder="0" />
+
+              <div class="panel">
+                <div class="panel-label">Attacks & Spellcasting</div>
+                <textarea id="attacks"></textarea>
               </div>
-              <div class="panel" style="margin-top: 12px;">
-                <div class="panel-label">Hit Dice</div>
-                <input id="hit-dice" type="text" placeholder="3d8" />
-              </div>
-              <div class="panel" style="margin-top: 12px;">
-                <div class="panel-label">Death Saves</div>
-                <input id="death-saves" type="text" placeholder="Success: 0 / Fail: 0" />
+
+              <div class="panel">
+                <div class="panel-label">Equipment</div>
+                <textarea id="equipment"></textarea>
               </div>
             </div>
 
-            <div>
-              <div class="panel" style="min-height: 120px;">
+            <div class="section-stack">
+              <div class="panel">
                 <div class="panel-label">Personality Traits</div>
                 <textarea id="traits"></textarea>
               </div>
-              <div class="panel" style="min-height: 100px; margin-top: 12px;">
+              <div class="panel">
                 <div class="panel-label">Ideals</div>
                 <textarea id="ideals"></textarea>
               </div>
-              <div class="panel" style="min-height: 100px; margin-top: 12px;">
+              <div class="panel">
                 <div class="panel-label">Bonds</div>
                 <textarea id="bonds"></textarea>
               </div>
-              <div class="panel" style="min-height: 100px; margin-top: 12px;">
+              <div class="panel">
                 <div class="panel-label">Flaws</div>
                 <textarea id="flaws"></textarea>
               </div>
-            </div>
-          </div>
-
-          <div class="grid row-2" style="margin-top: 16px;">
-            <div class="panel" style="min-height: 200px;">
-              <div class="panel-label">Attacks & Spellcasting</div>
-              <textarea id="attacks" placeholder="Shortsword +5 1d6+3"></textarea>
-            </div>
-            <div class="panel" style="min-height: 200px;">
-              <div class="panel-label">Features & Traits</div>
-              <textarea id="features"></textarea>
-            </div>
-          </div>
-
-          <div class="grid row-2" style="margin-top: 16px;">
-            <div class="panel" style="min-height: 180px;">
-              <div class="panel-label">Other Proficiencies & Languages</div>
-              <textarea id="proficiencies"></textarea>
-            </div>
-            <div class="panel" style="min-height: 180px;">
-              <div class="panel-label">Equipment</div>
-              <textarea id="equipment"></textarea>
+              <div class="panel">
+                <div class="panel-label">Other Proficiencies & Languages</div>
+                <textarea id="proficiencies"></textarea>
+              </div>
+              <div class="panel">
+                <div class="panel-label">Features & Traits</div>
+                <textarea id="features" style="min-height: 220px;"></textarea>
+              </div>
             </div>
           </div>
         </section>
@@ -369,8 +447,46 @@
       const db = getFirestore(app);
 
       const rollRef = doc(db, "dice", "d20");
+      const sheetRef = doc(db, "sheets", "active");
       const resultEl = document.getElementById("roll-result");
       const rollBtn = document.getElementById("roll-btn");
+      const fieldEls = Array.from(
+        document.querySelectorAll("input[id], textarea[id], select[id]")
+      );
+      let isRemoteUpdate = false;
+      let saveTimer = null;
+
+      function getFieldValue(el) {
+        if (el.type === "checkbox") {
+          return el.checked;
+        }
+        return el.value;
+      }
+
+      function applyFieldValue(el, value) {
+        if (value === undefined) return;
+        if (el.type === "checkbox") {
+          el.checked = Boolean(value);
+          return;
+        }
+        el.value = value;
+      }
+
+      function scheduleSave() {
+        if (isRemoteUpdate) return;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          const payload = {};
+          for (const el of fieldEls) {
+            payload[el.id] = getFieldValue(el);
+          }
+          try {
+            await setDoc(sheetRef, payload, { merge: true });
+          } catch (error) {
+            console.error("Failed to save sheet", error);
+          }
+        }, 300);
+      }
 
       function renderRoll(data) {
         if (!data) {
@@ -387,6 +503,21 @@
 
       onSnapshot(rollRef, (snap) => {
         renderRoll(snap.data());
+      });
+
+      onSnapshot(sheetRef, (snap) => {
+        const data = snap.data();
+        if (!data) return;
+        isRemoteUpdate = true;
+        fieldEls.forEach((el) => {
+          applyFieldValue(el, data[el.id]);
+        });
+        isRemoteUpdate = false;
+      });
+
+      fieldEls.forEach((el) => {
+        const evt = el.type === "checkbox" ? "change" : "input";
+        el.addEventListener(evt, scheduleSave);
       });
 
       rollBtn.addEventListener("click", async () => {
