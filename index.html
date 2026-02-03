@@ -45,6 +45,26 @@
         padding: 18px;
         box-shadow: 0 18px 40px rgba(43, 31, 23, 0.18);
       }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
+      .dice-panel {
+        background: #fff;
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 24px rgba(43, 31, 23, 0.15);
+      }
+      .dice-title {
+        margin: 0 0 12px;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+      }
       .grid {
         display: grid;
         gap: 14px;
@@ -152,6 +172,9 @@
         flex-wrap: wrap;
       }
       @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
         .header,
         .row-3,
         .row-2 {
@@ -169,153 +192,155 @@
   <body>
     <div class="page">
       <div class="title">DnD Plataform</div>
-      <section class="sheet">
-        <div class="grid header">
-          <div class="panel">
-            <div class="panel-label">Character Name</div>
-            <input id="character-name" type="text" placeholder="Aria Nightshade" />
-          </div>
-          <div class="panel">
-            <div class="panel-label">Class & Level</div>
-            <input id="class-level" type="text" placeholder="Rogue 3" />
-          </div>
-          <div class="panel">
-            <div class="panel-label">Background</div>
-            <input id="background" type="text" placeholder="Urchin" />
-          </div>
-          <div class="panel">
-            <div class="panel-label">Player Name</div>
-            <input id="player-name" type="text" placeholder="Player" />
-          </div>
-          <div class="panel">
-            <div class="panel-label">Race</div>
-            <input id="race" type="text" placeholder="Elf" />
-          </div>
-          <div class="panel">
-            <div class="panel-label">Alignment</div>
-            <input id="alignment" type="text" placeholder="CG" />
-          </div>
-          <div class="panel">
-            <div class="panel-label">Experience Points</div>
-            <input id="xp" type="number" min="0" placeholder="900" />
-          </div>
-        </div>
-
-        <div class="grid row-3" style="margin-top: 16px;">
-          <div class="abilities">
-            <div class="ability">
-              <h3>Strength</h3>
-              <input id="str" type="number" min="1" max="20" placeholder="10" />
+      <div class="layout">
+        <section class="sheet">
+          <div class="grid header">
+            <div class="panel">
+              <div class="panel-label">Character Name</div>
+              <input id="character-name" type="text" placeholder="Aria Nightshade" />
             </div>
-            <div class="ability">
-              <h3>Dexterity</h3>
-              <input id="dex" type="number" min="1" max="20" placeholder="10" />
+            <div class="panel">
+              <div class="panel-label">Class & Level</div>
+              <input id="class-level" type="text" placeholder="Rogue 3" />
             </div>
-            <div class="ability">
-              <h3>Constitution</h3>
-              <input id="con" type="number" min="1" max="20" placeholder="10" />
+            <div class="panel">
+              <div class="panel-label">Background</div>
+              <input id="background" type="text" placeholder="Urchin" />
             </div>
-            <div class="ability">
-              <h3>Intelligence</h3>
-              <input id="int" type="number" min="1" max="20" placeholder="10" />
+            <div class="panel">
+              <div class="panel-label">Player Name</div>
+              <input id="player-name" type="text" placeholder="Player" />
             </div>
-            <div class="ability">
-              <h3>Wisdom</h3>
-              <input id="wis" type="number" min="1" max="20" placeholder="10" />
+            <div class="panel">
+              <div class="panel-label">Race</div>
+              <input id="race" type="text" placeholder="Elf" />
             </div>
-            <div class="ability">
-              <h3>Charisma</h3>
-              <input id="cha" type="number" min="1" max="20" placeholder="10" />
+            <div class="panel">
+              <div class="panel-label">Alignment</div>
+              <input id="alignment" type="text" placeholder="CG" />
+            </div>
+            <div class="panel">
+              <div class="panel-label">Experience Points</div>
+              <input id="xp" type="number" min="0" placeholder="900" />
             </div>
           </div>
 
-          <div>
-            <div class="stats">
-              <div class="panel">
-                <div class="panel-label">Armor Class</div>
-                <input id="ac" type="number" min="0" placeholder="15" />
+          <div class="grid row-3" style="margin-top: 16px;">
+            <div class="abilities">
+              <div class="ability">
+                <h3>Strength</h3>
+                <input id="str" type="number" min="1" max="20" placeholder="10" />
               </div>
-              <div class="panel">
-                <div class="panel-label">Initiative</div>
-                <input id="initiative" type="text" placeholder="+2" />
+              <div class="ability">
+                <h3>Dexterity</h3>
+                <input id="dex" type="number" min="1" max="20" placeholder="10" />
               </div>
-              <div class="panel">
-                <div class="panel-label">Speed</div>
-                <input id="speed" type="text" placeholder="30 ft" />
+              <div class="ability">
+                <h3>Constitution</h3>
+                <input id="con" type="number" min="1" max="20" placeholder="10" />
+              </div>
+              <div class="ability">
+                <h3>Intelligence</h3>
+                <input id="int" type="number" min="1" max="20" placeholder="10" />
+              </div>
+              <div class="ability">
+                <h3>Wisdom</h3>
+                <input id="wis" type="number" min="1" max="20" placeholder="10" />
+              </div>
+              <div class="ability">
+                <h3>Charisma</h3>
+                <input id="cha" type="number" min="1" max="20" placeholder="10" />
               </div>
             </div>
-            <div class="panel" style="margin-top: 12px;">
-              <div class="panel-label">Hit Point Maximum</div>
-              <input id="hp-max" type="number" min="0" placeholder="24" />
+
+            <div>
+              <div class="stats">
+                <div class="panel">
+                  <div class="panel-label">Armor Class</div>
+                  <input id="ac" type="number" min="0" placeholder="15" />
+                </div>
+                <div class="panel">
+                  <div class="panel-label">Initiative</div>
+                  <input id="initiative" type="text" placeholder="+2" />
+                </div>
+                <div class="panel">
+                  <div class="panel-label">Speed</div>
+                  <input id="speed" type="text" placeholder="30 ft" />
+                </div>
+              </div>
+              <div class="panel" style="margin-top: 12px;">
+                <div class="panel-label">Hit Point Maximum</div>
+                <input id="hp-max" type="number" min="0" placeholder="24" />
+              </div>
+              <div class="panel" style="margin-top: 12px;">
+                <div class="panel-label">Current Hit Points</div>
+                <input id="hp-current" type="number" min="0" placeholder="18" />
+              </div>
+              <div class="panel" style="margin-top: 12px;">
+                <div class="panel-label">Temporary Hit Points</div>
+                <input id="hp-temp" type="number" min="0" placeholder="0" />
+              </div>
+              <div class="panel" style="margin-top: 12px;">
+                <div class="panel-label">Hit Dice</div>
+                <input id="hit-dice" type="text" placeholder="3d8" />
+              </div>
+              <div class="panel" style="margin-top: 12px;">
+                <div class="panel-label">Death Saves</div>
+                <input id="death-saves" type="text" placeholder="Success: 0 / Fail: 0" />
+              </div>
             </div>
-            <div class="panel" style="margin-top: 12px;">
-              <div class="panel-label">Current Hit Points</div>
-              <input id="hp-current" type="number" min="0" placeholder="18" />
-            </div>
-            <div class="panel" style="margin-top: 12px;">
-              <div class="panel-label">Temporary Hit Points</div>
-              <input id="hp-temp" type="number" min="0" placeholder="0" />
-            </div>
-            <div class="panel" style="margin-top: 12px;">
-              <div class="panel-label">Hit Dice</div>
-              <input id="hit-dice" type="text" placeholder="3d8" />
-            </div>
-            <div class="panel" style="margin-top: 12px;">
-              <div class="panel-label">Death Saves</div>
-              <input id="death-saves" type="text" placeholder="Success: 0 / Fail: 0" />
+
+            <div>
+              <div class="panel" style="min-height: 120px;">
+                <div class="panel-label">Personality Traits</div>
+                <textarea id="traits"></textarea>
+              </div>
+              <div class="panel" style="min-height: 100px; margin-top: 12px;">
+                <div class="panel-label">Ideals</div>
+                <textarea id="ideals"></textarea>
+              </div>
+              <div class="panel" style="min-height: 100px; margin-top: 12px;">
+                <div class="panel-label">Bonds</div>
+                <textarea id="bonds"></textarea>
+              </div>
+              <div class="panel" style="min-height: 100px; margin-top: 12px;">
+                <div class="panel-label">Flaws</div>
+                <textarea id="flaws"></textarea>
+              </div>
             </div>
           </div>
 
-          <div>
-            <div class="panel" style="min-height: 120px;">
-              <div class="panel-label">Personality Traits</div>
-              <textarea id="traits"></textarea>
+          <div class="grid row-2" style="margin-top: 16px;">
+            <div class="panel" style="min-height: 200px;">
+              <div class="panel-label">Attacks & Spellcasting</div>
+              <textarea id="attacks" placeholder="Shortsword +5 1d6+3"></textarea>
             </div>
-            <div class="panel" style="min-height: 100px; margin-top: 12px;">
-              <div class="panel-label">Ideals</div>
-              <textarea id="ideals"></textarea>
-            </div>
-            <div class="panel" style="min-height: 100px; margin-top: 12px;">
-              <div class="panel-label">Bonds</div>
-              <textarea id="bonds"></textarea>
-            </div>
-            <div class="panel" style="min-height: 100px; margin-top: 12px;">
-              <div class="panel-label">Flaws</div>
-              <textarea id="flaws"></textarea>
+            <div class="panel" style="min-height: 200px;">
+              <div class="panel-label">Features & Traits</div>
+              <textarea id="features"></textarea>
             </div>
           </div>
-        </div>
 
-        <div class="grid row-2" style="margin-top: 16px;">
-          <div class="panel" style="min-height: 200px;">
-            <div class="panel-label">Attacks & Spellcasting</div>
-            <textarea id="attacks" placeholder="Shortsword +5 1d6+3"></textarea>
+          <div class="grid row-2" style="margin-top: 16px;">
+            <div class="panel" style="min-height: 180px;">
+              <div class="panel-label">Other Proficiencies & Languages</div>
+              <textarea id="proficiencies"></textarea>
+            </div>
+            <div class="panel" style="min-height: 180px;">
+              <div class="panel-label">Equipment</div>
+              <textarea id="equipment"></textarea>
+            </div>
           </div>
-          <div class="panel" style="min-height: 200px;">
-            <div class="panel-label">Features & Traits</div>
-            <textarea id="features"></textarea>
-          </div>
-        </div>
+        </section>
 
-        <div class="grid row-2" style="margin-top: 16px;">
-          <div class="panel" style="min-height: 180px;">
-            <div class="panel-label">Other Proficiencies & Languages</div>
-            <textarea id="proficiencies"></textarea>
-          </div>
-          <div class="panel" style="min-height: 180px;">
-            <div class="panel-label">Equipment</div>
-            <textarea id="equipment"></textarea>
-          </div>
-        </div>
-
-        <div class="panel" style="margin-top: 16px;">
-          <div class="panel-label">Live Dice (Shared)</div>
+        <aside class="dice-panel">
+          <h2 class="dice-title">Live Rolls</h2>
           <div class="actions">
             <button id="roll-btn" type="button">Roll d20</button>
-            <div id="roll-result" aria-live="polite"></div>
           </div>
-        </div>
-      </section>
+          <div id="roll-result" aria-live="polite" style="margin-top: 12px;"></div>
+        </aside>
+      </div>
     </div>
 
     <script type="module">
@@ -366,11 +391,17 @@
 
       rollBtn.addEventListener("click", async () => {
         const value = Math.floor(Math.random() * 20) + 1;
-        await setDoc(rollRef, {
-          value,
-          by: "anonymous",
-          at: serverTimestamp(),
-        });
+        resultEl.textContent = `Rolling... (${value})`;
+        try {
+          await setDoc(rollRef, {
+            value,
+            by: "anonymous",
+            at: serverTimestamp(),
+          });
+        } catch (error) {
+          resultEl.textContent = "Failed to roll. Check Firestore permissions.";
+          console.error(error);
+        }
       });
 
       console.log("Firebase initialized", app.name);
