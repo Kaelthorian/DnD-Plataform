@@ -53,7 +53,8 @@
       }
       .sheet-grid {
         display: grid;
-        grid-template-columns: 1fr 1.2fr 1fr;
+        grid-template-columns: 1fr 1.2fr;
+        justify-content: center;
         gap: 16px;
       }
       .header-grid {
@@ -250,6 +251,14 @@
         font-family: inherit;
         background: #fff;
       }
+      .actions .active-weapon {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .actions .equip-status {
+        font-size: 0.85rem;
+        color: var(--accent);
+      }
       #add-weapon {
         background: var(--accent);
         color: #fff;
@@ -280,6 +289,48 @@
         border: 1px solid #cdbba8;
         border-radius: 8px;
         background: #fff;
+      }
+      .equipment-item.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(184, 74, 45, 0.15);
+      }
+      .equip-btn {
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        background: #c23a2b;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+      .equip-btn.equipped {
+        background: #2b63c2;
+      }
+      .equip-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #f6f1e8;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .twohand-btn {
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        background: #f1efe7;
+        color: var(--fg);
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+      .twohand-btn.active {
+        background: #2b63c2;
+        color: #fff;
+      }
+      .twohand-btn[disabled] {
+        cursor: not-allowed;
+        opacity: 0.6;
       }
       .equipment-dmg {
         padding: 4px 8px;
@@ -376,6 +427,83 @@
         opacity: 1;
         transform: translateY(0);
       }
+      .weapon-picker {
+        position: fixed;
+        left: 16px;
+        top: 16px;
+        width: min(360px, 92vw);
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        z-index: 1002;
+        background: #fff;
+        border: 2px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 16px 30px rgba(43, 31, 23, 0.2);
+        display: none;
+      }
+      .weapon-picker.open {
+        display: block;
+      }
+      .weapon-picker-header {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .weapon-picker-header input {
+        width: 100%;
+        border: 1px solid #cdbba8;
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-family: inherit;
+      }
+      .weapon-picker-add,
+      .weapon-picker-close {
+        border-radius: 10px;
+        border: 2px solid var(--line);
+        padding: 6px 12px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .weapon-picker-add {
+        background: var(--accent);
+        color: #fff;
+      }
+      .weapon-picker-close {
+        background: #fff;
+      }
+      .weapon-category {
+        margin: 10px 0 6px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .weapon-list {
+        display: grid;
+        gap: 6px;
+      }
+      .weapon-option {
+        border: 1px solid #cdbba8;
+        border-radius: 10px;
+        padding: 8px 10px;
+        cursor: pointer;
+        background: #fff;
+      }
+      .weapon-option strong {
+        display: block;
+        font-size: 0.95rem;
+      }
+      .weapon-option span {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .weapon-option.selected {
+        border-color: var(--accent);
+        background: #fff4ec;
+      }
       @media (max-width: 960px) {
         .layout {
           grid-template-columns: 1fr;
@@ -396,6 +524,10 @@
         }
         .item-panel {
           right: 12px;
+          top: 12px;
+        }
+        .weapon-picker {
+          left: 12px;
           top: 12px;
         }
       }
@@ -583,44 +715,19 @@
               <div class="panel">
               <div class="panel-label">Equipment</div>
               <div class="actions" style="margin-bottom: 8px;">
-                <select id="equipment-weapon" data-nosave="true"></select>
                 <button id="attack-roll" type="button">Hit</button>
                 <label class="hit-option">
                   <input id="attack-prof" type="checkbox" data-nosave="true" checked />
                   Proficient
                 </label>
                 <button id="add-weapon" type="button">Add Weapon</button>
+                <span class="active-weapon" id="active-weapon-label">No weapon selected</span>
+                <span class="equip-status" id="equip-status"></span>
               </div>
               <div id="equipment-list"></div>
             </div>
             </div>
 
-            <div class="section-stack">
-              <div class="panel">
-                <div class="panel-label">Personality Traits</div>
-                <textarea id="traits"></textarea>
-              </div>
-              <div class="panel">
-                <div class="panel-label">Ideals</div>
-                <textarea id="ideals"></textarea>
-              </div>
-              <div class="panel">
-                <div class="panel-label">Bonds</div>
-                <textarea id="bonds"></textarea>
-              </div>
-              <div class="panel">
-                <div class="panel-label">Flaws</div>
-                <textarea id="flaws"></textarea>
-              </div>
-              <div class="panel">
-                <div class="panel-label">Other Proficiencies & Languages</div>
-                <textarea id="proficiencies"></textarea>
-              </div>
-              <div class="panel">
-                <div class="panel-label">Features & Traits</div>
-                <textarea id="features" style="min-height: 220px;"></textarea>
-              </div>
-            </div>
           </div>
         </section>
       </div>
@@ -635,6 +742,22 @@
         <button class="item-panel-close" id="item-panel-close" type="button" aria-label="Close item details">✕</button>
       </div>
       <div class="item-panel-body" id="item-panel-body"></div>
+    </aside>
+    <aside class="weapon-picker" id="weapon-picker" aria-live="polite" aria-label="Weapon picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <input id="weapon-search" type="search" placeholder="Search weapons..." />
+        <button id="weapon-picker-add" class="weapon-picker-add" type="button" disabled>Add</button>
+        <button id="weapon-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div id="weapon-picker-list"></div>
+    </aside>
+    <aside class="weapon-picker race-picker" id="race-picker" aria-live="polite" aria-label="Race picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <input id="race-search" type="search" placeholder="Search races..." />
+        <button id="race-picker-add" class="weapon-picker-add" type="button" disabled>Add</button>
+        <button id="race-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div id="race-picker-list"></div>
     </aside>
 
     <script type="module">
@@ -666,6 +789,7 @@
       const sheetRef = doc(db, "sheets", "active");
       const resultEl = document.getElementById("roll-result");
       const rollBtn = document.getElementById("roll-btn");
+      const raceInput = document.getElementById("race");
       const fieldEls = Array.from(
         document.querySelectorAll(
           "input[id]:not([data-nosave]), textarea[id]:not([data-nosave]), select[id]:not([data-nosave])"
@@ -694,16 +818,33 @@
         .filter((row) => row.querySelector(".save-value"));
       const skillRows = Array.from(document.querySelectorAll(".list-item[data-ability]"))
         .filter((row) => row.querySelector(".skill-value"));
-      const equipmentSelect = document.getElementById("equipment-weapon");
       const attackRollBtn = document.getElementById("attack-roll");
       const attackProfEl = document.getElementById("attack-prof");
       const addWeaponBtn = document.getElementById("add-weapon");
+      const activeWeaponLabel = document.getElementById("active-weapon-label");
+      const equipStatusEl = document.getElementById("equip-status");
+      const weaponPicker = document.getElementById("weapon-picker");
+      const weaponPickerList = document.getElementById("weapon-picker-list");
+      const weaponSearch = document.getElementById("weapon-search");
+      const weaponPickerAdd = document.getElementById("weapon-picker-add");
+      const weaponPickerClose = document.getElementById("weapon-picker-close");
+      const racePicker = document.getElementById("race-picker");
+      const racePickerList = document.getElementById("race-picker-list");
+      const raceSearch = document.getElementById("race-search");
+      const racePickerAdd = document.getElementById("race-picker-add");
+      const racePickerClose = document.getElementById("race-picker-close");
       const itemPanel = document.getElementById("item-panel");
       const itemPanelTitle = document.getElementById("item-panel-title");
       const itemPanelBody = document.getElementById("item-panel-body");
       const itemPanelClose = document.getElementById("item-panel-close");
       const equipmentListEl = document.getElementById("equipment-list");
       let equipmentItems = [];
+      let activeWeaponName = "";
+      let pickerSelected = "";
+      let raceSelected = "";
+      let equippedMainId = "";
+      let equippedOffhandId = "";
+      let equippedMainTwoHanded = false;
       let isRemoteUpdate = false;
       let saveTimer = null;
 
@@ -864,6 +1005,21 @@
       };
       const weaponByName = new Map(weaponTable.map((weapon) => [weapon.name, weapon]));
       const weaponList = weaponTable.map((weapon) => weapon.name);
+      const raceList = [
+        "Aasimar",
+        "Dragonborn",
+        "Dwarf",
+        "Elf",
+        "Gnome",
+        "Goliath",
+        "Halfling",
+        "Human",
+        "Dhampir",
+        "Hexblood",
+        "Orc",
+        "Reborn",
+        "Tiefling",
+      ];
 
       function resolveWeaponName(name) {
         if (weaponByName.has(name)) return name;
@@ -879,6 +1035,25 @@
       function getDamageDie(damage) {
         if (!damage) return "";
         return damage.split(" ")[0];
+      }
+
+      function getVersatileDie(properties) {
+        if (!properties) return "";
+        const match = properties.match(/Versatile\s*\\(([^)]+)\\)/i);
+        if (!match) return "";
+        return match[1].trim();
+      }
+
+      function isVersatileWeapon(weapon) {
+        return Boolean(weapon?.properties && weapon.properties.includes("Versatile"));
+      }
+
+      function getWeaponDamageDie(weapon, useTwoHands) {
+        if (!weapon) return "";
+        if (useTwoHands && isVersatileWeapon(weapon)) {
+          return getVersatileDie(weapon.properties) || getDamageDie(weapon.damage);
+        }
+        return getDamageDie(weapon.damage);
       }
 
       function getWeaponAttackAbility(weapon) {
@@ -960,28 +1135,68 @@
       function renderEquipment() {
         if (!equipmentListEl) return;
         equipmentListEl.innerHTML = "";
-        equipmentItems.forEach((name) => {
-          const weapon = getWeaponData(name);
-          const displayName = weapon?.name || name;
+        equipmentItems.forEach((item) => {
+          const weapon = getWeaponData(item.name);
+          const displayName = weapon?.name || item.name;
           const row = document.createElement("div");
           row.className = "equipment-item";
+          if (displayName === activeWeaponName) {
+            row.classList.add("active");
+          }
           const label = document.createElement("div");
           label.textContent = displayName;
           label.style.cursor = "pointer";
           label.addEventListener("click", () => {
+            activeWeaponName = displayName;
+            updateActiveWeaponLabel();
+            renderEquipment();
             openItemPanel(displayName);
           });
           row.appendChild(label);
-          const dice = getDamageDie(weapon?.damage);
+          if (item.id === equippedMainId || item.id === equippedOffhandId) {
+            const badge = document.createElement("span");
+            badge.className = "equip-badge";
+            badge.textContent = item.id === equippedMainId ? "Main" : "Offhand";
+            row.appendChild(badge);
+          }
+          const useTwoHands =
+            item.id === equippedMainId && equippedMainTwoHanded && isVersatileWeapon(weapon);
+          const dice = getWeaponDamageDie(weapon, useTwoHands);
           if (dice) {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "equipment-dmg";
             btn.textContent = dice;
             btn.addEventListener("click", () => {
-              const ability = getWeaponAttackAbility(weapon);
-              const labelText = `${displayName} Damage (${dice})`;
-              rollDamage(dice, labelText, ability);
+              const isEquipped = item.id === equippedMainId || item.id === equippedOffhandId;
+              if (!isEquipped) {
+                setEquipStatus("Equip this weapon before rolling damage.");
+                return;
+              }
+              if (equippedMainTwoHanded && item.id !== equippedMainId) {
+                setEquipStatus("You can't use an offhand weapon while using two hands.");
+                return;
+              }
+              const currentWeapon = getWeaponData(item.name);
+              const currentUseTwoHands =
+                item.id === equippedMainId &&
+                equippedMainTwoHanded &&
+                isVersatileWeapon(currentWeapon);
+              if (equippedMainTwoHanded && item.id === equippedMainId) {
+                const isValidTwoHand =
+                  isVersatileWeapon(currentWeapon) || currentWeapon?.properties.includes("Two-Handed");
+                if (!isValidTwoHand) {
+                  setEquipStatus("This weapon can't be used with two hands.");
+                  return;
+                }
+              }
+              const currentDice = getWeaponDamageDie(currentWeapon, currentUseTwoHands);
+              activeWeaponName = displayName;
+              updateActiveWeaponLabel();
+              renderEquipment();
+              const ability = getWeaponAttackAbility(currentWeapon);
+              const labelText = `${displayName} Damage (${currentDice})`;
+              rollDamage(currentDice, labelText, ability);
             });
             row.appendChild(btn);
           } else {
@@ -989,27 +1204,379 @@
             spacer.textContent = "";
             row.appendChild(spacer);
           }
+          const equipBtn = document.createElement("button");
+          equipBtn.type = "button";
+          equipBtn.className = "equip-btn";
+          const isEquipped = item.id === equippedMainId || item.id === equippedOffhandId;
+          if (isEquipped) {
+            equipBtn.classList.add("equipped");
+          }
+          equipBtn.textContent = isEquipped ? "Unequip" : "Equip";
+          equipBtn.addEventListener("click", () => {
+            handleEquipToggle(item);
+          });
+          row.appendChild(equipBtn);
+          if (isVersatileWeapon(weapon)) {
+            const twoHandBtn = document.createElement("button");
+            twoHandBtn.type = "button";
+            twoHandBtn.className = "twohand-btn";
+            const isActive = item.id === equippedMainId && equippedMainTwoHanded;
+            if (isActive) {
+              twoHandBtn.classList.add("active");
+            }
+            twoHandBtn.textContent = "Two Hands";
+            twoHandBtn.disabled = item.id !== equippedMainId;
+            twoHandBtn.addEventListener("click", () => {
+              handleTwoHandToggle(item);
+            });
+            row.appendChild(twoHandBtn);
+          }
           equipmentListEl.appendChild(row);
         });
       }
 
-      function initEquipmentWeapons() {
-        if (!equipmentSelect) return;
-        weaponList.forEach((name) => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          equipmentSelect.appendChild(opt);
+      function updateActiveWeaponLabel() {
+        if (!activeWeaponLabel) return;
+        const mainItem = equipmentItems.find((item) => item.id === equippedMainId);
+        if (mainItem) {
+          activeWeaponLabel.textContent = `Equipped: ${mainItem.name}${equippedMainTwoHanded ? " (Two Hands)" : ""}`;
+          updateAttackRollLabel();
+          return;
+        }
+        activeWeaponLabel.textContent = activeWeaponName
+          ? `Active: ${activeWeaponName}`
+          : "No weapon selected";
+        updateAttackRollLabel();
+      }
+
+      function updateAttackRollLabel() {
+        if (!attackRollBtn) return;
+        const mainItem = getEquippedWeaponById(equippedMainId);
+        const weaponName = mainItem?.name || activeWeaponName;
+        const weapon = weaponName ? getWeaponData(weaponName) : null;
+        if (!weapon) {
+          attackRollBtn.textContent = "Hit";
+          return;
+        }
+        const useTwoHands =
+          mainItem && mainItem.id === equippedMainId && equippedMainTwoHanded && isVersatileWeapon(weapon);
+        const dice = getWeaponDamageDie(weapon, useTwoHands);
+        attackRollBtn.textContent = dice ? `Hit (${dice})` : "Hit";
+      }
+
+      function setEquipStatus(message = "") {
+        if (!equipStatusEl) return;
+        equipStatusEl.textContent = message;
+      }
+
+      function setPickerOpen(isOpen) {
+        if (!weaponPicker) return;
+        weaponPicker.classList.toggle("open", isOpen);
+        weaponPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        if (isOpen) {
+          pickerSelected = "";
+          if (weaponPickerAdd) {
+            weaponPickerAdd.disabled = true;
+          }
+        }
+      }
+
+      function setRacePickerOpen(isOpen) {
+        if (!racePicker) return;
+        racePicker.classList.toggle("open", isOpen);
+        racePicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        if (isOpen) {
+          raceSelected = "";
+          if (racePickerAdd) {
+            racePickerAdd.disabled = true;
+          }
+        }
+      }
+
+      function createEquipmentItem(name) {
+        return {
+          id: `w_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          name,
+        };
+      }
+
+      function normalizeEquipmentItems(items) {
+        if (!Array.isArray(items)) return [];
+        if (items.length === 0) return [];
+        if (typeof items[0] === "string") {
+          return items.map((name) => createEquipmentItem(name));
+        }
+        return items.map((item) => ({
+          id: item.id || createEquipmentItem(item.name || "Weapon").id,
+          name: item.name || "Weapon",
+        }));
+      }
+
+      function getEquippedWeaponById(id) {
+        return equipmentItems.find((item) => item.id === id) || null;
+      }
+
+      function handleEquipToggle(item) {
+        const weapon = getWeaponData(item.name);
+        if (!weapon) return;
+        const isTwoHanded = weapon.properties.includes("Two-Handed");
+        const isEquippedMain = item.id === equippedMainId;
+        const isEquippedOff = item.id === equippedOffhandId;
+
+        if (isEquippedMain || isEquippedOff) {
+          if (isEquippedMain) {
+            equippedMainId = "";
+            equippedMainTwoHanded = false;
+          } else {
+            equippedOffhandId = "";
+          }
+          setEquipStatus("");
+          renderEquipment();
+          updateActiveWeaponLabel();
+          scheduleSave();
+          return;
+        }
+
+        if (isTwoHanded) {
+          if (equippedMainId || equippedOffhandId) {
+            setEquipStatus("Two-handed weapons require both hands.");
+            return;
+          }
+          equippedMainId = item.id;
+          equippedOffhandId = "";
+          equippedMainTwoHanded = true;
+          activeWeaponName = item.name;
+          setEquipStatus("");
+          renderEquipment();
+          updateActiveWeaponLabel();
+          scheduleSave();
+          return;
+        }
+
+        if (!equippedMainId) {
+          equippedMainId = item.id;
+          equippedMainTwoHanded = false;
+          activeWeaponName = item.name;
+          setEquipStatus("");
+          renderEquipment();
+          updateActiveWeaponLabel();
+          scheduleSave();
+          return;
+        }
+
+        if (equippedMainTwoHanded) {
+          setEquipStatus("You can't equip another weapon while using two hands.");
+          return;
+        }
+
+        const mainWeapon = getEquippedWeaponById(equippedMainId);
+        const mainWeaponData = mainWeapon ? getWeaponData(mainWeapon.name) : null;
+        const mainTwoHanded = mainWeaponData?.properties.includes("Two-Handed");
+        if (mainTwoHanded) {
+          setEquipStatus("You can't equip an offhand weapon while a two-handed weapon is equipped.");
+          return;
+        }
+
+        if (!equippedOffhandId) {
+          const mainIsLight = mainWeaponData?.properties.includes("Light");
+          const offIsLight = weapon.properties.includes("Light");
+          if (!mainIsLight || !offIsLight) {
+            setEquipStatus("Offhand requires a Light weapon (unless you have a feature).");
+            return;
+          }
+          equippedOffhandId = item.id;
+          setEquipStatus("");
+          renderEquipment();
+          updateActiveWeaponLabel();
+          scheduleSave();
+          return;
+        }
+
+        setEquipStatus("You already have two weapons equipped.");
+      }
+
+      function handleTwoHandToggle(item) {
+        if (item.id !== equippedMainId) {
+          setEquipStatus("Two Hands only applies to the equipped main weapon.");
+          return;
+        }
+        const weapon = getWeaponData(item.name);
+        if (!weapon || !isVersatileWeapon(weapon)) return;
+        if (equippedOffhandId) {
+          setEquipStatus("You can't use two hands while an offhand weapon is equipped.");
+          return;
+        }
+        equippedMainTwoHanded = !equippedMainTwoHanded;
+        setEquipStatus("");
+        renderEquipment();
+        updateActiveWeaponLabel();
+        scheduleSave();
+      }
+
+      function buildWeaponPickerList(filterText = "") {
+        if (!weaponPickerList) return;
+        const filter = filterText.trim().toLowerCase();
+        weaponPickerList.innerHTML = "";
+
+        const categoryOrder = [
+          "Simple Melee Weapons",
+          "Simple Ranged Weapons",
+          "Martial Melee Weapons",
+          "Martial Ranged Weapons",
+        ];
+
+        categoryOrder.forEach((category) => {
+          const weapons = weaponTable
+            .filter((weapon) => weapon.category === category)
+            .filter((weapon) => weapon.name.toLowerCase().includes(filter))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          if (!weapons.length) return;
+
+          const header = document.createElement("div");
+          header.className = "weapon-category";
+          header.textContent = category;
+          weaponPickerList.appendChild(header);
+
+          const list = document.createElement("div");
+          list.className = "weapon-list";
+          weapons.forEach((weapon) => {
+            const option = document.createElement("div");
+            option.className = "weapon-option";
+            if (weapon.name === pickerSelected) {
+              option.classList.add("selected");
+            }
+            option.addEventListener("click", () => {
+              pickerSelected = weapon.name;
+              if (weaponPickerAdd) {
+                weaponPickerAdd.disabled = false;
+              }
+              buildWeaponPickerList(weaponSearch?.value || "");
+            });
+            const name = document.createElement("strong");
+            name.textContent = weapon.name;
+            const meta = document.createElement("span");
+            meta.textContent = `${weapon.damage} • ${weapon.properties === "—" ? "No properties" : weapon.properties}`;
+            option.appendChild(name);
+            option.appendChild(meta);
+            list.appendChild(option);
+          });
+
+          weaponPickerList.appendChild(list);
         });
+      }
+
+      function buildRacePickerList(filterText = "") {
+        if (!racePickerList) return;
+        const filter = filterText.trim().toLowerCase();
+        racePickerList.innerHTML = "";
+
+        const races = raceList
+          .filter((race) => race.toLowerCase().includes(filter))
+          .sort((a, b) => a.localeCompare(b));
+
+        const list = document.createElement("div");
+        list.className = "weapon-list";
+        races.forEach((race) => {
+          const option = document.createElement("div");
+          option.className = "weapon-option";
+          if (race === raceSelected) {
+            option.classList.add("selected");
+          }
+          option.addEventListener("click", () => {
+            raceSelected = race;
+            if (racePickerAdd) {
+              racePickerAdd.disabled = false;
+            }
+            buildRacePickerList(raceSearch?.value || "");
+          });
+          const name = document.createElement("strong");
+          name.textContent = race;
+          option.appendChild(name);
+          list.appendChild(option);
+        });
+
+        racePickerList.appendChild(list);
+      }
+
+      function initEquipmentWeapons() {
         if (addWeaponBtn) {
           addWeaponBtn.addEventListener("click", () => {
-            const value = equipmentSelect.value;
-            if (!value) return;
-            equipmentItems = [...equipmentItems, value];
-            renderEquipment();
-            scheduleSave();
+            setPickerOpen(true);
+            buildWeaponPickerList(weaponSearch?.value || "");
           });
         }
+        if (weaponSearch) {
+          weaponSearch.addEventListener("input", () => {
+            buildWeaponPickerList(weaponSearch.value);
+          });
+        }
+        if (weaponPickerAdd) {
+          weaponPickerAdd.addEventListener("click", () => {
+            if (!pickerSelected) return;
+            equipmentItems = [...equipmentItems, createEquipmentItem(pickerSelected)];
+            activeWeaponName = pickerSelected;
+            updateActiveWeaponLabel();
+            renderEquipment();
+            scheduleSave();
+            setPickerOpen(false);
+          });
+        }
+        if (weaponPickerClose) {
+          weaponPickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setPickerOpen(false);
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setPickerOpen(false);
+          }
+        });
+        buildWeaponPickerList("");
+        updateActiveWeaponLabel();
+      }
+
+      function initRacePicker() {
+        if (raceInput) {
+          const openPicker = () => {
+            setRacePickerOpen(true);
+            if (raceInput.value && raceList.includes(raceInput.value)) {
+              raceSelected = raceInput.value;
+              if (racePickerAdd) {
+                racePickerAdd.disabled = false;
+              }
+            }
+            buildRacePickerList(raceSearch?.value || "");
+          };
+          raceInput.addEventListener("click", openPicker);
+          raceInput.addEventListener("focus", openPicker);
+        }
+        if (raceSearch) {
+          raceSearch.addEventListener("input", () => {
+            buildRacePickerList(raceSearch.value);
+          });
+        }
+        if (racePickerAdd) {
+          racePickerAdd.addEventListener("click", () => {
+            if (!raceSelected || !raceInput) return;
+            raceInput.value = raceSelected;
+            scheduleSave();
+            setRacePickerOpen(false);
+          });
+        }
+        if (racePickerClose) {
+          racePickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setRacePickerOpen(false);
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setRacePickerOpen(false);
+          }
+        });
+        buildRacePickerList("");
       }
 
       function scheduleSave() {
@@ -1021,6 +1588,9 @@
             payload[el.id] = getFieldValue(el);
           }
           payload.equipmentItems = equipmentItems.slice();
+          payload.equippedMainId = equippedMainId;
+          payload.equippedOffhandId = equippedOffhandId;
+          payload.equippedMainTwoHanded = equippedMainTwoHanded;
           try {
             await setDoc(sheetRef, payload, { merge: true });
         } catch (error) {
@@ -1091,7 +1661,29 @@
           applyFieldValue(el, data[el.id]);
         });
         if (Array.isArray(data.equipmentItems)) {
-          equipmentItems = data.equipmentItems.slice();
+          equipmentItems = normalizeEquipmentItems(data.equipmentItems);
+          equippedMainId = data.equippedMainId || "";
+          equippedOffhandId = data.equippedOffhandId || "";
+          equippedMainTwoHanded = Boolean(data.equippedMainTwoHanded);
+          if (!equipmentItems.some((item) => item.id === equippedMainId)) {
+            equippedMainId = "";
+          }
+          if (!equipmentItems.some((item) => item.id === equippedOffhandId)) {
+            equippedOffhandId = "";
+          }
+          if (!equippedMainId) {
+            equippedMainTwoHanded = false;
+          } else {
+            const mainItem = getEquippedWeaponById(equippedMainId);
+            const mainWeapon = mainItem ? getWeaponData(mainItem.name) : null;
+            if (!isVersatileWeapon(mainWeapon)) {
+              equippedMainTwoHanded = Boolean(mainWeapon?.properties.includes("Two-Handed"));
+            }
+          }
+          if (!equipmentItems.some((item) => item.name === activeWeaponName)) {
+            activeWeaponName = equipmentItems[0]?.name || "";
+          }
+          updateActiveWeaponLabel();
           renderEquipment();
         }
         recalcDerived();
@@ -1109,6 +1701,7 @@
       );
       recalcDerived();
       initEquipmentWeapons();
+      initRacePicker();
       renderEquipment();
 
       rollBtn.addEventListener("click", async () => {
@@ -1215,22 +1808,13 @@
 
       function setupAttackRoll() {
         if (!attackRollBtn) return;
-        attackRollBtn.addEventListener("click", () => {
-          const weaponName = equipmentSelect?.value;
-          const weapon = getWeaponData(weaponName);
-          const ability = getWeaponAttackAbility(weapon);
-          const abilityKey =
-            ability === "finesse"
-              ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
-              : ability;
-          const modValue = toNumber(abilityMods[abilityKey]?.value);
-          const label = weapon?.name ? `${weapon.name} Attack` : "Attack Roll";
-          const parts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: modValue }];
-          if (attackProfEl?.checked) {
-            const prof = toNumber(proficiencyBonusEl?.value);
-            parts.push({ label: "Proficiency", value: prof });
+        attackRollBtn.addEventListener("click", (event) => {
+          event.preventDefault();
+          try {
+            rollD20WithParts([], "Hit Roll");
+          } catch (error) {
+            console.error("Failed to roll attack", error);
           }
-          rollD20WithParts(parts, label);
         });
       }
 
@@ -1238,7 +1822,12 @@
         if (!itemPanel || !itemPanelTitle || !itemPanelBody) return;
         const weapon = getWeaponData(name);
         if (!weapon) return;
-        const [dice, ...typeParts] = (weapon.damage || "").split(" ");
+        const useTwoHands =
+          weapon.name === getEquippedWeaponById(equippedMainId)?.name && equippedMainTwoHanded;
+        const damageValue = useTwoHands
+          ? `${getWeaponDamageDie(weapon, true)} ${weapon.damage.split(" ").slice(1).join(" ")}`
+          : weapon.damage;
+        const [dice, ...typeParts] = (damageValue || "").split(" ");
         const damageType = typeParts.join(" ");
         const ability = getWeaponAttackAbility(weapon);
         const abilityLabel =
