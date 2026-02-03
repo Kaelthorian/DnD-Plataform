@@ -66,7 +66,7 @@
         position: relative;
         border: 2px solid var(--line);
         border-radius: 14px;
-        padding: 12px;
+        padding: 10px;
         background: #fff;
       }
       .panel-label {
@@ -87,10 +87,14 @@
         width: 100%;
         border: 1px solid #cdbba8;
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 6px 8px;
         font-family: inherit;
         font-size: 0.98rem;
         background: #fff;
+      }
+      .panel input[readonly] {
+        background: #f6f1e8;
+        color: #4b3a2f;
       }
       textarea {
         min-height: 110px;
@@ -103,9 +107,11 @@
       .ability {
         border: 2px solid var(--line);
         border-radius: 16px;
-        padding: 10px;
+        padding: 8px;
         background: #fff;
         text-align: center;
+        width: 180px;
+        margin: 0 auto;
       }
       .ability h3 {
         margin: 0 0 8px;
@@ -115,12 +121,25 @@
       }
       .ability .ability-row {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        grid-template-rows: auto auto;
+        gap: 6px;
+        justify-items: center;
       }
       .ability input {
         text-align: center;
         font-size: 1.05rem;
+      }
+      .ability input[type="number"] {
+        width: 64px;
+      }
+      .ability input[readonly] {
+        width: 40px;
+      }
+      .rollable {
+        cursor: pointer;
+      }
+      .rollable:hover {
+        text-decoration: underline;
       }
       .list {
         display: grid;
@@ -134,9 +153,9 @@
       }
       .list-item input[type="number"],
       .list-item input[type="text"] {
-        width: 70px;
+        width: 58px;
         text-align: center;
-        padding: 6px 4px;
+        padding: 4px 4px;
       }
       .stats-grid {
         display: grid;
@@ -152,11 +171,35 @@
       }
       }
       .dice-panel {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        width: min(320px, 90vw);
+        z-index: 999;
         background: #fff;
         border: 2px solid var(--line);
         border-radius: 16px;
         padding: 16px;
         box-shadow: 0 12px 24px rgba(43, 31, 23, 0.15);
+      }
+      .sticky-roll {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 1000;
+        padding: 10px 14px;
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        font-size: 0.95rem;
+        box-shadow: 0 10px 20px rgba(43, 31, 23, 0.15);
+      }
+      .sticky-roll-title {
+        margin: 0 0 8px;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
       }
       .dice-title {
         margin: 0 0 12px;
@@ -178,12 +221,72 @@
       #roll-result {
         margin-top: 10px;
         font-size: 1rem;
+        display: grid;
+        gap: 6px;
+      }
+      .roll-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .roll-total {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid #cdbba8;
+        font-weight: 700;
+        text-align: right;
       }
       .actions {
         display: flex;
         gap: 12px;
         align-items: center;
         flex-wrap: wrap;
+      }
+      .actions select,
+      .actions button {
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 2px solid var(--line);
+        font-family: inherit;
+        background: #fff;
+      }
+      #add-weapon {
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+      #attack-roll {
+        background: #2f3a4a;
+        color: #fff;
+        cursor: pointer;
+      }
+      .hit-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      #equipment-list {
+        display: grid;
+        gap: 6px;
+      }
+      .equipment-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .equipment-dmg {
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        background: #f6f1e8;
+        cursor: pointer;
       }
       @media (max-width: 960px) {
         .layout {
@@ -197,6 +300,11 @@
         }
         .stats-grid {
           grid-template-columns: 1fr;
+        }
+        .dice-panel {
+          left: 12px;
+          bottom: 12px;
+          width: min(360px, 94vw);
         }
       }
     </style>
@@ -212,8 +320,12 @@
               <input id="character-name" type="text" />
             </div>
             <div class="panel">
-              <div class="panel-label">Class & Level</div>
+              <div class="panel-label">Class</div>
               <input id="class-level" type="text" />
+            </div>
+            <div class="panel">
+              <div class="panel-label">Level</div>
+              <input id="level" type="number" min="1" max="20" />
             </div>
             <div class="panel">
               <div class="panel-label">Background</div>
@@ -232,7 +344,7 @@
               <input id="alignment" type="text" />
             </div>
             <div class="panel">
-              <div class="panel-label">Experience Points</div>
+              <div class="panel-label">EXP</div>
               <input id="xp" type="number" min="0" />
             </div>
             <div class="panel">
@@ -241,53 +353,53 @@
             </div>
             <div class="panel">
               <div class="panel-label">Proficiency Bonus</div>
-              <input id="proficiency-bonus" type="text" />
+              <input id="proficiency-bonus" type="text" readonly />
             </div>
           </div>
 
           <div class="sheet-grid">
             <div class="section-stack">
               <div class="abilities">
-                <div class="ability">
+                <div class="ability" data-ability="str">
                   <h3>Strength</h3>
                   <div class="ability-row">
                     <input id="str-score" type="number" min="1" max="30" placeholder="Score" />
-                    <input id="str-mod" type="text" placeholder="Mod" />
+                    <input id="str-mod" type="text" placeholder="Mod" readonly />
                   </div>
                 </div>
-                <div class="ability">
+                <div class="ability" data-ability="dex">
                   <h3>Dexterity</h3>
                   <div class="ability-row">
                     <input id="dex-score" type="number" min="1" max="30" placeholder="Score" />
-                    <input id="dex-mod" type="text" placeholder="Mod" />
+                    <input id="dex-mod" type="text" placeholder="Mod" readonly />
                   </div>
                 </div>
-                <div class="ability">
+                <div class="ability" data-ability="con">
                   <h3>Constitution</h3>
                   <div class="ability-row">
                     <input id="con-score" type="number" min="1" max="30" placeholder="Score" />
-                    <input id="con-mod" type="text" placeholder="Mod" />
+                    <input id="con-mod" type="text" placeholder="Mod" readonly />
                   </div>
                 </div>
-                <div class="ability">
+                <div class="ability" data-ability="int">
                   <h3>Intelligence</h3>
                   <div class="ability-row">
                     <input id="int-score" type="number" min="1" max="30" placeholder="Score" />
-                    <input id="int-mod" type="text" placeholder="Mod" />
+                    <input id="int-mod" type="text" placeholder="Mod" readonly />
                   </div>
                 </div>
-                <div class="ability">
+                <div class="ability" data-ability="wis">
                   <h3>Wisdom</h3>
                   <div class="ability-row">
                     <input id="wis-score" type="number" min="1" max="30" placeholder="Score" />
-                    <input id="wis-mod" type="text" placeholder="Mod" />
+                    <input id="wis-mod" type="text" placeholder="Mod" readonly />
                   </div>
                 </div>
-                <div class="ability">
+                <div class="ability" data-ability="cha">
                   <h3>Charisma</h3>
                   <div class="ability-row">
                     <input id="cha-score" type="number" min="1" max="30" placeholder="Score" />
-                    <input id="cha-mod" type="text" placeholder="Mod" />
+                    <input id="cha-mod" type="text" placeholder="Mod" readonly />
                   </div>
                 </div>
               </div>
@@ -295,42 +407,42 @@
               <div class="panel">
                 <div class="panel-label">Saving Throws</div>
                 <div class="list">
-                  <div class="list-item"><input type="checkbox" /><span>Strength</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Dexterity</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Constitution</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Intelligence</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Wisdom</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Charisma</span><input type="text" /></div>
+                  <div class="list-item" data-ability="str"><input id="save-str-prof" type="checkbox" /><span>Strength</span><input class="save-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="dex"><input id="save-dex-prof" type="checkbox" /><span>Dexterity</span><input class="save-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="con"><input id="save-con-prof" type="checkbox" /><span>Constitution</span><input class="save-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="int"><input id="save-int-prof" type="checkbox" /><span>Intelligence</span><input class="save-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="wis"><input id="save-wis-prof" type="checkbox" /><span>Wisdom</span><input class="save-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="cha"><input id="save-cha-prof" type="checkbox" /><span>Charisma</span><input class="save-value" type="text" readonly /></div>
                 </div>
               </div>
 
               <div class="panel">
                 <div class="panel-label">Skills</div>
                 <div class="list">
-                  <div class="list-item"><input type="checkbox" /><span>Acrobatics (Dex)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Animal Handling (Wis)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Arcana (Int)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Athletics (Str)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Deception (Cha)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>History (Int)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Insight (Wis)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Intimidation (Cha)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Investigation (Int)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Medicine (Wis)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Nature (Int)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Perception (Wis)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Performance (Cha)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Persuasion (Cha)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Religion (Int)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Sleight of Hand (Dex)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Stealth (Dex)</span><input type="text" /></div>
-                  <div class="list-item"><input type="checkbox" /><span>Survival (Wis)</span><input type="text" /></div>
+                  <div class="list-item" data-ability="dex"><input id="skill-acrobatics-prof" type="checkbox" /><span>Acrobatics (Dex)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-animal-handling-prof" type="checkbox" /><span>Animal Handling (Wis)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="int"><input id="skill-arcana-prof" type="checkbox" /><span>Arcana (Int)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="str"><input id="skill-athletics-prof" type="checkbox" /><span>Athletics (Str)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-deception-prof" type="checkbox" /><span>Deception (Cha)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="int"><input id="skill-history-prof" type="checkbox" /><span>History (Int)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-insight-prof" type="checkbox" /><span>Insight (Wis)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-intimidation-prof" type="checkbox" /><span>Intimidation (Cha)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="int"><input id="skill-investigation-prof" type="checkbox" /><span>Investigation (Int)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-medicine-prof" type="checkbox" /><span>Medicine (Wis)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="int"><input id="skill-nature-prof" type="checkbox" /><span>Nature (Int)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-perception-prof" type="checkbox" /><span>Perception (Wis)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-performance-prof" type="checkbox" /><span>Performance (Cha)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-persuasion-prof" type="checkbox" /><span>Persuasion (Cha)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="int"><input id="skill-religion-prof" type="checkbox" /><span>Religion (Int)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="dex"><input id="skill-sleight-of-hand-prof" type="checkbox" /><span>Sleight of Hand (Dex)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="dex"><input id="skill-stealth-prof" type="checkbox" /><span>Stealth (Dex)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-survival-prof" type="checkbox" /><span>Survival (Wis)</span><input class="skill-value" type="text" readonly /></div>
                 </div>
               </div>
 
               <div class="panel">
                 <div class="panel-label">Passive Wisdom (Perception)</div>
-                <input id="passive-perception" class="small-input" type="number" min="0" />
+                <input id="passive-perception" class="small-input" type="number" min="0" readonly />
               </div>
             </div>
 
@@ -377,9 +489,18 @@
               </div>
 
               <div class="panel">
-                <div class="panel-label">Equipment</div>
-                <textarea id="equipment"></textarea>
+              <div class="panel-label">Equipment</div>
+              <div class="actions" style="margin-bottom: 8px;">
+                <select id="equipment-weapon" data-nosave="true"></select>
+                <button id="attack-roll" type="button">Hit</button>
+                <label class="hit-option">
+                  <input id="attack-prof" type="checkbox" data-nosave="true" checked />
+                  Proficient
+                </label>
+                <button id="add-weapon" type="button">Add Weapon</button>
               </div>
+              <div id="equipment-list"></div>
+            </div>
             </div>
 
             <div class="section-stack">
@@ -410,16 +531,12 @@
             </div>
           </div>
         </section>
-
-        <aside class="dice-panel">
-          <h2 class="dice-title">Live Rolls</h2>
-          <div class="actions">
-            <button id="roll-btn" type="button">Roll d20</button>
-          </div>
-          <div id="roll-result" aria-live="polite" style="margin-top: 12px;"></div>
-        </aside>
       </div>
     </div>
+    <aside class="sticky-roll" aria-live="polite">
+      <div class="sticky-roll-title">Dice Roll</div>
+      <div id="roll-result">No rolls yet.</div>
+    </aside>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -451,10 +568,56 @@
       const resultEl = document.getElementById("roll-result");
       const rollBtn = document.getElementById("roll-btn");
       const fieldEls = Array.from(
-        document.querySelectorAll("input[id], textarea[id], select[id]")
+        document.querySelectorAll(
+          "input[id]:not([data-nosave]), textarea[id]:not([data-nosave]), select[id]:not([data-nosave])"
+        )
       );
+      const abilityScores = {
+        str: document.getElementById("str-score"),
+        dex: document.getElementById("dex-score"),
+        con: document.getElementById("con-score"),
+        int: document.getElementById("int-score"),
+        wis: document.getElementById("wis-score"),
+        cha: document.getElementById("cha-score"),
+      };
+      const abilityMods = {
+        str: document.getElementById("str-mod"),
+        dex: document.getElementById("dex-mod"),
+        con: document.getElementById("con-mod"),
+        int: document.getElementById("int-mod"),
+        wis: document.getElementById("wis-mod"),
+        cha: document.getElementById("cha-mod"),
+      };
+      const proficiencyBonusEl = document.getElementById("proficiency-bonus");
+      const levelEl = document.getElementById("level");
+      const passivePerceptionEl = document.getElementById("passive-perception");
+      const saveRows = Array.from(document.querySelectorAll(".list-item[data-ability]"))
+        .filter((row) => row.querySelector(".save-value"));
+      const skillRows = Array.from(document.querySelectorAll(".list-item[data-ability]"))
+        .filter((row) => row.querySelector(".skill-value"));
+      const equipmentSelect = document.getElementById("equipment-weapon");
+      const attackRollBtn = document.getElementById("attack-roll");
+      const attackProfEl = document.getElementById("attack-prof");
+      const addWeaponBtn = document.getElementById("add-weapon");
+      const equipmentListEl = document.getElementById("equipment-list");
+      let equipmentItems = [];
       let isRemoteUpdate = false;
       let saveTimer = null;
+
+      function toNumber(value) {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : 0;
+      }
+
+      function formatMod(num) {
+        if (!Number.isFinite(num)) return "";
+        return num >= 0 ? `+${num}` : `${num}`;
+      }
+
+      function computeAbilityMod(score) {
+        if (!Number.isFinite(score)) return 0;
+        return Math.floor((score - 10) / 2);
+      }
 
       function getFieldValue(el) {
         if (el.type === "checkbox") {
@@ -472,6 +635,273 @@
         el.value = value;
       }
 
+      const proficiencyByLevel = [
+        2, 2, 2, 2,
+        3, 3, 3, 3,
+        4, 4, 4, 4,
+        5, 5, 5, 5,
+        6, 6, 6, 6,
+      ];
+
+      function recalcDerived() {
+        const levelRaw = toNumber(levelEl?.value);
+        const level = Math.min(Math.max(levelRaw || 1, 1), 20);
+        const profBonus = proficiencyByLevel[level - 1] ?? 2;
+        if (proficiencyBonusEl) {
+          proficiencyBonusEl.value = formatMod(profBonus);
+        }
+        const mods = {};
+        Object.entries(abilityScores).forEach(([ability, scoreEl]) => {
+          const score = toNumber(scoreEl?.value);
+          const mod = computeAbilityMod(score);
+          mods[ability] = mod;
+          if (abilityMods[ability]) {
+            abilityMods[ability].value = formatMod(mod);
+          }
+        });
+
+        saveRows.forEach((row) => {
+          const ability = row.dataset.ability;
+          const checkbox = row.querySelector("input[type='checkbox']");
+          const valueEl = row.querySelector(".save-value");
+          const base = mods[ability] ?? 0;
+          const total = base + (checkbox?.checked ? profBonus : 0);
+          valueEl.value = formatMod(total);
+        });
+
+        skillRows.forEach((row) => {
+          const ability = row.dataset.ability;
+          const checkbox = row.querySelector("input[type='checkbox']");
+          const valueEl = row.querySelector(".skill-value");
+          const base = mods[ability] ?? 0;
+          const total = base + (checkbox?.checked ? profBonus : 0);
+          valueEl.value = formatMod(total);
+        });
+
+        if (passivePerceptionEl) {
+          const perceptionRow = skillRows.find(
+            (row) => row.textContent && row.textContent.includes("Perception")
+          );
+          const perceptionValueEl = perceptionRow?.querySelector(".skill-value");
+          const perceptionMod = toNumber(perceptionValueEl?.value);
+          passivePerceptionEl.value = String(10 + perceptionMod);
+        }
+
+        if (!isRemoteUpdate) {
+          scheduleSave();
+        }
+      }
+
+      const weaponList = [
+        "Club",
+        "Dagger",
+        "Greatclub",
+        "Handaxe",
+        "Javelin",
+        "Light Hammer",
+        "Mace",
+        "Quarterstaff",
+        "Sickle",
+        "Spear",
+        "Unarmed Strike",
+        "Crossbow, Light",
+        "Dart",
+        "Shortbow",
+        "Sling",
+        "Battleaxe",
+        "Flail",
+        "Glaive",
+        "Greataxe",
+        "Greatsword",
+        "Halberd",
+        "Lance",
+        "Longsword",
+        "Maul",
+        "Morningstar",
+        "Pike",
+        "Rapier",
+        "Scimitar",
+        "Shortsword",
+        "Trident",
+        "War Pick",
+        "Warhammer",
+        "Whip",
+        "Blowgun",
+        "Crossbow, Hand",
+        "Crossbow, Heavy",
+        "Longbow",
+        "Net",
+      ];
+      const weaponDamage = {
+        "Club": "1d4",
+        "Dagger": "1d4",
+        "Greatclub": "1d8",
+        "Handaxe": "1d6",
+        "Javelin": "1d6",
+        "Light Hammer": "1d4",
+        "Mace": "1d6",
+        "Quarterstaff": "1d6",
+        "Sickle": "1d4",
+        "Spear": "1d6",
+        "Unarmed Strike": "1",
+        "Crossbow, Light": "1d8",
+        "Dart": "1d4",
+        "Shortbow": "1d6",
+        "Sling": "1d4",
+        "Battleaxe": "1d8",
+        "Flail": "1d8",
+        "Glaive": "1d10",
+        "Greataxe": "1d12",
+        "Greatsword": "2d6",
+        "Halberd": "1d10",
+        "Lance": "1d12",
+        "Longsword": "1d8",
+        "Maul": "2d6",
+        "Morningstar": "1d8",
+        "Pike": "1d10",
+        "Rapier": "1d8",
+        "Scimitar": "1d6",
+        "Shortsword": "1d6",
+        "Trident": "1d6",
+        "War Pick": "1d8",
+        "Warhammer": "1d8",
+        "Whip": "1d4",
+        "Blowgun": "1",
+        "Crossbow, Hand": "1d6",
+        "Crossbow, Heavy": "1d10",
+        "Longbow": "1d8",
+        "Net": "",
+      };
+      const weaponAbility = {
+        "Club": "str",
+        "Dagger": "finesse",
+        "Greatclub": "str",
+        "Handaxe": "str",
+        "Javelin": "str",
+        "Light Hammer": "str",
+        "Mace": "str",
+        "Quarterstaff": "str",
+        "Sickle": "str",
+        "Spear": "str",
+        "Unarmed Strike": "str",
+        "Crossbow, Light": "dex",
+        "Dart": "finesse",
+        "Shortbow": "dex",
+        "Sling": "dex",
+        "Battleaxe": "str",
+        "Flail": "str",
+        "Glaive": "str",
+        "Greataxe": "str",
+        "Greatsword": "str",
+        "Halberd": "str",
+        "Lance": "str",
+        "Longsword": "str",
+        "Maul": "str",
+        "Morningstar": "str",
+        "Pike": "str",
+        "Rapier": "finesse",
+        "Scimitar": "finesse",
+        "Shortsword": "finesse",
+        "Trident": "str",
+        "War Pick": "str",
+        "Warhammer": "str",
+        "Whip": "finesse",
+        "Blowgun": "dex",
+        "Crossbow, Hand": "dex",
+        "Crossbow, Heavy": "dex",
+        "Longbow": "dex",
+        "Net": "dex",
+      };
+
+      function rollDiceDetailed(dice) {
+        if (!dice) return 0;
+        if (/^\d+$/.test(dice)) {
+          const value = Number(dice);
+          return { total: value, rolls: [value] };
+        }
+        const match = dice.match(/(\d+)d(\d+)/i);
+        if (!match) return { total: 0, rolls: [] };
+        const count = Number(match[1]);
+        const sides = Number(match[2]);
+        let total = 0;
+        const rolls = [];
+        for (let i = 0; i < count; i += 1) {
+          const roll = Math.floor(Math.random() * sides) + 1;
+          rolls.push(roll);
+          total += roll;
+        }
+        return { total, rolls };
+      }
+
+      function rollDamage(dice, label, ability) {
+        const detail = rollDiceDetailed(dice);
+        const abilityKey = ability === "finesse"
+          ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
+          : ability || "str";
+        const modValue = toNumber(abilityMods[abilityKey]?.value);
+        const total = detail.total + modValue;
+        resultEl.textContent = `Rolling... (${detail.total})`;
+        return setDoc(rollRef, {
+          roll: detail.total,
+          mod: modValue,
+          value: total,
+          label,
+          parts: [
+            { label: dice, value: detail.total, detail: detail.rolls.join("+") },
+            { label: `${abilityKey.toUpperCase()} Mod`, value: modValue },
+          ],
+          by: "anonymous",
+          at: serverTimestamp(),
+        });
+      }
+
+      function renderEquipment() {
+        if (!equipmentListEl) return;
+        equipmentListEl.innerHTML = "";
+        equipmentItems.forEach((name) => {
+          const row = document.createElement("div");
+          row.className = "equipment-item";
+          const label = document.createElement("div");
+          label.textContent = name;
+          row.appendChild(label);
+          const dice = weaponDamage[name] || "";
+          if (dice) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "equipment-dmg";
+            btn.textContent = dice;
+            btn.addEventListener("click", () => {
+              rollDamage(dice, `${name} Damage (${dice})`, weaponAbility[name]);
+            });
+            row.appendChild(btn);
+          } else {
+            const spacer = document.createElement("div");
+            spacer.textContent = "";
+            row.appendChild(spacer);
+          }
+          equipmentListEl.appendChild(row);
+        });
+      }
+
+      function initEquipmentWeapons() {
+        if (!equipmentSelect) return;
+        weaponList.forEach((name) => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          equipmentSelect.appendChild(opt);
+        });
+        if (addWeaponBtn) {
+          addWeaponBtn.addEventListener("click", () => {
+            const value = equipmentSelect.value;
+            if (!value) return;
+            equipmentItems = [...equipmentItems, value];
+            renderEquipment();
+            scheduleSave();
+          });
+        }
+      }
+
       function scheduleSave() {
         if (isRemoteUpdate) return;
         if (saveTimer) clearTimeout(saveTimer);
@@ -480,11 +910,12 @@
           for (const el of fieldEls) {
             payload[el.id] = getFieldValue(el);
           }
+          payload.equipmentItems = equipmentItems.slice();
           try {
             await setDoc(sheetRef, payload, { merge: true });
-          } catch (error) {
-            console.error("Failed to save sheet", error);
-          }
+        } catch (error) {
+          console.error("Failed to save sheet", error);
+        }
         }, 300);
       }
 
@@ -493,11 +924,48 @@
           resultEl.textContent = "No rolls yet.";
           return;
         }
+        resultEl.innerHTML = "";
         const who = data.by || "someone";
         const when = data.at ? new Date(data.at.seconds * 1000) : null;
         const time = when
           ? when.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
           : "now";
+        if (Array.isArray(data.parts)) {
+          const header = document.createElement("div");
+          header.textContent = `${data.label} (by ${who} at ${time})`;
+          resultEl.appendChild(header);
+          data.parts.forEach((part) => {
+            const line = document.createElement("div");
+            line.className = "roll-line";
+            const left = document.createElement("span");
+            const detail = part.detail ? ` (${part.detail})` : "";
+            left.textContent = `${part.label}${detail}`;
+            const right = document.createElement("span");
+            right.textContent = part.value >= 0 ? `+${part.value}` : `${part.value}`;
+            line.appendChild(left);
+            line.appendChild(right);
+            resultEl.appendChild(line);
+          });
+          const total = document.createElement("div");
+          total.className = "roll-total";
+          total.textContent = `Total: ${data.value}`;
+          resultEl.appendChild(total);
+          return;
+        }
+        if (data.roll !== undefined && data.mod !== undefined) {
+          const header = document.createElement("div");
+          header.textContent = `${data.label} (by ${who} at ${time})`;
+          resultEl.appendChild(header);
+          const line = document.createElement("div");
+          line.className = "roll-line";
+          line.textContent = `d20: ${data.roll} ${data.mod >= 0 ? "+" : ""}${data.mod}`;
+          resultEl.appendChild(line);
+          const total = document.createElement("div");
+          total.className = "roll-total";
+          total.textContent = `Total: ${data.value}`;
+          resultEl.appendChild(total);
+          return;
+        }
         resultEl.textContent = `Last roll: ${data.value} (by ${who} at ${time})`;
       }
 
@@ -512,6 +980,11 @@
         fieldEls.forEach((el) => {
           applyFieldValue(el, data[el.id]);
         });
+        if (Array.isArray(data.equipmentItems)) {
+          equipmentItems = data.equipmentItems.slice();
+          renderEquipment();
+        }
+        recalcDerived();
         isRemoteUpdate = false;
       });
 
@@ -519,6 +992,14 @@
         const evt = el.type === "checkbox" ? "change" : "input";
         el.addEventListener(evt, scheduleSave);
       });
+      Object.values(abilityScores).forEach((el) => el?.addEventListener("input", recalcDerived));
+      levelEl?.addEventListener("input", recalcDerived);
+      document.querySelectorAll(".list-item input[type='checkbox']").forEach((el) =>
+        el.addEventListener("change", recalcDerived)
+      );
+      recalcDerived();
+      initEquipmentWeapons();
+      renderEquipment();
 
       rollBtn.addEventListener("click", async () => {
         const value = Math.floor(Math.random() * 20) + 1;
@@ -535,6 +1016,118 @@
         }
       });
 
+      function rollD20WithParts(parts, label) {
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const total = parts.reduce((sum, part) => sum + part.value, roll);
+        const localData = {
+          roll,
+          value: total,
+          label,
+          parts: [
+            { label: "d20", value: roll },
+            ...parts,
+          ],
+          by: "you",
+          at: { seconds: Math.floor(Date.now() / 1000) },
+        };
+        renderRoll(localData);
+        return setDoc(rollRef, {
+          roll,
+          value: total,
+          label,
+          parts: [
+            { label: "d20", value: roll },
+            ...parts,
+          ],
+          by: "anonymous",
+          at: serverTimestamp(),
+        }).catch((error) => {
+          console.error("Failed to save roll", error);
+        });
+      }
+
+      function setupRollables() {
+        function bindKey(el, handler) {
+          el.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handler();
+            }
+          });
+        }
+
+        saveRows.forEach((row) => {
+          const ability = row.dataset.ability;
+          const label = row.querySelector("span");
+          const checkbox = row.querySelector("input[type='checkbox']");
+          const name = label?.textContent || `${ability.toUpperCase()} Save`;
+          if (label) {
+            label.classList.add("rollable");
+            label.setAttribute("role", "button");
+            label.setAttribute("tabindex", "0");
+            const handler = () => {
+              const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
+              const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
+              const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
+              if (checkbox?.checked) {
+                parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
+              }
+              rollD20WithParts(parts, `${name} Save`);
+            };
+            label.addEventListener("click", handler);
+            bindKey(label, handler);
+          }
+        });
+
+        skillRows.forEach((row) => {
+          const ability = row.dataset.ability;
+          const label = row.querySelector("span");
+          const checkbox = row.querySelector("input[type='checkbox']");
+          const name = label?.textContent || "Skill Check";
+          if (label) {
+            label.classList.add("rollable");
+            label.setAttribute("role", "button");
+            label.setAttribute("tabindex", "0");
+            const handler = () => {
+              const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
+              const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
+              const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
+              if (checkbox?.checked) {
+                parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
+              }
+              rollD20WithParts(parts, `${name} Check`);
+            };
+            label.addEventListener("click", handler);
+            bindKey(label, handler);
+          }
+        });
+      }
+
+      function setupAttackRoll() {
+        if (!attackRollBtn) return;
+        attackRollBtn.addEventListener("click", () => {
+          const weaponName = equipmentSelect?.value;
+          const ability =
+            weaponName && weaponAbility[weaponName]
+              ? weaponAbility[weaponName]
+              : "str";
+          const abilityKey =
+            ability === "finesse"
+              ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
+              : ability;
+          const modValue = toNumber(abilityMods[abilityKey]?.value);
+          const label = weaponName ? `${weaponName} Attack` : "Attack Roll";
+          const parts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: modValue }];
+          if (attackProfEl?.checked) {
+            const prof = toNumber(proficiencyBonusEl?.value);
+            parts.push({ label: "Proficiency", value: prof });
+          }
+          rollD20WithParts(parts, label);
+        });
+      }
+
+      setupRollables();
+      setupAttackRoll();
       console.log("Firebase initialized", app.name);
     </script>
   </body>
