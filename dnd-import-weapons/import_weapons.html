@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Import Weapons CSV -> Firestore</title>
+</head>
+<body>
+  <h2>Import weapons CSV</h2>
+
+  <p>
+    Email: <input id="email" type="email" placeholder="you@email.com" />
+    Password: <input id="password" type="password" placeholder="password" />
+    <button id="loginBtn">Login</button>
+  </p>
+
+  <p>
+    CSV: <input id="file" type="file" accept=".csv" />
+    <button id="importBtn" disabled>Import to Firestore</button>
+  </p>
+
+  <pre id="log" style="white-space:pre-wrap;"></pre>
+
+  <!-- Papa Parse for CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Firebase v9 modular -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getFirestore, doc, writeBatch } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const logEl = document.getElementById("log");
+    const log = (m) => logEl.textContent += m + "\n";
+
+    // TODO: pega tu config de Firebase (Project settings -> General -> Your apps -> Web app)
+    const firebaseConfig = {
+
+    apiKey: "AIzaSyAA4Ak_mKs67_b2LIxjSQ0TabAIa5JE4rA",
+
+    authDomain: "dnd-dice-ca4b0.firebaseapp.com",
+
+    databaseURL: "https://dnd-dice-ca4b0-default-rtdb.firebaseio.com",
+
+    projectId: "dnd-dice-ca4b0",
+
+    storageBucket: "dnd-dice-ca4b0.firebasestorage.app",
+
+    messagingSenderId: "338841368755",
+
+    appId: "1:338841368755:web:80065ec73a88b9e2ba58c6",
+
+    measurementId: "G-VPGSM8BFR6"
+
+    };
+
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    function slugify(name) {
+      return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+
+    document.getElementById("loginBtn").onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        log("Logged in as: " + cred.user.uid);
+        document.getElementById("importBtn").disabled = false;
+      } catch (e) {
+        log("Login error: " + e.message);
+      }
+    };
+
+    document.getElementById("importBtn").onclick = async () => {
+      const file = document.getElementById("file").files?.[0];
+      if (!file) return log("Pick a CSV file first.");
+
+      const text = await file.text();
+
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      if (parsed.errors?.length) {
+        log("CSV parse errors:");
+        parsed.errors.forEach(err => log(JSON.stringify(err)));
+        return;
+      }
+
+      const rows = parsed.data;
+
+      log(`Parsed rows: ${rows.length}`);
+      let total = 0;
+
+      // Firestore batch limit = 500 writes. Usamos 450 por seguridad.
+      for (let i = 0; i < rows.length; i += 450) {
+        const chunk = rows.slice(i, i + 450);
+        const batch = writeBatch(db);
+
+        for (const r of chunk) {
+        const name = (r.name ?? "").trim();
+        if (!name) continue;
+
+        const id = slugify(name);
+        if (!id) {
+            log("Skipping row, cannot slugify name: " + name);
+            continue;
+        }
+
+        const data = {
+            name,
+            category: (r.category ?? "").trim(),
+            damage: (r.damage ?? "").trim(),
+            properties: (r.properties ?? "").trim(),
+            mastery: (r.mastery ?? "").trim(),
+            weight: (r.weight ?? "").trim(),
+            cost: (r.cost ?? "").trim(),
+            source: "PHB 2024"
+        };
+
+        batch.set(doc(db, "weapons", id), data, { merge: true });
+        total++;
+        }
+
+
+        await batch.commit();
+        log(`Committed batch: ${i}..${i + chunk.length - 1}`);
+      }
+
+      log(`Done. Imported/updated: ${total}`);
+    };
+  </script>
+</body>
+</html>

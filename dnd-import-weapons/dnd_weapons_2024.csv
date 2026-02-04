@@ -1,0 +1,63 @@
+name,category,damage,properties,mastery,weight,cost
+Club,Simple Melee,1d4 Bludgeoning,Light,Slow,2 lb.,1 SP
+Dagger,Simple Melee,1d4 Piercing,"Finesse, Light, Thrown (Range 20/60)",Nick,1 lb.,2 GP
+Greatclub,Simple Melee,1d8 Bludgeoning,Two-Handed,Push,10 lb.,2 SP
+Handaxe,Simple Melee,1d6 Slashing,"Light, Thrown (Range 20/60)",Vex,2 lb.,5 GP
+Javelin,Simple Melee,1d6 Piercing,Thrown (Range 30/120),Slow,2 lb.,5 SP
+Light Hammer,Simple Melee,1d4 Bludgeoning,"Light, Thrown (Range 20/60)",Nick,2 lb.,2 GP
+Mace,Simple Melee,1d6 Bludgeoning,—,Sap,4 lb.,5 GP
+Quarterstaff,Simple Melee,1d6 Bludgeoning,Versatile (1d8),Topple,4 lb.,2 SP
+Sickle,Simple Melee,1d4 Slashing,Light,Nick,2 lb.,1 GP
+Spear,Simple Melee,1d6 Piercing,"Thrown (Range 20/60), Versatile (1d8)",Sap,3 lb.,1 GP
+Dart,Simple Ranged,1d4 Piercing,"Finesse, Thrown (Range 20/60)",Vex,1/4 lb.,5 CP
+Light Crossbow,Simple Ranged,1d8 Piercing,"Ammunition (Range 80/320; Bolt), Loading, Two-Handed",Slow,5 lb.,25 GP
+Shortbow,Simple Ranged,1d6 Piercing,"Ammunition (Range 80/320; Arrow), Two-Handed",Vex,2 lb.,25 GP
+Sling,Simple Ranged,1d4 Bludgeoning,Ammunition (Range 30/120; Bullet),Slow,—,1 SP
+Battleaxe,Martial Melee,1d8 Slashing,Versatile (1d10),Topple,4 lb.,10 GP
+Flail,Martial Melee,1d8 Bludgeoning,—,Sap,2 lb.,10 GP
+Glaive,Martial Melee,1d10 Slashing,"Heavy, Reach, Two-Handed",Graze,6 lb.,20 GP
+Greataxe,Martial Melee,1d12 Slashing,"Heavy, Two-Handed",Cleave,7 lb.,30 GP
+Greatsword,Martial Melee,2d6 Slashing,"Heavy, Two-Handed",Graze,6 lb.,50 GP
+Halberd,Martial Melee,1d10 Slashing,"Heavy, Reach, Two-Handed",Cleave,6 lb.,20 GP
+Lance,Martial Melee,1d10 Piercing,"Heavy, Reach, Two-Handed (unless mounted)",Topple,6 lb.,10 GP
+Longsword,Martial Melee,1d8 Slashing,Versatile (1d10),Sap,3 lb.,15 GP
+Maul,Martial Melee,2d6 Bludgeoning,"Heavy, Two-Handed",Topple,10 lb.,10 GP
+Morningstar,Martial Melee,1d8 Piercing,—,Sap,4 lb.,15 GP
+Pike,Martial Melee,1d10 Piercing,"Heavy, Reach, Two-Handed",Push,18 lb.,5 GP
+Rapier,Martial Melee,1d8 Piercing,Finesse,Vex,2 lb.,25 GP
+Scimitar,Martial Melee,1d6 Slashing,"Finesse, Light",Nick,3 lb.,25 GP
+Shortsword,Martial Melee,1d6 Piercing,"Finesse, Light",Vex,2 lb.,10 GP
+Trident,Martial Melee,1d8 Piercing,"Thrown (Range 20/60), Versatile (1d10)",Topple,4 lb.,5 GP
+Warhammer,Martial Melee,1d8 Bludgeoning,Versatile (1d10),Push,5 lb.,15 GP
+War Pick,Martial Melee,1d8 Piercing,Versatile (1d10),Sap,2 lb.,5 GP
+Whip,Martial Melee,1d4 Slashing,"Finesse, Reach",Slow,3 lb.,2 GP
+Blowgun,Martial Ranged,1 Piercing,"Ammunition (Range 25/100; Needle), Loading",Vex,1 lb.,10 GP
+Hand Crossbow,Martial Ranged,1d6 Piercing,"Ammunition (Range 30/120; Bolt), Light, Loading",Vex,3 lb.,75 GP
+Heavy Crossbow,Martial Ranged,1d10 Piercing,"Ammunition (Range 100/400; Bolt), Heavy, Loading, Two-Handed",Push,18 lb.,50 GP
+Longbow,Martial Ranged,1d8 Piercing,"Ammunition (Range 150/600; Arrow), Heavy, Two-Handed",Slow,2 lb.,50 GP
+Musket,Martial Ranged,1d12 Piercing,"Ammunition (Range 40/120; Bullet), Loading, Two-Handed",Slow,10 lb.,500 GP
+Pistol,Martial Ranged,1d10 Piercing,"Ammunition (Range 30/90; Bullet), Loading",Vex,3 lb.,250 GP
+Armor,Martial Ranged,Armor Class (AC),Strength,Stealth,Weight,Cost
+---------------------------------------------------------,Martial Ranged,---------------------------,----------,--------------,:------:,---------:
+Padded Armor,Martial Ranged,11 + Dex modifier,—,Disadvantage,8 lb.,5 GP
+Leather Armor,Martial Ranged,11 + Dex modifier,—,—,10 lb.,10 GP
+Studded Leather Armor,Martial Ranged,12 + Dex modifier,—,—,13 lb.,45 GP
+Hide Armor,Martial Ranged,12 + Dex modifier (max 2),—,—,12 lb.,10 GP
+Chain Shirt,Martial Ranged,13 + Dex modifier (max 2),—,—,20 lb.,50 GP
+Scale Mail,Martial Ranged,14 + Dex modifier (max 2),—,Disadvantage,45 lb.,50 GP
+Breastplate,Martial Ranged,14 + Dex modifier (max 2),—,—,20 lb.,400 GP
+Half Plate Armor,Martial Ranged,15 + Dex modifier (max 2),—,Disadvantage,40 lb.,750 GP
+Ring Mail,Martial Ranged,14,—,Disadvantage,40 lb.,30 GP
+Chain Mail,Martial Ranged,16,Str 13,Disadvantage,55 lb.,75 GP
+Splint Armor,Martial Ranged,17,Str 15,Disadvantage,60 lb.,200 GP
+Plate Armor,Martial Ranged,18,Str 15,Disadvantage,65 lb.,"1,500 GP"
+Shield,Martial Ranged,+2,—,—,6 lb.,10 GP
+Ship,Martial Ranged,Speed,Crew,Passengers,Cargo (Tons),AC
+----------------,Martial Ranged,:------:,:----:,:----------:,:------------:,:---:
+Airship,Martial Ranged,8 mph,10,20,1,13
+Galley,Martial Ranged,4 mph,80,—,150,15
+Keelboat,Martial Ranged,1 mph,1,6,1/2,15
+Longship,Martial Ranged,3 mph,40,150,10,15
+Rowboat,Martial Ranged,1½ mph,1,3,—,11
+Sailing Ship,Martial Ranged,2 mph,20,20,100,15
+Warship,Martial Ranged,2½ mph,60,60,200,15

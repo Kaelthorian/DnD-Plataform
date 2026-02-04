@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DnD Plataform</title>
+    <title>Interactive DnD Sheet</title>
     <style>
       :root {
         color-scheme: light;
@@ -40,9 +40,10 @@
       }
       .layout {
         display: grid;
-        grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 18px;
         align-items: start;
+        justify-items: center;
       }
       .sheet {
         background: var(--panel);
@@ -50,6 +51,7 @@
         border-radius: 18px;
         padding: 18px;
         box-shadow: 0 18px 40px rgba(43, 31, 23, 0.18);
+        width: min(1000px, 100%);
       }
       .sheet-grid {
         display: grid;
@@ -151,6 +153,14 @@
         grid-template-columns: 18px 1fr 70px;
         align-items: center;
         gap: 8px;
+      }
+      .list-item.rollable-row {
+        cursor: pointer;
+      }
+      .list-item.rollable-row span,
+      .list-item.rollable-row input[type="text"],
+      .list-item.rollable-row input[readonly] {
+        cursor: pointer;
       }
       .list-item input[type="number"],
       .list-item input[type="text"] {
@@ -535,7 +545,7 @@
   </head>
   <body>
     <div class="page">
-      <div class="title">DnD Plataform</div>
+      <div class="title">Interactive DnD Sheet</div>
       <div class="layout">
         <section class="sheet" aria-label="Character Sheet">
           <div class="header-grid">
@@ -552,28 +562,12 @@
               <input id="level" type="number" min="1" max="20" />
             </div>
             <div class="panel">
-              <div class="panel-label">Background</div>
-              <input id="background" type="text" />
-            </div>
-            <div class="panel">
-              <div class="panel-label">Player Name</div>
-              <input id="player-name" type="text" />
-            </div>
-            <div class="panel">
               <div class="panel-label">Race</div>
               <input id="race" type="text" />
             </div>
             <div class="panel">
-              <div class="panel-label">Alignment</div>
-              <input id="alignment" type="text" />
-            </div>
-            <div class="panel">
               <div class="panel-label">EXP</div>
               <input id="xp" type="number" min="0" />
-            </div>
-            <div class="panel">
-              <div class="panel-label">Inspiration</div>
-              <input id="inspiration" type="text" />
             </div>
             <div class="panel">
               <div class="panel-label">Proficiency Bonus</div>
@@ -640,6 +634,10 @@
                 </div>
               </div>
 
+            </div>
+
+            <div class="section-stack">
+
               <div class="panel">
                 <div class="panel-label">Skills</div>
                 <div class="list">
@@ -664,62 +662,11 @@
                 </div>
               </div>
 
-              <div class="panel">
-                <div class="panel-label">Passive Wisdom (Perception)</div>
-                <input id="passive-perception" class="small-input" type="number" min="0" readonly />
-              </div>
-            </div>
 
-            <div class="section-stack">
-              <div class="panel">
-                <div class="panel-label">Combat</div>
-                <div class="stats-grid">
-                  <div>
-                    <label for="ac">Armor Class</label>
-                    <input id="ac" class="small-input" type="number" min="0" />
-                  </div>
-                  <div>
-                    <label for="initiative">Initiative</label>
-                    <input id="initiative" class="small-input" type="text" />
-                  </div>
-                  <div>
-                    <label for="speed">Speed</label>
-                    <input id="speed" class="small-input" type="text" />
-                  </div>
-                </div>
-              </div>
-
-              <div class="panel">
-                <div class="panel-label">Hit Points</div>
-                <label for="hp-max">Hit Point Maximum</label>
-                <input id="hp-max" type="number" min="0" />
-                <label for="hp-current">Current Hit Points</label>
-                <input id="hp-current" type="number" min="0" />
-                <label for="hp-temp">Temporary Hit Points</label>
-                <input id="hp-temp" type="number" min="0" />
-              </div>
-
-              <div class="panel">
-                <div class="panel-label">Hit Dice & Death Saves</div>
-                <label for="hit-dice">Hit Dice</label>
-                <input id="hit-dice" type="text" />
-                <label for="death-saves">Death Saves (Success/Fail)</label>
-                <input id="death-saves" type="text" />
-              </div>
-
-              <div class="panel">
-                <div class="panel-label">Attacks & Spellcasting</div>
-                <textarea id="attacks"></textarea>
-              </div>
 
               <div class="panel">
               <div class="panel-label">Equipment</div>
               <div class="actions" style="margin-bottom: 8px;">
-                <button id="attack-roll" type="button">Hit</button>
-                <label class="hit-option">
-                  <input id="attack-prof" type="checkbox" data-nosave="true" checked />
-                  Proficient
-                </label>
                 <button id="add-weapon" type="button">Add Weapon</button>
                 <span class="active-weapon" id="active-weapon-label">No weapon selected</span>
                 <span class="equip-status" id="equip-status"></span>
@@ -769,6 +716,8 @@
         setDoc,
         onSnapshot,
         serverTimestamp,
+        collection,
+        getDocs,
       } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
       const firebaseConfig = {
@@ -936,46 +885,45 @@
         }
       }
 
-      const weaponTable = [
-        { name: "Club", damage: "1d4 Bludgeoning", properties: "Light", mastery: "Slow", weight: "2 lb.", cost: "1 SP", category: "Simple Melee Weapons" },
-        { name: "Dagger", damage: "1d4 Piercing", properties: "Finesse, Light, Thrown (Range 20/60)", mastery: "Nick", weight: "1 lb.", cost: "2 GP", category: "Simple Melee Weapons" },
-        { name: "Greatclub", damage: "1d8 Bludgeoning", properties: "Two-Handed", mastery: "Push", weight: "10 lb.", cost: "2 SP", category: "Simple Melee Weapons" },
-        { name: "Handaxe", damage: "1d6 Slashing", properties: "Light, Thrown (Range 20/60)", mastery: "Vex", weight: "2 lb.", cost: "5 GP", category: "Simple Melee Weapons" },
-        { name: "Javelin", damage: "1d6 Piercing", properties: "Thrown (Range 30/120)", mastery: "Slow", weight: "2 lb.", cost: "5 SP", category: "Simple Melee Weapons" },
-        { name: "Light Hammer", damage: "1d4 Bludgeoning", properties: "Light, Thrown (Range 20/60)", mastery: "Nick", weight: "2 lb.", cost: "2 GP", category: "Simple Melee Weapons" },
-        { name: "Mace", damage: "1d6 Bludgeoning", properties: "—", mastery: "Sap", weight: "4 lb.", cost: "5 GP", category: "Simple Melee Weapons" },
-        { name: "Quarterstaff", damage: "1d6 Bludgeoning", properties: "Versatile (1d8)", mastery: "Topple", weight: "4 lb.", cost: "2 SP", category: "Simple Melee Weapons" },
-        { name: "Sickle", damage: "1d4 Slashing", properties: "Light", mastery: "Nick", weight: "2 lb.", cost: "1 GP", category: "Simple Melee Weapons" },
-        { name: "Spear", damage: "1d6 Piercing", properties: "Thrown (Range 20/60), Versatile (1d8)", mastery: "Sap", weight: "3 lb.", cost: "1 GP", category: "Simple Melee Weapons" },
-        { name: "Dart", damage: "1d4 Piercing", properties: "Finesse, Thrown (Range 20/60)", mastery: "Vex", weight: "1/4 lb.", cost: "5 CP", category: "Simple Ranged Weapons" },
-        { name: "Light Crossbow", damage: "1d8 Piercing", properties: "Ammunition (Range 80/320; Bolt), Loading, Two-Handed", mastery: "Slow", weight: "5 lb.", cost: "25 GP", category: "Simple Ranged Weapons" },
-        { name: "Shortbow", damage: "1d6 Piercing", properties: "Ammunition (Range 80/320; Arrow), Two-Handed", mastery: "Vex", weight: "2 lb.", cost: "25 GP", category: "Simple Ranged Weapons" },
-        { name: "Sling", damage: "1d4 Bludgeoning", properties: "Ammunition (Range 30/120; Bullet)", mastery: "Slow", weight: "—", cost: "1 SP", category: "Simple Ranged Weapons" },
-        { name: "Battleaxe", damage: "1d8 Slashing", properties: "Versatile (1d10)", mastery: "Topple", weight: "4 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
-        { name: "Flail", damage: "1d8 Bludgeoning", properties: "—", mastery: "Sap", weight: "2 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
-        { name: "Glaive", damage: "1d10 Slashing", properties: "Heavy, Reach, Two-Handed", mastery: "Graze", weight: "6 lb.", cost: "20 GP", category: "Martial Melee Weapons" },
-        { name: "Greataxe", damage: "1d12 Slashing", properties: "Heavy, Two-Handed", mastery: "Cleave", weight: "7 lb.", cost: "30 GP", category: "Martial Melee Weapons" },
-        { name: "Greatsword", damage: "2d6 Slashing", properties: "Heavy, Two-Handed", mastery: "Graze", weight: "6 lb.", cost: "50 GP", category: "Martial Melee Weapons" },
-        { name: "Halberd", damage: "1d10 Slashing", properties: "Heavy, Reach, Two-Handed", mastery: "Cleave", weight: "6 lb.", cost: "20 GP", category: "Martial Melee Weapons" },
-        { name: "Lance", damage: "1d10 Piercing", properties: "Heavy, Reach, Two-Handed (unless mounted)", mastery: "Topple", weight: "6 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
-        { name: "Longsword", damage: "1d8 Slashing", properties: "Versatile (1d10)", mastery: "Sap", weight: "3 lb.", cost: "15 GP", category: "Martial Melee Weapons" },
-        { name: "Maul", damage: "2d6 Bludgeoning", properties: "Heavy, Two-Handed", mastery: "Topple", weight: "10 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
-        { name: "Morningstar", damage: "1d8 Piercing", properties: "—", mastery: "Sap", weight: "4 lb.", cost: "15 GP", category: "Martial Melee Weapons" },
-        { name: "Pike", damage: "1d10 Piercing", properties: "Heavy, Reach, Two-Handed", mastery: "Push", weight: "18 lb.", cost: "5 GP", category: "Martial Melee Weapons" },
-        { name: "Rapier", damage: "1d8 Piercing", properties: "Finesse", mastery: "Vex", weight: "2 lb.", cost: "25 GP", category: "Martial Melee Weapons" },
-        { name: "Scimitar", damage: "1d6 Slashing", properties: "Finesse, Light", mastery: "Nick", weight: "3 lb.", cost: "25 GP", category: "Martial Melee Weapons" },
-        { name: "Shortsword", damage: "1d6 Piercing", properties: "Finesse, Light", mastery: "Vex", weight: "2 lb.", cost: "10 GP", category: "Martial Melee Weapons" },
-        { name: "Trident", damage: "1d8 Piercing", properties: "Thrown (Range 20/60), Versatile (1d10)", mastery: "Topple", weight: "4 lb.", cost: "5 GP", category: "Martial Melee Weapons" },
-        { name: "Warhammer", damage: "1d8 Bludgeoning", properties: "Versatile (1d10)", mastery: "Push", weight: "5 lb.", cost: "15 GP", category: "Martial Melee Weapons" },
-        { name: "War Pick", damage: "1d8 Piercing", properties: "Versatile (1d10)", mastery: "Sap", weight: "2 lb.", cost: "5 GP", category: "Martial Melee Weapons" },
-        { name: "Whip", damage: "1d4 Slashing", properties: "Finesse, Reach", mastery: "Slow", weight: "3 lb.", cost: "2 GP", category: "Martial Melee Weapons" },
-        { name: "Blowgun", damage: "1 Piercing", properties: "Ammunition (Range 25/100; Needle), Loading", mastery: "Vex", weight: "1 lb.", cost: "10 GP", category: "Martial Ranged Weapons" },
-        { name: "Hand Crossbow", damage: "1d6 Piercing", properties: "Ammunition (Range 30/120; Bolt), Light, Loading", mastery: "Vex", weight: "3 lb.", cost: "75 GP", category: "Martial Ranged Weapons" },
-        { name: "Heavy Crossbow", damage: "1d10 Piercing", properties: "Ammunition (Range 100/400; Bolt), Heavy, Loading, Two-Handed", mastery: "Push", weight: "18 lb.", cost: "50 GP", category: "Martial Ranged Weapons" },
-        { name: "Longbow", damage: "1d8 Piercing", properties: "Ammunition (Range 150/600; Arrow), Heavy, Two-Handed", mastery: "Slow", weight: "2 lb.", cost: "50 GP", category: "Martial Ranged Weapons" },
-        { name: "Musket", damage: "1d12 Piercing", properties: "Ammunition (Range 40/120; Bullet), Loading, Two-Handed", mastery: "Slow", weight: "10 lb.", cost: "500 GP", category: "Martial Ranged Weapons" },
-        { name: "Pistol", damage: "1d10 Piercing", properties: "Ammunition (Range 30/90; Bullet), Loading", mastery: "Vex", weight: "3 lb.", cost: "250 GP", category: "Martial Ranged Weapons" },
-      ];
+      let weaponTable = [];
+      let weaponByName = new Map();
+      let weaponList = [];
+      let weaponsLoaded = false;
+
+      function refreshWeaponIndex() {
+        weaponByName = new Map(weaponTable.map((weapon) => [weapon.name, weapon]));
+        weaponList = weaponTable.map((weapon) => weapon.name);
+      }
+
+      async function loadWeapons() {
+        try {
+          const snapshot = await getDocs(collection(db, "weapons"));
+          weaponTable = snapshot.docs
+            .map((docSnap) => {
+              const data = docSnap.data() || {};
+              const name = (data.name || docSnap.id || "").trim();
+              if (!name) return null;
+              return {
+                name,
+                category: (data.category || "").trim(),
+                damage: (data.damage || "").trim(),
+                properties: (data.properties || "???").trim(),
+                mastery: (data.mastery || "???").trim(),
+                weight: (data.weight || "???").trim(),
+                cost: (data.cost || "???").trim(),
+              };
+            })
+            .filter(Boolean);
+          refreshWeaponIndex();
+          weaponsLoaded = true;
+          window.weaponTable = weaponTable;
+          window.weaponByName = weaponByName;
+        } catch (error) {
+          console.error("Failed to load weapons", error);
+          weaponsLoaded = true;
+        }
+      }
+
       const weaponAliases = {
         "Crossbow, Light": "Light Crossbow",
         "Crossbow, Hand": "Hand Crossbow",
@@ -1003,8 +951,6 @@
         "Two-Handed": "Requires two hands to attack.",
         Versatile: "Use one or two hands. Parentheses show damage when used with two hands.",
       };
-      const weaponByName = new Map(weaponTable.map((weapon) => [weapon.name, weapon]));
-      const weaponList = weaponTable.map((weapon) => weapon.name);
       const raceList = [
         "Aarakocra",
         "Aasimar",
@@ -1110,18 +1056,31 @@
 
       function getVersatileDie(properties) {
         if (!properties) return "";
-        const match = properties.match(/Versatile\s*\\(([^)]+)\\)/i);
+        const text = String(properties);
+        const match =
+          text.match(/Versatile\s*\(([^)]+)\)/i) ||
+          text.match(/Versatile\s*([0-9]+d[0-9]+)/i);
         if (!match) return "";
         return match[1].trim();
       }
 
       function isVersatileWeapon(weapon) {
-        return Boolean(weapon?.properties && weapon.properties.includes("Versatile"));
+        if (!weapon?.properties) return false;
+        return /versatile/i.test(String(weapon.properties));
       }
 
       function getWeaponDamageDie(weapon, useTwoHands) {
         if (!weapon) return "";
         if (useTwoHands && isVersatileWeapon(weapon)) {
+          return getVersatileDie(weapon.properties) || getDamageDie(weapon.damage);
+        }
+        return getDamageDie(weapon.damage);
+      }
+
+      function getTwoHandDamageDie(weapon, useTwoHands) {
+        if (!weapon) return "";
+        if (!useTwoHands) return getDamageDie(weapon.damage);
+        if (isVersatileWeapon(weapon)) {
           return getVersatileDie(weapon.properties) || getDamageDie(weapon.damage);
         }
         return getDamageDie(weapon.damage);
@@ -1232,7 +1191,7 @@
           }
           const useTwoHands =
             item.id === equippedMainId && equippedMainTwoHanded && isVersatileWeapon(weapon);
-          const dice = getWeaponDamageDie(weapon, useTwoHands);
+          const dice = getTwoHandDamageDie(weapon, useTwoHands);
           if (dice) {
             const btn = document.createElement("button");
             btn.type = "button";
@@ -1261,7 +1220,7 @@
                   return;
                 }
               }
-              const currentDice = getWeaponDamageDie(currentWeapon, currentUseTwoHands);
+              const currentDice = getTwoHandDamageDie(currentWeapon, currentUseTwoHands);
               activeWeaponName = displayName;
               updateActiveWeaponLabel();
               renderEquipment();
@@ -1489,6 +1448,21 @@
         const filter = filterText.trim().toLowerCase();
         weaponPickerList.innerHTML = "";
 
+        if (!weaponsLoaded) {
+          const loading = document.createElement("div");
+          loading.className = "weapon-option";
+          loading.textContent = "Loading weapons...";
+          weaponPickerList.appendChild(loading);
+          return;
+        }
+        if (!weaponTable.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No weapons found.";
+          weaponPickerList.appendChild(empty);
+          return;
+        }
+
         const categoryOrder = [
           "Simple Melee Weapons",
           "Simple Ranged Weapons",
@@ -1496,14 +1470,19 @@
           "Martial Ranged Weapons",
         ];
 
-        categoryOrder.forEach((category) => {
-          const weapons = weaponTable
-            .filter((weapon) => weapon.category === category)
-            .filter((weapon) => weapon.name.toLowerCase().includes(filter))
-            .sort((a, b) => a.name.localeCompare(b.name));
+        const matchesFilter = (weapon) =>
+          weapon.name.toLowerCase().includes(filter);
 
+        const grouped = new Map();
+        weaponTable.forEach((weapon) => {
+          if (!matchesFilter(weapon)) return;
+          const category = weapon.category || "Other";
+          if (!grouped.has(category)) grouped.set(category, []);
+          grouped.get(category).push(weapon);
+        });
+
+        const renderGroup = (category, weapons) => {
           if (!weapons.length) return;
-
           const header = document.createElement("div");
           header.className = "weapon-category";
           header.textContent = category;
@@ -1511,30 +1490,57 @@
 
           const list = document.createElement("div");
           list.className = "weapon-list";
-          weapons.forEach((weapon) => {
-            const option = document.createElement("div");
-            option.className = "weapon-option";
-            if (weapon.name === pickerSelected) {
-              option.classList.add("selected");
-            }
-            option.addEventListener("click", () => {
-              pickerSelected = weapon.name;
-              if (weaponPickerAdd) {
-                weaponPickerAdd.disabled = false;
+          weapons
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach((weapon) => {
+              const option = document.createElement("div");
+              option.className = "weapon-option";
+              if (weapon.name === pickerSelected) {
+                option.classList.add("selected");
               }
-              buildWeaponPickerList(weaponSearch?.value || "");
+              option.addEventListener("click", () => {
+                pickerSelected = weapon.name;
+                if (weaponPickerAdd) {
+                  weaponPickerAdd.disabled = false;
+                }
+                buildWeaponPickerList(weaponSearch?.value || "");
+              });
+              const name = document.createElement("strong");
+              name.textContent = weapon.name;
+              const meta = document.createElement("span");
+              meta.textContent = `${weapon.damage} ? ${weapon.properties === "?" ? "No properties" : weapon.properties}`;
+              option.appendChild(name);
+              option.appendChild(meta);
+              list.appendChild(option);
             });
-            const name = document.createElement("strong");
-            name.textContent = weapon.name;
-            const meta = document.createElement("span");
-            meta.textContent = `${weapon.damage} • ${weapon.properties === "—" ? "No properties" : weapon.properties}`;
-            option.appendChild(name);
-            option.appendChild(meta);
-            list.appendChild(option);
-          });
 
           weaponPickerList.appendChild(list);
+        };
+
+        let rendered = false;
+        categoryOrder.forEach((category) => {
+          const weapons = grouped.get(category) || [];
+          if (weapons.length) {
+            renderGroup(category, weapons);
+            rendered = true;
+            grouped.delete(category);
+          }
         });
+
+        const remainingCategories = Array.from(grouped.keys()).sort((a, b) =>
+          a.localeCompare(b)
+        );
+        remainingCategories.forEach((category) => {
+          renderGroup(category, grouped.get(category) || []);
+          rendered = true;
+        });
+
+        if (!rendered) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No weapons match your search.";
+          weaponPickerList.appendChild(empty);
+        }
       }
 
       function buildRacePickerList(filterText = "") {
@@ -1771,24 +1777,30 @@
         el.addEventListener("change", recalcDerived)
       );
       recalcDerived();
-      initEquipmentWeapons();
-      initRacePicker();
-      renderEquipment();
+      async function initApp() {
+        await loadWeapons();
+        initEquipmentWeapons();
+        initRacePicker();
+        renderEquipment();
+      }
+      initApp();
 
-      rollBtn.addEventListener("click", async () => {
-        const value = Math.floor(Math.random() * 20) + 1;
-        resultEl.textContent = `Rolling... (${value})`;
-        try {
-          await setDoc(rollRef, {
-            value,
-            by: "anonymous",
-            at: serverTimestamp(),
-          });
-        } catch (error) {
-          resultEl.textContent = "Failed to roll. Check Firestore permissions.";
-          console.error(error);
-        }
-      });
+      if (rollBtn) {
+        rollBtn.addEventListener("click", async () => {
+          const value = Math.floor(Math.random() * 20) + 1;
+          resultEl.textContent = `Rolling... (${value})`;
+          try {
+            await setDoc(rollRef, {
+              value,
+              by: "anonymous",
+              at: serverTimestamp(),
+            });
+          } catch (error) {
+            resultEl.textContent = "Failed to roll. Check Firestore permissions.";
+            console.error(error);
+          }
+        });
+      }
 
       function rollD20WithParts(parts, label) {
         const roll = Math.floor(Math.random() * 20) + 1;
@@ -1821,6 +1833,18 @@
       }
 
       function setupRollables() {
+        function isInteractiveTarget(target) {
+          if (!(target instanceof HTMLElement)) return false;
+          if (target.closest("input[type='checkbox']")) return true;
+          if (target instanceof HTMLButtonElement) return true;
+          if (target instanceof HTMLSelectElement) return true;
+          if (target instanceof HTMLTextAreaElement) return true;
+          if (target instanceof HTMLInputElement) {
+            return !target.readOnly;
+          }
+          return false;
+        }
+
         function bindKey(el, handler) {
           el.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -1830,6 +1854,17 @@
           });
         }
 
+        function bindRowRoll(row, handler) {
+          row.classList.add("rollable-row");
+          row.setAttribute("role", "button");
+          row.setAttribute("tabindex", "0");
+          row.addEventListener("click", (event) => {
+            if (isInteractiveTarget(event.target)) return;
+            handler();
+          });
+          bindKey(row, handler);
+        }
+
         saveRows.forEach((row) => {
           const ability = row.dataset.ability;
           const label = row.querySelector("span");
@@ -1837,18 +1872,22 @@
           const name = label?.textContent || `${ability.toUpperCase()} Save`;
           if (label) {
             label.classList.add("rollable");
-            label.setAttribute("role", "button");
-            label.setAttribute("tabindex", "0");
-            const handler = () => {
-              const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
-              const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
-              const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
-              if (checkbox?.checked) {
-                parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
-              }
-              rollD20WithParts(parts, `${name} Save`);
-            };
-            label.addEventListener("click", handler);
+          }
+          const handler = () => {
+            const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
+            const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
+            const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
+            if (checkbox?.checked) {
+              parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
+            }
+            rollD20WithParts(parts, `${name} Save`);
+          };
+          bindRowRoll(row, handler);
+          if (label) {
+            label.addEventListener("click", (event) => {
+              event.stopPropagation();
+              handler();
+            });
             bindKey(label, handler);
           }
         });
@@ -1860,19 +1899,26 @@
           const name = label?.textContent || "Skill Check";
           if (label) {
             label.classList.add("rollable");
-            label.setAttribute("role", "button");
-            label.setAttribute("tabindex", "0");
-            const handler = () => {
-              const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
-              const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
-              const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
-              if (checkbox?.checked) {
-                parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
-              }
-              rollD20WithParts(parts, `${name} Check`);
-            };
-            label.addEventListener("click", handler);
+          }
+          const handler = () => {
+            const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
+            const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
+            const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
+            if (checkbox?.checked) {
+              parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
+            }
+            rollD20WithParts(parts, `${name} Check`);
+          };
+          bindRowRoll(row, handler);
+          if (label) {
+            label.addEventListener("click", (event) => {
+              event.stopPropagation();
+              handler();
+            });
             bindKey(label, handler);
+          }
+          if (checkbox) {
+            checkbox.addEventListener("change", handler);
           }
         });
       }
@@ -1882,7 +1928,20 @@
         attackRollBtn.addEventListener("click", (event) => {
           event.preventDefault();
           try {
-            rollD20WithParts([], "Hit Roll");
+            const mainItem = getEquippedWeaponById(equippedMainId);
+            const weaponName = mainItem?.name || activeWeaponName;
+            const weapon = weaponName ? getWeaponData(weaponName) : null;
+            const ability = getWeaponAttackAbility(weapon);
+            const abilityKey = ability === "finesse"
+              ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
+              : ability || "str";
+            const abilityValue = toNumber(abilityMods[abilityKey]?.value);
+            const parts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: abilityValue }];
+            if (attackProfEl?.checked) {
+              parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
+            }
+            const label = weaponName ? `${weaponName} Hit` : "Hit Roll";
+            rollD20WithParts(parts, label);
           } catch (error) {
             console.error("Failed to roll attack", error);
           }
