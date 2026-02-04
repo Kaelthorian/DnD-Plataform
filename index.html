@@ -218,6 +218,75 @@
         font-size: 0.98rem;
         background: #fff;
       }
+      .tabs {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 6px;
+        width: 100%;
+        height: 100%;
+      }
+      .tab-buttons {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 4px;
+        text-align: center;
+      }
+      .tab-buttons label {
+        display: block;
+        text-align: center;
+        padding: 4px 6px;
+        border: 1px solid #cdbba8;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 0.7rem;
+      }
+      .tab-panel {
+        display: none;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        padding: 6px;
+        background: #fff;
+        height: 100%;
+        overflow: auto;
+      }
+      .tab-actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        align-items: center;
+      }
+      .tab-actions button {
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid #2b1f17;
+        background: #fff;
+        font-family: inherit;
+        font-size: 0.7rem;
+        cursor: pointer;
+      }
+      .tab-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #spell-tab-1:checked ~ .tab-buttons label[for="spell-tab-1"],
+      #spell-tab-2:checked ~ .tab-buttons label[for="spell-tab-2"],
+      #spell-tab-3:checked ~ .tab-buttons label[for="spell-tab-3"],
+      #spell-tab-4:checked ~ .tab-buttons label[for="spell-tab-4"],
+      #spell-tab-5:checked ~ .tab-buttons label[for="spell-tab-5"],
+      #spell-tab-6:checked ~ .tab-buttons label[for="spell-tab-6"] {
+        background: #f6f1e8;
+        border-color: #2b1f17;
+      }
+      #spell-tab-1:checked ~ .tab-panels #spell-panel-1,
+      #spell-tab-2:checked ~ .tab-panels #spell-panel-2,
+      #spell-tab-3:checked ~ .tab-panels #spell-panel-3,
+      #spell-tab-4:checked ~ .tab-panels #spell-panel-4,
+      #spell-tab-5:checked ~ .tab-panels #spell-panel-5,
+      #spell-tab-6:checked ~ .tab-panels #spell-panel-6 {
+        display: block;
+      }
       .panel input[readonly] {
         background: #f6f1e8;
         color: #4b3a2f;
@@ -1089,7 +1158,34 @@
             </div>
             <div class="panel grid-spells">
               <div class="panel-label">Spells</div>
-              <div class="panel-content"></div>
+              <div class="tabs">
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-1" checked />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-2" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-3" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-4" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-5" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-6" />
+                <div class="tab-buttons">
+                  <label for="spell-tab-1">Cantrip</label>
+                  <label for="spell-tab-2">Level 1</label>
+                  <label for="spell-tab-3">Level 2</label>
+                  <label for="spell-tab-4">Level 3</label>
+                  <label for="spell-tab-5">Level 4</label>
+                  <label for="spell-tab-6">Level 5</label>
+                </div>
+                <div class="tab-panels">
+                  <div class="tab-panel" id="spell-panel-1"></div>
+                  <div class="tab-panel" id="spell-panel-2"></div>
+                  <div class="tab-panel" id="spell-panel-3"></div>
+                  <div class="tab-panel" id="spell-panel-4"></div>
+                  <div class="tab-panel" id="spell-panel-5"></div>
+                  <div class="tab-panel" id="spell-panel-6"></div>
+                </div>
+                <div class="tab-actions">
+                  <button type="button">Add Spell</button>
+                  <button type="button">Remove Spell</button>
+                </div>
+              </div>
             </div>
             <div class="panel grid-items">
               <div class="panel-label">Items</div>
