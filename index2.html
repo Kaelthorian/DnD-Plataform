@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>5E Character Sheet</title>
+  <style>
+
+:root {
+  --ink: #1f1f1f;
+  --line: #4a4a4a;
+  --paper: #fbf7ef;
+  --panel: #fffdf8;
+  --accent: #b0854a;
+  --muted: #6a5c4a;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Georgia", "Times New Roman", serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, #f3ede2 0%, #fdfbf7 60%);
+}
+form {
+  margin: 0;
+}
+.sheet {
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 20px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+fieldset {
+  border: 1px solid var(--line);
+  padding: 12px 12px 14px;
+  margin: 10px 0;
+  background: var(--panel);
+}
+legend {
+  padding: 0 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+label {
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+input[type="text"],
+input[type="number"],
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  background: #fff;
+  font-size: 0.95rem;
+}
+textarea { min-height: 84px; resize: vertical; }
+.grid {
+  display: grid;
+  gap: 10px;
+}
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.grid-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.grid-8 { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.ability-layout { grid-template-columns: 260px 1fr; }
+.stack { display: grid; gap: 6px; }
+.inline { display: grid; gap: 6px; align-items: center; }
+.inline-2 { grid-template-columns: 22px 1fr; }
+.inline-3 { grid-template-columns: 22px 1fr 1fr; }
+.row { display: grid; gap: 6px; }
+.row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.row-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.row-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.section-title { font-weight: 700; color: var(--muted); margin: 6px 0 2px; }
+.stat-block {
+  display: grid;
+  gap: 8px;
+}
+.stat {
+  border: 1px solid var(--line);
+  padding: 8px;
+  background: #fff;
+}
+.stat label { font-size: 0.75rem; }
+.stat .stack input { text-align: center; }
+.skill-list, .save-list {
+  display: grid;
+  gap: 6px;
+}
+.skill-item, .save-item {
+  display: grid;
+  grid-template-columns: 20px 1fr 64px;
+  gap: 6px;
+  align-items: center;
+}
+.skill-item input[type="number"],
+.save-item input[type="number"] { width: 64px; text-align: center; }
+.saving-throws .save-list {
+  border: 1px solid var(--line);
+  padding: 8px;
+  background: #fff;
+}
+.saving-throws .save-item {
+  grid-template-columns: 20px minmax(120px, 1fr) 56px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(74, 74, 74, 0.25);
+}
+.saving-throws .save-item:last-child { border-bottom: 0; }
+.saving-throws .save-item label {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.9rem;
+}
+.saving-throws .save-item input[type="number"] { width: 56px; }
+.small-number { width: 80px; }
+.combat-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.combat-box { display: grid; gap: 6px; }
+.combat-mini {
+  grid-column: span 1;
+  justify-items: center;
+  text-align: center;
+}
+.combat-mini input { width: 100%; text-align: center; }
+.passive-row {
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  gap: 8px;
+  align-items: center;
+}
+.passive-row input { width: 64px; text-align: center; }
+.death-saves {
+  display: grid;
+  gap: 6px;
+}
+.death-row {
+  display: grid;
+  grid-template-columns: repeat(3, 20px) 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.attack-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.6fr 0.6fr;
+  gap: 6px;
+}
+.coins {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.spell-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+.spell-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.cantrip-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.page-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+@media (max-width: 900px) {
+  .ability-layout { grid-template-columns: 1fr; }
+}
+
+  </style>
+</head>
+<body>
+<form>
+  <section class="sheet">
+    <div class="page-title">Character Sheet</div>
+    <fieldset>
+      <legend>Character Information</legend>
+      <div class="grid grid-3">
+        <div class="stack"><label for="character_name">Character Name</label><input id="character_name" name="character_name" type="text" /></div>
+        <div class="stack"><label for="class_level">Class & Level</label><input id="class_level" name="class_level" type="text" /></div>
+        <div class="stack"><label for="background">Background</label><input id="background" name="background" type="text" /></div>
+        <div class="stack"><label for="player_name">Player Name</label><input id="player_name" name="player_name" type="text" /></div>
+        <div class="stack"><label for="race">Race</label><input id="race" name="race" type="text" /></div>
+        <div class="stack"><label for="alignment">Alignment</label><input id="alignment" name="alignment" type="text" /></div>
+        <div class="stack"><label for="xp">Experience Points</label><input id="xp" name="xp" type="number" /></div>
+      </div>
+    </fieldset>
+    <div class="grid ability-layout">
+      <fieldset class="ability-scores">
+        <legend>Ability Scores</legend>
+        <div class="stat-block">
+          <div class="stat">
+            <div class="stack"><label for="strength_score">Strength Score</label><input id="strength_score" name="strength_score" type="number" /></div>
+            <div class="stack"><label for="strength_mod">Strength Modifier</label><input id="strength_mod" name="strength_mod" type="number" /></div>
+          </div>
+          <div class="stat">
+            <div class="stack"><label for="dexterity_score">Dexterity Score</label><input id="dexterity_score" name="dexterity_score" type="number" /></div>
+            <div class="stack"><label for="dexterity_mod">Dexterity Modifier</label><input id="dexterity_mod" name="dexterity_mod" type="number" /></div>
+          </div>
+          <div class="stat">
+            <div class="stack"><label for="constitution_score">Constitution Score</label><input id="constitution_score" name="constitution_score" type="number" /></div>
+            <div class="stack"><label for="constitution_mod">Constitution Modifier</label><input id="constitution_mod" name="constitution_mod" type="number" /></div>
+          </div>
+          <div class="stat">
+            <div class="stack"><label for="intelligence_score">Intelligence Score</label><input id="intelligence_score" name="intelligence_score" type="number" /></div>
+            <div class="stack"><label for="intelligence_mod">Intelligence Modifier</label><input id="intelligence_mod" name="intelligence_mod" type="number" /></div>
+          </div>
+          <div class="stat">
+            <div class="stack"><label for="wisdom_score">Wisdom Score</label><input id="wisdom_score" name="wisdom_score" type="number" /></div>
+            <div class="stack"><label for="wisdom_mod">Wisdom Modifier</label><input id="wisdom_mod" name="wisdom_mod" type="number" /></div>
+          </div>
+          <div class="stat">
+            <div class="stack"><label for="charisma_score">Charisma Score</label><input id="charisma_score" name="charisma_score" type="number" /></div>
+            <div class="stack"><label for="charisma_mod">Charisma Modifier</label><input id="charisma_mod" name="charisma_mod" type="number" /></div>
+          </div>
+        </div>
+      </fieldset>
+      <div class="stack">
+        <fieldset class="saving-throws">
+          <legend>Saving Throws</legend>
+          <div class="save-list">
+            <div class="save-item">
+              <input id="strength_save_prof" name="strength_save_prof" type="checkbox" />
+              <label for="strength_save_bonus">Strength</label>
+              <input id="strength_save_bonus" name="strength_save_bonus" type="number" />
+            </div>
+            <div class="save-item">
+              <input id="dexterity_save_prof" name="dexterity_save_prof" type="checkbox" />
+              <label for="dexterity_save_bonus">Dexterity</label>
+              <input id="dexterity_save_bonus" name="dexterity_save_bonus" type="number" />
+            </div>
+            <div class="save-item">
+              <input id="constitution_save_prof" name="constitution_save_prof" type="checkbox" />
+              <label for="constitution_save_bonus">Constitution</label>
+              <input id="constitution_save_bonus" name="constitution_save_bonus" type="number" />
+            </div>
+            <div class="save-item">
+              <input id="intelligence_save_prof" name="intelligence_save_prof" type="checkbox" />
+              <label for="intelligence_save_bonus">Intelligence</label>
+              <input id="intelligence_save_bonus" name="intelligence_save_bonus" type="number" />
+            </div>
+            <div class="save-item">
+              <input id="wisdom_save_prof" name="wisdom_save_prof" type="checkbox" />
+              <label for="wisdom_save_bonus">Wisdom</label>
+              <input id="wisdom_save_bonus" name="wisdom_save_bonus" type="number" />
+            </div>
+            <div class="save-item">
+              <input id="charisma_save_prof" name="charisma_save_prof" type="checkbox" />
+              <label for="charisma_save_bonus">Charisma</label>
+              <input id="charisma_save_bonus" name="charisma_save_bonus" type="number" />
+            </div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Skills</legend>
+          <div class="skill-list">
+            <div class="skill-item">
+              <input id="acrobatics_prof" name="acrobatics_prof" type="checkbox" />
+              <label for="acrobatics_bonus">Acrobatics</label>
+              <input id="acrobatics_bonus" name="acrobatics_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="animal_handling_prof" name="animal_handling_prof" type="checkbox" />
+              <label for="animal_handling_bonus">Animal Handling</label>
+              <input id="animal_handling_bonus" name="animal_handling_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="arcana_prof" name="arcana_prof" type="checkbox" />
+              <label for="arcana_bonus">Arcana</label>
+              <input id="arcana_bonus" name="arcana_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="athletics_prof" name="athletics_prof" type="checkbox" />
+              <label for="athletics_bonus">Athletics</label>
+              <input id="athletics_bonus" name="athletics_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="deception_prof" name="deception_prof" type="checkbox" />
+              <label for="deception_bonus">Deception</label>
+              <input id="deception_bonus" name="deception_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="history_prof" name="history_prof" type="checkbox" />
+              <label for="history_bonus">History</label>
+              <input id="history_bonus" name="history_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="insight_prof" name="insight_prof" type="checkbox" />
+              <label for="insight_bonus">Insight</label>
+              <input id="insight_bonus" name="insight_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="intimidation_prof" name="intimidation_prof" type="checkbox" />
+              <label for="intimidation_bonus">Intimidation</label>
+              <input id="intimidation_bonus" name="intimidation_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="investigation_prof" name="investigation_prof" type="checkbox" />
+              <label for="investigation_bonus">Investigation</label>
+              <input id="investigation_bonus" name="investigation_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="medicine_prof" name="medicine_prof" type="checkbox" />
+              <label for="medicine_bonus">Medicine</label>
+              <input id="medicine_bonus" name="medicine_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="nature_prof" name="nature_prof" type="checkbox" />
+              <label for="nature_bonus">Nature</label>
+              <input id="nature_bonus" name="nature_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="perception_prof" name="perception_prof" type="checkbox" />
+              <label for="perception_bonus">Perception</label>
+              <input id="perception_bonus" name="perception_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="performance_prof" name="performance_prof" type="checkbox" />
+              <label for="performance_bonus">Performance</label>
+              <input id="performance_bonus" name="performance_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="persuasion_prof" name="persuasion_prof" type="checkbox" />
+              <label for="persuasion_bonus">Persuasion</label>
+              <input id="persuasion_bonus" name="persuasion_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="religion_prof" name="religion_prof" type="checkbox" />
+              <label for="religion_bonus">Religion</label>
+              <input id="religion_bonus" name="religion_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="sleight_of_hand_prof" name="sleight_of_hand_prof" type="checkbox" />
+              <label for="sleight_of_hand_bonus">Sleight of Hand</label>
+              <input id="sleight_of_hand_bonus" name="sleight_of_hand_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="stealth_prof" name="stealth_prof" type="checkbox" />
+              <label for="stealth_bonus">Stealth</label>
+              <input id="stealth_bonus" name="stealth_bonus" type="number" />
+            </div>
+            <div class="skill-item">
+              <input id="survival_prof" name="survival_prof" type="checkbox" />
+              <label for="survival_bonus">Survival</label>
+              <input id="survival_bonus" name="survival_bonus" type="number" />
+            </div>
+          </div>
+        <div class="passive-row">
+          <label for="passive_perception">Passive Perception</label>
+          <input id="passive_perception" name="passive_perception" type="number" />
+        </div>
+        </fieldset>
+      </div>
+    </div>
+    <fieldset>
+      <legend>Combat & Vitality</legend>
+      <div class="combat-grid">
+
+        <div class="combat-box combat-mini"><label for="inspiration">Inspiration</label><input id="inspiration" name="inspiration" type="text" /></div>
+        <div class="combat-box combat-mini"><label for="proficiency_bonus">Proficiency Bonus</label><input id="proficiency_bonus" name="proficiency_bonus" type="number" /></div>
+        <div class="combat-box"><label for="armor_class">Armor Class</label><input id="armor_class" name="armor_class" type="number" /></div>
+        <div class="combat-box"><label for="initiative">Initiative</label><input id="initiative" name="initiative" type="number" /></div>
+        <div class="combat-box"><label for="speed">Speed</label><input id="speed" name="speed" type="number" /></div>
+        <div class="combat-box"><label for="hp_max">Hit Point Maximum</label><input id="hp_max" name="hp_max" type="number" /></div>
+        <div class="combat-box"><label for="hp_current">Current Hit Points</label><input id="hp_current" name="hp_current" type="number" /></div>
+        <div class="combat-box"><label for="hp_temp">Temporary Hit Points</label><input id="hp_temp" name="hp_temp" type="number" /></div>
+        <div class="combat-box"><label for="hit_dice">Hit Dice</label><input id="hit_dice" name="hit_dice" type="text" /></div>
+        <div class="combat-box"><label for="hit_dice_total">Hit Dice Total</label><input id="hit_dice_total" name="hit_dice_total" type="number" /></div>
+        <div class="death-saves">
+
+          <div class="section-title">Death Saves - Successes</div>
+          <div class="death-row">
+
+            <input id="death_save_success_1" name="death_save_success_1" type="checkbox" />
+            <input id="death_save_success_2" name="death_save_success_2" type="checkbox" />
+            <input id="death_save_success_3" name="death_save_success_3" type="checkbox" />
+            <span></span>
+          </div>
+          <div class="section-title">Death Saves - Failures</div>
+          <div class="death-row">
+
+            <input id="death_save_fail_1" name="death_save_fail_1" type="checkbox" />
+            <input id="death_save_fail_2" name="death_save_fail_2" type="checkbox" />
+            <input id="death_save_fail_3" name="death_save_fail_3" type="checkbox" />
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Personality & Ideals</legend>
+      <div class="grid grid-2">
+
+        <div class="stack"><label for="personality_traits">Personality Traits</label><textarea id="personality_traits" name="personality_traits"></textarea></div>
+        <div class="stack"><label for="ideals">Ideals</label><textarea id="ideals" name="ideals"></textarea></div>
+        <div class="stack"><label for="bonds">Bonds</label><textarea id="bonds" name="bonds"></textarea></div>
+        <div class="stack"><label for="flaws">Flaws</label><textarea id="flaws" name="flaws"></textarea></div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Attacks & Spellcasting</legend>
+      <div class="grid">
+
+        <div class="attack-row">
+          <div class="stack"><label for="weapon_1_name">Weapon Name</label><input id="weapon_1_name" name="weapon_1_name" type="text" /></div>
+          <div class="stack"><label for="weapon_1_attack_bonus">Atk Bonus</label><input id="weapon_1_attack_bonus" name="weapon_1_attack_bonus" type="number" /></div>
+          <div class="stack"><label for="weapon_1_damage">Damage/Type</label><input id="weapon_1_damage" name="weapon_1_damage" type="text" /></div>
+        </div>
+        <div class="attack-row">
+          <div class="stack"><label for="weapon_2_name">Weapon Name</label><input id="weapon_2_name" name="weapon_2_name" type="text" /></div>
+          <div class="stack"><label for="weapon_2_attack_bonus">Atk Bonus</label><input id="weapon_2_attack_bonus" name="weapon_2_attack_bonus" type="number" /></div>
+          <div class="stack"><label for="weapon_2_damage">Damage/Type</label><input id="weapon_2_damage" name="weapon_2_damage" type="text" /></div>
+        </div>
+        <div class="attack-row">
+          <div class="stack"><label for="weapon_3_name">Weapon Name</label><input id="weapon_3_name" name="weapon_3_name" type="text" /></div>
+          <div class="stack"><label for="weapon_3_attack_bonus">Atk Bonus</label><input id="weapon_3_attack_bonus" name="weapon_3_attack_bonus" type="number" /></div>
+          <div class="stack"><label for="weapon_3_damage">Damage/Type</label><input id="weapon_3_damage" name="weapon_3_damage" type="text" /></div>
+        </div>
+        <div class="stack"><label for="attacks_spellcasting">Attacks & Spellcasting Details</label><textarea id="attacks_spellcasting" name="attacks_spellcasting"></textarea></div>
+      </div>
+    </fieldset>
+    <div class="grid grid-2">
+      <fieldset>
+        <legend>Equipment</legend>
+        <div class="stack"><label for="equipment">Equipment</label><textarea id="equipment" name="equipment"></textarea></div>
+        <div class="coins">
+
+          <div class="stack"><label for="cp">CP</label><input id="cp" name="cp" type="number" /></div>
+          <div class="stack"><label for="sp">SP</label><input id="sp" name="sp" type="number" /></div>
+          <div class="stack"><label for="ep">EP</label><input id="ep" name="ep" type="number" /></div>
+          <div class="stack"><label for="gp">GP</label><input id="gp" name="gp" type="number" /></div>
+          <div class="stack"><label for="pp">PP</label><input id="pp" name="pp" type="number" /></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Proficiencies & Languages</legend>
+        <div class="stack"><label for="proficiencies_languages">Proficiencies & Languages</label><textarea id="proficiencies_languages" name="proficiencies_languages"></textarea></div>
+      </fieldset>
+    </div>
+    <fieldset>
+      <legend>Features & Traits</legend>
+      <div class="stack"><label for="features_traits">Features & Traits</label><textarea id="features_traits" name="features_traits"></textarea></div>
+    </fieldset>
+  </section>
+  <section class="sheet">
+    <div class="page-title">Character Details</div>
+    <fieldset>
+      <legend>Appearance</legend>
+      <div class="grid grid-3">
+
+        <div class="stack"><label for="character_name_details">Character Name</label><input id="character_name_details" name="character_name_details" type="text" /></div>
+        <div class="stack"><label for="age">Age</label><input id="age" name="age" type="number" /></div>
+        <div class="stack"><label for="height">Height</label><input id="height" name="height" type="text" /></div>
+        <div class="stack"><label for="weight">Weight</label><input id="weight" name="weight" type="text" /></div>
+        <div class="stack"><label for="eyes">Eyes</label><input id="eyes" name="eyes" type="text" /></div>
+        <div class="stack"><label for="skin">Skin</label><input id="skin" name="skin" type="text" /></div>
+        <div class="stack"><label for="hair">Hair</label><input id="hair" name="hair" type="text" /></div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Allies & Organizations</legend>
+      <div class="grid grid-2">
+
+        <div class="stack"><label for="allies">Allies & Organizations</label><textarea id="allies" name="allies"></textarea></div>
+        <div class="stack"><label for="faction_name">Faction Name</label><input id="faction_name" name="faction_name" type="text" /></div>
+        <div class="stack"><label for="faction_symbol">Faction Symbol Image</label><input id="faction_symbol" name="faction_symbol" type="text" /></div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Backstory</legend>
+      <div class="grid grid-2">
+
+        <div class="stack"><label for="feat_traits">Additional Features & Traits</label><textarea id="feat_traits" name="feat_traits"></textarea></div>
+        <div class="stack"><label for="backstory">Character Backstory</label><textarea id="backstory" name="backstory"></textarea></div>
+        <div class="stack"><label for="treasure">Treasure</label><textarea id="treasure" name="treasure"></textarea></div>
+      </div>
+    </fieldset>
+  </section>
+  <section class="sheet">
+    <div class="page-title">Spellcasting</div>
+    <fieldset>
+      <legend>Spellcasting Ability</legend>
+      <div class="grid grid-4">
+
+        <div class="stack"><label for="spellcasting_class">Spellcasting Class</label><input id="spellcasting_class" name="spellcasting_class" type="text" /></div>
+        <div class="stack"><label for="spellcasting_ability">Spellcasting Ability</label><input id="spellcasting_ability" name="spellcasting_ability" type="text" /></div>
+        <div class="stack"><label for="spell_save_dc">Spell Save DC</label><input id="spell_save_dc" name="spell_save_dc" type="number" /></div>
+        <div class="stack"><label for="spell_attack_bonus">Spell Attack Bonus</label><input id="spell_attack_bonus" name="spell_attack_bonus" type="number" /></div>
+      </div>
+    </fieldset>
+    <div class="spell-grid">
+      <fieldset>
+        <legend>Cantrips (0 Level)</legend>
+        <div class="stack">
+          <div class="cantrip-row">
+            <input id="cantrips_spell_1" name="cantrips_spell_1" type="text" />
+          </div>
+          <div class="cantrip-row">
+            <input id="cantrips_spell_2" name="cantrips_spell_2" type="text" />
+          </div>
+          <div class="cantrip-row">
+            <input id="cantrips_spell_3" name="cantrips_spell_3" type="text" />
+          </div>
+          <div class="cantrip-row">
+            <input id="cantrips_spell_4" name="cantrips_spell_4" type="text" />
+          </div>
+          <div class="cantrip-row">
+            <input id="cantrips_spell_5" name="cantrips_spell_5" type="text" />
+          </div>
+          <div class="cantrip-row">
+            <input id="cantrips_spell_6" name="cantrips_spell_6" type="text" />
+          </div>
+          <div class="cantrip-row">
+            <input id="cantrips_spell_7" name="cantrips_spell_7" type="text" />
+          </div>
+          <div class="cantrip-row">
+            <input id="cantrips_spell_8" name="cantrips_spell_8" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>1st Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_1_slots_total">Slots Total</label><input id="level_1_slots_total" name="level_1_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_1_slots_remaining">Slots Remaining</label><input id="level_1_slots_remaining" name="level_1_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_1_prepared_1" name="level_1_prepared_1" type="checkbox" />
+            <input id="level_1_spell_1" name="level_1_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_2" name="level_1_prepared_2" type="checkbox" />
+            <input id="level_1_spell_2" name="level_1_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_3" name="level_1_prepared_3" type="checkbox" />
+            <input id="level_1_spell_3" name="level_1_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_4" name="level_1_prepared_4" type="checkbox" />
+            <input id="level_1_spell_4" name="level_1_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_5" name="level_1_prepared_5" type="checkbox" />
+            <input id="level_1_spell_5" name="level_1_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_6" name="level_1_prepared_6" type="checkbox" />
+            <input id="level_1_spell_6" name="level_1_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_7" name="level_1_prepared_7" type="checkbox" />
+            <input id="level_1_spell_7" name="level_1_spell_7" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_8" name="level_1_prepared_8" type="checkbox" />
+            <input id="level_1_spell_8" name="level_1_spell_8" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_9" name="level_1_prepared_9" type="checkbox" />
+            <input id="level_1_spell_9" name="level_1_spell_9" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_10" name="level_1_prepared_10" type="checkbox" />
+            <input id="level_1_spell_10" name="level_1_spell_10" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_11" name="level_1_prepared_11" type="checkbox" />
+            <input id="level_1_spell_11" name="level_1_spell_11" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_1_prepared_12" name="level_1_prepared_12" type="checkbox" />
+            <input id="level_1_spell_12" name="level_1_spell_12" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>2nd Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_2_slots_total">Slots Total</label><input id="level_2_slots_total" name="level_2_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_2_slots_remaining">Slots Remaining</label><input id="level_2_slots_remaining" name="level_2_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_2_prepared_1" name="level_2_prepared_1" type="checkbox" />
+            <input id="level_2_spell_1" name="level_2_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_2" name="level_2_prepared_2" type="checkbox" />
+            <input id="level_2_spell_2" name="level_2_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_3" name="level_2_prepared_3" type="checkbox" />
+            <input id="level_2_spell_3" name="level_2_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_4" name="level_2_prepared_4" type="checkbox" />
+            <input id="level_2_spell_4" name="level_2_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_5" name="level_2_prepared_5" type="checkbox" />
+            <input id="level_2_spell_5" name="level_2_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_6" name="level_2_prepared_6" type="checkbox" />
+            <input id="level_2_spell_6" name="level_2_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_7" name="level_2_prepared_7" type="checkbox" />
+            <input id="level_2_spell_7" name="level_2_spell_7" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_8" name="level_2_prepared_8" type="checkbox" />
+            <input id="level_2_spell_8" name="level_2_spell_8" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_9" name="level_2_prepared_9" type="checkbox" />
+            <input id="level_2_spell_9" name="level_2_spell_9" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_10" name="level_2_prepared_10" type="checkbox" />
+            <input id="level_2_spell_10" name="level_2_spell_10" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_11" name="level_2_prepared_11" type="checkbox" />
+            <input id="level_2_spell_11" name="level_2_spell_11" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_12" name="level_2_prepared_12" type="checkbox" />
+            <input id="level_2_spell_12" name="level_2_spell_12" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_2_prepared_13" name="level_2_prepared_13" type="checkbox" />
+            <input id="level_2_spell_13" name="level_2_spell_13" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>3rd Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_3_slots_total">Slots Total</label><input id="level_3_slots_total" name="level_3_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_3_slots_remaining">Slots Remaining</label><input id="level_3_slots_remaining" name="level_3_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_3_prepared_1" name="level_3_prepared_1" type="checkbox" />
+            <input id="level_3_spell_1" name="level_3_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_2" name="level_3_prepared_2" type="checkbox" />
+            <input id="level_3_spell_2" name="level_3_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_3" name="level_3_prepared_3" type="checkbox" />
+            <input id="level_3_spell_3" name="level_3_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_4" name="level_3_prepared_4" type="checkbox" />
+            <input id="level_3_spell_4" name="level_3_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_5" name="level_3_prepared_5" type="checkbox" />
+            <input id="level_3_spell_5" name="level_3_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_6" name="level_3_prepared_6" type="checkbox" />
+            <input id="level_3_spell_6" name="level_3_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_7" name="level_3_prepared_7" type="checkbox" />
+            <input id="level_3_spell_7" name="level_3_spell_7" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_8" name="level_3_prepared_8" type="checkbox" />
+            <input id="level_3_spell_8" name="level_3_spell_8" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_9" name="level_3_prepared_9" type="checkbox" />
+            <input id="level_3_spell_9" name="level_3_spell_9" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_10" name="level_3_prepared_10" type="checkbox" />
+            <input id="level_3_spell_10" name="level_3_spell_10" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_11" name="level_3_prepared_11" type="checkbox" />
+            <input id="level_3_spell_11" name="level_3_spell_11" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_12" name="level_3_prepared_12" type="checkbox" />
+            <input id="level_3_spell_12" name="level_3_spell_12" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_3_prepared_13" name="level_3_prepared_13" type="checkbox" />
+            <input id="level_3_spell_13" name="level_3_spell_13" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>4th Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_4_slots_total">Slots Total</label><input id="level_4_slots_total" name="level_4_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_4_slots_remaining">Slots Remaining</label><input id="level_4_slots_remaining" name="level_4_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_4_prepared_1" name="level_4_prepared_1" type="checkbox" />
+            <input id="level_4_spell_1" name="level_4_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_2" name="level_4_prepared_2" type="checkbox" />
+            <input id="level_4_spell_2" name="level_4_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_3" name="level_4_prepared_3" type="checkbox" />
+            <input id="level_4_spell_3" name="level_4_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_4" name="level_4_prepared_4" type="checkbox" />
+            <input id="level_4_spell_4" name="level_4_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_5" name="level_4_prepared_5" type="checkbox" />
+            <input id="level_4_spell_5" name="level_4_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_6" name="level_4_prepared_6" type="checkbox" />
+            <input id="level_4_spell_6" name="level_4_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_7" name="level_4_prepared_7" type="checkbox" />
+            <input id="level_4_spell_7" name="level_4_spell_7" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_8" name="level_4_prepared_8" type="checkbox" />
+            <input id="level_4_spell_8" name="level_4_spell_8" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_9" name="level_4_prepared_9" type="checkbox" />
+            <input id="level_4_spell_9" name="level_4_spell_9" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_10" name="level_4_prepared_10" type="checkbox" />
+            <input id="level_4_spell_10" name="level_4_spell_10" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_11" name="level_4_prepared_11" type="checkbox" />
+            <input id="level_4_spell_11" name="level_4_spell_11" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_12" name="level_4_prepared_12" type="checkbox" />
+            <input id="level_4_spell_12" name="level_4_spell_12" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_4_prepared_13" name="level_4_prepared_13" type="checkbox" />
+            <input id="level_4_spell_13" name="level_4_spell_13" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>5th Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_5_slots_total">Slots Total</label><input id="level_5_slots_total" name="level_5_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_5_slots_remaining">Slots Remaining</label><input id="level_5_slots_remaining" name="level_5_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_5_prepared_1" name="level_5_prepared_1" type="checkbox" />
+            <input id="level_5_spell_1" name="level_5_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_2" name="level_5_prepared_2" type="checkbox" />
+            <input id="level_5_spell_2" name="level_5_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_3" name="level_5_prepared_3" type="checkbox" />
+            <input id="level_5_spell_3" name="level_5_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_4" name="level_5_prepared_4" type="checkbox" />
+            <input id="level_5_spell_4" name="level_5_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_5" name="level_5_prepared_5" type="checkbox" />
+            <input id="level_5_spell_5" name="level_5_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_6" name="level_5_prepared_6" type="checkbox" />
+            <input id="level_5_spell_6" name="level_5_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_7" name="level_5_prepared_7" type="checkbox" />
+            <input id="level_5_spell_7" name="level_5_spell_7" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_8" name="level_5_prepared_8" type="checkbox" />
+            <input id="level_5_spell_8" name="level_5_spell_8" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_5_prepared_9" name="level_5_prepared_9" type="checkbox" />
+            <input id="level_5_spell_9" name="level_5_spell_9" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>6th Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_6_slots_total">Slots Total</label><input id="level_6_slots_total" name="level_6_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_6_slots_remaining">Slots Remaining</label><input id="level_6_slots_remaining" name="level_6_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_6_prepared_1" name="level_6_prepared_1" type="checkbox" />
+            <input id="level_6_spell_1" name="level_6_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_2" name="level_6_prepared_2" type="checkbox" />
+            <input id="level_6_spell_2" name="level_6_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_3" name="level_6_prepared_3" type="checkbox" />
+            <input id="level_6_spell_3" name="level_6_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_4" name="level_6_prepared_4" type="checkbox" />
+            <input id="level_6_spell_4" name="level_6_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_5" name="level_6_prepared_5" type="checkbox" />
+            <input id="level_6_spell_5" name="level_6_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_6" name="level_6_prepared_6" type="checkbox" />
+            <input id="level_6_spell_6" name="level_6_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_7" name="level_6_prepared_7" type="checkbox" />
+            <input id="level_6_spell_7" name="level_6_spell_7" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_8" name="level_6_prepared_8" type="checkbox" />
+            <input id="level_6_spell_8" name="level_6_spell_8" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_6_prepared_9" name="level_6_prepared_9" type="checkbox" />
+            <input id="level_6_spell_9" name="level_6_spell_9" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>7th Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_7_slots_total">Slots Total</label><input id="level_7_slots_total" name="level_7_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_7_slots_remaining">Slots Remaining</label><input id="level_7_slots_remaining" name="level_7_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_7_prepared_1" name="level_7_prepared_1" type="checkbox" />
+            <input id="level_7_spell_1" name="level_7_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_2" name="level_7_prepared_2" type="checkbox" />
+            <input id="level_7_spell_2" name="level_7_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_3" name="level_7_prepared_3" type="checkbox" />
+            <input id="level_7_spell_3" name="level_7_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_4" name="level_7_prepared_4" type="checkbox" />
+            <input id="level_7_spell_4" name="level_7_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_5" name="level_7_prepared_5" type="checkbox" />
+            <input id="level_7_spell_5" name="level_7_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_6" name="level_7_prepared_6" type="checkbox" />
+            <input id="level_7_spell_6" name="level_7_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_7" name="level_7_prepared_7" type="checkbox" />
+            <input id="level_7_spell_7" name="level_7_spell_7" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_8" name="level_7_prepared_8" type="checkbox" />
+            <input id="level_7_spell_8" name="level_7_spell_8" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_7_prepared_9" name="level_7_prepared_9" type="checkbox" />
+            <input id="level_7_spell_9" name="level_7_spell_9" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>8th Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_8_slots_total">Slots Total</label><input id="level_8_slots_total" name="level_8_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_8_slots_remaining">Slots Remaining</label><input id="level_8_slots_remaining" name="level_8_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_8_prepared_1" name="level_8_prepared_1" type="checkbox" />
+            <input id="level_8_spell_1" name="level_8_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_8_prepared_2" name="level_8_prepared_2" type="checkbox" />
+            <input id="level_8_spell_2" name="level_8_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_8_prepared_3" name="level_8_prepared_3" type="checkbox" />
+            <input id="level_8_spell_3" name="level_8_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_8_prepared_4" name="level_8_prepared_4" type="checkbox" />
+            <input id="level_8_spell_4" name="level_8_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_8_prepared_5" name="level_8_prepared_5" type="checkbox" />
+            <input id="level_8_spell_5" name="level_8_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_8_prepared_6" name="level_8_prepared_6" type="checkbox" />
+            <input id="level_8_spell_6" name="level_8_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_8_prepared_7" name="level_8_prepared_7" type="checkbox" />
+            <input id="level_8_spell_7" name="level_8_spell_7" type="text" />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>9th Level</legend>
+        <div class="slots">
+          <div class="stack"><label for="level_9_slots_total">Slots Total</label><input id="level_9_slots_total" name="level_9_slots_total" type="number" /></div>
+          <div class="stack"><label for="level_9_slots_remaining">Slots Remaining</label><input id="level_9_slots_remaining" name="level_9_slots_remaining" type="number" /></div>
+        </div>
+        <div class="stack">
+          <div class="spell-row">
+            <input id="level_9_prepared_1" name="level_9_prepared_1" type="checkbox" />
+            <input id="level_9_spell_1" name="level_9_spell_1" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_9_prepared_2" name="level_9_prepared_2" type="checkbox" />
+            <input id="level_9_spell_2" name="level_9_spell_2" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_9_prepared_3" name="level_9_prepared_3" type="checkbox" />
+            <input id="level_9_spell_3" name="level_9_spell_3" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_9_prepared_4" name="level_9_prepared_4" type="checkbox" />
+            <input id="level_9_spell_4" name="level_9_spell_4" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_9_prepared_5" name="level_9_prepared_5" type="checkbox" />
+            <input id="level_9_spell_5" name="level_9_spell_5" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_9_prepared_6" name="level_9_prepared_6" type="checkbox" />
+            <input id="level_9_spell_6" name="level_9_spell_6" type="text" />
+          </div>
+          <div class="spell-row">
+            <input id="level_9_prepared_7" name="level_9_prepared_7" type="checkbox" />
+            <input id="level_9_spell_7" name="level_9_spell_7" type="text" />
+          </div>
+        </div>
+      </fieldset>
+    </div>
+  </section>
+</form>
+</body>
+</html>
