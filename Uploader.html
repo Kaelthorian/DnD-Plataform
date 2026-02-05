@@ -1,0 +1,306 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Firestore JSON Importer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f4ef;
+      --panel: #ffffff;
+      --ink: #1f1a14;
+      --muted: #6b5f52;
+      --accent: #e66b2f;
+      --accent-ink: #fffaf4;
+      --border: #e4d9ce;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Georgia", "Times New Roman", serif;
+      color: var(--ink);
+      background: radial-gradient(ellipse at top left, #fff4e6 0%, #f8efe6 35%, #efe6da 100%);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+    }
+    .frame {
+      width: min(780px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 32px;
+    }
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: clamp(28px, 4vw, 36px);
+      letter-spacing: 0.5px;
+    }
+    p {
+      margin: 0 0 24px 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+    }
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 16px;
+      background: #fffdfa;
+      color: var(--ink);
+    }
+    input[type="file"] {
+      padding: 10px 12px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 22px;
+      font-size: 16px;
+      font-weight: 600;
+      background: var(--accent);
+      color: var(--accent-ink);
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease;
+      box-shadow: 0 10px 18px rgba(230, 107, 47, 0.3);
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      box-shadow: none;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+    .status {
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      padding: 14px;
+      min-height: 56px;
+      background: #fff8f0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .status.ok { border-color: #c7e8c9; background: #f2fff3; color: #2f5a34; }
+    .status.error { border-color: #f0b5b5; background: #fff3f3; color: #7a2a2a; }
+    .foot {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <h1>Firestore JSON Importer</h1>
+    <p>Upload a JSON file and send its contents to any Firestore collection you specify.</p>
+
+    <div class="grid">
+      <div>
+        <label for="collection">Firestore Collection Path</label>
+        <input id="collection" type="text" placeholder="e.g. campaigns/alpha/armors" autocomplete="off" />
+      </div>
+      <div>
+        <label for="file">JSON File</label>
+        <input id="file" type="file" accept="application/json,.json" />
+      </div>
+      <div class="actions">
+        <button id="uploadBtn" type="button">Upload to Firestore</button>
+        <span id="summary"></span>
+      </div>
+      <div id="status" class="status">Idle. Choose a JSON file and collection path.</div>
+    </div>
+    <div class="foot">Tip: You can reuse this page for different files and collections without changing the code.</div>
+  </main>
+
+  <script type="module">
+    console.log("[uploader] script loaded");
+
+    // ===== FIREBASE CONFIG (EDIT THIS SECTION) =====
+    const firebaseConfig = {
+        apiKey: "AIzaSyAA4Ak_mKs67_b2LIxjSQ0TabAIa5JE4rA",
+        authDomain: "dnd-dice-ca4b0.firebaseapp.com",
+        projectId: "dnd-dice-ca4b0",
+        storageBucket: "dnd-dice-ca4b0.firebasestorage.app",
+        messagingSenderId: "338841368755",
+        appId: "1:338841368755:web:80065ec73a88b9e2ba58c6",
+        measurementId: "G-VPGSM8BFR6",
+     };
+    // ===== END FIREBASE CONFIG =====
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      writeBatch
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    console.log("[uploader] firebase modules imported");
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const fileInput = document.getElementById("file");
+    const collectionInput = document.getElementById("collection");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const statusEl = document.getElementById("status");
+    const summaryEl = document.getElementById("summary");
+
+    console.log("[uploader] elements", {
+      fileInput: !!fileInput,
+      collectionInput: !!collectionInput,
+      uploadBtn: !!uploadBtn,
+      statusEl: !!statusEl,
+      summaryEl: !!summaryEl
+    });
+
+    const logStatus = (message, type = "") => {
+      console.log("[uploader]", message);
+      statusEl.className = `status ${type}`.trim();
+      statusEl.textContent = message;
+    };
+
+    const setBusy = (busy) => {
+      uploadBtn.disabled = busy;
+      fileInput.disabled = busy;
+      collectionInput.disabled = busy;
+      console.log("[uploader] busy:", busy);
+    };
+
+    const readFileAsText = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+        reader.readAsText(file);
+      });
+    };
+
+    const toCollectionRef = (path) => {
+      const clean = path.trim().replace(/^\/|\/$/g, "");
+      return collection(db, clean);
+    };
+
+    const normalizePayload = (payload) => {
+      if (Array.isArray(payload)) {
+        return { mode: "array", items: payload };
+      }
+      if (payload && typeof payload === "object") {
+        return { mode: "map", items: payload };
+      }
+      throw new Error("JSON must be an array of objects or an object of key/value pairs.");
+    };
+
+    const chunk = (items, size) => {
+      const chunks = [];
+      for (let i = 0; i < items.length; i += size) {
+        chunks.push(items.slice(i, i + size));
+      }
+      return chunks;
+    };
+
+    uploadBtn.addEventListener("click", async () => {
+      console.log("[uploader] upload button clicked");
+      summaryEl.textContent = "";
+
+      const file = fileInput.files[0];
+      const collectionPath = collectionInput.value.trim();
+
+      console.log("[uploader] inputs", {
+        fileName: file ? file.name : null,
+        collectionPath
+      });
+
+      if (!collectionPath) {
+        logStatus("Please enter a Firestore collection path.", "error");
+        return;
+      }
+      if (!file) {
+        logStatus("Please choose a JSON file to upload.", "error");
+        return;
+      }
+
+      try {
+        setBusy(true);
+        logStatus("Reading JSON file...");
+
+        const text = await readFileAsText(file);
+        let payload;
+        try {
+          payload = JSON.parse(text);
+        } catch (err) {
+          throw new Error("Invalid JSON. Please check the file contents.");
+        }
+
+        const normalized = normalizePayload(payload);
+        const colRef = toCollectionRef(collectionPath);
+
+        let docs = [];
+        if (normalized.mode === "array") {
+          docs = normalized.items.map((item) => ({ id: null, data: item }));
+        } else {
+          docs = Object.entries(normalized.items).map(([id, data]) => ({ id, data }));
+        }
+
+        if (docs.length === 0) {
+          throw new Error("JSON is empty. Nothing to upload.");
+        }
+
+        const batches = chunk(docs, 500);
+        let written = 0;
+
+        for (const batchDocs of batches) {
+          const batch = writeBatch(db);
+          for (const entry of batchDocs) {
+            if (entry.data === null || typeof entry.data !== "object") {
+              throw new Error("Each document value must be an object.");
+            }
+            const ref = entry.id ? doc(colRef, entry.id) : doc(colRef);
+            batch.set(ref, entry.data);
+          }
+          await batch.commit();
+          written += batchDocs.length;
+          logStatus(`Uploaded ${written} / ${docs.length} documents...`);
+        }
+
+        summaryEl.textContent = `Uploaded ${written} documents.`;
+        logStatus("Upload completed successfully.", "ok");
+      } catch (err) {
+        const message = err && err.message ? err.message : "Upload failed.";
+        logStatus(message, "error");
+        console.error("[uploader] error", err);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    console.log("[uploader] click handler attached");
+  </script>
+</body>
+</html>

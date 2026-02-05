@@ -1,173 +1,210 @@
-[
-	{
-		"name": "Padded Armor",
-		"type": "light",
-		"baseAC": 11,
-		"dexBonus": { "allowed": true, "max": null },
-		"strengthRequirement": null,
-		"stealthDisadvantage": true,
-		"weightLb": 8,
-		"costGp": 5,
-		"donTimeMinutes": 1,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Leather Armor",
-		"type": "light",
-		"baseAC": 11,
-		"dexBonus": { "allowed": true, "max": null },
-		"strengthRequirement": null,
-		"stealthDisadvantage": false,
-		"weightLb": 10,
-		"costGp": 10,
-		"donTimeMinutes": 1,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Studded Leather Armor",
-		"type": "light",
-		"baseAC": 12,
-		"dexBonus": { "allowed": true, "max": null },
-		"strengthRequirement": null,
-		"stealthDisadvantage": false,
-		"weightLb": 13,
-		"costGp": 45,
-		"donTimeMinutes": 1,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Hide Armor",
-		"type": "medium",
-		"baseAC": 12,
-		"dexBonus": { "allowed": true, "max": 2 },
-		"strengthRequirement": null,
-		"stealthDisadvantage": false,
-		"weightLb": 12,
-		"costGp": 10,
-		"donTimeMinutes": 5,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Chain Shirt",
-		"type": "medium",
-		"baseAC": 13,
-		"dexBonus": { "allowed": true, "max": 2 },
-		"strengthRequirement": null,
-		"stealthDisadvantage": false,
-		"weightLb": 20,
-		"costGp": 50,
-		"donTimeMinutes": 5,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Scale Mail",
-		"type": "medium",
-		"baseAC": 14,
-		"dexBonus": { "allowed": true, "max": 2 },
-		"strengthRequirement": null,
-		"stealthDisadvantage": true,
-		"weightLb": 45,
-		"costGp": 50,
-		"donTimeMinutes": 5,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Breastplate",
-		"type": "medium",
-		"baseAC": 14,
-		"dexBonus": { "allowed": true, "max": 2 },
-		"strengthRequirement": null,
-		"stealthDisadvantage": false,
-		"weightLb": 20,
-		"costGp": 400,
-		"donTimeMinutes": 5,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Half Plate Armor",
-		"type": "medium",
-		"baseAC": 15,
-		"dexBonus": { "allowed": true, "max": 2 },
-		"strengthRequirement": null,
-		"stealthDisadvantage": true,
-		"weightLb": 40,
-		"costGp": 750,
-		"donTimeMinutes": 5,
-		"doffTimeMinutes": 1,
-		"isShield": false
-	},
-	{
-		"name": "Ring Mail",
-		"type": "heavy",
-		"baseAC": 14,
-		"dexBonus": { "allowed": false, "max": 0 },
-		"strengthRequirement": null,
-		"stealthDisadvantage": true,
-		"weightLb": 40,
-		"costGp": 30,
-		"donTimeMinutes": 10,
-		"doffTimeMinutes": 5,
-		"isShield": false
-	},
-	{
-		"name": "Chain Mail",
-		"type": "heavy",
-		"baseAC": 16,
-		"dexBonus": { "allowed": false, "max": 0 },
-		"strengthRequirement": 13,
-		"stealthDisadvantage": true,
-		"weightLb": 55,
-		"costGp": 75,
-		"donTimeMinutes": 10,
-		"doffTimeMinutes": 5,
-		"isShield": false
-	},
-	{
-		"name": "Splint Armor",
-		"type": "heavy",
-		"baseAC": 17,
-		"dexBonus": { "allowed": false, "max": 0 },
-		"strengthRequirement": 15,
-		"stealthDisadvantage": true,
-		"weightLb": 60,
-		"costGp": 200,
-		"donTimeMinutes": 10,
-		"doffTimeMinutes": 5,
-		"isShield": false
-	},
-	{
-		"name": "Plate Armor",
-		"type": "heavy",
-		"baseAC": 18,
-		"dexBonus": { "allowed": false, "max": 0 },
-		"strengthRequirement": 15,
-		"stealthDisadvantage": true,
-		"weightLb": 65,
-		"costGp": 1500,
-		"donTimeMinutes": 10,
-		"doffTimeMinutes": 5,
-		"isShield": false
-	},
 {
-	"name": "Shield",
-	"type": "shield",
-	"baseAC": 2,
-	"dexBonus": { "allowed": false, "max": 0 },
-	"strengthRequirement": null,
-	"stealthDisadvantage": false,
-	"weightLb": 6,
-	"costGp": 10,
-	"donTimeMinutes": 1,
-	"doffTimeMinutes": 1,
-	"isShield": true
+  "padded_armor": {
+    "name": "Padded Armor",
+    "type": "light",
+    "baseAC": 11,
+    "dexBonus": {
+      "allowed": true,
+      "max": null
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": true,
+    "weightLb": 8,
+    "costGp": 5,
+    "donTimeMinutes": 1,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "leather_armor": {
+    "name": "Leather Armor",
+    "type": "light",
+    "baseAC": 11,
+    "dexBonus": {
+      "allowed": true,
+      "max": null
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": false,
+    "weightLb": 10,
+    "costGp": 10,
+    "donTimeMinutes": 1,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "studded_leather_armor": {
+    "name": "Studded Leather Armor",
+    "type": "light",
+    "baseAC": 12,
+    "dexBonus": {
+      "allowed": true,
+      "max": null
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": false,
+    "weightLb": 13,
+    "costGp": 45,
+    "donTimeMinutes": 1,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "hide_armor": {
+    "name": "Hide Armor",
+    "type": "medium",
+    "baseAC": 12,
+    "dexBonus": {
+      "allowed": true,
+      "max": 2
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": false,
+    "weightLb": 12,
+    "costGp": 10,
+    "donTimeMinutes": 5,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "chain_shirt": {
+    "name": "Chain Shirt",
+    "type": "medium",
+    "baseAC": 13,
+    "dexBonus": {
+      "allowed": true,
+      "max": 2
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": false,
+    "weightLb": 20,
+    "costGp": 50,
+    "donTimeMinutes": 5,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "scale_mail": {
+    "name": "Scale Mail",
+    "type": "medium",
+    "baseAC": 14,
+    "dexBonus": {
+      "allowed": true,
+      "max": 2
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": true,
+    "weightLb": 45,
+    "costGp": 50,
+    "donTimeMinutes": 5,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "breastplate": {
+    "name": "Breastplate",
+    "type": "medium",
+    "baseAC": 14,
+    "dexBonus": {
+      "allowed": true,
+      "max": 2
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": false,
+    "weightLb": 20,
+    "costGp": 400,
+    "donTimeMinutes": 5,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "half_plate_armor": {
+    "name": "Half Plate Armor",
+    "type": "medium",
+    "baseAC": 15,
+    "dexBonus": {
+      "allowed": true,
+      "max": 2
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": true,
+    "weightLb": 40,
+    "costGp": 750,
+    "donTimeMinutes": 5,
+    "doffTimeMinutes": 1,
+    "isShield": false
+  },
+  "ring_mail": {
+    "name": "Ring Mail",
+    "type": "heavy",
+    "baseAC": 14,
+    "dexBonus": {
+      "allowed": false,
+      "max": 0
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": true,
+    "weightLb": 40,
+    "costGp": 30,
+    "donTimeMinutes": 10,
+    "doffTimeMinutes": 5,
+    "isShield": false
+  },
+  "chain_mail": {
+    "name": "Chain Mail",
+    "type": "heavy",
+    "baseAC": 16,
+    "dexBonus": {
+      "allowed": false,
+      "max": 0
+    },
+    "strengthRequirement": 13,
+    "stealthDisadvantage": true,
+    "weightLb": 55,
+    "costGp": 75,
+    "donTimeMinutes": 10,
+    "doffTimeMinutes": 5,
+    "isShield": false
+  },
+  "splint_armor": {
+    "name": "Splint Armor",
+    "type": "heavy",
+    "baseAC": 17,
+    "dexBonus": {
+      "allowed": false,
+      "max": 0
+    },
+    "strengthRequirement": 15,
+    "stealthDisadvantage": true,
+    "weightLb": 60,
+    "costGp": 200,
+    "donTimeMinutes": 10,
+    "doffTimeMinutes": 5,
+    "isShield": false
+  },
+  "plate_armor": {
+    "name": "Plate Armor",
+    "type": "heavy",
+    "baseAC": 18,
+    "dexBonus": {
+      "allowed": false,
+      "max": 0
+    },
+    "strengthRequirement": 15,
+    "stealthDisadvantage": true,
+    "weightLb": 65,
+    "costGp": 1500,
+    "donTimeMinutes": 10,
+    "doffTimeMinutes": 5,
+    "isShield": false
+  },
+  "shield": {
+    "name": "Shield",
+    "type": "shield",
+    "baseAC": 2,
+    "dexBonus": {
+      "allowed": false,
+      "max": 0
+    },
+    "strengthRequirement": null,
+    "stealthDisadvantage": false,
+    "weightLb": 6,
+    "costGp": 10,
+    "donTimeMinutes": 1,
+    "doffTimeMinutes": 1,
+    "isShield": true
+  }
 }
-]
-
-
