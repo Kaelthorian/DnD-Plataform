@@ -729,6 +729,37 @@
         border-color: var(--accent);
         background: #fff4ec;
       }
+      .spell-list {
+        display: grid;
+        gap: 6px;
+      }
+      .spell-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .spell-item strong {
+        display: block;
+        font-size: 0.95rem;
+      }
+      .spell-meta {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .spell-remove {
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        background: #c23a2b;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.75rem;
+      }
       @media (max-width: 960px) {
         .layout {
           grid-template-columns: 1fr;
@@ -1182,8 +1213,8 @@
                   <div class="tab-panel" id="spell-panel-6"></div>
                 </div>
                 <div class="tab-actions">
-                  <button type="button">Add Spell</button>
-                  <button type="button">Remove Spell</button>
+                  <button id="add-spell" type="button">Add Spell</button>
+                  <button id="remove-spell" type="button">Remove Spell</button>
                 </div>
               </div>
             </div>
@@ -1223,6 +1254,14 @@
         <button id="race-picker-close" class="weapon-picker-close" type="button">X</button>
       </div>
       <div id="race-picker-list"></div>
+    </aside>
+    <aside class="weapon-picker spell-picker" id="spell-picker" aria-live="polite" aria-label="Spell picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <input id="spell-search" type="search" placeholder="Search cantrips..." />
+        <button id="spell-picker-add" class="weapon-picker-add" type="button" disabled>Add</button>
+        <button id="spell-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div id="spell-picker-list"></div>
     </aside>
 
     <script type="module">
@@ -1288,6 +1327,8 @@
       const attackRollBtn = document.getElementById("attack-roll");
       const attackProfEl = document.getElementById("attack-prof");
       const addWeaponBtn = document.getElementById("add-weapon");
+      const addSpellBtn = document.getElementById("add-spell");
+      const removeSpellBtn = document.getElementById("remove-spell");
       const activeWeaponLabel = document.getElementById("active-weapon-label");
       const equipStatusEl = document.getElementById("equip-status");
       const weaponPicker = document.getElementById("weapon-picker");
@@ -1300,14 +1341,22 @@
       const raceSearch = document.getElementById("race-search");
       const racePickerAdd = document.getElementById("race-picker-add");
       const racePickerClose = document.getElementById("race-picker-close");
+      const spellPicker = document.getElementById("spell-picker");
+      const spellPickerList = document.getElementById("spell-picker-list");
+      const spellSearch = document.getElementById("spell-search");
+      const spellPickerAdd = document.getElementById("spell-picker-add");
+      const spellPickerClose = document.getElementById("spell-picker-close");
+      const cantripPanel = document.getElementById("spell-panel-1");
       const itemPanel = document.getElementById("item-panel");
       const itemPanelTitle = document.getElementById("item-panel-title");
       const itemPanelBody = document.getElementById("item-panel-body");
       const itemPanelClose = document.getElementById("item-panel-close");
       const equipmentListEl = document.getElementById("equipment-list");
       let equipmentItems = [];
+      let cantripItems = [];
       let activeWeaponName = "";
       let pickerSelected = "";
+      let cantripSelected = "";
       let raceSelected = "";
       let equippedMainId = "";
       let equippedOffhandId = "";
@@ -1407,10 +1456,19 @@
       let weaponByName = new Map();
       let weaponList = [];
       let weaponsLoaded = false;
+      let cantripTable = [];
+      let cantripByName = new Map();
+      let cantripList = [];
+      let cantripsLoaded = false;
 
       function refreshWeaponIndex() {
         weaponByName = new Map(weaponTable.map((weapon) => [weapon.name, weapon]));
         weaponList = weaponTable.map((weapon) => weapon.name);
+      }
+
+      function refreshCantripIndex() {
+        cantripByName = new Map(cantripTable.map((spell) => [spell.name, spell]));
+        cantripList = cantripTable.map((spell) => spell.name);
       }
 
       async function loadWeapons() {
@@ -1439,6 +1497,38 @@
         } catch (error) {
           console.error("Failed to load weapons", error);
           weaponsLoaded = true;
+        }
+      }
+
+      async function loadCantrips() {
+        try {
+          const response = await fetch("./Data/cantrips.json");
+          if (!response.ok) {
+            throw new Error(`Cantrip fetch failed: ${response.status}`);
+          }
+          const data = await response.json();
+          cantripTable = Object.values(data || {})
+            .map((entry) => {
+              const name = (entry?.name || "").trim();
+              if (!name) return null;
+              return {
+                name,
+                school: (entry.school || "").trim(),
+                level: (entry.level || "").trim(),
+                range: (entry.range || "").trim(),
+                components: (entry.components || "").trim(),
+                duration: (entry.duration || "").trim(),
+                description: (entry.description || "").trim(),
+                classes: Array.isArray(entry.classes) ? entry.classes.slice() : [],
+              };
+            })
+            .filter(Boolean);
+          refreshCantripIndex();
+          cantripsLoaded = true;
+          renderCantrips();
+        } catch (error) {
+          console.error("Failed to load cantrips", error);
+          cantripsLoaded = true;
         }
       }
 
@@ -1829,6 +1919,18 @@
         }
       }
 
+      function setSpellPickerOpen(isOpen) {
+        if (!spellPicker) return;
+        spellPicker.classList.toggle("open", isOpen);
+        spellPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        if (isOpen) {
+          cantripSelected = "";
+          if (spellPickerAdd) {
+            spellPickerAdd.disabled = true;
+          }
+        }
+      }
+
       function setRacePickerOpen(isOpen) {
         if (!racePicker) return;
         racePicker.classList.toggle("open", isOpen);
@@ -2061,6 +2163,92 @@
         }
       }
 
+      function buildCantripPickerList(filterText = "") {
+        if (!spellPickerList) return;
+        const filter = filterText.trim().toLowerCase();
+        spellPickerList.innerHTML = "";
+
+        if (!cantripsLoaded) {
+          const loading = document.createElement("div");
+          loading.className = "weapon-option";
+          loading.textContent = "Loading cantrips...";
+          spellPickerList.appendChild(loading);
+          return;
+        }
+
+        if (!cantripTable.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No cantrips found.";
+          spellPickerList.appendChild(empty);
+          return;
+        }
+
+        const filtered = cantripTable.filter((spell) => {
+          if (!filter) return true;
+          const nameMatch = spell.name.toLowerCase().includes(filter);
+          const schoolMatch = spell.school.toLowerCase().includes(filter);
+          return nameMatch || schoolMatch;
+        });
+
+        const grouped = new Map();
+        filtered.forEach((spell) => {
+          const school = spell.school || "Other";
+          if (!grouped.has(school)) grouped.set(school, []);
+          grouped.get(school).push(spell);
+        });
+
+        const schools = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
+        let rendered = false;
+
+        schools.forEach((school) => {
+          const spells = grouped.get(school) || [];
+          if (!spells.length) return;
+          const header = document.createElement("div");
+          header.className = "weapon-category";
+          header.textContent = school;
+          spellPickerList.appendChild(header);
+
+          const list = document.createElement("div");
+          list.className = "weapon-list";
+          spells
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach((spell) => {
+              const option = document.createElement("div");
+              option.className = "weapon-option";
+              if (spell.name === cantripSelected) {
+                option.classList.add("selected");
+              }
+              option.addEventListener("click", () => {
+                cantripSelected = spell.name;
+                if (spellPickerAdd) {
+                  spellPickerAdd.disabled = false;
+                }
+                buildCantripPickerList(spellSearch?.value || "");
+              });
+              const name = document.createElement("strong");
+              name.textContent = spell.name;
+              const meta = document.createElement("span");
+              const metaParts = [spell.school, spell.range].filter(Boolean);
+              meta.textContent = metaParts.join(" • ") || "No details";
+              option.appendChild(name);
+              option.appendChild(meta);
+              list.appendChild(option);
+            });
+
+          spellPickerList.appendChild(list);
+          rendered = true;
+        });
+
+        if (!rendered) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No cantrips match your search.";
+          spellPickerList.appendChild(empty);
+        }
+      }
+
       function buildRacePickerList(filterText = "") {
         if (!racePickerList) return;
         const filter = filterText.trim().toLowerCase();
@@ -2132,6 +2320,109 @@
         updateActiveWeaponLabel();
       }
 
+      function normalizeCantripItems(items) {
+        if (!Array.isArray(items)) return [];
+        const seen = new Set();
+        return items
+          .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+          .filter((name) => name && !seen.has(name) && seen.add(name));
+      }
+
+      function renderCantrips() {
+        if (!cantripPanel) return;
+        cantripPanel.innerHTML = "";
+        if (!cantripItems.length) {
+          const empty = document.createElement("div");
+          empty.className = "spell-meta";
+          empty.textContent = "No cantrips added.";
+          cantripPanel.appendChild(empty);
+          return;
+        }
+
+        const list = document.createElement("div");
+        list.className = "spell-list";
+        cantripItems.forEach((name) => {
+          const spell = cantripByName.get(name);
+          const row = document.createElement("div");
+          row.className = "spell-item";
+
+          const info = document.createElement("div");
+          const title = document.createElement("strong");
+          title.textContent = name;
+          info.appendChild(title);
+
+          if (spell) {
+            const meta = document.createElement("div");
+            meta.className = "spell-meta";
+            const metaParts = [spell.school, spell.range].filter(Boolean);
+            meta.textContent = metaParts.join(" • ");
+            info.appendChild(meta);
+          }
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "spell-remove";
+          removeBtn.textContent = "Remove";
+          removeBtn.addEventListener("click", () => {
+            cantripItems = cantripItems.filter((item) => item !== name);
+            renderCantrips();
+            scheduleSave();
+          });
+
+          row.appendChild(info);
+          row.appendChild(removeBtn);
+          list.appendChild(row);
+        });
+
+        cantripPanel.appendChild(list);
+      }
+
+      function initSpellPicker() {
+        if (addSpellBtn) {
+          addSpellBtn.addEventListener("click", () => {
+            setSpellPickerOpen(true);
+            buildCantripPickerList(spellSearch?.value || "");
+          });
+        }
+        if (spellSearch) {
+          spellSearch.addEventListener("input", () => {
+            buildCantripPickerList(spellSearch.value);
+          });
+        }
+        if (spellPickerAdd) {
+          spellPickerAdd.addEventListener("click", () => {
+            if (!cantripSelected) return;
+            if (!cantripItems.includes(cantripSelected)) {
+              cantripItems = [...cantripItems, cantripSelected];
+              renderCantrips();
+              scheduleSave();
+            }
+            setSpellPickerOpen(false);
+          });
+        }
+        if (spellPickerClose) {
+          spellPickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setSpellPickerOpen(false);
+          });
+        }
+        if (removeSpellBtn) {
+          removeSpellBtn.addEventListener("click", () => {
+            if (!cantripItems.length) return;
+            cantripItems = cantripItems.slice(0, -1);
+            renderCantrips();
+            scheduleSave();
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setSpellPickerOpen(false);
+          }
+        });
+        buildCantripPickerList("");
+        renderCantrips();
+      }
+
       function initRacePicker() {
         if (raceInput) {
           const openPicker = () => {
@@ -2183,6 +2474,7 @@
             payload[el.id] = getFieldValue(el);
           }
           payload.equipmentItems = equipmentItems.slice();
+          payload.cantripItems = cantripItems.slice();
           payload.equippedMainId = equippedMainId;
           payload.equippedOffhandId = equippedOffhandId;
           payload.equippedMainTwoHanded = equippedMainTwoHanded;
@@ -2281,6 +2573,10 @@
           updateActiveWeaponLabel();
           renderEquipment();
         }
+        if (Array.isArray(data.cantripItems)) {
+          cantripItems = normalizeCantripItems(data.cantripItems);
+          renderCantrips();
+        }
         recalcDerived();
         isRemoteUpdate = false;
       });
@@ -2297,8 +2593,10 @@
       recalcDerived();
       async function initApp() {
         await loadWeapons();
+        await loadCantrips();
         initEquipmentWeapons();
         initRacePicker();
+        initSpellPicker();
         renderEquipment();
       }
       initApp();
