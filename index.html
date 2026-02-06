@@ -1329,6 +1329,7 @@
               <div class="panel-label">Equipment</div>
               <div class="actions" style="margin-bottom: 8px;">
                 <button id="add-weapon" type="button">Add Weapon</button>
+                <button id="attack-roll" type="button">Hit</button>
                 <span class="active-weapon" id="active-weapon-label">No weapon selected</span>
                 <span class="equip-status" id="equip-status"></span>
               </div>
@@ -1391,6 +1392,7 @@
       <div class="sticky-roll-title">Dice Roll</div>
       <div id="roll-result">No rolls yet.</div>
     </aside>
+    <audio id="dice-sound" src="diceroll.mp3" preload="auto"></audio>
     <aside class="item-panel" id="item-panel" aria-live="polite" aria-label="Item details">
       <div class="item-panel-header">
         <h2 class="item-panel-title" id="item-panel-title">Item</h2>
@@ -1484,6 +1486,7 @@
       const rollRef = doc(db, "dice", "d20");
       const sheetRef = doc(db, "sheets", "active");
       const resultEl = document.getElementById("roll-result");
+      const diceSoundEl = document.getElementById("dice-sound");
       const rollBtn = document.getElementById("roll-btn");
       const classInput = document.getElementById("class-level");
       const raceInput = document.getElementById("race");
@@ -1705,6 +1708,7 @@
       let classList = [];
       let classesLoaded = false;
       let classSelected = "";
+      let currentWeaponProficiencies = [];
 
       function refreshWeaponIndex() {
         weaponByName = new Map(weaponTable.map((weapon) => [weapon.name, weapon]));
@@ -1953,6 +1957,34 @@
         if (weapon.properties && weapon.properties.includes("Finesse")) return "finesse";
         if (weapon.category && weapon.category.includes("Ranged")) return "dex";
         return "str";
+      }
+
+      function isWeaponProficient(weapon) {
+        if (!weapon) return false;
+        const profs = (currentWeaponProficiencies || [])
+          .map((entry) => String(entry || "").toLowerCase());
+        if (!profs.length) return false;
+        const name = String(weapon.name || "").toLowerCase();
+        const category = String(weapon.category || "").toLowerCase();
+        const properties = String(weapon.properties || "").toLowerCase();
+        if (profs.some((entry) => entry === "all weapons" || entry === "all")) return true;
+        if (profs.some((entry) => entry.includes("simple") && category.includes("simple"))) return true;
+        if (profs.some((entry) => entry.includes("martial") && category.includes("martial"))) return true;
+        if (profs.some((entry) => entry.includes("ranged") && category.includes("ranged"))) return true;
+        if (profs.some((entry) => entry.includes("melee") && category.includes("melee"))) return true;
+        if (profs.some((entry) => entry.includes("light") && properties.includes("light"))) return true;
+        if (profs.some((entry) => entry.includes(name))) return true;
+        const normalizedName = name.replace(/[^a-z0-9]+/g, " ").trim();
+        if (profs.some((entry) => entry.replace(/[^a-z0-9]+/g, " ").trim() === normalizedName)) {
+          return true;
+        }
+        const nameParts = normalizedName.split(" ").filter(Boolean);
+        if (nameParts.length) {
+          if (profs.some((entry) => entry.includes(nameParts[0]) && entry.includes(nameParts[nameParts.length - 1]))) {
+            return true;
+          }
+        }
+        return false;
       }
 
       function buildPropertiesTooltip(properties) {
@@ -2304,6 +2336,15 @@
         return { total, rolls };
       }
 
+      function playDiceSound() {
+        if (!diceSoundEl) return;
+        diceSoundEl.currentTime = 0;
+        const playPromise = diceSoundEl.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {});
+        }
+      }
+
       function normalizeHitDie(die) {
         const text = String(die || "").trim();
         if (!text) return "";
@@ -2363,6 +2404,9 @@
           }
         }
         setSavingThrowProficiencies(entry.savingThrows || []);
+        currentWeaponProficiencies = Array.isArray(entry.weaponProficiencies)
+          ? entry.weaponProficiencies.slice()
+          : [];
         if (proficienciesListEl) {
           proficienciesListEl.innerHTML = "";
           const weaponText = (entry.weaponProficiencies || []).join(", ") || "--";
@@ -2399,6 +2443,7 @@
 
       function rollDamage(dice, label, ability) {
         const detail = rollDiceDetailed(dice);
+        playDiceSound();
         const abilityKey = ability === "finesse"
           ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
           : ability || "str";
@@ -2543,8 +2588,10 @@
         const weapon = weaponName ? getWeaponData(weaponName) : null;
         if (!weapon) {
           attackRollBtn.textContent = "Hit";
+          attackRollBtn.disabled = true;
           return;
         }
+        attackRollBtn.disabled = false;
         const useTwoHands =
           mainItem && mainItem.id === equippedMainId && equippedMainTwoHanded && isVersatileWeapon(weapon);
         const dice = getWeaponDamageDie(weapon, useTwoHands);
@@ -3142,6 +3189,10 @@
       function initSpellPicker() {
         if (addSpellBtn) {
           addSpellBtn.addEventListener("click", () => {
+            if (itemPanel) {
+              itemPanel.classList.remove("open");
+              itemPanel.setAttribute("aria-hidden", "true");
+            }
             setSpellPickerOpen(true);
             buildCantripPickerList(spellSearch?.value || "");
           });
@@ -3158,6 +3209,10 @@
               cantripItems = [...cantripItems, cantripSelected];
               renderCantrips();
               scheduleSave();
+            }
+            if (itemPanel) {
+              itemPanel.classList.remove("open");
+              itemPanel.setAttribute("aria-hidden", "true");
             }
             setSpellPickerOpen(false);
           });
@@ -3499,6 +3554,7 @@
       if (rollBtn) {
         rollBtn.addEventListener("click", async () => {
           const value = Math.floor(Math.random() * 20) + 1;
+          playDiceSound();
           resultEl.textContent = `Rolling... (${value})`;
           try {
             await setDoc(rollRef, {
@@ -3515,6 +3571,7 @@
 
       function rollD20WithParts(parts, label) {
         const roll = Math.floor(Math.random() * 20) + 1;
+        playDiceSound();
         const total = parts.reduce((sum, part) => sum + part.value, roll);
         const localData = {
           roll,
@@ -3648,7 +3705,7 @@
               : ability || "str";
             const abilityValue = toNumber(abilityMods[abilityKey]?.value);
             const parts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: abilityValue }];
-            if (attackProfEl?.checked) {
+            if (weapon && isWeaponProficient(weapon)) {
               parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
             }
             const label = weaponName ? `${weaponName} Hit` : "Hit Roll";
