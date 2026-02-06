@@ -362,12 +362,25 @@
         flex-direction: column;
         gap: 6px;
       }
+      .grid-saving-throws .list {
+        gap: 0.5px;
+      }
+      .grid-skills .list {
+        gap: 3px;
+      }
       .list-item {
         display: grid;
         grid-template-columns: 18px 1fr 58px;
         align-items: center;
         gap: 6px;
         position: relative;
+      }
+      .list-value {
+        display: inline-block;
+        width: 58px;
+        text-align: center;
+        padding: 2px 4px;
+        font-variant-numeric: tabular-nums;
       }
       .list-item.rollable-row {
         cursor: pointer;
@@ -1101,12 +1114,12 @@
             <div class="panel grid-saving-throws">
               <div class="panel-label">Saving Throws</div>
               <div class="list">
-                <div class="list-item" data-ability="str"><input id="save-str-prof" type="checkbox" /><span>Strength</span><input class="save-value" type="text" readonly /></div>
-                <div class="list-item" data-ability="dex"><input id="save-dex-prof" type="checkbox" /><span>Dexterity</span><input class="save-value" type="text" readonly /></div>
-                <div class="list-item" data-ability="con"><input id="save-con-prof" type="checkbox" /><span>Constitution</span><input class="save-value" type="text" readonly /></div>
-                <div class="list-item" data-ability="int"><input id="save-int-prof" type="checkbox" /><span>Intelligence</span><input class="save-value" type="text" readonly /></div>
-                <div class="list-item" data-ability="wis"><input id="save-wis-prof" type="checkbox" /><span>Wisdom</span><input class="save-value" type="text" readonly /></div>
-                <div class="list-item" data-ability="cha"><input id="save-cha-prof" type="checkbox" /><span>Charisma</span><input class="save-value" type="text" readonly /></div>
+                <div class="list-item" data-ability="str"><input id="save-str-prof" type="checkbox" /><span>Strength</span><span class="save-value list-value">+0</span></div>
+                <div class="list-item" data-ability="dex"><input id="save-dex-prof" type="checkbox" /><span>Dexterity</span><span class="save-value list-value">+0</span></div>
+                <div class="list-item" data-ability="con"><input id="save-con-prof" type="checkbox" /><span>Constitution</span><span class="save-value list-value">+0</span></div>
+                <div class="list-item" data-ability="int"><input id="save-int-prof" type="checkbox" /><span>Intelligence</span><span class="save-value list-value">+0</span></div>
+                <div class="list-item" data-ability="wis"><input id="save-wis-prof" type="checkbox" /><span>Wisdom</span><span class="save-value list-value">+0</span></div>
+                <div class="list-item" data-ability="cha"><input id="save-cha-prof" type="checkbox" /><span>Charisma</span><span class="save-value list-value">+0</span></div>
               </div>
             </div>
             <div class="ability ability-strength" data-ability="str">
@@ -1155,24 +1168,24 @@
             <div class="panel grid-skills">
               <div class="panel-label">Skills</div>
               <div class="list">
-                  <div class="list-item" data-ability="dex"><input id="skill-acrobatics-prof" type="checkbox" /><span>Acrobatics (Dex)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="wis"><input id="skill-animal-handling-prof" type="checkbox" /><span>Animal Handling (Wis)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="int"><input id="skill-arcana-prof" type="checkbox" /><span>Arcana (Int)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="str"><input id="skill-athletics-prof" type="checkbox" /><span>Athletics (Str)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="cha"><input id="skill-deception-prof" type="checkbox" /><span>Deception (Cha)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="int"><input id="skill-history-prof" type="checkbox" /><span>History (Int)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="wis"><input id="skill-insight-prof" type="checkbox" /><span>Insight (Wis)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="cha"><input id="skill-intimidation-prof" type="checkbox" /><span>Intimidation (Cha)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="int"><input id="skill-investigation-prof" type="checkbox" /><span>Investigation (Int)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="wis"><input id="skill-medicine-prof" type="checkbox" /><span>Medicine (Wis)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="int"><input id="skill-nature-prof" type="checkbox" /><span>Nature (Int)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="wis"><input id="skill-perception-prof" type="checkbox" /><span>Perception (Wis)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="cha"><input id="skill-performance-prof" type="checkbox" /><span>Performance (Cha)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="cha"><input id="skill-persuasion-prof" type="checkbox" /><span>Persuasion (Cha)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="int"><input id="skill-religion-prof" type="checkbox" /><span>Religion (Int)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="dex"><input id="skill-sleight-of-hand-prof" type="checkbox" /><span>Sleight of Hand (Dex)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="dex"><input id="skill-stealth-prof" type="checkbox" /><span>Stealth (Dex)</span><input class="skill-value" type="text" readonly /></div>
-                  <div class="list-item" data-ability="wis"><input id="skill-survival-prof" type="checkbox" /><span>Survival (Wis)</span><input class="skill-value" type="text" readonly /></div>
+                  <div class="list-item" data-ability="dex"><input id="skill-acrobatics-prof" type="checkbox" /><span>Acrobatics (Dex)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-animal-handling-prof" type="checkbox" /><span>Animal Handling (Wis)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="int"><input id="skill-arcana-prof" type="checkbox" /><span>Arcana (Int)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="str"><input id="skill-athletics-prof" type="checkbox" /><span>Athletics (Str)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-deception-prof" type="checkbox" /><span>Deception (Cha)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="int"><input id="skill-history-prof" type="checkbox" /><span>History (Int)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-insight-prof" type="checkbox" /><span>Insight (Wis)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-intimidation-prof" type="checkbox" /><span>Intimidation (Cha)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="int"><input id="skill-investigation-prof" type="checkbox" /><span>Investigation (Int)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-medicine-prof" type="checkbox" /><span>Medicine (Wis)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="int"><input id="skill-nature-prof" type="checkbox" /><span>Nature (Int)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-perception-prof" type="checkbox" /><span>Perception (Wis)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-performance-prof" type="checkbox" /><span>Performance (Cha)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="cha"><input id="skill-persuasion-prof" type="checkbox" /><span>Persuasion (Cha)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="int"><input id="skill-religion-prof" type="checkbox" /><span>Religion (Int)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="dex"><input id="skill-sleight-of-hand-prof" type="checkbox" /><span>Sleight of Hand (Dex)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="dex"><input id="skill-stealth-prof" type="checkbox" /><span>Stealth (Dex)</span><span class="skill-value list-value">+0</span></div>
+                  <div class="list-item" data-ability="wis"><input id="skill-survival-prof" type="checkbox" /><span>Survival (Wis)</span><span class="skill-value list-value">+0</span></div>
               </div>
             </div>
 
@@ -1374,6 +1387,23 @@
         return num >= 0 ? `+${num}` : `${num}`;
       }
 
+      function setListValue(el, value) {
+        if (!el) return;
+        if ("value" in el) {
+          el.value = value;
+          return;
+        }
+        el.textContent = value;
+      }
+
+      function getListValue(el) {
+        if (!el) return "";
+        if ("value" in el) {
+          return el.value;
+        }
+        return el.textContent || "";
+      }
+
       function computeAbilityMod(score) {
         if (!Number.isFinite(score)) return 0;
         return Math.floor((score - 10) / 2);
@@ -1426,7 +1456,7 @@
           const valueEl = row.querySelector(".save-value");
           const base = mods[ability] ?? 0;
           const total = base + (checkbox?.checked ? profBonus : 0);
-          valueEl.value = formatMod(total);
+          setListValue(valueEl, formatMod(total));
         });
 
         skillRows.forEach((row) => {
@@ -1435,7 +1465,7 @@
           const valueEl = row.querySelector(".skill-value");
           const base = mods[ability] ?? 0;
           const total = base + (checkbox?.checked ? profBonus : 0);
-          valueEl.value = formatMod(total);
+          setListValue(valueEl, formatMod(total));
         });
 
         if (passivePerceptionEl) {
@@ -1443,7 +1473,7 @@
             (row) => row.textContent && row.textContent.includes("Perception")
           );
           const perceptionValueEl = perceptionRow?.querySelector(".skill-value");
-          const perceptionMod = toNumber(perceptionValueEl?.value);
+          const perceptionMod = toNumber(getListValue(perceptionValueEl));
           passivePerceptionEl.value = String(10 + perceptionMod);
         }
 
@@ -1724,6 +1754,22 @@
         }
         if (label === "Range") {
           return `Range: ${value} (normal/long).`;
+        }
+        return `${label}: ${value}`;
+      }
+
+      function formatSpellLevel(level) {
+        if (!level && level !== 0) return "";
+        const numeric = Number(level);
+        if (Number.isFinite(numeric)) {
+          return numeric === 0 ? "Cantrip" : `Level ${numeric}`;
+        }
+        return String(level);
+      }
+
+      function getSpellTooltip(label, value) {
+        if (label === "Description") {
+          return value || "No description.";
         }
         return `${label}: ${value}`;
       }
@@ -2347,6 +2393,7 @@
           row.className = "spell-item";
 
           const info = document.createElement("div");
+          info.style.cursor = "pointer";
           const title = document.createElement("strong");
           title.textContent = name;
           info.appendChild(title);
@@ -2358,6 +2405,11 @@
             meta.textContent = metaParts.join(" • ");
             info.appendChild(meta);
           }
+
+          info.addEventListener("click", () => {
+            if (!spell) return;
+            openSpellPanel(spell);
+          });
 
           const removeBtn = document.createElement("button");
           removeBtn.type = "button";
@@ -2805,6 +2857,37 @@
           val.textContent = value;
           val.className = "item-tooltip";
           val.setAttribute("data-tooltip", getItemTooltip(label, value, weapon));
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
+      }
+
+      function openSpellPanel(spell) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody || !spell) return;
+        itemPanelTitle.textContent = spell.name || "Spell";
+        itemPanelBody.innerHTML = "";
+        const levelLabel = formatSpellLevel(spell.level);
+        const rows = [
+          ["Level", levelLabel || "â€”"],
+          ["School", spell.school || "â€”"],
+          ["Range", spell.range || "â€”"],
+          ["Components", spell.components || "â€”"],
+          ["Duration", spell.duration || "â€”"],
+          ["Classes", (spell.classes || []).join(", ") || "â€”"],
+          ["Description", spell.description || "â€”"],
+        ];
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          val.setAttribute("data-tooltip", getSpellTooltip(label, value));
           row.appendChild(strong);
           row.appendChild(val);
           itemPanelBody.appendChild(row);
