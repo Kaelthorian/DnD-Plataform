@@ -105,7 +105,7 @@
       }
       .grid-character-name {
         grid-column: 1 / 3;
-        grid-row: 1 / 3;
+        grid-row: 1 / 2;
       }
       .grid-class {
         grid-column: 4 / 5;
@@ -118,10 +118,12 @@
       .grid-initiative {
         grid-column: 4 / 5;
         grid-row: 3 / 4;
+        width: 50%;
+        justify-self: start;
       }
       .grid-speed {
-        grid-column: 5 / 7;
-        grid-row: 3 / 4;
+        grid-column: 6 / 7;
+        grid-row: 1 / 2;
       }
       .grid-passive-wisdom {
         grid-column: 1 / 3;
@@ -140,8 +142,12 @@
         grid-row: 12 / 16;
       }
       .grid-level {
+        grid-column: 1 / 2;
+        grid-row: 2 / 3;
+      }
+      .grid-size {
         grid-column: 3 / 4;
-        grid-row: 1 / 2;
+        grid-row: 2 / 3;
       }
       .grid-inspiration {
         grid-column: 2 / 3;
@@ -156,19 +162,27 @@
       }
       .grid-race {
         grid-column: 3 / 4;
-        grid-row: 2 / 3;
+        grid-row: 1 / 2;
       }
       .grid-alignment {
         grid-column: 4 / 5;
         grid-row: 2 / 3;
       }
       .grid-background {
-        grid-column: 5 / 7;
-        grid-row: 2 / 3;
+        grid-column: 5 / 6;
+        grid-row: 1 / 2;
+      }
+      .grid-proficiencies {
+        grid-column: 5 / 6;
+        grid-row: 2 / 4;
+      }
+      .grid-traits {
+        grid-column: 6 / 7;
+        grid-row: 2 / 4;
       }
       .grid-exp {
-        grid-column: 5 / 7;
-        grid-row: 1 / 2;
+        grid-column: 2 / 3;
+        grid-row: 2 / 3;
       }
       .grid-proficiency {
         grid-column: 2 / 3;
@@ -194,11 +208,13 @@
         background: #fff;
         width: 100%;
         height: 100%;
+        overflow: visible;
       }
       .panel-label {
         position: absolute;
         top: -12px;
-        left: 12px;
+        left: 50%;
+        transform: translateX(-50%);
         padding: 2px 8px;
         font-size: 0.75rem;
         letter-spacing: 0.08em;
@@ -206,6 +222,7 @@
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 999px;
+        text-align: center;
       }
       .panel input,
       .panel textarea,
@@ -217,6 +234,19 @@
         font-family: inherit;
         font-size: 0.98rem;
         background: #fff;
+        height: 100%;
+      }
+      .text-center {
+        text-align: center;
+      }
+      .trait-list {
+        margin: 0;
+        padding: 0 0 0 16px;
+        height: 100%;
+        overflow: auto;
+      }
+      .trait-list li {
+        margin: 0 0 6px;
       }
       .tabs {
         display: grid;
@@ -225,11 +255,15 @@
         width: 100%;
         height: 100%;
       }
+      .tab-panels {
+        height: 100%;
+      }
       .tab-buttons {
         display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(10, minmax(0, 1fr));
         gap: 4px;
         text-align: center;
+        margin-top: 20px;
       }
       .tab-buttons label {
         display: block;
@@ -248,6 +282,25 @@
         padding: 6px;
         background: #fff;
         height: 100%;
+        overflow: auto;
+      }
+      .grid-equipment {
+        overflow: hidden;
+      }
+      .grid-equipment .panel-label {
+        top: 8px;
+      }
+      .grid-equipment .actions {
+        margin-top: 20px;
+      }
+      .grid-spells .panel-label {
+        top: 8px;
+      }
+      .grid-spells {
+        overflow: hidden;
+      }
+      #equipment-list {
+        max-height: 100%;
         overflow: auto;
       }
       .tab-actions {
@@ -275,7 +328,11 @@
       #spell-tab-3:checked ~ .tab-buttons label[for="spell-tab-3"],
       #spell-tab-4:checked ~ .tab-buttons label[for="spell-tab-4"],
       #spell-tab-5:checked ~ .tab-buttons label[for="spell-tab-5"],
-      #spell-tab-6:checked ~ .tab-buttons label[for="spell-tab-6"] {
+      #spell-tab-6:checked ~ .tab-buttons label[for="spell-tab-6"],
+      #spell-tab-7:checked ~ .tab-buttons label[for="spell-tab-7"],
+      #spell-tab-8:checked ~ .tab-buttons label[for="spell-tab-8"],
+      #spell-tab-9:checked ~ .tab-buttons label[for="spell-tab-9"],
+      #spell-tab-10:checked ~ .tab-buttons label[for="spell-tab-10"] {
         background: #f6f1e8;
         border-color: #2b1f17;
       }
@@ -284,7 +341,11 @@
       #spell-tab-3:checked ~ .tab-panels #spell-panel-3,
       #spell-tab-4:checked ~ .tab-panels #spell-panel-4,
       #spell-tab-5:checked ~ .tab-panels #spell-panel-5,
-      #spell-tab-6:checked ~ .tab-panels #spell-panel-6 {
+      #spell-tab-6:checked ~ .tab-panels #spell-panel-6,
+      #spell-tab-7:checked ~ .tab-panels #spell-panel-7,
+      #spell-tab-8:checked ~ .tab-panels #spell-panel-8,
+      #spell-tab-9:checked ~ .tab-panels #spell-panel-9,
+      #spell-tab-10:checked ~ .tab-panels #spell-panel-10 {
         display: block;
       }
       .panel input[readonly] {
@@ -364,6 +425,10 @@
       }
       .grid-saving-throws .list {
         gap: 0.5px;
+        margin-top: 20px;
+      }
+      .grid-saving-throws input[type="checkbox"] {
+        pointer-events: none;
       }
       .grid-skills .list {
         gap: 3px;
@@ -683,12 +748,69 @@
       .weapon-picker.open {
         display: block;
       }
+      .ability-picker .weapon-picker-header {
+        grid-template-columns: 1fr auto;
+      }
+      .ability-picker .picker-title {
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .ability-picker .ability-values,
+      .ability-picker .ability-choices {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .ability-picker .ability-options {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .ability-picker .ability-values {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .ability-picker .ability-choices {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .ability-picker button {
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 2px solid var(--line);
+        background: #fff;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .ability-picker button.selected {
+        border-color: var(--accent);
+        background: #fff4ec;
+      }
+      .ability-picker button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
       .weapon-picker-header {
         display: grid;
         grid-template-columns: 1fr auto auto;
         gap: 8px;
         align-items: center;
         margin-bottom: 12px;
+      }
+      .size-picker .weapon-picker-header {
+        grid-template-columns: 1fr auto;
+      }
+      .size-picker .picker-title {
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .alignment-picker .weapon-picker-header {
+        grid-template-columns: 1fr auto;
       }
       .weapon-picker-header input {
         width: 100%;
@@ -1050,7 +1172,7 @@
 
             <div class="panel grid-character-name">
               <div class="panel-label">Character Name</div>
-              <input id="character-name" type="text" />
+              <input id="character-name" type="text" class="text-center" />
             </div>
             <div class="panel grid-class">
               <div class="panel-label">Class</div>
@@ -1066,7 +1188,7 @@
             </div>
             <div class="panel grid-speed">
               <div class="panel-label">Speed</div>
-              <input id="speed" type="number" />
+              <input id="speed" type="number" readonly class="text-center" />
             </div>
             <div class="panel grid-passive-wisdom">
               <div class="panel-label">PASSIVE WISDOM (PERCEPTION)</div>
@@ -1074,7 +1196,11 @@
             </div>
             <div class="panel grid-level">
               <div class="panel-label">Level</div>
-              <input id="level" type="number" min="1" max="20" />
+              <input id="level" type="number" min="1" max="20" class="text-center" readonly />
+            </div>
+            <div class="panel grid-size">
+              <div class="panel-label">Size</div>
+              <input id="size" type="text" readonly inputmode="none" />
             </div>
             <div class="panel grid-inspiration">
               <div class="panel-label">Inspiration</div>
@@ -1087,9 +1213,9 @@
                 <input id="current-hp" type="number" min="0" />
               </div>
               <div class="panel">
-                <div class="panel-label">Total HP</div>
-                <input id="total-hp" type="number" min="0" />
-              </div>
+              <div class="panel-label">Total HP</div>
+              <input id="total-hp" type="number" min="0" readonly />
+            </div>
             </div>
             <div class="panel grid-race">
               <div class="panel-label">Race</div>
@@ -1097,19 +1223,27 @@
             </div>
             <div class="panel grid-alignment">
               <div class="panel-label">Alignment</div>
-              <input id="alignment" type="text" />
+              <input id="alignment" type="text" readonly disabled />
             </div>
             <div class="panel grid-background">
               <div class="panel-label">Background</div>
               <input id="background" type="text" />
             </div>
+            <div class="panel grid-proficiencies">
+              <div class="panel-label">Proficiencies</div>
+              <ul id="proficiencies" class="trait-list" aria-live="polite"></ul>
+            </div>
+            <div class="panel grid-traits">
+              <div class="panel-label">Traits</div>
+              <ul id="traits" class="trait-list" aria-live="polite"></ul>
+            </div>
             <div class="panel grid-exp">
               <div class="panel-label">EXP</div>
-              <input id="xp" type="number" min="0" />
+              <input id="xp" type="number" min="0" class="text-center" readonly />
             </div>
             <div class="panel grid-proficiency">
               <div class="panel-label">Proficiency Bonus</div>
-              <input id="proficiency-bonus" type="text" readonly />
+              <input id="proficiency-bonus" type="text" readonly class="text-center" />
             </div>
             <div class="panel grid-saving-throws">
               <div class="panel-label">Saving Throws</div>
@@ -1125,42 +1259,42 @@
             <div class="ability ability-strength" data-ability="str">
               <h3>Strength</h3>
               <div class="ability-row">
-                <input id="str-score" type="number" min="1" max="30" placeholder="Score" />
+                <input id="str-score" type="number" min="1" max="30" readonly inputmode="none" />
                 <input id="str-mod" type="text" placeholder="Mod" readonly />
               </div>
             </div>
             <div class="ability ability-dexterity" data-ability="dex">
               <h3>Dexterity</h3>
               <div class="ability-row">
-                <input id="dex-score" type="number" min="1" max="30" placeholder="Score" />
+                <input id="dex-score" type="number" min="1" max="30" readonly inputmode="none" />
                 <input id="dex-mod" type="text" placeholder="Mod" readonly />
               </div>
             </div>
             <div class="ability ability-constitution" data-ability="con">
               <h3>Constitution</h3>
               <div class="ability-row">
-                <input id="con-score" type="number" min="1" max="30" placeholder="Score" />
+                <input id="con-score" type="number" min="1" max="30" readonly inputmode="none" />
                 <input id="con-mod" type="text" placeholder="Mod" readonly />
               </div>
             </div>
             <div class="ability ability-intelligence" data-ability="int">
               <h3>Intelligence</h3>
               <div class="ability-row">
-                <input id="int-score" type="number" min="1" max="30" placeholder="Score" />
+                <input id="int-score" type="number" min="1" max="30" readonly inputmode="none" />
                 <input id="int-mod" type="text" placeholder="Mod" readonly />
               </div>
             </div>
             <div class="ability ability-wisdom" data-ability="wis">
               <h3>Wisdom</h3>
               <div class="ability-row">
-                <input id="wis-score" type="number" min="1" max="30" placeholder="Score" />
+                <input id="wis-score" type="number" min="1" max="30" readonly inputmode="none" />
                 <input id="wis-mod" type="text" placeholder="Mod" readonly />
               </div>
             </div>
             <div class="ability ability-charisma" data-ability="cha">
               <h3>Charisma</h3>
               <div class="ability-row">
-                <input id="cha-score" type="number" min="1" max="30" placeholder="Score" />
+                <input id="cha-score" type="number" min="1" max="30" readonly inputmode="none" />
                 <input id="cha-mod" type="text" placeholder="Mod" readonly />
               </div>
             </div>
@@ -1209,13 +1343,21 @@
                 <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-4" />
                 <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-5" />
                 <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-6" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-7" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-8" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-9" />
+                <input class="tab-input" type="radio" name="spells-tab" id="spell-tab-10" />
                 <div class="tab-buttons">
-                  <label for="spell-tab-1">Cantrip</label>
-                  <label for="spell-tab-2">Level 1</label>
-                  <label for="spell-tab-3">Level 2</label>
-                  <label for="spell-tab-4">Level 3</label>
-                  <label for="spell-tab-5">Level 4</label>
-                  <label for="spell-tab-6">Level 5</label>
+                  <label for="spell-tab-1">C</label>
+                  <label for="spell-tab-2">1</label>
+                  <label for="spell-tab-3">2</label>
+                  <label for="spell-tab-4">3</label>
+                  <label for="spell-tab-5">4</label>
+                  <label for="spell-tab-6">5</label>
+                  <label for="spell-tab-7">6</label>
+                  <label for="spell-tab-8">7</label>
+                  <label for="spell-tab-9">8</label>
+                  <label for="spell-tab-10">9</label>
                 </div>
                 <div class="tab-panels">
                   <div class="tab-panel" id="spell-panel-1"></div>
@@ -1224,6 +1366,10 @@
                   <div class="tab-panel" id="spell-panel-4"></div>
                   <div class="tab-panel" id="spell-panel-5"></div>
                   <div class="tab-panel" id="spell-panel-6"></div>
+                  <div class="tab-panel" id="spell-panel-7"></div>
+                  <div class="tab-panel" id="spell-panel-8"></div>
+                  <div class="tab-panel" id="spell-panel-9"></div>
+                  <div class="tab-panel" id="spell-panel-10"></div>
                 </div>
                 <div class="tab-actions">
                   <button id="add-spell" type="button">Add Spell</button>
@@ -1268,6 +1414,29 @@
       </div>
       <div id="race-picker-list"></div>
     </aside>
+    <aside class="weapon-picker size-picker" id="size-picker" aria-live="polite" aria-label="Size picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <div class="picker-title">Choose size</div>
+        <button id="size-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div id="size-picker-list"></div>
+    </aside>
+    <aside class="weapon-picker alignment-picker" id="alignment-picker" aria-live="polite" aria-label="Alignment picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <div class="picker-title">Choose alignment</div>
+        <button id="alignment-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div id="alignment-picker-list"></div>
+    </aside>
+    <aside class="weapon-picker ability-picker" id="ability-picker" aria-live="polite" aria-label="Ability score picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <div class="picker-title">Choose ability scores</div>
+        <button id="ability-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div class="ability-options" id="ability-options"></div>
+      <div class="ability-values" id="ability-values"></div>
+      <div class="ability-choices" id="ability-choices"></div>
+    </aside>
     <aside class="weapon-picker spell-picker" id="spell-picker" aria-live="polite" aria-label="Spell picker" aria-hidden="true">
       <div class="weapon-picker-header">
         <input id="spell-search" type="search" placeholder="Search cantrips..." />
@@ -1275,6 +1444,14 @@
         <button id="spell-picker-close" class="weapon-picker-close" type="button">X</button>
       </div>
       <div id="spell-picker-list"></div>
+    </aside>
+    <aside class="weapon-picker class-picker" id="class-picker" aria-live="polite" aria-label="Class picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <input id="class-search" type="search" placeholder="Search classes..." />
+        <button id="class-picker-add" class="weapon-picker-add" type="button" disabled>Add</button>
+        <button id="class-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div id="class-picker-list"></div>
     </aside>
 
     <script type="module">
@@ -1308,7 +1485,22 @@
       const sheetRef = doc(db, "sheets", "active");
       const resultEl = document.getElementById("roll-result");
       const rollBtn = document.getElementById("roll-btn");
+      const classInput = document.getElementById("class-level");
       const raceInput = document.getElementById("race");
+      const alignmentInput = document.getElementById("alignment");
+      const speedInput = document.getElementById("speed");
+      const sizeInput = document.getElementById("size");
+      const levelInput = document.getElementById("level");
+      const xpInput = document.getElementById("xp");
+      const totalHpInput = document.getElementById("total-hp");
+      const currentHpInput = document.getElementById("current-hp");
+      const proficienciesListEl = document.getElementById("proficiencies");
+      const abilityPicker = document.getElementById("ability-picker");
+      const abilityPickerClose = document.getElementById("ability-picker-close");
+      const abilityOptionsEl = document.getElementById("ability-options");
+      const abilityValuesEl = document.getElementById("ability-values");
+      const abilityChoicesEl = document.getElementById("ability-choices");
+      const traitsListEl = document.getElementById("traits");
       const fieldEls = Array.from(
         document.querySelectorAll(
           "input[id]:not([data-nosave]), textarea[id]:not([data-nosave]), select[id]:not([data-nosave])"
@@ -1354,11 +1546,22 @@
       const raceSearch = document.getElementById("race-search");
       const racePickerAdd = document.getElementById("race-picker-add");
       const racePickerClose = document.getElementById("race-picker-close");
+      const sizePicker = document.getElementById("size-picker");
+      const sizePickerList = document.getElementById("size-picker-list");
+      const sizePickerClose = document.getElementById("size-picker-close");
+      const alignmentPicker = document.getElementById("alignment-picker");
+      const alignmentPickerList = document.getElementById("alignment-picker-list");
+      const alignmentPickerClose = document.getElementById("alignment-picker-close");
       const spellPicker = document.getElementById("spell-picker");
       const spellPickerList = document.getElementById("spell-picker-list");
       const spellSearch = document.getElementById("spell-search");
       const spellPickerAdd = document.getElementById("spell-picker-add");
       const spellPickerClose = document.getElementById("spell-picker-close");
+      const classPicker = document.getElementById("class-picker");
+      const classPickerList = document.getElementById("class-picker-list");
+      const classSearch = document.getElementById("class-search");
+      const classPickerAdd = document.getElementById("class-picker-add");
+      const classPickerClose = document.getElementById("class-picker-close");
       const cantripPanel = document.getElementById("spell-panel-1");
       const itemPanel = document.getElementById("item-panel");
       const itemPanelTitle = document.getElementById("item-panel-title");
@@ -1371,11 +1574,14 @@
       let pickerSelected = "";
       let cantripSelected = "";
       let raceSelected = "";
+      let sizeSelected = "";
       let equippedMainId = "";
       let equippedOffhandId = "";
       let equippedMainTwoHanded = false;
       let isRemoteUpdate = false;
       let saveTimer = null;
+      let currentRaceSpeed = "";
+      let currentRaceSizes = [];
 
       function toNumber(value) {
         const num = Number(value);
@@ -1490,6 +1696,15 @@
       let cantripByName = new Map();
       let cantripList = [];
       let cantripsLoaded = false;
+      let raceTable = [];
+      let raceByName = new Map();
+      let raceList = [];
+      let racesLoaded = false;
+      let classTable = [];
+      let classByName = new Map();
+      let classList = [];
+      let classesLoaded = false;
+      let classSelected = "";
 
       function refreshWeaponIndex() {
         weaponByName = new Map(weaponTable.map((weapon) => [weapon.name, weapon]));
@@ -1499,6 +1714,30 @@
       function refreshCantripIndex() {
         cantripByName = new Map(cantripTable.map((spell) => [spell.name, spell]));
         cantripList = cantripTable.map((spell) => spell.name);
+      }
+
+      function refreshClassIndex() {
+        classByName = new Map(classTable.map((entry) => [entry.name, entry]));
+        classList = classTable.map((entry) => entry.name);
+      }
+
+      function normalizeRaceSizes(value) {
+        if (Array.isArray(value)) {
+          return value.map((entry) => String(entry || "").trim()).filter(Boolean);
+        }
+        if (value === null || value === undefined) return [];
+        const text = String(value).trim();
+        return text ? [text] : [];
+      }
+
+      function normalizeRaceSpeed(value) {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : "";
+      }
+
+      function refreshRaceIndex() {
+        raceByName = new Map(raceTable.map((race) => [race.name, race]));
+        raceList = raceTable.map((race) => race.name);
       }
 
       async function loadWeapons() {
@@ -1562,6 +1801,77 @@
         }
       }
 
+      async function loadClasses() {
+        try {
+          const response = await fetch("./Data/class.json");
+          if (!response.ok) {
+            throw new Error(`Class fetch failed: ${response.status}`);
+          }
+          const data = await response.json();
+          classTable = Object.values(data || {})
+            .map((entry) => {
+              const name = (entry?.name || "").trim();
+              if (!name) return null;
+              return {
+                name,
+                description: (entry.description || "").trim(),
+                subclasses: Array.isArray(entry.subclasses) ? entry.subclasses.slice() : [],
+                primaryAbility: Array.isArray(entry["primary ability"])
+                  ? entry["primary ability"].slice()
+                  : [],
+                hitPointDie: (entry["hit point die"] || "").trim(),
+                hitPointDieModifier: (entry["hit point die modifier"] || "").trim(),
+                hitPointPerAdditionalLevelDie: (entry["hit point per additional level die"] || "").trim(),
+                savingThrows: Array.isArray(entry["saving throws proficiencies options"])
+                  ? entry["saving throws proficiencies options"].slice()
+                  : [],
+                weaponProficiencies: Array.isArray(entry["weapon proficiencies"])
+                  ? entry["weapon proficiencies"].slice()
+                  : [],
+                armorTraining: Array.isArray(entry["armor training"])
+                  ? entry["armor training"].slice()
+                  : [],
+                startingEquipment: Array.isArray(entry["starting equipment"])
+                  ? entry["starting equipment"].slice()
+                  : [],
+              };
+            })
+            .filter(Boolean);
+          refreshClassIndex();
+          classesLoaded = true;
+        } catch (error) {
+          console.error("Failed to load classes", error);
+          classesLoaded = true;
+        }
+      }
+
+      async function loadRaces() {
+        try {
+          const snapshot = await getDocs(collection(db, "races"));
+          raceTable = snapshot.docs
+            .map((docSnap) => {
+              const data = docSnap.data() || {};
+              const name = (data.name || docSnap.id || "").trim();
+              if (!name) return null;
+              return {
+                name,
+                speed: data.speed,
+                size: normalizeRaceSizes(data.size),
+                creatureType: Array.isArray(data.creatureType) ? data.creatureType.slice() : [],
+                traits: Array.isArray(data.traits) ? data.traits.slice() : [],
+                description: (data.description || "").trim(),
+                subclass: Array.isArray(data.subclass) ? data.subclass.slice() : [],
+              };
+            })
+            .filter(Boolean);
+          refreshRaceIndex();
+          racesLoaded = true;
+        } catch (error) {
+          console.error("Failed to load races", error);
+          racesLoaded = true;
+        }
+      }
+
       const weaponAliases = {
         "Crossbow, Light": "Light Crossbow",
         "Crossbow, Hand": "Hand Crossbow",
@@ -1589,92 +1899,6 @@
         "Two-Handed": "Requires two hands to attack.",
         Versatile: "Use one or two hands. Parentheses show damage when used with two hands.",
       };
-      const raceList = [
-        "Aarakocra",
-        "Aasimar",
-        "Air Genasi",
-        "Astral Elf",
-        "Autognome",
-        "Boggart",
-        "Bugbear",
-        "Centaur",
-        "Changeling",
-        "Chromatic Dragonborn",
-        "Dark Elf",
-        "Deep Gnome",
-        "Dhampir",
-        "Dragonborn",
-        "Duergar",
-        "Dwarf",
-        "Earth Genasi",
-        "Eladrin",
-        "Elf",
-        "Faerie",
-        "Fairy",
-        "Firbolg",
-        "Fire Genasi",
-        "Flamekin",
-        "Forest Gnome",
-        "Gem Dragonborn",
-        "Genasi",
-        "Giff",
-        "Githyanki",
-        "Githzerai",
-        "Gnome",
-        "Goblin",
-        "Gold Dwarf",
-        "Goliath",
-        "Hadozee",
-        "Half-Elf",
-        "Half-Orc",
-        "Halfling",
-        "Harengon",
-        "Hexblood",
-        "High Elf",
-        "Hobgoblin",
-        "Human",
-        "Kalashtar",
-        "Kenku",
-        "Kender",
-        "Khoravar",
-        "Kithkin",
-        "Kobold",
-        "Leonin",
-        "Lightfoot Halfling",
-        "Lizardfolk",
-        "Lorwyn Changeling",
-        "Lotusden Halfling",
-        "Loxodon",
-        "Metallic Dragonborn",
-        "Minotaur",
-        "Moon Elf",
-        "Orc",
-        "Owlin",
-        "Pallid Elf",
-        "Plasmoid",
-        "Reborn",
-        "Rimekin",
-        "Rock Gnome",
-        "Satyr",
-        "Sea Elf",
-        "Shadar-kai",
-        "Shield Dwarf",
-        "Shifter",
-        "Simic Hybrid",
-        "Strongheart Halfling",
-        "Sun Elf",
-        "Tabaxi",
-        "Thri-kreen",
-        "Tiefling",
-        "Tortle",
-        "Triton",
-        "Vedalken",
-        "Verdan",
-        "Warforged",
-        "Water Genasi",
-        "Wood Elf",
-        "Yuan-ti",
-      ];
 
       function resolveWeaponName(name) {
         if (weaponByName.has(name)) return name;
@@ -1774,6 +1998,292 @@
         return `${label}: ${value}`;
       }
 
+      function getRaceData(name) {
+        if (!name) return null;
+        return raceByName.get(name) || null;
+      }
+
+      function setSizePickerOpen(isOpen) {
+        if (!sizePicker) return;
+        sizePicker.classList.toggle("open", isOpen);
+        sizePicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      }
+
+      function setAlignmentPickerOpen(isOpen) {
+        if (!alignmentPicker) return;
+        alignmentPicker.classList.toggle("open", isOpen);
+        alignmentPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      }
+
+      function setAbilityPickerOpen(isOpen) {
+        if (!abilityPicker) return;
+        abilityPicker.classList.toggle("open", isOpen);
+        abilityPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      }
+
+      const standardArrayValues = [15, 14, 13, 12, 10, 8];
+      let pendingClassEntry = null;
+      let pendingAbilityValues = [];
+      let pendingAbilitySelection = null;
+      let abilityMethod = "standard";
+      let currentRollValues = [];
+
+      function roll4d6DropLowest() {
+        const rolls = [];
+        for (let i = 0; i < 4; i += 1) {
+          rolls.push(Math.floor(Math.random() * 6) + 1);
+        }
+        rolls.sort((a, b) => a - b);
+        return rolls.slice(1).reduce((sum, value) => sum + value, 0);
+      }
+
+      function resetAbilityAssignments() {
+        Object.values(abilityScores).forEach((el) => {
+          if (el) el.value = "";
+        });
+        recalcDerived();
+      }
+
+      function buildAbilityPicker() {
+        if (!abilityValuesEl || !abilityChoicesEl || !abilityOptionsEl) return;
+        abilityValuesEl.innerHTML = "";
+        abilityChoicesEl.innerHTML = "";
+        abilityOptionsEl.innerHTML = "";
+
+        const optionDefs = [
+          { key: "standard", label: "Standard Array", enabled: true },
+          { key: "pointbuy", label: "Point Buy", enabled: false },
+          { key: "roll", label: "Roll", enabled: true },
+        ];
+        optionDefs.forEach((opt) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = opt.label;
+          btn.disabled = !opt.enabled;
+          if (abilityMethod === opt.key) {
+            btn.classList.add("selected");
+          }
+          btn.addEventListener("click", () => {
+            if (!opt.enabled) return;
+            abilityMethod = opt.key;
+            buildAbilityPicker();
+          });
+          abilityOptionsEl.appendChild(btn);
+        });
+
+        if (abilityMethod !== "standard") {
+          if (abilityMethod === "roll") {
+            if (!currentRollValues.length) {
+              const rollBtn = document.createElement("button");
+              rollBtn.type = "button";
+              rollBtn.textContent = "Roll 4d6 (drop lowest) x6";
+              rollBtn.addEventListener("click", () => {
+                currentRollValues = Array.from({ length: 6 }, () => ({
+                  id: `roll_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                  value: roll4d6DropLowest(),
+                }));
+                pendingAbilitySelection = null;
+                buildAbilityPicker();
+              });
+              abilityValuesEl.appendChild(rollBtn);
+            }
+
+            currentRollValues.forEach((entry) => {
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.textContent = String(entry.value);
+              if (pendingAbilitySelection && pendingAbilitySelection.id === entry.id) {
+                btn.classList.add("selected");
+              }
+              btn.addEventListener("click", () => {
+                pendingAbilitySelection = { id: entry.id, value: entry.value };
+                buildAbilityPicker();
+              });
+              abilityValuesEl.appendChild(btn);
+            });
+          }
+        } else {
+          pendingAbilityValues.forEach((value) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = String(value);
+            if (pendingAbilitySelection === value) {
+              btn.classList.add("selected");
+            }
+            btn.addEventListener("click", () => {
+              pendingAbilitySelection = value;
+              buildAbilityPicker();
+            });
+            abilityValuesEl.appendChild(btn);
+          });
+        }
+
+        if (abilityMethod !== "standard" && abilityMethod !== "roll") {
+          return;
+        }
+
+        const abilityLabels = [
+          ["str", "Strength"],
+          ["dex", "Dexterity"],
+          ["con", "Constitution"],
+          ["int", "Intelligence"],
+          ["wis", "Wisdom"],
+          ["cha", "Charisma"],
+        ];
+        abilityLabels.forEach(([key, label]) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = label;
+          const scoreEl = abilityScores[key];
+          if (scoreEl && scoreEl.value) {
+            btn.disabled = true;
+          }
+          btn.addEventListener("click", () => {
+            if (!pendingAbilitySelection || !scoreEl || scoreEl.value) return;
+            const selectedValue =
+              typeof pendingAbilitySelection === "object"
+                ? pendingAbilitySelection.value
+                : pendingAbilitySelection;
+            scoreEl.value = String(selectedValue);
+            if (abilityMethod === "standard") {
+              pendingAbilityValues = pendingAbilityValues.filter((v) => v !== pendingAbilitySelection);
+            }
+            if (abilityMethod === "roll") {
+              currentRollValues = currentRollValues.filter(
+                (entry) => entry.id !== pendingAbilitySelection.id
+              );
+            }
+            pendingAbilitySelection = null;
+            recalcDerived();
+            const allFilled = Object.values(abilityScores).every((el) => el && el.value);
+            if (allFilled) {
+              setAbilityPickerOpen(false);
+              if (pendingClassEntry) {
+                finalizeClassSelection(pendingClassEntry);
+                pendingClassEntry = null;
+              }
+              return;
+            }
+            buildAbilityPicker();
+          });
+          abilityChoicesEl.appendChild(btn);
+        });
+      }
+
+      function openAbilityPickerForClass(entry) {
+        pendingClassEntry = entry;
+        pendingAbilityValues = standardArrayValues.slice();
+        pendingAbilitySelection = null;
+        abilityMethod = "standard";
+        currentRollValues = [];
+        resetAbilityAssignments();
+        buildAbilityPicker();
+        setAbilityPickerOpen(true);
+      }
+
+      const alignmentOptions = [
+        "Lawful Good",
+        "Neutral Good",
+        "Chaotic Good",
+        "Lawful Neutral",
+        "Neutral",
+        "Chaotic Neutral",
+        "Lawful Evil",
+        "Neutral Evil",
+        "Chaotic Evil",
+      ];
+
+      function openAlignmentPicker() {
+        if (!alignmentPickerList) return;
+        alignmentPickerList.innerHTML = "";
+        const list = document.createElement("div");
+        list.className = "weapon-list";
+        alignmentOptions.forEach((alignment) => {
+          const option = document.createElement("div");
+          option.className = "weapon-option";
+          if (alignmentInput?.value === alignment) {
+            option.classList.add("selected");
+          }
+          option.textContent = alignment;
+          option.addEventListener("click", () => {
+            if (alignmentInput) {
+              alignmentInput.value = alignment;
+            }
+            setAlignmentPickerOpen(false);
+            scheduleSave();
+          });
+          list.appendChild(option);
+        });
+        alignmentPickerList.appendChild(list);
+        setAlignmentPickerOpen(true);
+      }
+
+      function openSizePicker(options) {
+        if (!sizePickerList) return;
+        sizeSelected = "";
+        sizePickerList.innerHTML = "";
+        const list = document.createElement("div");
+        list.className = "weapon-list";
+        options.forEach((size) => {
+          const option = document.createElement("div");
+          option.className = "weapon-option";
+          option.textContent = size;
+          option.addEventListener("click", () => {
+            sizeSelected = size;
+            if (sizeInput) {
+              sizeInput.value = size;
+            }
+            setSizePickerOpen(false);
+            scheduleSave();
+          });
+          list.appendChild(option);
+        });
+        sizePickerList.appendChild(list);
+        setSizePickerOpen(true);
+      }
+
+      function applyRaceSelection(raceName, { promptForSize = false } = {}) {
+        if (!racesLoaded) return;
+        if (!raceName) {
+          currentRaceSpeed = "";
+          currentRaceSizes = [];
+          if (speedInput) speedInput.value = "";
+          if (sizeInput) sizeInput.value = "";
+          if (traitsListEl) traitsListEl.innerHTML = "";
+          return;
+        }
+        const race = getRaceData(raceName);
+        if (!race) return;
+        openRacePanel(race);
+        const speedValue = normalizeRaceSpeed(race.speed);
+        currentRaceSpeed = speedValue;
+        if (speedInput) {
+          speedInput.value = speedValue !== "" ? String(speedValue) : "";
+        }
+        const sizes = normalizeRaceSizes(race.size);
+        currentRaceSizes = sizes;
+        const traits = Array.isArray(race.traits) ? race.traits.slice() : [];
+        if (traitsListEl) {
+          traitsListEl.innerHTML = "";
+          traits.filter(Boolean).forEach((trait) => {
+            const item = document.createElement("li");
+            item.textContent = trait;
+            traitsListEl.appendChild(item);
+          });
+        }
+        if (sizes.length <= 1) {
+          if (sizeInput) sizeInput.value = sizes[0] || "";
+          return;
+        }
+        if (promptForSize) {
+          openSizePicker(sizes);
+          return;
+        }
+        if (sizeInput && (!sizeInput.value || !sizes.includes(sizeInput.value))) {
+          sizeInput.value = sizes[0];
+        }
+      }
+
       function rollDiceDetailed(dice) {
         if (!dice) return 0;
         if (/^\d+$/.test(dice)) {
@@ -1792,6 +2302,99 @@
           total += roll;
         }
         return { total, rolls };
+      }
+
+      function normalizeHitDie(die) {
+        const text = String(die || "").trim();
+        if (!text) return "";
+        if (/^\d+d\d+$/i.test(text)) return text;
+        if (/^d\d+$/i.test(text)) return `1${text}`;
+        return text;
+      }
+
+      function getMaxDieValue(dice) {
+        if (!dice) return 0;
+        const match = String(dice).match(/(\d+)d(\d+)/i);
+        if (!match) return 0;
+        const count = Number(match[1]);
+        const sides = Number(match[2]);
+        if (!Number.isFinite(count) || !Number.isFinite(sides)) return 0;
+        return count * sides;
+      }
+
+      function setSavingThrowProficiencies(options = []) {
+        const optionSet = new Set(
+          options.map((value) => String(value || "").trim().toLowerCase()).filter(Boolean)
+        );
+        const abilityNames = {
+          str: "strength",
+          dex: "dexterity",
+          con: "constitution",
+          int: "intelligence",
+          wis: "wisdom",
+          cha: "charisma",
+        };
+        saveRows.forEach((row) => {
+          const ability = row.dataset.ability;
+          const checkbox = row.querySelector("input[type='checkbox']");
+          if (!checkbox) return;
+          const name = abilityNames[ability];
+          checkbox.checked = name ? optionSet.has(name) : false;
+          checkbox.disabled = true;
+        });
+        recalcDerived();
+      }
+
+      function applyClassSelection(entry, { rollHp = false } = {}) {
+        if (!entry) return;
+        if (totalHpInput) {
+          totalHpInput.readOnly = true;
+        }
+        if (rollHp && totalHpInput) {
+          const die = normalizeHitDie(entry.hitPointDie);
+          if (die) {
+            const roll = { total: getMaxDieValue(die) };
+            const conMod = toNumber(abilityMods.con?.value);
+            const total = Math.max(1, roll.total + conMod);
+            totalHpInput.value = String(total);
+            if (currentHpInput && (!currentHpInput.value || toNumber(currentHpInput.value) === 0)) {
+              currentHpInput.value = String(total);
+            }
+          }
+        }
+        setSavingThrowProficiencies(entry.savingThrows || []);
+        if (proficienciesListEl) {
+          proficienciesListEl.innerHTML = "";
+          const weaponText = (entry.weaponProficiencies || []).join(", ") || "--";
+          const armorText = (entry.armorTraining || []).join(", ") || "--";
+          const weaponItem = document.createElement("li");
+          weaponItem.textContent = `Weapons: ${weaponText}`;
+          const armorItem = document.createElement("li");
+          armorItem.textContent = `Armor: ${armorText}`;
+          proficienciesListEl.appendChild(weaponItem);
+          proficienciesListEl.appendChild(armorItem);
+        }
+      }
+
+      function finalizeClassSelection(entry) {
+        if (!entry) return;
+        if (alignmentInput) {
+          alignmentInput.disabled = false;
+        }
+        if (levelInput) {
+          levelInput.value = "1";
+        }
+        if (xpInput) {
+          xpInput.value = "1";
+        }
+        applyClassSelection(entry, { rollHp: true });
+        openAlignmentPicker();
+        scheduleSave();
+        openClassPanel(entry);
+        if (itemPanel) {
+          itemPanel.classList.remove("open");
+          itemPanel.setAttribute("aria-hidden", "true");
+        }
       }
 
       function rollDamage(dice, label, ability) {
@@ -1985,6 +2588,18 @@
           raceSelected = "";
           if (racePickerAdd) {
             racePickerAdd.disabled = true;
+          }
+        }
+      }
+
+      function setClassPickerOpen(isOpen) {
+        if (!classPicker) return;
+        classPicker.classList.toggle("open", isOpen);
+        classPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        if (isOpen) {
+          classSelected = "";
+          if (classPickerAdd) {
+            classPickerAdd.disabled = true;
           }
         }
       }
@@ -2300,13 +2915,38 @@
         const filter = filterText.trim().toLowerCase();
         racePickerList.innerHTML = "";
 
+        if (!racesLoaded) {
+          const loading = document.createElement("div");
+          loading.className = "weapon-option";
+          loading.textContent = "Loading races...";
+          racePickerList.appendChild(loading);
+          return;
+        }
+
+        if (!raceTable.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No races found.";
+          racePickerList.appendChild(empty);
+          return;
+        }
+
         const races = raceList
           .filter((race) => race.toLowerCase().includes(filter))
           .sort((a, b) => a.localeCompare(b));
 
+        if (!races.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No races match your search.";
+          racePickerList.appendChild(empty);
+          return;
+        }
+
         const list = document.createElement("div");
         list.className = "weapon-list";
         races.forEach((race) => {
+          const entry = raceByName.get(race);
           const option = document.createElement("div");
           option.className = "weapon-option";
           if (race === raceSelected) {
@@ -2317,6 +2957,9 @@
             if (racePickerAdd) {
               racePickerAdd.disabled = false;
             }
+            if (entry) {
+              openRacePanel(entry);
+            }
             buildRacePickerList(raceSearch?.value || "");
           });
           const name = document.createElement("strong");
@@ -2326,6 +2969,73 @@
         });
 
         racePickerList.appendChild(list);
+      }
+
+      function buildClassPickerList(filterText = "") {
+        if (!classPickerList) return;
+        const filter = filterText.trim().toLowerCase();
+        classPickerList.innerHTML = "";
+
+        if (!classesLoaded) {
+          const loading = document.createElement("div");
+          loading.className = "weapon-option";
+          loading.textContent = "Loading classes...";
+          classPickerList.appendChild(loading);
+          return;
+        }
+
+        if (!classTable.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No classes found.";
+          classPickerList.appendChild(empty);
+          return;
+        }
+
+        const filtered = classTable.filter((entry) => {
+          if (!filter) return true;
+          const nameMatch = entry.name.toLowerCase().includes(filter);
+          const descMatch = entry.description.toLowerCase().includes(filter);
+          return nameMatch || descMatch;
+        });
+
+        const list = document.createElement("div");
+        list.className = "weapon-list";
+        filtered
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .forEach((entry) => {
+            const option = document.createElement("div");
+            option.className = "weapon-option";
+            if (entry.name === classSelected) {
+              option.classList.add("selected");
+            }
+            option.addEventListener("click", () => {
+              classSelected = entry.name;
+              if (classPickerAdd) {
+                classPickerAdd.disabled = false;
+              }
+              openClassPanel(entry);
+              buildClassPickerList(classSearch?.value || "");
+            });
+            const name = document.createElement("strong");
+            name.textContent = entry.name;
+            const meta = document.createElement("span");
+            meta.textContent = entry.description || "No description";
+            option.appendChild(name);
+            option.appendChild(meta);
+            list.appendChild(option);
+          });
+
+        if (!filtered.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No classes match your search.";
+          classPickerList.appendChild(empty);
+          return;
+        }
+
+        classPickerList.appendChild(list);
       }
 
       function initEquipmentWeapons() {
@@ -2484,11 +3194,20 @@
               if (racePickerAdd) {
                 racePickerAdd.disabled = false;
               }
+              const existing = raceByName.get(raceInput.value);
+              if (existing) {
+                openRacePanel(existing);
+              }
             }
             buildRacePickerList(raceSearch?.value || "");
           };
           raceInput.addEventListener("click", openPicker);
           raceInput.addEventListener("focus", openPicker);
+          raceInput.addEventListener("input", () => {
+            if (raceByName.has(raceInput.value)) {
+              applyRaceSelection(raceInput.value);
+            }
+          });
         }
         if (raceSearch) {
           raceSearch.addEventListener("input", () => {
@@ -2499,6 +3218,7 @@
           racePickerAdd.addEventListener("click", () => {
             if (!raceSelected || !raceInput) return;
             raceInput.value = raceSelected;
+            applyRaceSelection(raceSelected, { promptForSize: true });
             scheduleSave();
             setRacePickerOpen(false);
           });
@@ -2515,6 +3235,97 @@
           }
         });
         buildRacePickerList("");
+      }
+
+      function initSizePicker() {
+        if (sizePickerClose) {
+          sizePickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setSizePickerOpen(false);
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setSizePickerOpen(false);
+          }
+        });
+      }
+
+      function initAlignmentPicker() {
+        if (alignmentPickerClose) {
+          alignmentPickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setAlignmentPickerOpen(false);
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setAlignmentPickerOpen(false);
+          }
+        });
+      }
+
+      function initAbilityPicker() {
+        if (abilityPickerClose) {
+          abilityPickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setAbilityPickerOpen(false);
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setAbilityPickerOpen(false);
+          }
+        });
+      }
+
+      function initClassPicker() {
+        if (classInput) {
+          const openPicker = () => {
+            setClassPickerOpen(true);
+            if (classInput.value && classByName.has(classInput.value)) {
+              classSelected = classInput.value;
+              if (classPickerAdd) {
+                classPickerAdd.disabled = false;
+              }
+              const existing = classByName.get(classInput.value);
+              if (existing) {
+                openClassPanel(existing);
+              }
+            }
+            buildClassPickerList(classSearch?.value || "");
+          };
+          classInput.addEventListener("click", openPicker);
+          classInput.addEventListener("focus", openPicker);
+        }
+        if (classSearch) {
+          classSearch.addEventListener("input", () => {
+            buildClassPickerList(classSearch.value);
+          });
+        }
+        if (classPickerAdd) {
+          classPickerAdd.addEventListener("click", () => {
+            if (!classSelected || !classInput) return;
+            classInput.value = classSelected;
+            setClassPickerOpen(false);
+            const entry = classByName.get(classSelected);
+            if (entry) {
+              openAbilityPickerForClass(entry);
+            }
+          });
+        }
+        if (classPickerClose) {
+          classPickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setClassPickerOpen(false);
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setClassPickerOpen(false);
+          }
+        });
+        buildClassPickerList("");
       }
 
       function scheduleSave() {
@@ -2599,6 +3410,16 @@
         fieldEls.forEach((el) => {
           applyFieldValue(el, data[el.id]);
         });
+        if (alignmentInput) {
+          alignmentInput.disabled = !classInput?.value;
+        }
+        if (classInput?.value && classesLoaded) {
+          const entry = classByName.get(classInput.value);
+          if (entry) {
+            applyClassSelection(entry, { rollHp: false });
+          }
+        }
+        applyRaceSelection(raceInput?.value || "");
         if (Array.isArray(data.equipmentItems)) {
           equipmentItems = normalizeEquipmentItems(data.equipmentItems);
           equippedMainId = data.equippedMainId || "";
@@ -2637,6 +3458,15 @@
         const evt = el.type === "checkbox" ? "change" : "input";
         el.addEventListener(evt, scheduleSave);
       });
+      if (speedInput) {
+        speedInput.addEventListener("input", () => {
+          if (currentRaceSpeed === "" || currentRaceSpeed === undefined) return;
+          const lockedValue = String(currentRaceSpeed);
+          if (speedInput.value !== lockedValue) {
+            speedInput.value = lockedValue;
+          }
+        });
+      }
       Object.values(abilityScores).forEach((el) => el?.addEventListener("input", recalcDerived));
       levelEl?.addEventListener("input", recalcDerived);
       document.querySelectorAll(".list-item input[type='checkbox']").forEach((el) =>
@@ -2646,10 +3476,23 @@
       async function initApp() {
         await loadWeapons();
         await loadCantrips();
+        await loadRaces();
+        await loadClasses();
         initEquipmentWeapons();
         initRacePicker();
+        initSizePicker();
         initSpellPicker();
+        initAlignmentPicker();
+        initAbilityPicker();
+        initClassPicker();
         renderEquipment();
+        applyRaceSelection(raceInput?.value || "");
+        if (classInput?.value) {
+          const entry = classByName.get(classInput.value);
+          if (entry) {
+            applyClassSelection(entry, { rollHp: false });
+          }
+        }
       }
       initApp();
 
@@ -2888,6 +3731,98 @@
           val.textContent = value;
           val.className = "item-tooltip";
           val.setAttribute("data-tooltip", getSpellTooltip(label, value));
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
+      }
+
+      function getClassTooltip(label, value) {
+        if (label === "Subclasses") {
+          return Array.isArray(value) && value.length
+            ? `Subclasses: ${value.join(", ")}.`
+            : "No subclasses listed.";
+        }
+        if (label === "Description") {
+          return value || "No description.";
+        }
+        return `${label}: ${value || "--"}`;
+      }
+
+      function openClassPanel(entry) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody || !entry) return;
+        itemPanelTitle.textContent = entry.name || "Class";
+        itemPanelBody.innerHTML = "";
+        const subclassNames = entry.subclasses.map((sub) => sub.name).filter(Boolean);
+        const rows = [
+          ["Description", entry.description || "--"],
+          ["Primary Ability", entry.primaryAbility.join(", ") || "--"],
+          ["Hit Die", entry.hitPointDie || "--"],
+          ["Hit Die Modifier", entry.hitPointDieModifier || "--"],
+          ["HP per Level", entry.hitPointPerAdditionalLevelDie || "--"],
+          ["Saving Throws", entry.savingThrows.join(", ") || "--"],
+          ["Weapon Proficiencies", entry.weaponProficiencies.join(", ") || "--"],
+          ["Armor Training", entry.armorTraining.join(", ") || "--"],
+          ["Starting Equipment", entry.startingEquipment.join(", ") || "--"],
+          ["Subclasses", subclassNames.join(", ") || "--"],
+        ];
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          val.setAttribute("data-tooltip", getClassTooltip(label, label === "Subclasses" ? subclassNames : value));
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
+      }
+
+      function getRaceTooltip(label, value) {
+        if (label === "Traits") {
+          return Array.isArray(value) && value.length
+            ? `Traits: ${value.join(", ")}.`
+            : "No traits listed.";
+        }
+        if (label === "Description") {
+          return value || "No description.";
+        }
+        return `${label}: ${value || "--"}`;
+      }
+
+      function openRacePanel(entry) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody || !entry) return;
+        itemPanelTitle.textContent = entry.name || "Race";
+        itemPanelBody.innerHTML = "";
+        const sizes = normalizeRaceSizes(entry.size);
+        const traits = Array.isArray(entry.traits) ? entry.traits.slice() : [];
+        const types = Array.isArray(entry.creatureType) ? entry.creatureType.slice() : [];
+        const subclasses = Array.isArray(entry.subclass) ? entry.subclass.slice() : [];
+        const rows = [
+          ["Description", entry.description || "--"],
+          ["Creature Type", types.join(", ") || "--"],
+          ["Size", sizes.join(", ") || "--"],
+          ["Speed", normalizeRaceSpeed(entry.speed) !== "" ? String(entry.speed) : "--"],
+          ["Traits", traits.join(", ") || "--"],
+          ["Subraces", subclasses.join(", ") || "--"],
+        ];
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          const tooltipValue = label === "Traits" ? traits : value;
+          val.setAttribute("data-tooltip", getRaceTooltip(label, tooltipValue));
           row.appendChild(strong);
           row.appendChild(val);
           itemPanelBody.appendChild(row);

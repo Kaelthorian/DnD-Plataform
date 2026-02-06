@@ -1,0 +1,631 @@
+{
+  "Barbarian": {
+    "name": "Barbarian",
+    "description": "Storm with Rage, and wade into hand-to-hand combat.",
+    "subclasses": [
+      {
+        "name": "Path of the Berserker",
+        "description": "Unleash raw violence."
+      },
+      {
+        "name": "Path of the Wild Heart",
+        "description": "Manifest kinship with animals."
+      },
+      {
+        "name": "Path of the World Tree",
+        "description": "Tap into cosmic vitality."
+      },
+      {
+        "name": "Path of the Zealot",
+        "description": "Rage in union with a god."
+      }
+    ],
+    "primary ability": [
+      "Strength"
+    ],
+    "hit point die": "d12",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d12",
+    "saving throws proficiencies options": [
+      "Strength",
+      "Constitution"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons",
+      "Martial weapons"
+    ],
+    "armor training": [
+      "Light armor",
+      "Medium armor",
+      "Shields"
+    ],
+    "starting equipment": [
+      "(a) Greataxe or (b) any martial melee weapon",
+      "(a) Two handaxes or (b) any simple weapon",
+      "Explorer's pack",
+      "Four javelins"
+    ]
+  },
+  "Artificer": {
+    "name": "Artificer",
+    "description": "Fuse magic and invention to craft tools, potions, and arcane devices.",
+    "subclasses": [
+      {
+        "name": "Alchemist",
+        "description": "Brew elixirs and transmute magic."
+      },
+      {
+        "name": "Armorer",
+        "description": "Build and wear a powered magical suit."
+      },
+      {
+        "name": "Artillerist",
+        "description": "Create arcane cannons and explosive magic."
+      },
+      {
+        "name": "Battle Smith",
+        "description": "Fight beside a steel defender."
+      }
+    ],
+    "primary ability": [
+      "Intelligence"
+    ],
+    "hit point die": "d8",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d8",
+    "saving throws proficiencies options": [
+      "Constitution",
+      "Intelligence"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons"
+    ],
+    "armor training": [
+      "Light armor",
+      "Medium armor",
+      "Shields"
+    ],
+    "starting equipment": [
+      "(a) Any two simple weapons",
+      "(b) Light crossbow and 20 bolts",
+      "(a) Studded leather armor or (b) Scale mail",
+      "(a) Thieves' tools or (b) any artisan's tools",
+      "(a) Dungeoneer's pack or (b) Explorer's pack"
+    ],
+    "source": "TCE"
+  },
+  "Bard": {
+    "name": "Bard",
+    "description": "Perform spells that inspire and heal allies or beguile foes.",
+    "subclasses": [
+      {
+        "name": "College of Dance",
+        "description": "Harness agility in battle."
+      },
+      {
+        "name": "College of Glamour",
+        "description": "Weave beguiling Feywild magic."
+      },
+      {
+        "name": "College of Lore",
+        "description": "Collect knowledge and magical secrets."
+      },
+      {
+        "name": "College of Valor",
+        "description": "Wield weapons with spells."
+      }
+    ],
+    "primary ability": [
+      "Charisma"
+    ],
+    "hit point die": "d8",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d8",
+    "saving throws proficiencies options": [
+      "Dexterity",
+      "Charisma"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons",
+      "Hand crossbows",
+      "Longswords",
+      "Rapiers",
+      "Shortswords"
+    ],
+    "armor training": [
+      "Light armor"
+    ],
+    "starting equipment": [
+      "(a) Rapier, (b) Longsword, or (c) any simple weapon",
+      "(a) Diplomat's pack or (b) Entertainer's pack",
+      "(a) Lute or (b) any other musical instrument",
+      "Leather armor",
+      "Dagger"
+    ]
+  },
+  "Cleric": {
+    "name": "Cleric",
+    "description": "Invoke divine magic to heal, bolster, and smite.",
+    "subclasses": [
+      {
+        "name": "Life Domain",
+        "description": "Be a master of healing."
+      },
+      {
+        "name": "Light Domain",
+        "description": "Wield searing, warding light."
+      },
+      {
+        "name": "Trickery Domain",
+        "description": "Bedevil foes with mischief."
+      },
+      {
+        "name": "War Domain",
+        "description": "Inspire valor and chastise foes."
+      }
+    ],
+    "primary ability": [
+      "Wisdom"
+    ],
+    "hit point die": "d8",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d8",
+    "saving throws proficiencies options": [
+      "Wisdom",
+      "Charisma"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons"
+    ],
+    "armor training": [
+      "Light armor",
+      "Medium armor",
+      "Shields"
+    ],
+    "starting equipment": [
+      "(a) Mace or (b) Warhammer (if proficient)",
+      "(a) Scale mail, (b) Leather armor, or (c) Chain mail (if proficient)",
+      "(a) Light crossbow and 20 bolts or (b) any simple weapon",
+      "(a) Priest's pack or (b) Explorer's pack",
+      "Shield",
+      "Holy symbol"
+    ]
+  },
+  "Druid": {
+    "name": "Druid",
+    "description": "Channel nature magic to heal, shape-shift, and control the elements.",
+    "subclasses": [
+      {
+        "name": "Circle of the Land",
+        "description": "Draw on the magic of the environment."
+      },
+      {
+        "name": "Circle of the Moon",
+        "description": "Adopt powerful animal forms."
+      },
+      {
+        "name": "Circle of the Sea",
+        "description": "Channel tides and storms."
+      },
+      {
+        "name": "Circle of the Stars",
+        "description": "Gain powers in a starry form."
+      }
+    ],
+    "primary ability": [
+      "Wisdom"
+    ],
+    "hit point die": "d8",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d8",
+    "saving throws proficiencies options": [
+      "Intelligence",
+      "Wisdom"
+    ],
+    "weapon proficiencies": [
+      "Clubs",
+      "Daggers",
+      "Darts",
+      "Javelins",
+      "Maces",
+      "Quarterstaffs",
+      "Scimitars",
+      "Sickles",
+      "Slings",
+      "Spears"
+    ],
+    "armor training": [
+      "Light armor",
+      "Medium armor",
+      "Shields"
+    ],
+    "starting equipment": [
+      "(a) Wooden shield or (b) any simple weapon",
+      "(a) Scimitar or (b) any simple melee weapon",
+      "Leather armor",
+      "Explorer's pack",
+      "Druidic focus"
+    ]
+  },
+  "Fighter": {
+    "name": "Fighter",
+    "description": "Master all weapons and armor.",
+    "subclasses": [
+      {
+        "name": "Battle Master",
+        "description": "Use special combat maneuvers."
+      },
+      {
+        "name": "Champion",
+        "description": "Strive for peak combat prowess."
+      },
+      {
+        "name": "Eldritch Knight",
+        "description": "Learn spells to aid in combat."
+      },
+      {
+        "name": "Psi Warrior",
+        "description": "Augment attacks with psionic power."
+      }
+    ],
+    "primary ability": [
+      "Strength",
+      "Dexterity"
+    ],
+    "hit point die": "d10",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d10",
+    "saving throws proficiencies options": [
+      "Strength",
+      "Constitution"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons",
+      "Martial weapons"
+    ],
+    "armor training": [
+      "All armor",
+      "Shields"
+    ],
+    "starting equipment": [
+      "(a) Chain mail or (b) Leather armor, longbow, and 20 arrows",
+      "(a) A martial weapon and a shield or (b) two martial weapons",
+      "(a) Light crossbow and 20 bolts or (b) two handaxes",
+      "(a) Dungeoneer's pack or (b) Explorer's pack"
+    ]
+  },
+  "Monk": {
+    "name": "Monk",
+    "description": "Dart in and out of melee while striking fast and hard.",
+    "subclasses": [
+      {
+        "name": "Warrior of Mercy",
+        "description": "Heal or harm with a touch."
+      },
+      {
+        "name": "Warrior of Shadow",
+        "description": "Employ shadows for subterfuge."
+      },
+      {
+        "name": "Warrior of the Elements",
+        "description": "Wield elemental power."
+      },
+      {
+        "name": "Warrior of the Open Hand",
+        "description": "Master unarmed combat."
+      }
+    ],
+    "primary ability": [
+      "Dexterity",
+      "Wisdom"
+    ],
+    "hit point die": "d8",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d8",
+    "saving throws proficiencies options": [
+      "Strength",
+      "Dexterity"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons",
+      "Shortswords"
+    ],
+    "armor training": [
+      "None"
+    ],
+    "starting equipment": [
+      "(a) Shortsword or (b) any simple weapon",
+      "(a) Dungeoneer's pack or (b) Explorer's pack",
+      "10 darts"
+    ]
+  },
+  "Paladin": {
+    "name": "Paladin",
+    "description": "Smite foes and shield allies with divine and martial might.",
+    "subclasses": [
+      {
+        "name": "Oath of Devotion",
+        "description": "Emulate the angels of justice."
+      },
+      {
+        "name": "Oath of Glory",
+        "description": "Reach the heights of heroism."
+      },
+      {
+        "name": "Oath of the Ancients",
+        "description": "Preserve life, joy, and nature."
+      },
+      {
+        "name": "Oath of Vengeance",
+        "description": "Hunt down evildoers."
+      }
+    ],
+    "primary ability": [
+      "Strength",
+      "Charisma"
+    ],
+    "hit point die": "d10",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d10",
+    "saving throws proficiencies options": [
+      "Wisdom",
+      "Charisma"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons",
+      "Martial weapons"
+    ],
+    "armor training": [
+      "All armor",
+      "Shields"
+    ],
+    "starting equipment": [
+      "(a) A martial weapon and a shield or (b) two martial weapons",
+      "(a) Five javelins or (b) any simple melee weapon",
+      "(a) Priest's pack or (b) Explorer's pack",
+      "Chain mail",
+      "Holy symbol"
+    ]
+  },
+  "Ranger": {
+    "name": "Ranger",
+    "description": "Weave together martial prowess, nature magic, and survival skills.",
+    "subclasses": [
+      {
+        "name": "Beast Master",
+        "description": "Bond with a primal beast."
+      },
+      {
+        "name": "Fey Wanderer",
+        "description": "Manifest fey mirth and fury."
+      },
+      {
+        "name": "Gloom Stalker",
+        "description": "Hunt foes that lurk in darkness."
+      },
+      {
+        "name": "Hunter",
+        "description": "Protect nature with martial versatility."
+      }
+    ],
+    "primary ability": [
+      "Dexterity",
+      "Wisdom"
+    ],
+    "hit point die": "d10",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d10",
+    "saving throws proficiencies options": [
+      "Strength",
+      "Dexterity"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons",
+      "Martial weapons"
+    ],
+    "armor training": [
+      "Light armor",
+      "Medium armor",
+      "Shields"
+    ],
+    "starting equipment": [
+      "(a) Scale mail or (b) Leather armor",
+      "(a) Two shortswords or (b) two simple melee weapons",
+      "(a) Dungeoneer's pack or (b) Explorer's pack",
+      "Longbow",
+      "Quiver with 20 arrows"
+    ]
+  },
+  "Rogue": {
+    "name": "Rogue",
+    "description": "Launch deadly Sneak Attacks while avoiding harm through stealth.",
+    "subclasses": [
+      {
+        "name": "Arcane Trickster",
+        "description": "Enhance stealth with spells."
+      },
+      {
+        "name": "Assassin",
+        "description": "Deliver ambushes and poison."
+      },
+      {
+        "name": "Soulknife",
+        "description": "Strike foes with psi blades."
+      },
+      {
+        "name": "Thief",
+        "description": "Master infiltration and treasure hunting."
+      }
+    ],
+    "primary ability": [
+      "Dexterity"
+    ],
+    "hit point die": "d8",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d8",
+    "saving throws proficiencies options": [
+      "Dexterity",
+      "Intelligence"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons",
+      "Hand crossbows",
+      "Longswords",
+      "Rapiers",
+      "Shortswords"
+    ],
+    "armor training": [
+      "Light armor"
+    ],
+    "starting equipment": [
+      "(a) Rapier or (b) Shortsword",
+      "(a) Shortbow and quiver of 20 arrows or (b) Shortsword",
+      "(a) Burglar's pack, (b) Dungeoneer's pack, or (c) Explorer's pack",
+      "Leather armor",
+      "Two daggers",
+      "Thieves' tools"
+    ]
+  },
+  "Sorcerer": {
+    "name": "Sorcerer",
+    "description": "Wield magic innate to your being, shaping the power to your will.",
+    "subclasses": [
+      {
+        "name": "Aberrant Sorcery",
+        "description": "Use strange psionic magic."
+      },
+      {
+        "name": "Clockwork Sorcery",
+        "description": "Harness cosmic forces of order."
+      },
+      {
+        "name": "Draconic Sorcery",
+        "description": "Breathe the magic of dragons."
+      },
+      {
+        "name": "Wild Magic Sorcery",
+        "description": "Unleash chaos magic."
+      }
+    ],
+    "primary ability": [
+      "Charisma"
+    ],
+    "hit point die": "d6",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d6",
+    "saving throws proficiencies options": [
+      "Constitution",
+      "Charisma"
+    ],
+    "weapon proficiencies": [
+      "Daggers",
+      "Darts",
+      "Slings",
+      "Quarterstaffs",
+      "Light crossbows"
+    ],
+    "armor training": [
+      "None"
+    ],
+    "starting equipment": [
+      "(a) Light crossbow and 20 bolts or (b) any simple weapon",
+      "(a) Component pouch or (b) Arcane focus",
+      "(a) Dungeoneer's pack or (b) Explorer's pack",
+      "Two daggers"
+    ]
+  },
+  "Warlock": {
+    "name": "Warlock",
+    "description": "Cast spells derived from occult knowledge.",
+    "subclasses": [
+      {
+        "name": "Archfey Patron",
+        "description": "Teleport and wield fey magic."
+      },
+      {
+        "name": "Celestial Patron",
+        "description": "Heal with heavenly magic."
+      },
+      {
+        "name": "Fiend Patron",
+        "description": "Call on sinister powers."
+      },
+      {
+        "name": "Great Old One Patron",
+        "description": "Delve into forbidden lore."
+      }
+    ],
+    "primary ability": [
+      "Charisma"
+    ],
+    "hit point die": "d8",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d8",
+    "saving throws proficiencies options": [
+      "Wisdom",
+      "Charisma"
+    ],
+    "weapon proficiencies": [
+      "Simple weapons"
+    ],
+    "armor training": [
+      "Light armor"
+    ],
+    "starting equipment": [
+      "(a) Light crossbow and 20 bolts or (b) any simple weapon",
+      "(a) Component pouch or (b) Arcane focus",
+      "(a) Scholar's pack or (b) Dungeoneer's pack",
+      "Leather armor",
+      "Any simple weapon",
+      "Two daggers"
+    ]
+  },
+  "Wizard": {
+    "name": "Wizard",
+    "description": "Study arcane magic and master spells for every purpose.",
+    "subclasses": [
+      {
+        "name": "Abjurer",
+        "description": "Shield allies and banish foes."
+      },
+      {
+        "name": "Diviner",
+        "description": "Learn the multiverse's secrets."
+      },
+      {
+        "name": "Evoker",
+        "description": "Create explosive effects."
+      },
+      {
+        "name": "Illusionist",
+        "description": "Weave spells of deception."
+      }
+    ],
+    "primary ability": [
+      "Intelligence"
+    ],
+    "hit point die": "d6",
+    "hit point die modifier": "Constitution",
+    "hit point per additional level die": "1d6",
+    "saving throws proficiencies options": [
+      "Intelligence",
+      "Wisdom"
+    ],
+    "weapon proficiencies": [
+      "Daggers",
+      "Darts",
+      "Slings",
+      "Quarterstaffs",
+      "Light crossbows"
+    ],
+    "armor training": [
+      "None"
+    ],
+    "starting equipment": [
+      "(a) Quarterstaff or (b) Dagger",
+      "(a) Component pouch or (b) Arcane focus",
+      "(a) Scholar's pack or (b) Explorer's pack",
+      "Spellbook"
+    ]
+  }
+}
