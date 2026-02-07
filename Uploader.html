@@ -225,6 +225,17 @@
       return chunks;
     };
 
+    const sanitizeDocumentId = (rawId, index = 0) => {
+      const text = String(rawId ?? "").trim();
+      if (!text) return `doc_${index + 1}`;
+      // Firestore document IDs cannot contain "/"
+      const safe = text
+        .replace(/\//g, " - ")
+        .replace(/\s+/g, " ")
+        .trim();
+      return safe || `doc_${index + 1}`;
+    };
+
     uploadBtn.addEventListener("click", async () => {
       console.log("[uploader] upload button clicked");
       summaryEl.textContent = "";
@@ -265,7 +276,10 @@
         if (normalized.mode === "array") {
           docs = normalized.items.map((item) => ({ id: null, data: item }));
         } else {
-          docs = Object.entries(normalized.items).map(([id, data]) => ({ id, data }));
+          docs = Object.entries(normalized.items).map(([id, data], index) => ({
+            id: sanitizeDocumentId(id, index),
+            data,
+          }));
         }
 
         if (docs.length === 0) {

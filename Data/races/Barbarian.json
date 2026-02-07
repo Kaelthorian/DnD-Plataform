@@ -1,0 +1,249 @@
+{"Barbarian":{
+  "id": "barbarian_2024",
+  "type": "class",
+  "name": "Barbarian",
+  "ruleset": "phb_2024",
+  "hitDie": 12,
+  "primaryAbility": ["Strength"],
+  "savingThrows": ["Strength", "Constitution"],
+  "maxLevel": 20,
+
+  "progression": {
+    "1": {
+      "scalars": { "ragesMax": 2, "rageDamageBonus": 2, "weaponMasteryCount": 2 },
+      "grants": [
+        { "kind": "feature", "id": "rage" },
+        { "kind": "feature", "id": "unarmored_defense" },
+        { "kind": "feature", "id": "weapon_mastery" }
+      ]
+    },
+    "2": {
+      "scalars": { "ragesMax": 2, "rageDamageBonus": 2, "weaponMasteryCount": 2 },
+      "grants": [
+        { "kind": "feature", "id": "danger_sense" },
+        { "kind": "feature", "id": "reckless_attack" }
+      ]
+    },
+    "3": {
+      "scalars": { "ragesMax": 3, "rageDamageBonus": 2, "weaponMasteryCount": 2 },
+      "grants": [
+        { "kind": "choice", "id": "subclass_choice", "pick": 1, "from": ["berserker", "wild_heart", "world_tree", "zealot"] },
+        { "kind": "feature", "id": "primal_knowledge" }
+      ]
+    },
+    "4": {
+      "scalars": { "ragesMax": 3, "rageDamageBonus": 2, "weaponMasteryCount": 3 },
+      "grants": [
+        { "kind": "choice", "id": "asi_or_feat_4", "pick": 1, "from": ["asi", "feat"] }
+      ]
+    },
+    "5": {
+      "scalars": { "ragesMax": 3, "rageDamageBonus": 2, "weaponMasteryCount": 3 },
+      "grants": [
+        { "kind": "feature", "id": "extra_attack" },
+        { "kind": "feature", "id": "fast_movement" }
+      ]
+    },
+    "6": {
+      "scalars": { "ragesMax": 4, "rageDamageBonus": 2, "weaponMasteryCount": 3 },
+      "grants": [
+        { "kind": "subclass_feature", "id": "subclass_6" }
+      ]
+    },
+    "7": {
+      "scalars": { "ragesMax": 4, "rageDamageBonus": 2, "weaponMasteryCount": 3 },
+      "grants": [
+        { "kind": "feature", "id": "feral_instinct" },
+        { "kind": "feature", "id": "instinctive_pounce" }
+      ]
+    },
+    "8": {
+      "scalars": { "ragesMax": 4, "rageDamageBonus": 2, "weaponMasteryCount": 3 },
+      "grants": [
+        { "kind": "choice", "id": "asi_or_feat_8", "pick": 1, "from": ["asi", "feat"] }
+      ]
+    },
+    "9": {
+      "scalars": { "ragesMax": 4, "rageDamageBonus": 3, "weaponMasteryCount": 3 },
+      "grants": [
+        { "kind": "feature", "id": "brutal_strike" }
+      ]
+    },
+    "10": {
+      "scalars": { "ragesMax": 4, "rageDamageBonus": 3, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "subclass_feature", "id": "subclass_10" }
+      ]
+    },
+    "11": {
+      "scalars": { "ragesMax": 4, "rageDamageBonus": 3, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "feature", "id": "relentless_rage" }
+      ]
+    },
+    "12": {
+      "scalars": { "ragesMax": 5, "rageDamageBonus": 3, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "choice", "id": "asi_or_feat_12", "pick": 1, "from": ["asi", "feat"] }
+      ]
+    },
+    "13": {
+      "scalars": { "ragesMax": 5, "rageDamageBonus": 3, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "feature", "id": "improved_brutal_strike_13" }
+      ]
+    },
+    "14": {
+      "scalars": { "ragesMax": 5, "rageDamageBonus": 3, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "subclass_feature", "id": "subclass_14" }
+      ]
+    },
+    "15": {
+      "scalars": { "ragesMax": 5, "rageDamageBonus": 3, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "feature", "id": "persistent_rage" }
+      ]
+    },
+    "16": {
+      "scalars": { "ragesMax": 5, "rageDamageBonus": 4, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "choice", "id": "asi_or_feat_16", "pick": 1, "from": ["asi", "feat"] }
+      ]
+    },
+    "17": {
+      "scalars": { "ragesMax": 6, "rageDamageBonus": 4, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "feature", "id": "improved_brutal_strike_17" }
+      ]
+    },
+    "18": {
+      "scalars": { "ragesMax": 6, "rageDamageBonus": 4, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "feature", "id": "indomitable_might" }
+      ]
+    },
+    "19": {
+      "scalars": { "ragesMax": 6, "rageDamageBonus": 4, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "choice", "id": "epic_boon_19", "pick": 1, "from": ["epic_boon_feat"] }
+      ]
+    },
+    "20": {
+      "scalars": { "ragesMax": 6, "rageDamageBonus": 4, "weaponMasteryCount": 4 },
+      "grants": [
+        { "kind": "feature", "id": "primal_champion" }
+      ]
+    }
+  },
+
+  "features": {
+    "rage": {
+      "name": "Rage",
+      "level": 1,
+      "rules": {
+        "activation": "bonus_action",
+        "requires": ["not_heavy_armor"],
+        "resistances": ["bludgeoning", "piercing", "slashing"],
+        "damageBonus": { "type": "scalar", "path": "progression.{level}.scalars.rageDamageBonus", "appliesTo": "strength_attacks" },
+        "advantage": ["strength_checks", "strength_saves"],
+        "restrictions": ["no_spells", "no_concentration"],
+        "duration": { "extendable": true, "maxMinutes": 10 }
+      },
+      "resources": {
+        "usesMax": { "type": "scalar", "path": "progression.{level}.scalars.ragesMax" },
+        "recharge": { "shortRest": 1, "longRest": "all" }
+      }
+    },
+    "unarmored_defense": {
+      "name": "Unarmored Defense",
+      "level": 1,
+      "rules": { "acFormula": "10 + DEX_mod + CON_mod", "shieldAllowed": true, "requires": ["no_armor"] }
+    },
+    "weapon_mastery": {
+      "name": "Weapon Mastery",
+      "level": 1,
+      "rules": {
+        "masteryChoicesCount": { "type": "scalar", "path": "progression.{level}.scalars.weaponMasteryCount" },
+        "swapOnLongRest": 1
+      }
+    },
+
+    "danger_sense": { "name": "Danger Sense", "level": 2, "rules": { "advantageOn": ["dex_saves"], "unless": ["incapacitated"] } },
+    "reckless_attack": { "name": "Reckless Attack", "level": 2, "rules": { "gainAdvantageOn": ["strength_attacks"], "grantAdvantageToAttackers": true, "window": "until_start_next_turn" } },
+
+    "primal_knowledge": {
+      "name": "Primal Knowledge",
+      "level": 3,
+      "rules": {
+        "gainSkillProficiencyChoice": 1,
+        "rageActive_skillToStrengthCheck": ["Acrobatics", "Intimidation", "Perception", "Stealth", "Survival"]
+      }
+    },
+
+    "extra_attack": { "name": "Extra Attack", "level": 5, "rules": { "attackActionAttacks": 2 } },
+    "fast_movement": { "name": "Fast Movement", "level": 5, "rules": { "speedBonusFt": 10, "unless": ["heavy_armor"] } },
+
+    "feral_instinct": { "name": "Feral Instinct", "level": 7, "rules": { "advantageOn": ["initiative"] } },
+    "instinctive_pounce": { "name": "Instinctive Pounce", "level": 7, "rules": { "onEnterRage_move": "half_speed" } },
+
+    "brutal_strike": {
+      "name": "Brutal Strike",
+      "level": 9,
+      "rules": {
+        "requires": ["reckless_attack_used"],
+        "extraDamage": "1d10",
+        "chooseEffect": ["forceful_blow", "hamstring_blow"]
+      }
+    },
+
+    "relentless_rage": { "name": "Relentless Rage", "level": 11, "rules": { "save": "CON", "dcBase": 10, "dcIncreasePerUse": 5, "dcResetOnRest": true } },
+
+    "improved_brutal_strike_13": { "name": "Improved Brutal Strike", "level": 13, "rules": { "addsEffects": ["staggering_blow", "sundering_blow"] } },
+    "persistent_rage": { "name": "Persistent Rage", "level": 15, "rules": { "rageNoExtendNeeded": true, "rageEndsIf": ["unconscious", "don_heavy_armor"] } },
+    "improved_brutal_strike_17": { "name": "Improved Brutal Strike", "level": 17, "rules": { "brutalStrikeExtraDamage": "2d10", "effectsPerUse": 2 } },
+
+    "indomitable_might": { "name": "Indomitable Might", "level": 18, "rules": { "strengthFloor": true } },
+    "primal_champion": { "name": "Primal Champion", "level": 20, "rules": { "abilityIncrease": { "Strength": 4, "Constitution": 4 }, "maxScore": 25 } }
+  },
+
+  "subclasses": {
+    "berserker": {
+      "name": "Path of the Berserker",
+      "grants": {
+        "3": [{ "kind": "feature", "id": "berserker_frenzy" }],
+        "6": [{ "kind": "feature", "id": "berserker_mindless_rage" }],
+        "10": [{ "kind": "feature", "id": "berserker_retaliation" }],
+        "14": [{ "kind": "feature", "id": "berserker_intimidating_presence" }]
+      }
+    },
+    "wild_heart": {
+      "name": "Path of the Wild Heart",
+      "grants": {
+        "3": [{ "kind": "feature", "id": "wild_heart_animal_speaker" }, { "kind": "feature", "id": "wild_heart_rage_of_the_wilds" }],
+        "6": [{ "kind": "feature", "id": "wild_heart_aspect_of_the_wilds" }],
+        "10": [{ "kind": "feature", "id": "wild_heart_nature_speaker" }],
+        "14": [{ "kind": "feature", "id": "wild_heart_power_of_the_wilds" }]
+      }
+    },
+    "world_tree": {
+      "name": "Path of the World Tree",
+      "grants": {
+        "3": [{ "kind": "feature", "id": "world_tree_vitality_of_the_tree" }],
+        "6": [{ "kind": "feature", "id": "world_tree_branches_of_the_tree" }],
+        "10": [{ "kind": "feature", "id": "world_tree_battering_roots" }],
+        "14": [{ "kind": "feature", "id": "world_tree_travel_along_the_tree" }]
+      }
+    },
+    "zealot": {
+      "name": "Path of the Zealot",
+      "grants": {
+        "3": [{ "kind": "feature", "id": "zealot_divine_fury" }, { "kind": "feature", "id": "zealot_warrior_of_the_gods" }],
+        "6": [{ "kind": "feature", "id": "zealot_fanatical_focus" }],
+        "10": [{ "kind": "feature", "id": "zealot_zealous_presence" }],
+        "14": [{ "kind": "feature", "id": "zealot_rage_of_the_gods" }]
+      }
+    }
+  }
+}
+}

@@ -1,0 +1,2822 @@
+{
+  "Alarm": {
+    "name": "Alarm",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a bell and silver wire)",
+    "duration": "8 Hours",
+    "description": "You set an alarm against intrusion. Choose a door, a window, or an area within range that is no larger than a 20-foot Cube. Until the spell ends, an alarm alerts you whenever a creature touches or enters the warded area. When you cast the spell, you can designate creatures that won't set off the alarm. You also choose whether the alarm is audible or mental:\n**Audible Alarm.**\nThe alarm produces the sound of a handbell for 10 seconds within 60 feet of the warded area.\n**Mental Alarm.**\nYou are alerted by a mental ping if you are within 1 mile of the warded area. This ping awakens you if you're asleep.",
+    "classes": [
+      "Ranger",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Paladin: Oath of the Watchers",
+      "Rogue: Arcane Trickster",
+      "Sorcerer: Clockwork Sorcery",
+      "Wizard: Abjurer",
+      "Sorcerer: Clockwork Soul"
+    ],
+    "species": [
+      "Dwarf (Mark of Warding)"
+    ],
+    "feats": [
+      "Artificer Initiate",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Mark of Warding",
+      "Quicksmithing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "1 minute",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Animal Friendship": {
+    "name": "Animal Friendship",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a morsel of food)",
+    "duration": "24 Hours",
+    "description": "Target a Beast that you can see within range. The target must succeed on a Wisdom saving throw or have the Charmed condition for the duration. If you or one of your allies deals damage to the target, the spells ends.\n***Using a Higher-Level Spell Slot.*** You can target one additional Beast for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Druid",
+      "Ranger"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Nature Domain"
+    ],
+    "species": [
+      "Human (Mark of Handling)",
+      "Yuan-Ti",
+      "Yuan-ti Pureblood"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Mark of Handling",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Backgrounds: Selesnya Initiate | Rewards: Yuan-Ti Pureblood Transformation",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": [
+      "Selesnya Initiate"
+    ]
+  },
+  "Armor of Agathys": {
+    "name": "Armor of Agathys",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S, M (a shard of blue glass)",
+    "duration": "1 Hour",
+    "description": "Protective magical frost surrounds you. You gain 5 Temporary Hit Points. If a creature hits you with a melee attack roll before the spell ends, the creature takes 5 Cold damage. The spell ends early if you have no Temporary Hit Points.\n***Using a Higher-Level Spell Slot.*** The Temporary Hit Points and the Cold damage both increase by 5 for each spell slot level above 1.",
+    "classes": [
+      "Warlock"
+    ],
+    "subclasses": [
+      "Paladin: Oath of Conquest"
+    ],
+    "species": [
+      "Dwarf (Mark of Warding)",
+      "Tiefling (Levistus)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Mark of Warding",
+      "Rune Shaper"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "Cold",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Arms of Hadar": {
+    "name": "Arms of Hadar",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "10 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "Invoking Hadar, you cause tendrils to erupt from yourself. Each creature in a 10-foot Emanation originating from you makes a Strength saving throw. On a failed save, a target takes 2d6 Necrotic damage and can't take Reactions until the start of its next turn. On a successful save, a target takes half as much damage only.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Warlock"
+    ],
+    "subclasses": [
+      "Sorcerer: Aberrant Mind",
+      "Sorcerer: Aberrant Sorcery"
+    ],
+    "species": [],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 2,
+    "damage type": "Necrotic",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Strength"
+    ],
+    "backgrounds": []
+  },
+  "Bane": {
+    "name": "Bane",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a drop of blood)",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "Up to three creatures of your choice that you can see within range must each make a Charisma saving throw. Whenever a target that fails this save makes an attack roll or a saving throw before the spell ends, the target must subtract 1d4 from the attack roll or save.\n***Using a Higher-Level Spell Slot.*** You can target one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Warlock"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Ambition Domain (PSA)",
+      "Cleric: Grave Domain",
+      "Paladin: Oath of Vengeance",
+      "Sorcerer: Divine Soul",
+      "Warlock: The Undead"
+    ],
+    "species": [],
+    "feats": [
+      "Divinely Favored",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Optional Features: Thief of Five Fates",
+    "source": "XPHB",
+    "dice": "d4",
+    "amount of dices": 1,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Charisma"
+    ],
+    "backgrounds": []
+  },
+  "Bless": {
+    "name": "Bless",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a Holy Symbol worth 5+ GP)",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "You bless up to three creatures within range. Whenever a target makes an attack roll or a saving throw before the spell ends, the target adds 1d4 to the attack roll or save.\n***Using a Higher-Level Spell Slot.*** You can target one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Solidarity Domain (PSA)",
+      "Cleric: Life Domain",
+      "Sorcerer: Divine Soul"
+    ],
+    "species": [],
+    "feats": [
+      "Divinely Favored",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d4",
+    "amount of dices": 1,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Burning Hands": {
+    "name": "Burning Hands",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "15 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "A thin sheet of flames shoots forth from you. Each creature in a 15-foot Cone makes a Dexterity saving throw, taking 3d6 Fire damage on a failed save or half as much damage on a successful one.\nFlammable objects in the Cone that aren't being worn or carried start burning.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Light Domain",
+      "Druid: Circle of Wildfire",
+      "Druid: Circle of the Land",
+      "Fighter: Eldritch Knight",
+      "Monk: Way of the Sun Soul",
+      "Rogue: Arcane Trickster",
+      "Warlock: The Genie",
+      "Warlock: Fiend Patron",
+      "Wizard: Evoker",
+      "Warlock: The Fiend"
+    ],
+    "species": [
+      "Flamekin",
+      "Genasi (Fire)",
+      "Tiefling (Mephistopheles)",
+      "Tiefling (Variant; Hellfire)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Magic Initiate",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Sweeping Cinder Strike | Backgrounds: Rakdos Cultist | Rewards: Boon of the Fire Soul",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 3,
+    "damage type": "Fire",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Dexterity"
+    ],
+    "backgrounds": [
+      "Rakdos Cultist"
+    ]
+  },
+  "Charm Person": {
+    "name": "Charm Person",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S",
+    "duration": "1 Hour",
+    "description": "One Humanoid you can see within range makes a Wisdom saving throw. It does so with Advantage if you or your allies are fighting it. On a failed save, the target has the Charmed condition until the spell ends or until you or your allies damage it. The Charmed creature is Friendly to you. When the spell ends, the target knows it was Charmed by you.\n***Using a Higher-Level Spell Slot.*** You can target one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Glamour",
+      "Bard: College of Lore",
+      "Cleric: Trickery Domain",
+      "Fighter: Eldritch Knight",
+      "Ranger: Fey Wanderer",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Tiefling (Fierna)",
+      "Tiefling (Variant; Devil's Tongue)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Divinely Favored",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Strixhaven Initiate",
+      "Treacherous Allure",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Backgrounds: Selesnya Initiate",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": [
+      "Selesnya Initiate"
+    ]
+  },
+  "Chromatic Orb": {
+    "name": "Chromatic Orb",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "90 feet",
+    "components": "V, S, M (a diamond worth 50+ GP)",
+    "duration": "Instantaneous",
+    "description": "You hurl an orb of energy at a target within range. Choose Acid, Cold, Fire, Lightning, Poison, or Thunder for the type of orb you create, and then make a ranged spell attack against the target. On a hit, the target takes 3d8 damage of the chosen type.\nIf you roll the same number on two or more of the d8s, the orb leaps to a different target of your choice within 30 feet of the target. Make an attack roll against the new target, and make a new damage roll. The orb can't leap again unless you cast the spell with a level 2+ spell slot.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d8 for each spell slot level above 1. The orb can leap a maximum number of times equal to the level of the slot expended, and a creature can be targeted only once by each casting of this spell.",
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Paladin: Oath of the Noble Genies",
+      "Rogue: Arcane Trickster",
+      "Sorcerer: Draconic Sorcery",
+      "Wizard: Evoker"
+    ],
+    "species": [],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Magic Initiate",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Prismari Student",
+    "source": "XPHB",
+    "dice": "d8",
+    "amount of dices": 3,
+    "damage type": "Acid, Cold, Fire, Lightning, Poison, Thunder",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Prismari Student"
+    ]
+  },
+  "Color Spray": {
+    "name": "Color Spray",
+    "school": "Illusion",
+    "level": "Level 1",
+    "range": "15 feet",
+    "components": "V, S, M (a pinch of colorful sand)",
+    "duration": "Instantaneous",
+    "description": "You launch a dazzling array of flashing, colorful light. Each creature in a 15-foot Cone originating from you must succeed on a Constitution saving throw or have the Blinded condition until the end of your next turn.",
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Sorcerer: Lunar Sorcery",
+      "Wizard: Illusionist"
+    ],
+    "species": [],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Shadow-Touched",
+      "Shadow Touched",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Constitution"
+    ],
+    "backgrounds": []
+  },
+  "Command": {
+    "name": "Command",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V",
+    "duration": "Instantaneous",
+    "description": "You speak a one-word command to a creature you can see within range. The target must succeed on a Wisdom saving throw or follow the command on its next turn. Choose the command from these options:\n**Approach.**\nThe target moves toward you by the shortest and most direct route, ending its turn if it moves within 5 feet of you.\n**Drop.**\nThe target drops whatever it is holding and then ends its turn.\n**Flee.**\nThe target spends its turn moving away from you by the fastest available means.\n**Grovel.**\nThe target has the Prone condition and then ends its turn.\n**Halt.**\nOn its turn, the target doesn't move and takes no action or Bonus Action.\n***Using a Higher-Level Spell Slot.*** You can affect one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Paladin"
+    ],
+    "subclasses": [
+      "Bard: College of Glamour",
+      "Cleric: Knowledge Domain",
+      "Cleric: Knowledge Domain (PSA)",
+      "Cleric: Order Domain",
+      "Paladin: Oath of the Crown",
+      "Paladin: Oath of Conquest",
+      "Sorcerer: Divine Soul",
+      "Warlock: The Fiend",
+      "Bard: College of Lore",
+      "Sorcerer: Draconic Sorcery",
+      "Warlock: Fiend Patron"
+    ],
+    "species": [
+      "Elf"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Mark of Handling",
+      "Mark of Scribing",
+      "Rune Shaper",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Backgrounds: Azorius Functionary, Orzhov Representative | Rewards: Azorius Charm, Klothys's Devotee",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": [
+      "Azorius Functionary",
+      "Orzhov Representative"
+    ]
+  },
+  "Compelled Duel": {
+    "name": "Compelled Duel",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "You try to compel a creature into a duel. One creature that you can see within range makes a Wisdom saving throw. On a failed save, the target has Disadvantage on attack rolls against creatures other than you, and it can't willingly move to a space that is more than 30 feet away from you.\nThe spell ends if you make an attack roll against a creature other than the target, if you cast a spell on an enemy other than the target, if an ally of yours damages the target, or if you end your turn more than 30 feet away from the target.",
+    "classes": [
+      "Paladin"
+    ],
+    "subclasses": [
+      "Paladin: Oath of the Crown"
+    ],
+    "species": [
+      "Human (Mark of Sentinel)"
+    ],
+    "feats": [
+      "Fey Touched",
+      "Fey-Touched",
+      "Mark of Sentinel",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Backgrounds: Gruul Anarch | Rewards: Iroas's Devotee",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": [
+      "Gruul Anarch"
+    ]
+  },
+  "Comprehend Languages": {
+    "name": "Comprehend Languages",
+    "school": "Divination",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S, M (a pinch of soot and salt)",
+    "duration": "1 Hour",
+    "description": "For the duration, you understand the literal meaning of any language that you hear or see signed. You also understand any written language that you see, but you must be touching the surface on which the words are written. It takes about 1 minute to read one page of text. This spell doesn't decode symbols or secret messages.",
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Knowledge Domain",
+      "Fighter: Eldritch Knight",
+      "Fighter: Banneret",
+      "Rogue: Arcane Trickster",
+      "Wizard: Diviner"
+    ],
+    "species": [
+      "Gnome (Mark of Scribing)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Scribing",
+      "Divinely Favored",
+      "Initiate of High Sorcery",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Quicksmithing",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome | Backgrounds: Lorehold Student | Rewards: Ephara's Devotee",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Lorehold Student"
+    ]
+  },
+  "Create or Destroy Water": {
+    "name": "Create or Destroy Water",
+    "school": "Transmutation",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a mix of water and sand)",
+    "duration": "Instantaneous",
+    "description": "You do one of the following:\n**Create Water.**\nYou create up to 10 gallons of clean water within range in an open container. Alternatively, the water falls as rain in a 30-foot Cube within range, extinguishing exposed flames there.\n**Destroy Water.**\nYou destroy up to 10 gallons of water in an open container within range. Alternatively, you destroy fog in a 30-foot Cube within range.\n***Using a Higher-Level Spell Slot.*** You create or destroy 10 additional gallons of water, or the size of the Cube increases by 5 feet, for each spell slot level above 1.",
+    "classes": [
+      "Cleric",
+      "Druid"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Sorcerer: Divine Soul",
+      "Warlock: The Fathomless"
+    ],
+    "species": [
+      "Genasi (Water)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Izzet Engineer",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Izzet Engineer"
+    ]
+  },
+  "Cure Wounds": {
+    "name": "Cure Wounds",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "A creature you touch regains a number of Hit Points equal to 2d8 plus your spellcasting ability modifier.\n***Using a Higher-Level Spell Slot.*** The healing increases by 2d8 for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Druid",
+      "Ranger",
+      "Paladin",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Life Domain",
+      "Druid: Circle of Wildfire",
+      "Druid: Circle of the Moon",
+      "Sorcerer: Divine Soul",
+      "Sorcerer: Spellfire Sorcery",
+      "Warlock: Celestial Patron",
+      "Warlock: The Celestial"
+    ],
+    "species": [
+      "Halfling (Mark of Healing)"
+    ],
+    "feats": [
+      "Artificer Initiate",
+      "Divinely Favored",
+      "Gift of the Metallic Dragon",
+      "Magic Initiate",
+      "Mark of Healing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Witherbloom Student | Rewards: Charm of Cure Wounds",
+    "source": "XPHB",
+    "dice": "d8",
+    "amount of dices": 2,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Witherbloom Student"
+    ]
+  },
+  "Detect Evil and Good": {
+    "name": "Detect Evil and Good",
+    "school": "Divination",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S",
+    "duration": "Concentration, up to 10 Minutes",
+    "description": "For the duration, you sense the location of any Aberration, Celestial, Elemental, Fey, Fiend, or Undead within 30 feet of yourself. You also sense whether the Hallow spell is active there and, if so, where.\nThe spell is blocked by 1 foot of stone, dirt, or wood; 1 inch of metal; or a thin sheet of lead.",
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Sorcerer: Divine Soul",
+      "Warlock: The Genie"
+    ],
+    "species": [
+      "Half-Elf (Variant; Mark of Detection)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Initiate of High Sorcery",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Mark of Detection",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Detect Magic": {
+    "name": "Detect Magic",
+    "school": "Divination",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S",
+    "duration": "Concentration, up to 10 Minutes",
+    "description": "For the duration, you sense the presence of magical effects within 30 feet of yourself. If you sense such effects, you can take the Magic action to see a faint aura around any visible creature or object in the area that bears the magic, and if an effect was created by a spell, you learn the spell's 7.\nThe spell is blocked by 1 foot of stone, dirt, or wood; 1 inch of metal; or a thin sheet of lead.",
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Druid",
+      "Ranger",
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Paladin",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Arcana Domain",
+      "Cleric: Knowledge Domain",
+      "Fighter: Eldritch Knight",
+      "Paladin: Oath of the Watchers",
+      "Rogue: Arcane Trickster",
+      "Sorcerer: Divine Soul",
+      "Wizard: Diviner"
+    ],
+    "species": [
+      "Elf",
+      "Firbolg",
+      "Half-Elf (Variant; Mark of Detection)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Detection",
+      "Artificer Initiate",
+      "Fey Touched",
+      "Divinely Favored",
+      "Drow High Magic",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Quicksmithing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Eldritch Sight, Pact of the Tome | Rewards: Kruphix's Devotee",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Detect Poison and Disease": {
+    "name": "Detect Poison and Disease",
+    "school": "Divination",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a yew leaf)",
+    "duration": "Concentration, up to 10 Minutes",
+    "description": "For the duration, you sense the location of poisons, poisonous or venomous creatures, and magical contagions within 30 feet of yourself. You sense the kind of poison, creature, or contagion in each case.\nThe spell is blocked by 1 foot of stone, dirt, or wood; 1 inch of metal; or a thin sheet of lead.",
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Ranger",
+      "Paladin"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Sorcerer: Divine Soul"
+    ],
+    "species": [
+      "Half-Elf (Variant; Mark of Detection)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Quicksmithing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome | Backgrounds: Simic Scientist",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Simic Scientist"
+    ]
+  },
+  "Disguise Self": {
+    "name": "Disguise Self",
+    "school": "Illusion",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "1 Hour",
+    "description": "You make yourself—including your clothing, armor, weapons, and other belongings on your person—look different until the spell ends. You can seem 1 foot shorter or taller and can appear heavier or lighter. You must adopt a form that has the same basic arrangement of limbs as you have. Otherwise, the extent of the illusion is up to you.\nThe changes wrought by this spell fail to hold up to physical inspection. For example, if you use this spell to add a hat to your outfit, objects pass through the hat, and anyone who touches it would feel nothing.\nTo discern that you are disguised, a creature must take the Study action to inspect your appearance and succeed on an Intelligence (Investigation) check against your spell save DC.",
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Ambition Domain (PSA)",
+      "Cleric: Trickery Domain",
+      "Fighter: Eldritch Knight",
+      "Ranger: Gloom Stalker",
+      "Rogue: Arcane Trickster",
+      "Wizard: Illusionist"
+    ],
+    "species": [
+      "Deep Gnome",
+      "Firbolg",
+      "Elf (Mark of Shadow)",
+      "Gnome (Deep)",
+      "Hexblood",
+      "Tiefling (Dispater)",
+      "Tiefling (Glasya)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Shadow",
+      "Artificer Initiate",
+      "Shadow Touched",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Shadow-Touched",
+      "Rune Shaper",
+      "Strixhaven Initiate",
+      "Svirfneblin Magic",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Optional Features: Mask of Many Faces | Backgrounds: Dimir Operative",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Dimir Operative"
+    ]
+  },
+  "Dissonant Whispers": {
+    "name": "Dissonant Whispers",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V",
+    "duration": "Instantaneous",
+    "description": "One creature of your choice that you can see within range hears a discordant melody in its mind. The target makes a Wisdom saving throw. On a failed save, it takes 3d6 Psychic damage and must immediately use its Reaction, if available, to move as far away from you as it can, using the safest route. On a successful save, the target takes half as much damage only.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Bard"
+    ],
+    "subclasses": [
+      "Sorcerer: Aberrant Mind",
+      "Warlock: The Great Old One",
+      "Sorcerer: Aberrant Sorcery",
+      "Warlock: Great Old One Patron"
+    ],
+    "species": [],
+    "feats": [
+      "Fey Touched",
+      "Fey-Touched",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Backgrounds: Rakdos Cultist, Silverquill Student",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 3,
+    "damage type": "Psychic",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": [
+      "Rakdos Cultist",
+      "Silverquill Student"
+    ]
+  },
+  "Divine Favor": {
+    "name": "Divine Favor",
+    "school": "Transmutation",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "1 Minute",
+    "description": "Until the spell ends, your attacks with weapons deal an extra 1d4 Radiant damage on a hit.",
+    "classes": [
+      "Paladin"
+    ],
+    "subclasses": [
+      "Cleric: War Domain",
+      "Cleric: Strength Domain (PSA)"
+    ],
+    "species": [],
+    "feats": [],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d4",
+    "amount of dices": 1,
+    "damage type": "Radiant",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Divine Smite": {
+    "name": "Divine Smite",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V",
+    "duration": "Instantaneous",
+    "description": "The target takes an extra 2d8 Radiant damage from the attack. The damage increases by 1d8 if the target is a Fiend or an Undead.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d8 for each spell slot level above 1.",
+    "classes": [
+      "Paladin"
+    ],
+    "subclasses": [],
+    "species": [],
+    "feats": [],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d8",
+    "amount of dices": 2,
+    "damage type": "Radiant",
+    "extra_effect": "",
+    "castin time": "Bonus action, which you take immediately after hitting a target with a Melee weapon or an Unarmed Strike",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Ensnaring Strike": {
+    "name": "Ensnaring Strike",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "As you hit the target, grasping vines appear on it, and it makes a Strength saving throw. A Large or larger creature has Advantage on this save. On a failed save, the target has the Restrained condition until the spell ends. On a successful save, the vines shrivel away, and the spell ends.\nWhile Restrained, the target takes 1d6 Piercing damage at the start of each of its turns. The target or a creature within reach of it can take an action to make a Strength (Athletics) check against your spell save DC. On a success, the spell ends.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Ranger"
+    ],
+    "subclasses": [
+      "Paladin: Oath of the Ancients"
+    ],
+    "species": [],
+    "feats": [],
+    "other_options/features": "Backgrounds: Azorius Functionary",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 1,
+    "damage type": "Piercing",
+    "extra_effect": "",
+    "castin time": "Bonus action, which you take immediately after hitting a creature with a weapon",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Strength"
+    ],
+    "backgrounds": [
+      "Azorius Functionary"
+    ]
+  },
+  "Entangle": {
+    "name": "Entangle",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "90 feet",
+    "components": "V, S",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "Grasping plants sprout from the ground in a 20-foot square within range. For the duration, these plants turn the ground in the area into Difficult Terrain. They disappear when the spell ends.\nEach creature (other than you) in the area when you cast the spell must succeed on a Strength saving throw or have the Restrained condition until the spell ends. A Restrained creature can take an action to make a Strength (Athletics) check against your spell save DC. On a success, it frees itself from the grasping plants and is no longer Restrained by them.",
+    "classes": [
+      "Druid",
+      "Ranger"
+    ],
+    "subclasses": [
+      "Bard: College of Lore"
+    ],
+    "species": [
+      "Halfling (Lotusden)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Golgari Agent, Quandrix Student",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Strength"
+    ],
+    "backgrounds": [
+      "Golgari Agent",
+      "Quandrix Student"
+    ]
+  },
+  "Expeditious Retreat": {
+    "name": "Expeditious Retreat",
+    "school": "Transmutation",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "Concentration, up to 10 Minutes",
+    "description": "You take the Dash action, and until the spell ends, you can take that action again as a Bonus Action.",
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Human (Mark of Passage)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Passage",
+      "Artificer Initiate",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Simic Scientist",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Simic Scientist"
+    ]
+  },
+  "Faerie Fire": {
+    "name": "Faerie Fire",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "Objects in a 20-foot Cube within range are outlined in blue, green, or violet light (your choice). Each creature in the Cube is also outlined if it fails a Dexterity saving throw. For the duration, objects and affected creatures shed Dim Light in a 10-foot radius and can't benefit from the Invisible condition.\nAttack rolls against an affected creature or object have Advantage if the attacker can see it.",
+    "classes": [
+      "Bard",
+      "Druid",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Artificer: Cartographer",
+      "Bard: College of Lore",
+      "Cleric: Twilight Domain",
+      "Cleric: Light Domain",
+      "Ranger: Swarmkeeper",
+      "Warlock: Archfey Patron",
+      "Warlock: The Archfey"
+    ],
+    "species": [
+      "Elf (Drow)",
+      "Elf",
+      "Faerie",
+      "Fairy",
+      "Half-Elf (Variant; Drow Descent)",
+      "Half-Orc (Variant; Mark of Finding)",
+      "Human (Variant; Mark of Finding)"
+    ],
+    "feats": [
+      "Artificer Initiate",
+      "Child of the Sun",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Mark of Finding",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Rewards: Charm of Purplemancy",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Dexterity"
+    ],
+    "backgrounds": []
+  },
+  "False Life": {
+    "name": "False Life",
+    "school": "Necromancy",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S, M (a drop of alcohol)",
+    "duration": "Instantaneous",
+    "description": "You gain 2d4 + 4 Temporary Hit Points.\n***Using a Higher-Level Spell Slot.*** You gain 5 additional Temporary Hit Points for each spell slot level above 1.",
+    "classes": [
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Death Domain",
+      "Cleric: Grave Domain",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Warlock: The Undying",
+      "Warlock: The Undead"
+    ],
+    "species": [],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Healing",
+      "Artificer Initiate",
+      "Shadow Touched",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Shadow-Touched",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Fiendish Vigor | Rewards: Athreos's Disciple, Golgari Charm",
+    "source": "XPHB",
+    "dice": "d4",
+    "amount of dices": 2,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Feather Fall": {
+    "name": "Feather Fall",
+    "school": "Transmutation",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, M (a small feather or piece of down)",
+    "duration": "1 Minute",
+    "description": "Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends. If a creature lands before the spell ends, the creature takes no damage from the fall, and the spell ends for that creature.",
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Genasi (Air)",
+      "Half-Elf (Variant; Mark of Storm)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Storm",
+      "Artificer Initiate",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Reaction, which you take when you or a creature you can see within 60 feet of you falls",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Find Familiar": {
+    "name": "Find Familiar",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "10 feet",
+    "components": "V, S, M (burning incense worth 10+ GP, which the spell consumes)",
+    "duration": "Instantaneous",
+    "description": "You gain the service of a familiar, a spirit that takes an animal form you choose: Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel, or another Beast that has a challenge rating=. Appearing in an unoccupied space within range, the familiar has the statistics of the chosen form, though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast. Your familiar acts independently of you, but it obeys your commands.\nWhile your familiar is within 100 feet of you, you can communicate with it telepathically. Additionally, as a Bonus Action, you can see through the familiar's eyes and hear what it hears until the start of your next turn, gaining the benefits of any special senses it has.\nFinally, when you cast a spell with a range of touch, your familiar can deliver the touch. Your familiar must be within 100 feet of you, and it must take a Reaction to deliver the touch when you cast the spell.\nThe familiar is an ally to you and your allies. It rolls its own Initiative and acts on its own turn. A familiar can't attack, but it can take other actions as normal.\nWhen the familiar drops to 0 Hit Points, it disappears. It reappears after you cast this spell again. As a Magic action, you can temporarily dismiss the familiar to a pocket dimension. Alternatively, you can dismiss it forever. As a Magic action while it is temporarily dismissed, you can cause it to reappear in an unoccupied space within 30 feet of you. Whenever the familiar drops to 0 Hit Points or disappears into the pocket dimension, it leaves behind in its space anything it was wearing or carrying.\nYou can't have more than one familiar at a time. If you cast this spell while you have a familiar, you instead cause it to adopt a new eligible form.",
+    "classes": [
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [],
+    "feats": [
+      "Magic Initiate",
+      "Ritual Caster",
+      "Mark of Handling",
+      "Quicksmithing",
+      "Servo Crafting",
+      "Strixhaven Initiate",
+      "Strixhaven Mascot"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Chain, Pact of the Tome | Rewards: Draconic Familiar",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "1 hour",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Fog Cloud": {
+    "name": "Fog Cloud",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "Concentration, up to 1 Hour",
+    "description": "You create a 20-foot-radius Sphere of fog centered on a point within range. The Sphere is Heavily Obscured. It lasts for the duration or until a strong wind (such as one created by Gust of Wind) disperses it.\n***Using a Higher-Level Spell Slot.*** The fog's radius increases by 20 feet for each spell slot level above 1.",
+    "classes": [
+      "Druid",
+      "Ranger",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Tempest Domain",
+      "Druid: Circle of the Land",
+      "Druid: Circle of the Sea",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Warlock: The Genie"
+    ],
+    "species": [
+      "Half-Elf (Variant; Mark of Storm)",
+      "Triton"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Storm",
+      "Cloying Mists",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Rewards: Thassa's Devotee",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Goodberry": {
+    "name": "Goodberry",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S, M (a sprig of mistletoe)",
+    "duration": "24 Hours",
+    "description": "Ten berries appear in your hand and are infused with magic for the duration. A creature can take a Bonus Action to eat one berry. Eating a berry restores 1 Hit Point, and the berry provides enough nourishment to sustain a creature for one day.\nUneaten berries disappear when the spell ends.",
+    "classes": [
+      "Druid",
+      "Ranger"
+    ],
+    "subclasses": [
+      "Bard: College of Lore"
+    ],
+    "species": [
+      "Halfling (Mark of Hospitality)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Mark of Hospitality",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Grease": {
+    "name": "Grease",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S, M (a bit of pork rind or butter)",
+    "duration": "1 Minute",
+    "description": "Nonflammable grease covers the ground in a 10-foot square centered on a point within range and turns it into Difficult Terrain for the duration.\nWhen the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or have the Prone condition. A creature that enters the area or ends its turn there must also succeed on that save or fall Prone.",
+    "classes": [
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Artificer Initiate",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Dexterity"
+    ],
+    "backgrounds": []
+  },
+  "Guiding Bolt": {
+    "name": "Guiding Bolt",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "1 Round",
+    "description": "You hurl a bolt of light toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes 4d6 Radiant damage, and the next attack roll made against it before the end of your next turn has Advantage.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Cleric"
+    ],
+    "subclasses": [
+      "Artificer: Cartographer",
+      "Bard: College of Lore",
+      "Cleric: Solidarity Domain (PSA)",
+      "Cleric: War Domain",
+      "Druid: Circle of the Stars",
+      "Paladin: Oath of Glory",
+      "Sorcerer: Divine Soul",
+      "Sorcerer: Spellfire Sorcery",
+      "Warlock: Celestial Patron",
+      "Druid: Circle of Stars",
+      "Warlock: The Celestial"
+    ],
+    "species": [],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Boros Legionnaire, Quandrix Student | Rewards: Boros Charm",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 4,
+    "damage type": "Radiant",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Boros Legionnaire",
+      "Quandrix Student"
+    ]
+  },
+  "Hail of Thorns": {
+    "name": "Hail of Thorns",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V",
+    "duration": "Instantaneous",
+    "description": "As you hit the creature, this spell creates a rain of thorns that sprouts from your Ranged weapon or ammunition. The target of the attack and each creature within 5 feet of it make a Dexterity saving throw, taking 1d10 Piercing damage on a failed save or half as much damage on a successful one.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d10 for each spell slot level above 1.",
+    "classes": [
+      "Ranger"
+    ],
+    "subclasses": [],
+    "species": [],
+    "feats": [],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d10",
+    "amount of dices": 1,
+    "damage type": "Piercing",
+    "extra_effect": "",
+    "castin time": "Bonus action, which you take immediately after hitting a creature with a Ranged weapon",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Dexterity"
+    ],
+    "backgrounds": []
+  },
+  "Healing Word": {
+    "name": "Healing Word",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V",
+    "duration": "Instantaneous",
+    "description": "A creature of your choice that you can see within range regains Hit Points equal to 2d4 plus your spellcasting ability modifier.\n***Using a Higher-Level Spell Slot.*** The healing increases by 2d4 for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Druid"
+    ],
+    "subclasses": [
+      "Artificer: Alchemist",
+      "Artificer: Cartographer",
+      "Bard: College of Lore",
+      "Sorcerer: Divine Soul"
+    ],
+    "species": [
+      "Halfling (Mark of Healing)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Mark of Healing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Rewards: Sanctuary Charm",
+    "source": "XPHB",
+    "dice": "d4",
+    "amount of dices": 2,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Hellish Rebuke": {
+    "name": "Hellish Rebuke",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "The creature that damaged you is momentarily surrounded by green flames. It makes a Dexterity saving throw, taking 2d10 Fire damage on a failed save or half as much damage on a successful one.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d10 for each spell slot level above 1.",
+    "classes": [
+      "Warlock"
+    ],
+    "subclasses": [
+      "Paladin: Oathbreaker"
+    ],
+    "species": [
+      "Tiefling",
+      "Tiefling (Asmodeus)",
+      "Tiefling (Variant; Infernal Legacy)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate"
+    ],
+    "other_options/features": "Backgrounds: Rakdos Cultist | Rewards: Charm of Hellish Rebuke, Rakdos Charm",
+    "source": "XPHB",
+    "dice": "d10",
+    "amount of dices": 2,
+    "damage type": "Fire",
+    "extra_effect": "",
+    "castin time": "Reaction, which you take in response to taking damage from a creature that you can see within 60 feet of yourself",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Dexterity"
+    ],
+    "backgrounds": [
+      "Rakdos Cultist"
+    ]
+  },
+  "Heroism": {
+    "name": "Heroism",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "A willing creature you touch is imbued with bravery. Until the spell ends, the creature is immune to the Frightened condition and gains Temporary Hit Points equal to your spellcasting ability modifier at the start of each of its turns.\n***Using a Higher-Level Spell Slot.*** You can target one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Paladin"
+    ],
+    "subclasses": [
+      "Artificer: Battle Smith",
+      "Cleric: Order Domain",
+      "Cleric: Peace Domain",
+      "Paladin: Oath of Glory"
+    ],
+    "species": [
+      "Elf"
+    ],
+    "feats": [
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Backgrounds: Boros Legionnaire | Rewards: Gruul Charm",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Boros Legionnaire"
+    ]
+  },
+  "Hex": {
+    "name": "Hex",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "90 feet",
+    "components": "V, S, M (the petrified eye of a newt)",
+    "duration": "Concentration, up to 1 Hour",
+    "description": "You place a curse on a creature that you can see within range. Until the spell ends, you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll. Also, choose one ability when you cast the spell. The target has Disadvantage on ability checks made with the chosen ability.\nIf the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action on a later turn to curse a new creature.\n***Using a Higher-Level Spell Slot.*** Your Concentration can last longer with a spell slot of level 2 (up to 4 hours), 3-4 (up to 8 hours), or 5+ (24 hours).",
+    "classes": [
+      "Warlock"
+    ],
+    "subclasses": [
+      "Warlock: Great Old One Patron"
+    ],
+    "species": [
+      "Elf (Zendikar; Mul Daya Nation)",
+      "Hexblood"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Initiate of High Sorcery",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Shadowmoor Hexer",
+      "Vampire Touched"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 1,
+    "damage type": "Necrotic",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Hunter's Mark": {
+    "name": "Hunter's Mark",
+    "school": "Divination",
+    "level": "Level 1",
+    "range": "90 feet",
+    "components": "V",
+    "duration": "Concentration, up to 1 Hour",
+    "description": "You magically mark one creature you can see within range as your quarry. Until the spell ends, you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll. You also have Advantage on any Wisdom (Perception or Survival) check you make to find it.\nIf the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action to move the mark to a new creature you can see within range.\n***Using a Higher-Level Spell Slot.*** Your Concentration can last longer with a spell slot of level 3-4 (up to 8 hours) or 5+ (up to 24 hours).",
+    "classes": [
+      "Ranger"
+    ],
+    "subclasses": [
+      "Paladin: Oath of Vengeance"
+    ],
+    "species": [
+      "Half-Orc (Variant; Mark of Finding)",
+      "Human (Variant; Mark of Finding)"
+    ],
+    "feats": [
+      "Fey Touched",
+      "Fey-Touched",
+      "Mark of Finding"
+    ],
+    "other_options/features": "Rewards: Nylea's Devotee",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 1,
+    "damage type": "Force",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Ice Knife": {
+    "name": "Ice Knife",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "S, M (a drop of water or a piece of ice)",
+    "duration": "Instantaneous",
+    "description": "You create a shard of ice and fling it at one creature within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 Piercing damage. Hit or miss, the shard then explodes. The target and each creature within 5 feet of it must succeed on a Dexterity saving throw or take 2d6 Cold damage.\n***Using a Higher-Level Spell Slot.*** The Cold damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Ranger: Winter Walker",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Rimekin"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d10",
+    "amount of dices": 1,
+    "damage type": "Cold, Piercing",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Dexterity"
+    ],
+    "backgrounds": []
+  },
+  "Identify": {
+    "name": "Identify",
+    "school": "Divination",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S, M (a pearl worth 100+ GP)",
+    "duration": "Instantaneous",
+    "description": "You touch an object throughout the spell's casting. If the object is a magic item or some other magical object, you learn its properties and how to use them, whether it requires Attunement, and how many charges it has, if any. You learn whether any ongoing spells are affecting the item and what they are. If the item was created by a spell, you learn that spell's name.\nIf you instead touch a creature throughout the casting, you learn which ongoing spells, if any, are currently affecting it.",
+    "classes": [
+      "Bard",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Knowledge Domain (PSA)",
+      "Cleric: Forge Domain",
+      "Cleric: Knowledge Domain",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Wizard: Diviner"
+    ],
+    "species": [
+      "Human (Mark of Making)"
+    ],
+    "feats": [
+      "Artificer Initiate",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Mark of Detection",
+      "Mark of Making",
+      "Quicksmithing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome | Backgrounds: Lorehold Student | Rewards: Arcane Study Charm",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "1 minute",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Lorehold Student"
+    ]
+  },
+  "Illusory Script": {
+    "name": "Illusory Script",
+    "school": "Illusion",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "S, M (ink worth 10+ GP, which the spell consumes)",
+    "duration": "10 Days",
+    "description": "You write on parchment, paper, or another suitable material and imbue it with an illusion that lasts for the duration. To you and any creatures you designate when you cast the spell, the writing appears normal, seems to be written in your hand, and conveys whatever meaning you intended when you wrote the text. To all others, the writing appears as if it were written in an unknown or magical script that is unintelligible. Alternatively, the illusion can alter the meaning, handwriting, and language of the text, though the language must be one you know.\nIf the spell is dispelled, the original script and the illusion both disappear.\nA creature that has Truesight can read the hidden message.",
+    "classes": [
+      "Bard",
+      "Warlock",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Wizard: Illusionist"
+    ],
+    "species": [
+      "Gnome (Mark of Scribing)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Shadow-Touched",
+      "Mark of Scribing",
+      "Quicksmithing",
+      "Shadow Touched",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome | Backgrounds: Orzhov Representative",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "1 minute",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Orzhov Representative"
+    ]
+  },
+  "Inflict Wounds": {
+    "name": "Inflict Wounds",
+    "school": "Necromancy",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "A creature you touch makes a Constitution saving throw, taking 2d10 Necrotic damage on a failed save or half as much damage on a successful one.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d10 for each spell slot level above 1.",
+    "classes": [
+      "Cleric"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Paladin: Oathbreaker",
+      "Sorcerer: Divine Soul"
+    ],
+    "species": [],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Shadow-Touched",
+      "Rune Shaper",
+      "Shadow Touched",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Witherbloom Student",
+    "source": "XPHB",
+    "dice": "d10",
+    "amount of dices": 2,
+    "damage type": "Necrotic",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Constitution"
+    ],
+    "backgrounds": [
+      "Witherbloom Student"
+    ]
+  },
+  "Jump": {
+    "name": "Jump",
+    "school": "Transmutation",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S, M (a grasshopper's hind leg)",
+    "duration": "1 Minute",
+    "description": "You touch a willing creature. Once on each of its turns until the spell ends, that creature can jump up to 30 feet by spending 10 feet of movement.\n***Using a Higher-Level Spell Slot.*** You can target one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Druid",
+      "Ranger",
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Gith (Githyanki)",
+      "Githyanki",
+      "Human (Mark of Passage)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Passage",
+      "Artificer Initiate",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Otherworldly Leap | Backgrounds: Simic Scientist",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Simic Scientist"
+    ]
+  },
+  "Longstrider": {
+    "name": "Longstrider",
+    "school": "Transmutation",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S, M (a pinch of dirt)",
+    "duration": "1 Hour",
+    "description": "You touch a creature. The target's Speed increases by 10 feet until the spell ends.\n***Using a Higher-Level Spell Slot.*** You can target one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Druid",
+      "Ranger",
+      "Wizard",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Elf",
+      "Half-Orc (Variant; Mark of Finding)",
+      "Human (Variant; Mark of Finding)"
+    ],
+    "feats": [
+      "Artificer Initiate",
+      "Divinely Favored",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Mark of Finding",
+      "Rune Shaper",
+      "Strixhaven Initiate",
+      "Wood Elf Magic"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Mage Armor": {
+    "name": "Mage Armor",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S, M (a piece of cured leather)",
+    "duration": "8 Hours",
+    "description": "You touch a willing creature who isn't wearing armor. Until the spell ends, the target's base AC becomes 13 plus its Dexterity modifier. The spell ends early if the target dons armor.",
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Wizard: Abjurer"
+    ],
+    "species": [
+      "Dwarf (Mark of Warding)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Warding",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Armor of Shadows",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Magic Missile": {
+    "name": "Magic Missile",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "You create three glowing darts of magical force. Each dart strikes a creature of your choice that you can see within range. A dart deals 1d4 + 1 Force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several.\n***Using a Higher-Level Spell Slot.*** The spell creates one more dart for each spell slot level above 1.",
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Artificer: Armorer",
+      "Bard: College of Lore",
+      "Cleric: Arcana Domain",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Wizard: Evoker"
+    ],
+    "species": [],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d4",
+    "amount of dices": 1,
+    "damage type": "Force",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Protection from Evil and Good": {
+    "name": "Protection from Evil and Good",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "Touch",
+    "components": "V, S, M (a flask of Holy Water worth 25+ GP, which the spell consumes)",
+    "duration": "Concentration, up to 10 Minutes",
+    "description": "Until the spell ends, one willing creature you touch is protected against creatures that are Aberrations, Celestials, Elementals, Fey, Fiends, or Undead. The protection grants several benefits. Creatures of those types have Disadvantage on attack rolls against the target. The target also can't be possessed by or gain the Charmed or Frightened conditions from them. If the target is already possessed, Charmed, or Frightened by such a creature, the target has Advantage on any new saving throw against the relevant effect.",
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Warlock",
+      "Wizard",
+      "Paladin"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Paladin: Oath of Devotion",
+      "Ranger: Horizon Walker",
+      "Ranger: Monster Slayer",
+      "Rogue: Arcane Trickster",
+      "Sorcerer: Divine Soul",
+      "Sorcerer: Clockwork Sorcery",
+      "Wizard: Abjurer",
+      "Sorcerer: Clockwork Soul"
+    ],
+    "species": [],
+    "feats": [
+      "Divinely Favored",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Purify Food and Drink": {
+    "name": "Purify Food and Drink",
+    "school": "Transmutation",
+    "level": "Level 1",
+    "range": "10 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "You remove poison and rot from nonmagical food and drink in a 5-foot-radius Sphere centered on a point within range.",
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Paladin",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Sorcerer: Divine Soul"
+    ],
+    "species": [
+      "Halfling (Mark of Hospitality)"
+    ],
+    "feats": [
+      "Artificer Initiate",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Mark of Hospitality",
+      "Quicksmithing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Ray of Sickness": {
+    "name": "Ray of Sickness",
+    "school": "Necromancy",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "You shoot a greenish ray at a creature within range. Make a ranged spell attack against the target. On a hit, the target takes 2d8 Poison damage and has the Poisoned condition until the end of your next turn.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d8 for each spell slot level above 1.",
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Artificer: Alchemist",
+      "Bard: College of Lore",
+      "Cleric: Death Domain",
+      "Druid: Circle of the Land",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Sorcerer: Lunar Sorcery",
+      "Warlock: The Undying"
+    ],
+    "species": [
+      "Tiefling (Baalzebul)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Shadow-Touched",
+      "Shadow Touched",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Backgrounds: Golgari Agent | Rewards: Charm of Ashtakala, Pharika's Devotee",
+    "source": "XPHB",
+    "dice": "d8",
+    "amount of dices": 2,
+    "damage type": "Poison",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Golgari Agent"
+    ]
+  },
+  "Sanctuary": {
+    "name": "Sanctuary",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a shard of glass from a mirror)",
+    "duration": "1 Minute",
+    "description": "You ward a creature within range. Until the spell ends, any creature who targets the warded creature with an attack roll or a damaging spell must succeed on a Wisdom saving throw or either choose a new target or lose the attack or spell. This spell doesn't protect the warded creature from areas of effect.\nThe spell ends if the warded creature makes an attack roll, casts a spell, or deals damage.",
+    "classes": [
+      "Cleric",
+      "Artificer"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Peace Domain",
+      "Paladin: Oath of Redemption",
+      "Sorcerer: Divine Soul",
+      "Warlock: The Genie",
+      "Monk: Way of the Open Hand",
+      "Paladin: Oath of Devotion"
+    ],
+    "species": [],
+    "feats": [
+      "Artificer Initiate",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Mark of Warding",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": []
+  },
+  "Searing Smite": {
+    "name": "Searing Smite",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V",
+    "duration": "1 Minute",
+    "description": "As you hit the target, it takes an extra 1d6 Fire damage from the attack. At the start of each of its turns until the spell ends, the target takes 1d6 Fire damage and then makes a Constitution saving throw. On a failed save, the spell continues. On a successful save, the spell ends.\n***Using a Higher-Level Spell Slot.*** All the damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Paladin"
+    ],
+    "subclasses": [
+      "Cleric: Zeal Domain (PSA)",
+      "Cleric: Forge Domain"
+    ],
+    "species": [
+      "Tiefling (Zariel)"
+    ],
+    "feats": [],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 1,
+    "damage type": "Fire",
+    "extra_effect": "",
+    "castin time": "Bonus action, which you take immediately after hitting a target with a Melee weapon or an Unarmed Strike",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Constitution"
+    ],
+    "backgrounds": []
+  },
+  "Shield": {
+    "name": "Shield",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "1 Round",
+    "description": "An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from Magic Missile.",
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Artificer: Artillerist",
+      "Artificer: Battle Smith",
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Sorcerer: Lunar Sorcery",
+      "Warlock: The Hexblade",
+      "Wizard: Abjurer"
+    ],
+    "species": [
+      "Gith (Githzerai)",
+      "Githzerai",
+      "Human (Mark of Sentinel)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Sentinel",
+      "Initiate of High Sorcery",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Reaction, which you take when you are hit by an attack roll or targeted by the Magic Missile spell",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Shield of Faith": {
+    "name": "Shield of Faith",
+    "school": "Abjuration",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S, M (a prayer scroll)",
+    "duration": "Concentration, up to 10 Minutes",
+    "description": "A shimmering field surrounds a creature of your choice within range, granting it a +2 bonus to AC for the duration.",
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Strength Domain (PSA)",
+      "Cleric: War Domain",
+      "Paladin: Oath of Devotion",
+      "Sorcerer: Divine Soul"
+    ],
+    "species": [
+      "Human (Mark of Sentinel)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Mark of Sentinel",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Rewards: Purphoros's Devotee",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Bonus action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Silent Image": {
+    "name": "Silent Image",
+    "school": "Illusion",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S, M (a bit of fleece)",
+    "duration": "Concentration, up to 10 Minutes",
+    "description": "You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 15-foot Cube. The image appears at a spot within range and lasts for the duration. The image is purely visual; it isn't accompanied by sound, smell, or other sensory effects.\nAs a Magic action, you can cause the image to move to any spot within range. As the image changes location, you can alter its appearance so that its movements appear natural for the image. For example, if you create an image of a creature and move it, you can alter the image so that it appears to be walking.\nPhysical interaction with the image reveals it to be an illusion, since things can pass through it. A creature that takes a Study action to examine the image can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the creature can see through the image.",
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Wizard: Illusionist"
+    ],
+    "species": [
+      "Elf (Mark of Shadow)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Shadow",
+      "Magic Initiate",
+      "Shadow-Touched",
+      "Shadow Touched",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Optional Features: Misty Visions",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Sleep": {
+    "name": "Sleep",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S, M (a pinch of sand or rose petals)",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "Each creature of your choice in a 5-foot-radius Sphere centered on a point within range must succeed on a Wisdom saving throw or have the Incapacitated condition until the end of its next turn, at which point it must repeat the save. If the target fails the second save, the target has the Unconscious condition for the duration. The spell ends on a target if it takes damage or someone within 5 feet of it takes an action to shake it out of the spell's effect.\nCreatures that don't sleep, such as elves, or that have Immunity to the Exhaustion condition automatically succeed on saves against this spell.",
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Cleric: Twilight Domain",
+      "Druid: Circle of the Land",
+      "Fighter: Eldritch Knight",
+      "Paladin: Oath of Redemption",
+      "Rogue: Arcane Trickster",
+      "Warlock: Archfey Patron",
+      "Warlock: The Archfey"
+    ],
+    "species": [
+      "Elf (Pallid)",
+      "Halfling (Mark of Hospitality)"
+    ],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Mark of Hospitality",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Backgrounds: Dimir Operative | Rewards: Dimir Charm",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": [
+      "Dimir Operative"
+    ]
+  },
+  "Speak with Animals": {
+    "name": "Speak with Animals",
+    "school": "Divination",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "10 Minutes",
+    "description": "For the duration, you can comprehend and verbally communicate with Beasts, and you can use any of the Influence action's skill options with them.\nMost Beasts have little to say about topics that don't pertain to survival or companionship, but at minimum, a Beast can give you information about nearby locations and monsters, including whatever it has perceived within the past day.",
+    "classes": [
+      "Bard",
+      "Druid",
+      "Ranger",
+      "Warlock"
+    ],
+    "subclasses": [
+      "Barbarian: Path of the Totem Warrior",
+      "Cleric: Nature Domain",
+      "Paladin: Oath of the Ancients",
+      "Barbarian: Path of the Wild Heart",
+      "Bard: College of Lore"
+    ],
+    "species": [
+      "Human (Mark of Handling)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Emerald Enclave Fledgling",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Mark of Handling",
+      "Quicksmithing",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Beast Speech, Book of Ancient Secrets, Pact of the Tome | Backgrounds: Gruul Anarch | Rewards: Nylea's Votary",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Gruul Anarch"
+    ]
+  },
+  "Tasha's Hideous Laughter": {
+    "name": "Tasha's Hideous Laughter",
+    "school": "Enchantment",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a tart and a feather)",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "One creature of your choice that you can see within range makes a Wisdom saving throw. On a failed save, it has the Prone and Incapacitated conditions for the duration. During that time, it laughs uncontrollably if it's capable of laughter, and it can't end the Prone condition on itself.\nAt the end of each of its turns and each time it takes damage, it makes another Wisdom saving throw. The target has Advantage on the save if the save is triggered by damage. On a successful save, the spell ends.\n***Using a Higher-Level Spell Slot.*** You can target one additional creature for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Warlock",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Warlock: Great Old One Patron",
+      "Warlock: The Great Old One"
+    ],
+    "species": [],
+    "feats": [
+      "Divinely Favored",
+      "Fey Touched",
+      "Fey-Touched",
+      "Magic Initiate",
+      "Strixhaven Initiate",
+      "Vampire Touched"
+    ],
+    "other_options/features": "Rewards: Charm of the Jester",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": []
+  },
+  "Tenser's Floating Disk": {
+    "name": "Tenser's Floating Disk",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "30 feet",
+    "components": "V, S, M (a drop of mercury)",
+    "duration": "1 Hour",
+    "description": "This spell creates a circular, horizontal plane of force, 3 feet in diameter and 1 inch thick, that floats 3 feet above the ground in an unoccupied space of your choice that you can see within range. The disk remains for the duration and can hold up to 500 pounds. If more weight is placed on it, the spell ends, and everything on the disk falls to the ground.\nThe disk is immobile while you are within 20 feet of it. If you move more than 20 feet away from it, the disk follows you so that it remains within 20 feet of you. It can move across uneven terrain, up or down stairs, slopes and the like, but it can't cross an elevation change of 10 feet or more. For example, the disk can't move across a 10-foot-deep pit, nor could it leave such a pit if it was created at the bottom.\nIf you move more than 100 feet from the disk (typically because it can't move around an obstacle to follow you), the spell ends.",
+    "classes": [
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Human (Mark of Making)",
+      "Tiefling (Mammon)"
+    ],
+    "feats": [
+      "Magic Initiate",
+      "Ritual Caster",
+      "Mark of Making",
+      "Quicksmithing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Thunderous Smite": {
+    "name": "Thunderous Smite",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V",
+    "duration": "Instantaneous",
+    "description": "Your strike rings with thunder that is audible within 300 feet of you, and the target takes an extra 2d6 Thunder damage from the attack. Additionally, if the target is a creature, it must succeed on a Strength saving throw or be pushed 10 feet away from you and have the Prone condition.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Paladin"
+    ],
+    "subclasses": [
+      "Cleric: Zeal Domain (PSA)",
+      "Paladin: Oath of the Noble Genies"
+    ],
+    "species": [],
+    "feats": [],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 2,
+    "damage type": "Thunder",
+    "extra_effect": "",
+    "castin time": "Bonus action, which you take immediately after hitting a target with a Melee weapon or an Unarmed Strike",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Strength"
+    ],
+    "backgrounds": []
+  },
+  "Thunderwave": {
+    "name": "Thunderwave",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "15 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "You unleash a wave of thunderous energy. Each creature in a 15-foot Cube originating from you makes a Constitution saving throw. On a failed save, a creature takes 2d8 Thunder damage and is pushed 10 feet away from you. On a successful save, a creature takes half as much damage only.\nIn addition, unsecured objects that are entirely within the Cube are pushed 10 feet away from you, and a thunderous boom is audible within 300 feet.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d8 for each spell slot level above 1.",
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Artificer: Armorer",
+      "Artificer: Artillerist",
+      "Bard: College of Lore",
+      "Cleric: Tempest Domain",
+      "Druid: Circle of the Sea",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Warlock: The Fathomless",
+      "Warlock: The Genie",
+      "Wizard: Evoker"
+    ],
+    "species": [],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Rune Shaper",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Fist of Four Thunders | Backgrounds: Gruul Anarch, Prismari Student | Rewards: Boon of the Stormborn, Gruul Charm",
+    "source": "XPHB",
+    "dice": "d8",
+    "amount of dices": 2,
+    "damage type": "Thunder",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Constitution"
+    ],
+    "backgrounds": [
+      "Gruul Anarch",
+      "Prismari Student"
+    ]
+  },
+  "Unseen Servant": {
+    "name": "Unseen Servant",
+    "school": "Conjuration",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S, M (a bit of string and of wood)",
+    "duration": "1 Hour",
+    "description": "This spell creates an Invisible, mindless, shapeless, Medium force that performs simple tasks at your command until the spell ends. The servant springs into existence in an unoccupied space on the ground within range. It has AC 10, 1 Hit Point, and a Strength of 2, and it can't attack. If it drops to 0 Hit Points, the spell ends.\nOnce on each of your turns as a Bonus Action, you can mentally command the servant to move up to 15 feet and interact with an object. The servant can perform simple tasks that a human could do, such as fetching things, cleaning, mending, folding clothes, lighting fires, serving food, and pouring drinks. Once you give the command, the servant performs the task to the best of its ability until it completes the task, then waits for your next command.\nIf you command the servant to perform a task that would move it more than 60 feet away from you, the spell ends.",
+    "classes": [
+      "Bard",
+      "Warlock",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster"
+    ],
+    "species": [
+      "Halfling (Mark of Hospitality)"
+    ],
+    "feats": [
+      "Divinely Favored",
+      "Magic Initiate",
+      "Ritual Caster",
+      "Quicksmithing",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "Optional Features: Book of Ancient Secrets, Pact of the Tome | Backgrounds: Izzet Engineer",
+    "source": "XPHB",
+    "dice": "",
+    "amount of dices": null,
+    "damage type": "",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": [
+      "Izzet Engineer"
+    ]
+  },
+  "Witch Bolt": {
+    "name": "Witch Bolt",
+    "school": "Evocation",
+    "level": "Level 1",
+    "range": "60 feet",
+    "components": "V, S, M (a twig struck by lightning)",
+    "duration": "Concentration, up to 1 Minute",
+    "description": "A beam of crackling energy lances toward a creature within range, forming a sustained arc of lightning between you and the target. Make a ranged spell attack against it. On a hit, the target takes 2d12 Lightning damage.\nOn each of your subsequent turns, you can take a Bonus Action to deal 1d12 Lightning damage to the target automatically, even if the first attack missed.\nThe spell ends if the target is ever outside the spell's range or if it has Total Cover from you.\n***Using a Higher-Level Spell Slot.*** The initial damage increases by 1d12 for each spell slot level above 1.",
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "subclasses": [
+      "Bard: College of Lore",
+      "Fighter: Eldritch Knight",
+      "Rogue: Arcane Trickster",
+      "Wizard: Evoker"
+    ],
+    "species": [],
+    "feats": [
+      "Aberrant Dragonmark",
+      "Boon of Siberys",
+      "Divinely Favored",
+      "Magic Initiate",
+      "Strixhaven Initiate"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d12",
+    "amount of dices": 2,
+    "damage type": "Lightning",
+    "extra_effect": "",
+    "castin time": "Action",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [],
+    "backgrounds": []
+  },
+  "Wrathful Smite": {
+    "name": "Wrathful Smite",
+    "school": "Necromancy",
+    "level": "Level 1",
+    "range": "Self",
+    "components": "V",
+    "duration": "1 Minute",
+    "description": "The target takes an extra 1d6 Necrotic damage from the attack, and it must succeed on a Wisdom saving throw or have the Frightened condition until the spell ends. At the end of each of its turns, the Frightened target repeats the save, ending the spell on itself on a success.\n***Using a Higher-Level Spell Slot.*** The damage increases by 1d6 for each spell slot level above 1.",
+    "classes": [
+      "Paladin"
+    ],
+    "subclasses": [
+      "Warlock: The Hexblade"
+    ],
+    "species": [],
+    "feats": [
+      "Shadow Touched",
+      "Shadow-Touched"
+    ],
+    "other_options/features": "",
+    "source": "XPHB",
+    "dice": "d6",
+    "amount of dices": 1,
+    "damage type": "Necrotic",
+    "extra_effect": "",
+    "castin time": "Bonus action, which you take immediately after hitting a creature with a Melee weapon or an Unarmed Strike",
+    "cantrip upgrade dice 5": "",
+    "cantrip upgrade dice 11": "",
+    "cantrip upgrade dice 17": "",
+    "savingthrow": [
+      "Wisdom"
+    ],
+    "backgrounds": []
+  }
+}
