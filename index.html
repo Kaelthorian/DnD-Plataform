@@ -1640,8 +1640,27 @@
       getAnalytics(app);
       const db = getFirestore(app);
 
-      const rollRef = doc(db, "dice", "d20");
-      const sheetRef = doc(db, "sheets", "active");
+      function createClientId() {
+        if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+        return `client_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      }
+
+      function getOrCreateClientId() {
+        const storageKey = "dnd_client_id_v1";
+        try {
+          const existing = localStorage.getItem(storageKey);
+          if (existing) return existing;
+          const next = createClientId();
+          localStorage.setItem(storageKey, next);
+          return next;
+        } catch (error) {
+          return createClientId();
+        }
+      }
+
+      const clientId = getOrCreateClientId();
+      const rollRef = doc(db, "dice", `d20_${clientId}`);
+      const sheetRef = doc(db, "sheets", clientId);
       const resultEl = document.getElementById("roll-result");
       const diceSoundEl = document.getElementById("dice-sound");
       const rollBtn = document.getElementById("roll-btn");
