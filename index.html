@@ -2094,6 +2094,7 @@
       let pendingBackgroundAbilityMode = 0;
       let pendingBackgroundAbilityAssignments = [];
       let pendingBackgroundEquipmentChoice = "A";
+      let appliedBackgroundName = "";
       let appliedBackgroundAbilityBonuses = {
         str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0,
       };
@@ -2896,6 +2897,7 @@
           if (appliedBackgroundEquipmentIds.includes(equippedShieldId)) equippedShieldId = "";
         }
         appliedBackgroundEquipmentIds = [];
+        appliedBackgroundName = "";
       }
 
       function setSizePickerOpen(isOpen) {
@@ -4490,6 +4492,7 @@
         });
         appliedBackgroundInventoryNames = inventoryAdds;
         appliedBackgroundEquipmentIds = equipmentAdds;
+        appliedBackgroundName = entry.name || "";
 
         renderInventoryItems();
         renderEquipment();
@@ -5101,6 +5104,14 @@
         payload.equippedMainTwoHanded = equippedMainTwoHanded;
         payload.equippedArmorId = equippedArmorId;
         payload.equippedShieldId = equippedShieldId;
+        payload.appliedBackgroundName = appliedBackgroundName;
+        payload.appliedBackgroundAbilityBonuses = { ...appliedBackgroundAbilityBonuses };
+        payload.appliedBackgroundSkillIds = appliedBackgroundSkillIds.slice();
+        payload.appliedBackgroundInventoryNames = appliedBackgroundInventoryNames.slice();
+        payload.appliedBackgroundEquipmentIds = appliedBackgroundEquipmentIds.slice();
+        payload.pendingBackgroundAbilityMode = pendingBackgroundAbilityMode;
+        payload.pendingBackgroundAbilityAssignments = pendingBackgroundAbilityAssignments.slice();
+        payload.pendingBackgroundEquipmentChoice = pendingBackgroundEquipmentChoice;
         return payload;
       }
 
@@ -5184,6 +5195,38 @@
           inventoryItems = normalizeInventoryItems(data.inventoryItems);
           renderInventoryItems();
         }
+        appliedBackgroundName = typeof data.appliedBackgroundName === "string"
+          ? data.appliedBackgroundName
+          : "";
+        const incomingBonuses = data.appliedBackgroundAbilityBonuses;
+        appliedBackgroundAbilityBonuses = {
+          str: Number(incomingBonuses?.str) || 0,
+          dex: Number(incomingBonuses?.dex) || 0,
+          con: Number(incomingBonuses?.con) || 0,
+          int: Number(incomingBonuses?.int) || 0,
+          wis: Number(incomingBonuses?.wis) || 0,
+          cha: Number(incomingBonuses?.cha) || 0,
+        };
+        appliedBackgroundSkillIds = Array.isArray(data.appliedBackgroundSkillIds)
+          ? data.appliedBackgroundSkillIds.map((entry) => String(entry || "")).filter(Boolean)
+          : [];
+        appliedBackgroundInventoryNames = Array.isArray(data.appliedBackgroundInventoryNames)
+          ? data.appliedBackgroundInventoryNames.map((entry) => String(entry || "")).filter(Boolean)
+          : [];
+        appliedBackgroundEquipmentIds = Array.isArray(data.appliedBackgroundEquipmentIds)
+          ? data.appliedBackgroundEquipmentIds.map((entry) => String(entry || "")).filter(Boolean)
+          : [];
+        pendingBackgroundAbilityMode = Number.isFinite(Number(data.pendingBackgroundAbilityMode))
+          ? Number(data.pendingBackgroundAbilityMode)
+          : 0;
+        pendingBackgroundAbilityAssignments = Array.isArray(data.pendingBackgroundAbilityAssignments)
+          ? data.pendingBackgroundAbilityAssignments
+            .map((entry) => normalizeAbilityKey(entry))
+            .filter(Boolean)
+          : [];
+        pendingBackgroundEquipmentChoice = typeof data.pendingBackgroundEquipmentChoice === "string"
+          ? data.pendingBackgroundEquipmentChoice
+          : "A";
         applyBaseDefaults();
         recalcDerived();
         isRemoteUpdate = false;
