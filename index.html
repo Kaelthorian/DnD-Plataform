@@ -935,6 +935,36 @@
       .background-static-list li {
         margin-bottom: 4px;
       }
+      .class-equipment-picker .weapon-picker-header {
+        grid-template-columns: 1fr auto auto;
+      }
+      .class-equipment-body {
+        display: grid;
+        gap: 12px;
+      }
+      .class-equipment-row {
+        border: 1px solid #d8c7b5;
+        border-radius: 10px;
+        padding: 10px;
+        background: #fffaf5;
+        display: grid;
+        gap: 8px;
+      }
+      .class-equipment-row h4 {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .class-equipment-row select {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        font-family: inherit;
+        background: #fff;
+      }
       .weapon-picker-header {
         display: grid;
         grid-template-columns: 1fr auto auto;
@@ -1455,7 +1485,7 @@
               <ul id="proficiencies" class="trait-list" aria-live="polite"></ul>
             </div>
             <div class="panel grid-traits">
-              <div class="panel-label">Traits</div>
+              <div class="panel-label">Feats</div>
               <ul id="traits" class="trait-list" aria-live="polite"></ul>
             </div>
             <div class="panel grid-exp">
@@ -1679,6 +1709,14 @@
       </div>
       <div id="class-picker-list"></div>
     </aside>
+    <aside class="weapon-picker class-equipment-picker" id="class-equipment-picker" aria-live="polite" aria-label="Class starting equipment" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <div class="picker-title">Class starting equipment</div>
+        <button id="class-equipment-apply" class="weapon-picker-add" type="button">Apply</button>
+        <button id="class-equipment-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div class="class-equipment-body" id="class-equipment-body"></div>
+    </aside>
     <aside class="weapon-picker background-picker" id="background-picker" aria-live="polite" aria-label="Background picker" aria-hidden="true">
       <div class="weapon-picker-header">
         <input id="background-search" type="search" placeholder="Search backgrounds..." />
@@ -1845,6 +1883,10 @@
       const classSearch = document.getElementById("class-search");
       const classPickerAdd = document.getElementById("class-picker-add");
       const classPickerClose = document.getElementById("class-picker-close");
+      const classEquipmentPicker = document.getElementById("class-equipment-picker");
+      const classEquipmentBody = document.getElementById("class-equipment-body");
+      const classEquipmentApply = document.getElementById("class-equipment-apply");
+      const classEquipmentClose = document.getElementById("class-equipment-close");
       const backgroundPicker = document.getElementById("background-picker");
       const backgroundPickerList = document.getElementById("background-picker-list");
       const backgroundSearch = document.getElementById("background-search");
@@ -2101,6 +2143,11 @@
       let appliedBackgroundSkillIds = [];
       let appliedBackgroundInventoryNames = [];
       let appliedBackgroundEquipmentIds = [];
+      let pendingClassEquipmentEntry = null;
+      let pendingClassEquipmentSelections = [];
+      let appliedClassEquipmentName = "";
+      let appliedClassInventoryNames = [];
+      let appliedClassEquipmentIds = [];
       let currentWeaponProficiencies = [];
 
       function refreshWeaponIndex() {
@@ -2797,6 +2844,76 @@
         return out;
       }
 
+      function parseClassEquipmentLine(line) {
+        const text = String(line || "").trim();
+        if (!text) return { type: "fixed", value: "" };
+        const matches = Array.from(
+          text.matchAll(/\(([a-z])\)\s*([^()]+?)(?=(?:,\s*)?\([a-z]\)|$)/gi)
+        );
+        if (matches.length < 2) {
+          return { type: "fixed", value: text };
+        }
+        const options = matches
+          .map((match) => String(match[2] || "").trim())
+          .map((part) =>
+            part
+              .replace(/^\s*(?:or\s+|and\s+|,\s*)/i, "")
+              .replace(/\s*(?:,\s*or|,\s*and)\s*$/i, "")
+              .trim()
+          )
+          .filter(Boolean);
+        if (!options.length) {
+          return { type: "fixed", value: text };
+        }
+        return { type: "choice", options };
+      }
+
+      function splitClassEquipmentTextToEntries(text) {
+        const raw = String(text || "").trim();
+        if (!raw) return [];
+        return raw
+          .split(/\s*,\s*|\s+and\s+/i)
+          .map((entry) => entry.replace(/\(if proficient\)/gi, "").trim())
+          .filter(Boolean);
+      }
+
+      function normalizeClassEquipmentEntry(rawEntry) {
+        const text = String(rawEntry || "").trim();
+        if (!text) return { name: "", qty: 1 };
+        const numberWords = {
+          one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+        };
+        const normalized = text.toLowerCase();
+        const numMatch = normalized.match(/^(\d+)\s+(.+)$/);
+        if (numMatch) {
+          return { name: toDisplayName(numMatch[2]), qty: Math.max(1, Number(numMatch[1])) };
+        }
+        const wordMatch = normalized.match(/^(one|two|three|four|five|six|seven|eight|nine|ten)\s+(.+)$/);
+        if (wordMatch) {
+          return { name: toDisplayName(wordMatch[2]), qty: numberWords[wordMatch[1]] || 1 };
+        }
+        return {
+          name: toDisplayName(normalized.replace(/^(a|an|any)\s+/i, "")),
+          qty: 1,
+        };
+      }
+
+      function revertClassStartingEquipmentEffects() {
+        if (appliedClassInventoryNames.length) {
+          appliedClassInventoryNames.forEach((name) => removeFirstInventoryEntryByName(name));
+        }
+        appliedClassInventoryNames = [];
+        if (appliedClassEquipmentIds.length) {
+          equipmentItems = equipmentItems.filter((item) => !appliedClassEquipmentIds.includes(item.id));
+          if (appliedClassEquipmentIds.includes(equippedMainId)) equippedMainId = "";
+          if (appliedClassEquipmentIds.includes(equippedOffhandId)) equippedOffhandId = "";
+          if (appliedClassEquipmentIds.includes(equippedArmorId)) equippedArmorId = "";
+          if (appliedClassEquipmentIds.includes(equippedShieldId)) equippedShieldId = "";
+        }
+        appliedClassEquipmentIds = [];
+        appliedClassEquipmentName = "";
+      }
+
       function summarizeEquipmentChoice(choiceItems = []) {
         const parsed = parseEquipmentChoiceItems(choiceItems);
         if (!parsed.length) return "--";
@@ -3359,10 +3476,13 @@
         const level = Math.min(Math.max(toNumber(getListValue(levelEl)) || 1, 1), 20);
         const conMod =
           mods.con ?? computeAbilityMod(toNumber(getListValue(abilityScores.con)));
+        const levelOneDie = normalizeHitDie(entry?.hitPointDie || entry?.hitPointPerAdditionalLevelDie);
+        const levelOneMax = getMaxDieValue(levelOneDie);
         const fixedAverage = getFixedHpPerLevel(entry);
-        if (!fixedAverage) return;
+        if (!levelOneMax || !fixedAverage) return;
+        const levelOneTotal = Math.max(1, levelOneMax + conMod);
         const perLevelGain = Math.max(1, fixedAverage + conMod);
-        const total = level * perLevelGain;
+        const total = levelOneTotal + Math.max(0, level - 1) * perLevelGain;
         setListValue(totalHpInput, String(total));
         if (currentHpInput) {
           const current = toNumber(currentHpInput.value);
@@ -3421,13 +3541,11 @@
         if (alignmentInput) {
           alignmentInput.disabled = false;
         }
-        if (levelInput) {
-          setListValue(levelInput, String(DEFAULT_LEVEL));
-        }
         if (xpInput) {
           setListValue(xpInput, String(DEFAULT_XP));
         }
         applyClassSelection(entry, { rollHp: true });
+        openClassEquipmentPicker(entry);
         openAlignmentPicker();
         scheduleSave();
         openClassPanel(entry);
@@ -3704,6 +3822,15 @@
           if (classPickerAdd) {
             classPickerAdd.disabled = true;
           }
+        }
+      }
+
+      function setClassEquipmentOpen(isOpen) {
+        if (!classEquipmentPicker) return;
+        classEquipmentPicker.classList.toggle("open", isOpen);
+        classEquipmentPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        if (!isOpen) {
+          pendingClassEquipmentEntry = null;
         }
       }
 
@@ -4250,6 +4377,97 @@
         classPickerList.appendChild(list);
       }
 
+      function buildClassEquipmentPicker(entry) {
+        if (!classEquipmentBody || !entry) return;
+        classEquipmentBody.innerHTML = "";
+        const rows = Array.isArray(entry.startingEquipment) ? entry.startingEquipment : [];
+        if (!rows.length) {
+          const empty = document.createElement("div");
+          empty.className = "spell-meta";
+          empty.textContent = "No starting equipment listed for this class.";
+          classEquipmentBody.appendChild(empty);
+          return;
+        }
+        pendingClassEquipmentSelections = rows.map((line, idx) => {
+          const parsed = parseClassEquipmentLine(line);
+          if (parsed.type !== "choice") {
+            return { type: "fixed", value: parsed.value };
+          }
+          const prev = pendingClassEquipmentSelections[idx];
+          const selected = Number.isFinite(Number(prev?.selected))
+            ? Math.max(0, Math.min(Number(prev.selected), parsed.options.length - 1))
+            : 0;
+          return { type: "choice", options: parsed.options.slice(), selected };
+        });
+
+        pendingClassEquipmentSelections.forEach((selection, idx) => {
+          const card = document.createElement("div");
+          card.className = "class-equipment-row";
+          const title = document.createElement("h4");
+          title.textContent = `Choice ${idx + 1}`;
+          card.appendChild(title);
+          if (selection.type === "fixed") {
+            const text = document.createElement("div");
+            text.textContent = selection.value || "--";
+            card.appendChild(text);
+          } else {
+            const select = document.createElement("select");
+            selection.options.forEach((optionText, optIdx) => {
+              const option = document.createElement("option");
+              option.value = String(optIdx);
+              option.textContent = optionText;
+              if (optIdx === selection.selected) option.selected = true;
+              select.appendChild(option);
+            });
+            select.addEventListener("change", () => {
+              selection.selected = Math.max(0, Number(select.value) || 0);
+            });
+            card.appendChild(select);
+          }
+          classEquipmentBody.appendChild(card);
+        });
+      }
+
+      function applyClassStartingEquipment(entry) {
+        if (!entry) return;
+        revertClassStartingEquipmentEffects();
+        const inventoryAdds = [];
+        const equipmentAdds = [];
+        pendingClassEquipmentSelections.forEach((selection) => {
+          const text =
+            selection.type === "choice"
+              ? selection.options[selection.selected] || selection.options[0] || ""
+              : selection.value;
+          splitClassEquipmentTextToEntries(text).forEach((rawPiece) => {
+            const normalized = normalizeClassEquipmentEntry(rawPiece);
+            if (!normalized.name) return;
+            const qty = Math.max(1, Number(normalized.qty) || 1);
+            for (let idx = 0; idx < qty; idx += 1) {
+              inventoryItems.push(normalized.name);
+              inventoryAdds.push(normalized.name);
+              if (getWeaponData(normalized.name) || getArmorData(normalized.name)) {
+                const eq = createEquipmentItem(normalized.name);
+                equipmentItems.push(eq);
+                equipmentAdds.push(eq.id);
+              }
+            }
+          });
+        });
+        appliedClassInventoryNames = inventoryAdds;
+        appliedClassEquipmentIds = equipmentAdds;
+        appliedClassEquipmentName = entry.name || "";
+        renderInventoryItems();
+        renderEquipment();
+        recalcDerived();
+      }
+
+      function openClassEquipmentPicker(entry) {
+        pendingClassEquipmentEntry = entry;
+        pendingClassEquipmentSelections = [];
+        buildClassEquipmentPicker(entry);
+        setClassEquipmentOpen(true);
+      }
+
       function buildBackgroundPickerList(filterText = "") {
         if (!backgroundPickerList) return;
         const filter = filterText.trim().toLowerCase();
@@ -4369,6 +4587,10 @@
               const option = document.createElement("option");
               option.value = ability;
               option.textContent = abilityKeyToLabel(ability);
+              const takenByOther = pendingBackgroundAbilityAssignments.some(
+                (assigned, assignedIdx) => assignedIdx !== idx && assigned === ability
+              );
+              option.disabled = takenByOther;
               if (pendingBackgroundAbilityAssignments[idx] === ability) {
                 option.selected = true;
               }
@@ -4376,6 +4598,11 @@
             });
             select.addEventListener("change", () => {
               pendingBackgroundAbilityAssignments[idx] = select.value;
+              pendingBackgroundAbilityAssignments = ensureUniqueAbilityAssignments(
+                pendingBackgroundAbilityAssignments,
+                currentMode.from
+              );
+              buildBackgroundConfigPanel(entry);
             });
             row.appendChild(label);
             row.appendChild(select);
@@ -4480,10 +4707,14 @@
         const equipmentAdds = [];
         parsed.forEach((row) => {
           const qty = Math.max(1, Number(row.qty) || 1);
+          const isWeapon = Boolean(getWeaponData(row.name));
+          const isArmor = Boolean(getArmorData(row.name));
           for (let idx = 0; idx < qty; idx += 1) {
-            inventoryItems.push(row.name);
-            inventoryAdds.push(row.name);
-            if (getWeaponData(row.name) || getArmorData(row.name)) {
+            if (!isWeapon) {
+              inventoryItems.push(row.name);
+              inventoryAdds.push(row.name);
+            }
+            if (isWeapon || isArmor) {
               const eq = createEquipmentItem(row.name);
               equipmentItems.push(eq);
               equipmentAdds.push(eq.id);
@@ -5000,9 +5231,24 @@
             setClassPickerOpen(false);
           });
         }
+        if (classEquipmentApply) {
+          classEquipmentApply.addEventListener("click", () => {
+            if (!pendingClassEquipmentEntry) return;
+            applyClassStartingEquipment(pendingClassEquipmentEntry);
+            scheduleSave();
+            setClassEquipmentOpen(false);
+          });
+        }
+        if (classEquipmentClose) {
+          classEquipmentClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setClassEquipmentOpen(false);
+          });
+        }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
             setClassPickerOpen(false);
+            setClassEquipmentOpen(false);
           }
         });
         buildClassPickerList("");
@@ -5112,6 +5358,9 @@
         payload.pendingBackgroundAbilityMode = pendingBackgroundAbilityMode;
         payload.pendingBackgroundAbilityAssignments = pendingBackgroundAbilityAssignments.slice();
         payload.pendingBackgroundEquipmentChoice = pendingBackgroundEquipmentChoice;
+        payload.appliedClassEquipmentName = appliedClassEquipmentName;
+        payload.appliedClassInventoryNames = appliedClassInventoryNames.slice();
+        payload.appliedClassEquipmentIds = appliedClassEquipmentIds.slice();
         return payload;
       }
 
@@ -5186,6 +5435,10 @@
           }
           updateActiveWeaponLabel();
           renderEquipment();
+          appliedClassEquipmentIds = appliedClassEquipmentIds
+            .filter((id) => equipmentItems.some((item) => item.id === id));
+          appliedBackgroundEquipmentIds = appliedBackgroundEquipmentIds
+            .filter((id) => equipmentItems.some((item) => item.id === id));
         }
         if (Array.isArray(data.cantripItems)) {
           cantripItems = normalizeCantripItems(data.cantripItems);
@@ -5227,6 +5480,19 @@
         pendingBackgroundEquipmentChoice = typeof data.pendingBackgroundEquipmentChoice === "string"
           ? data.pendingBackgroundEquipmentChoice
           : "A";
+        appliedClassEquipmentName = typeof data.appliedClassEquipmentName === "string"
+          ? data.appliedClassEquipmentName
+          : "";
+        appliedClassInventoryNames = Array.isArray(data.appliedClassInventoryNames)
+          ? data.appliedClassInventoryNames.map((entry) => String(entry || "")).filter(Boolean)
+          : [];
+        appliedClassEquipmentIds = Array.isArray(data.appliedClassEquipmentIds)
+          ? data.appliedClassEquipmentIds.map((entry) => String(entry || "")).filter(Boolean)
+          : [];
+        appliedClassEquipmentIds = appliedClassEquipmentIds
+          .filter((id) => equipmentItems.some((item) => item.id === id));
+        appliedBackgroundEquipmentIds = appliedBackgroundEquipmentIds
+          .filter((id) => equipmentItems.some((item) => item.id === id));
         applyBaseDefaults();
         recalcDerived();
         isRemoteUpdate = false;
