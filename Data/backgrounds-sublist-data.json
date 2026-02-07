@@ -1,0 +1,1315 @@
+﻿{
+    "Acolyte":  {
+                    "name":  "Acolyte",
+                    "ability":  [
+                                    {
+                                        "choose":  {
+                                                       "weighted":  {
+                                                                        "from":  [
+                                                                                     "int",
+                                                                                     "wis",
+                                                                                     "cha"
+                                                                                 ],
+                                                                        "weights":  [
+                                                                                        2,
+                                                                                        1
+                                                                                    ]
+                                                                    }
+                                                   }
+                                    },
+                                    {
+                                        "choose":  {
+                                                       "weighted":  {
+                                                                        "from":  [
+                                                                                     "int",
+                                                                                     "wis",
+                                                                                     "cha"
+                                                                                 ],
+                                                                        "weights":  [
+                                                                                        1,
+                                                                                        1,
+                                                                                        1
+                                                                                    ]
+                                                                    }
+                                                   }
+                                    }
+                                ],
+                    "feats":  [
+                                  {
+                                      "magic initiate; cleric|xphb":  true
+                                  }
+                              ],
+                    "skillProficiencies":  [
+                                               {
+                                                   "insight":  true,
+                                                   "religion":  true
+                                               }
+                                           ],
+                    "toolProficiencies":  [
+                                              {
+                                                  "calligrapher\u0027s supplies":  true
+                                              }
+                                          ],
+                    "startingEquipment":  [
+                                              {
+                                                  "A":  [
+                                                            {
+                                                                "item":  "book|xphb",
+                                                                "displayName":  "Book (Prayers)"
+                                                            },
+                                                            {
+                                                                "item":  "calligrapher\u0027s supplies|xphb"
+                                                            },
+                                                            {
+                                                                "item":  "holy symbol|xphb"
+                                                            },
+                                                            {
+                                                                "item":  "parchment|xphb",
+                                                                "quantity":  10
+                                                            },
+                                                            {
+                                                                "item":  "robe|xphb"
+                                                            },
+                                                            {
+                                                                "value":  800
+                                                            }
+                                                        ],
+                                                  "B":  [
+                                                            {
+                                                                "value":  5000
+                                                            }
+                                                        ]
+                                              }
+                                          ]
+                },
+    "Artisan":  {
+                    "name":  "Artisan",
+                    "ability":  [
+                                    {
+                                        "choose":  {
+                                                       "weighted":  {
+                                                                        "from":  [
+                                                                                     "str",
+                                                                                     "dex",
+                                                                                     "int"
+                                                                                 ],
+                                                                        "weights":  [
+                                                                                        2,
+                                                                                        1
+                                                                                    ]
+                                                                    }
+                                                   }
+                                    },
+                                    {
+                                        "choose":  {
+                                                       "weighted":  {
+                                                                        "from":  [
+                                                                                     "str",
+                                                                                     "dex",
+                                                                                     "int"
+                                                                                 ],
+                                                                        "weights":  [
+                                                                                        1,
+                                                                                        1,
+                                                                                        1
+                                                                                    ]
+                                                                    }
+                                                   }
+                                    }
+                                ],
+                    "feats":  [
+                                  {
+                                      "crafter|xphb":  true
+                                  }
+                              ],
+                    "skillProficiencies":  [
+                                               {
+                                                   "investigation":  true,
+                                                   "persuasion":  true
+                                               }
+                                           ],
+                    "toolProficiencies":  [
+                                              {
+                                                  "anyArtisansTool":  1
+                                              }
+                                          ],
+                    "startingEquipment":  [
+                                              {
+                                                  "A":  [
+                                                            {
+                                                                "equipmentType":  "toolArtisan"
+                                                            },
+                                                            {
+                                                                "item":  "pouch|xphb",
+                                                                "quantity":  2
+                                                            },
+                                                            {
+                                                                "item":  "traveler\u0027s clothes|xphb"
+                                                            },
+                                                            {
+                                                                "value":  3200
+                                                            }
+                                                        ],
+                                                  "B":  [
+                                                            {
+                                                                "value":  5000
+                                                            }
+                                                        ]
+                                              }
+                                          ]
+                },
+    "Charlatan":  {
+                      "name":  "Charlatan",
+                      "ability":  [
+                                      {
+                                          "choose":  {
+                                                         "weighted":  {
+                                                                          "from":  [
+                                                                                       "dex",
+                                                                                       "con",
+                                                                                       "cha"
+                                                                                   ],
+                                                                          "weights":  [
+                                                                                          2,
+                                                                                          1
+                                                                                      ]
+                                                                      }
+                                                     }
+                                      },
+                                      {
+                                          "choose":  {
+                                                         "weighted":  {
+                                                                          "from":  [
+                                                                                       "dex",
+                                                                                       "con",
+                                                                                       "cha"
+                                                                                   ],
+                                                                          "weights":  [
+                                                                                          1,
+                                                                                          1,
+                                                                                          1
+                                                                                      ]
+                                                                      }
+                                                     }
+                                      }
+                                  ],
+                      "feats":  [
+                                    {
+                                        "skilled|xphb":  true
+                                    }
+                                ],
+                      "skillProficiencies":  [
+                                                 {
+                                                     "deception":  true,
+                                                     "sleight of hand":  true
+                                                 }
+                                             ],
+                      "toolProficiencies":  [
+                                                {
+                                                    "forgery kit":  true
+                                                }
+                                            ],
+                      "startingEquipment":  [
+                                                {
+                                                    "A":  [
+                                                              {
+                                                                  "item":  "forgery kit|xphb"
+                                                              },
+                                                              {
+                                                                  "item":  "costume|xphb"
+                                                              },
+                                                              {
+                                                                  "item":  "fine clothes|xphb"
+                                                              },
+                                                              {
+                                                                  "value":  1500
+                                                              }
+                                                          ],
+                                                    "B":  [
+                                                              {
+                                                                  "value":  5000
+                                                              }
+                                                          ]
+                                                }
+                                            ]
+                  },
+    "Criminal":  {
+                     "name":  "Criminal",
+                     "ability":  [
+                                     {
+                                         "choose":  {
+                                                        "weighted":  {
+                                                                         "from":  [
+                                                                                      "dex",
+                                                                                      "con",
+                                                                                      "int"
+                                                                                  ],
+                                                                         "weights":  [
+                                                                                         2,
+                                                                                         1
+                                                                                     ]
+                                                                     }
+                                                    }
+                                     },
+                                     {
+                                         "choose":  {
+                                                        "weighted":  {
+                                                                         "from":  [
+                                                                                      "dex",
+                                                                                      "con",
+                                                                                      "int"
+                                                                                  ],
+                                                                         "weights":  [
+                                                                                         1,
+                                                                                         1,
+                                                                                         1
+                                                                                     ]
+                                                                     }
+                                                    }
+                                     }
+                                 ],
+                     "feats":  [
+                                   {
+                                       "alert|xphb":  true
+                                   }
+                               ],
+                     "skillProficiencies":  [
+                                                {
+                                                    "sleight of hand":  true,
+                                                    "stealth":  true
+                                                }
+                                            ],
+                     "toolProficiencies":  [
+                                               {
+                                                   "thieves\u0027 tools":  true
+                                               }
+                                           ],
+                     "startingEquipment":  [
+                                               {
+                                                   "A":  [
+                                                             {
+                                                                 "item":  "dagger|xphb",
+                                                                 "quantity":  2
+                                                             },
+                                                             {
+                                                                 "item":  "thieves\u0027 tools|xphb"
+                                                             },
+                                                             {
+                                                                 "item":  "crowbar|xphb"
+                                                             },
+                                                             {
+                                                                 "item":  "pouch|xphb",
+                                                                 "quantity":  2
+                                                             },
+                                                             {
+                                                                 "item":  "traveler\u0027s clothes|xphb"
+                                                             },
+                                                             {
+                                                                 "value":  1600
+                                                             }
+                                                         ],
+                                                   "B":  [
+                                                             {
+                                                                 "value":  5000
+                                                             }
+                                                         ]
+                                               }
+                                           ]
+                 },
+    "Entertainer":  {
+                        "name":  "Entertainer",
+                        "ability":  [
+                                        {
+                                            "choose":  {
+                                                           "weighted":  {
+                                                                            "from":  [
+                                                                                         "str",
+                                                                                         "dex",
+                                                                                         "cha"
+                                                                                     ],
+                                                                            "weights":  [
+                                                                                            2,
+                                                                                            1
+                                                                                        ]
+                                                                        }
+                                                       }
+                                        },
+                                        {
+                                            "choose":  {
+                                                           "weighted":  {
+                                                                            "from":  [
+                                                                                         "str",
+                                                                                         "dex",
+                                                                                         "cha"
+                                                                                     ],
+                                                                            "weights":  [
+                                                                                            1,
+                                                                                            1,
+                                                                                            1
+                                                                                        ]
+                                                                        }
+                                                       }
+                                        }
+                                    ],
+                        "feats":  [
+                                      {
+                                          "musician|xphb":  true
+                                      }
+                                  ],
+                        "skillProficiencies":  [
+                                                   {
+                                                       "acrobatics":  true,
+                                                       "performance":  true
+                                                   }
+                                               ],
+                        "toolProficiencies":  [
+                                                  {
+                                                      "anyMusicalInstrument":  1
+                                                  }
+                                              ],
+                        "startingEquipment":  [
+                                                  {
+                                                      "A":  [
+                                                                {
+                                                                    "equipmentType":  "instrumentMusical"
+                                                                },
+                                                                {
+                                                                    "item":  "costume|xphb",
+                                                                    "quantity":  2
+                                                                },
+                                                                {
+                                                                    "item":  "mirror|xphb"
+                                                                },
+                                                                {
+                                                                    "item":  "perfume|xphb"
+                                                                },
+                                                                {
+                                                                    "item":  "traveler\u0027s clothes|xphb"
+                                                                },
+                                                                {
+                                                                    "value":  1100
+                                                                }
+                                                            ],
+                                                      "B":  [
+                                                                {
+                                                                    "value":  5000
+                                                                }
+                                                            ]
+                                                  }
+                                              ]
+                    },
+    "Farmer":  {
+                   "name":  "Farmer",
+                   "ability":  [
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "str",
+                                                                                    "con",
+                                                                                    "wis"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       2,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   },
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "str",
+                                                                                    "con",
+                                                                                    "wis"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       1,
+                                                                                       1,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                   "feats":  [
+                                 {
+                                     "tough|xphb":  true
+                                 }
+                             ],
+                   "skillProficiencies":  [
+                                              {
+                                                  "animal handling":  true,
+                                                  "nature":  true
+                                              }
+                                          ],
+                   "toolProficiencies":  [
+                                             {
+                                                 "carpenter\u0027s tools":  true
+                                             }
+                                         ],
+                   "startingEquipment":  [
+                                             {
+                                                 "A":  [
+                                                           {
+                                                               "item":  "sickle|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "carpenter\u0027s tools|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "healer\u0027s kit|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "iron pot|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "shovel|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "traveler\u0027s clothes|xphb"
+                                                           },
+                                                           {
+                                                               "value":  3000
+                                                           }
+                                                       ],
+                                                 "B":  [
+                                                           {
+                                                               "value":  5000
+                                                           }
+                                                       ]
+                                             }
+                                         ]
+               },
+    "Guard":  {
+                  "name":  "Guard",
+                  "ability":  [
+                                  {
+                                      "choose":  {
+                                                     "weighted":  {
+                                                                      "from":  [
+                                                                                   "str",
+                                                                                   "int",
+                                                                                   "wis"
+                                                                               ],
+                                                                      "weights":  [
+                                                                                      2,
+                                                                                      1
+                                                                                  ]
+                                                                  }
+                                                 }
+                                  },
+                                  {
+                                      "choose":  {
+                                                     "weighted":  {
+                                                                      "from":  [
+                                                                                   "str",
+                                                                                   "int",
+                                                                                   "wis"
+                                                                               ],
+                                                                      "weights":  [
+                                                                                      1,
+                                                                                      1,
+                                                                                      1
+                                                                                  ]
+                                                                  }
+                                                 }
+                                  }
+                              ],
+                  "feats":  [
+                                {
+                                    "alert|xphb":  true
+                                }
+                            ],
+                  "skillProficiencies":  [
+                                             {
+                                                 "athletics":  true,
+                                                 "perception":  true
+                                             }
+                                         ],
+                  "toolProficiencies":  [
+                                            {
+                                                "anyGamingSet":  1
+                                            }
+                                        ],
+                  "startingEquipment":  [
+                                            {
+                                                "A":  [
+                                                          {
+                                                              "item":  "spear|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "light crossbow|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "bolts (20)|xphb"
+                                                          },
+                                                          {
+                                                              "equipmentType":  "setGaming"
+                                                          },
+                                                          {
+                                                              "item":  "hooded lantern|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "manacles|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "quiver|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "traveler\u0027s clothes|xphb"
+                                                          },
+                                                          {
+                                                              "value":  1200
+                                                          }
+                                                      ],
+                                                "B":  [
+                                                          {
+                                                              "value":  5000
+                                                          }
+                                                      ]
+                                            }
+                                        ]
+              },
+    "Guide":  {
+                  "name":  "Guide",
+                  "ability":  [
+                                  {
+                                      "choose":  {
+                                                     "weighted":  {
+                                                                      "from":  [
+                                                                                   "dex",
+                                                                                   "con",
+                                                                                   "wis"
+                                                                               ],
+                                                                      "weights":  [
+                                                                                      2,
+                                                                                      1
+                                                                                  ]
+                                                                  }
+                                                 }
+                                  },
+                                  {
+                                      "choose":  {
+                                                     "weighted":  {
+                                                                      "from":  [
+                                                                                   "dex",
+                                                                                   "con",
+                                                                                   "wis"
+                                                                               ],
+                                                                      "weights":  [
+                                                                                      1,
+                                                                                      1,
+                                                                                      1
+                                                                                  ]
+                                                                  }
+                                                 }
+                                  }
+                              ],
+                  "feats":  [
+                                {
+                                    "magic initiate; druid|xphb":  true
+                                }
+                            ],
+                  "skillProficiencies":  [
+                                             {
+                                                 "stealth":  true,
+                                                 "survival":  true
+                                             }
+                                         ],
+                  "toolProficiencies":  [
+                                            {
+                                                "cartographer\u0027s tools":  true
+                                            }
+                                        ],
+                  "startingEquipment":  [
+                                            {
+                                                "A":  [
+                                                          {
+                                                              "item":  "shortbow|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "arrows (20)|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "cartographer\u0027s tools|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "bedroll|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "quiver|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "tent|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "traveler\u0027s clothes|xphb"
+                                                          },
+                                                          {
+                                                              "value":  300
+                                                          }
+                                                      ],
+                                                "B":  [
+                                                          {
+                                                              "value":  5000
+                                                          }
+                                                      ]
+                                            }
+                                        ]
+              },
+    "Hermit":  {
+                   "name":  "Hermit",
+                   "ability":  [
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "con",
+                                                                                    "wis",
+                                                                                    "cha"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       2,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   },
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "con",
+                                                                                    "wis",
+                                                                                    "cha"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       1,
+                                                                                       1,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                   "feats":  [
+                                 {
+                                     "healer|xphb":  true
+                                 }
+                             ],
+                   "skillProficiencies":  [
+                                              {
+                                                  "medicine":  true,
+                                                  "religion":  true
+                                              }
+                                          ],
+                   "toolProficiencies":  [
+                                             {
+                                                 "herbalism kit":  true
+                                             }
+                                         ],
+                   "startingEquipment":  [
+                                             {
+                                                 "A":  [
+                                                           {
+                                                               "item":  "quarterstaff|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "herbalism kit|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "bedroll|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "book|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "lamp|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "oil|xphb",
+                                                               "quantity":  3
+                                                           },
+                                                           {
+                                                               "item":  "traveler\u0027s clothes|xphb"
+                                                           },
+                                                           {
+                                                               "value":  1600
+                                                           }
+                                                       ],
+                                                 "B":  [
+                                                           {
+                                                               "value":  5000
+                                                           }
+                                                       ]
+                                             }
+                                         ]
+               },
+    "Merchant":  {
+                     "name":  "Merchant",
+                     "ability":  [
+                                     {
+                                         "choose":  {
+                                                        "weighted":  {
+                                                                         "from":  [
+                                                                                      "con",
+                                                                                      "int",
+                                                                                      "cha"
+                                                                                  ],
+                                                                         "weights":  [
+                                                                                         2,
+                                                                                         1
+                                                                                     ]
+                                                                     }
+                                                    }
+                                     },
+                                     {
+                                         "choose":  {
+                                                        "weighted":  {
+                                                                         "from":  [
+                                                                                      "con",
+                                                                                      "int",
+                                                                                      "cha"
+                                                                                  ],
+                                                                         "weights":  [
+                                                                                         1,
+                                                                                         1,
+                                                                                         1
+                                                                                     ]
+                                                                     }
+                                                    }
+                                     }
+                                 ],
+                     "feats":  [
+                                   {
+                                       "lucky|xphb":  true
+                                   }
+                               ],
+                     "skillProficiencies":  [
+                                                {
+                                                    "animal handling":  true,
+                                                    "persuasion":  true
+                                                }
+                                            ],
+                     "toolProficiencies":  [
+                                               {
+                                                   "navigator\u0027s tools":  true
+                                               }
+                                           ],
+                     "startingEquipment":  [
+                                               {
+                                                   "A":  [
+                                                             {
+                                                                 "item":  "navigator\u0027s tools|xphb"
+                                                             },
+                                                             {
+                                                                 "item":  "pouch|xphb",
+                                                                 "quantity":  2
+                                                             },
+                                                             {
+                                                                 "item":  "traveler\u0027s clothes|xphb"
+                                                             },
+                                                             {
+                                                                 "value":  2200
+                                                             }
+                                                         ],
+                                                   "B":  [
+                                                             {
+                                                                 "value":  5000
+                                                             }
+                                                         ]
+                                               }
+                                           ]
+                 },
+    "Noble":  {
+                  "name":  "Noble",
+                  "ability":  [
+                                  {
+                                      "choose":  {
+                                                     "weighted":  {
+                                                                      "from":  [
+                                                                                   "str",
+                                                                                   "int",
+                                                                                   "cha"
+                                                                               ],
+                                                                      "weights":  [
+                                                                                      2,
+                                                                                      1
+                                                                                  ]
+                                                                  }
+                                                 }
+                                  },
+                                  {
+                                      "choose":  {
+                                                     "weighted":  {
+                                                                      "from":  [
+                                                                                   "str",
+                                                                                   "int",
+                                                                                   "cha"
+                                                                               ],
+                                                                      "weights":  [
+                                                                                      1,
+                                                                                      1,
+                                                                                      1
+                                                                                  ]
+                                                                  }
+                                                 }
+                                  }
+                              ],
+                  "feats":  [
+                                {
+                                    "Skilled|xphb":  true
+                                }
+                            ],
+                  "skillProficiencies":  [
+                                             {
+                                                 "history":  true,
+                                                 "persuasion":  true
+                                             }
+                                         ],
+                  "toolProficiencies":  [
+                                            {
+                                                "anyGamingSet":  1
+                                            }
+                                        ],
+                  "startingEquipment":  [
+                                            {
+                                                "A":  [
+                                                          {
+                                                              "equipmentType":  "setGaming"
+                                                          },
+                                                          {
+                                                              "item":  "fine clothes|xphb"
+                                                          },
+                                                          {
+                                                              "item":  "perfume|xphb"
+                                                          },
+                                                          {
+                                                              "value":  2900
+                                                          }
+                                                      ],
+                                                "B":  [
+                                                          {
+                                                              "value":  5000
+                                                          }
+                                                      ]
+                                            }
+                                        ]
+              },
+    "Sage":  {
+                 "name":  "Sage",
+                 "ability":  [
+                                 {
+                                     "choose":  {
+                                                    "weighted":  {
+                                                                     "from":  [
+                                                                                  "con",
+                                                                                  "int",
+                                                                                  "wis"
+                                                                              ],
+                                                                     "weights":  [
+                                                                                     2,
+                                                                                     1
+                                                                                 ]
+                                                                 }
+                                                }
+                                 },
+                                 {
+                                     "choose":  {
+                                                    "weighted":  {
+                                                                     "from":  [
+                                                                                  "con",
+                                                                                  "int",
+                                                                                  "wis"
+                                                                              ],
+                                                                     "weights":  [
+                                                                                     1,
+                                                                                     1,
+                                                                                     1
+                                                                                 ]
+                                                                 }
+                                                }
+                                 }
+                             ],
+                 "feats":  [
+                               {
+                                   "magic initiate; wizard|xphb":  true
+                               }
+                           ],
+                 "skillProficiencies":  [
+                                            {
+                                                "arcana":  true,
+                                                "history":  true
+                                            }
+                                        ],
+                 "toolProficiencies":  [
+                                           {
+                                               "calligrapher\u0027s supplies":  true
+                                           }
+                                       ],
+                 "startingEquipment":  [
+                                           {
+                                               "A":  [
+                                                         {
+                                                             "item":  "quarterstaff|xphb"
+                                                         },
+                                                         {
+                                                             "item":  "calligrapher\u0027s supplies|xphb"
+                                                         },
+                                                         {
+                                                             "item":  "book|xphb"
+                                                         },
+                                                         {
+                                                             "item":  "parchment|xphb",
+                                                             "quantity":  8
+                                                         },
+                                                         {
+                                                             "item":  "robe|xphb"
+                                                         },
+                                                         {
+                                                             "value":  800
+                                                         }
+                                                     ],
+                                               "B":  [
+                                                         {
+                                                             "value":  5000
+                                                         }
+                                                     ]
+                                           }
+                                       ]
+             },
+    "Sailor":  {
+                   "name":  "Sailor",
+                   "ability":  [
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "str",
+                                                                                    "dex",
+                                                                                    "wis"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       2,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   },
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "str",
+                                                                                    "dex",
+                                                                                    "wis"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       1,
+                                                                                       1,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                   "feats":  [
+                                 {
+                                     "tavern brawler|xphb":  true
+                                 }
+                             ],
+                   "skillProficiencies":  [
+                                              {
+                                                  "acrobatics":  true,
+                                                  "perception":  true
+                                              }
+                                          ],
+                   "toolProficiencies":  [
+                                             {
+                                                 "navigator\u0027s tools":  true
+                                             }
+                                         ],
+                   "startingEquipment":  [
+                                             {
+                                                 "A":  [
+                                                           {
+                                                               "item":  "dagger|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "navigator\u0027s tools|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "rope|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "traveler\u0027s clothes|xphb"
+                                                           },
+                                                           {
+                                                               "value":  2000
+                                                           }
+                                                       ],
+                                                 "B":  [
+                                                           {
+                                                               "value":  5000
+                                                           }
+                                                       ]
+                                             }
+                                         ]
+               },
+    "Scribe":  {
+                   "name":  "Scribe",
+                   "ability":  [
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "dex",
+                                                                                    "int",
+                                                                                    "wis"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       2,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   },
+                                   {
+                                       "choose":  {
+                                                      "weighted":  {
+                                                                       "from":  [
+                                                                                    "dex",
+                                                                                    "int",
+                                                                                    "wis"
+                                                                                ],
+                                                                       "weights":  [
+                                                                                       1,
+                                                                                       1,
+                                                                                       1
+                                                                                   ]
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                   "feats":  [
+                                 {
+                                     "skilled|xphb":  true
+                                 }
+                             ],
+                   "skillProficiencies":  [
+                                              {
+                                                  "investigation":  true,
+                                                  "perception":  true
+                                              }
+                                          ],
+                   "toolProficiencies":  [
+                                             {
+                                                 "calligrapher\u0027s supplies":  true
+                                             }
+                                         ],
+                   "startingEquipment":  [
+                                             {
+                                                 "A":  [
+                                                           {
+                                                               "item":  "calligrapher\u0027s supplies|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "fine clothes|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "lamp|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "oil|xphb"
+                                                           },
+                                                           {
+                                                               "item":  "parchment|xphb"
+                                                           },
+                                                           {
+                                                               "value":  2300
+                                                           }
+                                                       ],
+                                                 "B":  [
+                                                           {
+                                                               "value":  5000
+                                                           }
+                                                       ]
+                                             }
+                                         ]
+               },
+    "Soldier":  {
+                    "name":  "Soldier",
+                    "ability":  [
+                                    {
+                                        "choose":  {
+                                                       "weighted":  {
+                                                                        "from":  [
+                                                                                     "str",
+                                                                                     "dex",
+                                                                                     "con"
+                                                                                 ],
+                                                                        "weights":  [
+                                                                                        2,
+                                                                                        1
+                                                                                    ]
+                                                                    }
+                                                   }
+                                    },
+                                    {
+                                        "choose":  {
+                                                       "weighted":  {
+                                                                        "from":  [
+                                                                                     "str",
+                                                                                     "dex",
+                                                                                     "con"
+                                                                                 ],
+                                                                        "weights":  [
+                                                                                        1,
+                                                                                        1,
+                                                                                        1
+                                                                                    ]
+                                                                    }
+                                                   }
+                                    }
+                                ],
+                    "feats":  [
+                                  {
+                                      "savage attacker|xphb":  true
+                                  }
+                              ],
+                    "skillProficiencies":  [
+                                               {
+                                                   "athletics":  true,
+                                                   "intimidation":  true
+                                               }
+                                           ],
+                    "toolProficiencies":  [
+                                              {
+                                                  "anyGamingSet":  1
+                                              }
+                                          ],
+                    "startingEquipment":  [
+                                              {
+                                                  "A":  [
+                                                            {
+                                                                "item":  "spear|xphb"
+                                                            },
+                                                            {
+                                                                "item":  "shortbow|xphb"
+                                                            },
+                                                            {
+                                                                "item":  "arrows (20)|xphb"
+                                                            },
+                                                            {
+                                                                "equipmentType":  "setGaming"
+                                                            },
+                                                            {
+                                                                "item":  "healer\u0027s kit|xphb"
+                                                            },
+                                                            {
+                                                                "item":  "quiver|xphb"
+                                                            },
+                                                            {
+                                                                "item":  "traveler\u0027s clothes|xphb"
+                                                            },
+                                                            {
+                                                                "value":  1400
+                                                            }
+                                                        ],
+                                                  "B":  [
+                                                            {
+                                                                "value":  5000
+                                                            }
+                                                        ]
+                                              }
+                                          ]
+                },
+    "Wayfarer":  {
+                     "name":  "Wayfarer",
+                     "ability":  [
+                                     {
+                                         "choose":  {
+                                                        "weighted":  {
+                                                                         "from":  [
+                                                                                      "dex",
+                                                                                      "wis",
+                                                                                      "cha"
+                                                                                  ],
+                                                                         "weights":  [
+                                                                                         2,
+                                                                                         1
+                                                                                     ]
+                                                                     }
+                                                    }
+                                     },
+                                     {
+                                         "choose":  {
+                                                        "weighted":  {
+                                                                         "from":  [
+                                                                                      "dex",
+                                                                                      "wis",
+                                                                                      "cha"
+                                                                                  ],
+                                                                         "weights":  [
+                                                                                         1,
+                                                                                         1,
+                                                                                         1
+                                                                                     ]
+                                                                     }
+                                                    }
+                                     }
+                                 ],
+                     "feats":  [
+                                   {
+                                       "lucky|xphb":  true
+                                   }
+                               ],
+                     "skillProficiencies":  [
+                                                {
+                                                    "insight":  true,
+                                                    "stealth":  true
+                                                }
+                                            ],
+                     "toolProficiencies":  [
+                                               {
+                                                   "thieves\u0027 tools":  true
+                                               }
+                                           ],
+                     "startingEquipment":  [
+                                               {
+                                                   "A":  [
+                                                             {
+                                                                 "item":  "dagger|xphb",
+                                                                 "quantity":  2
+                                                             },
+                                                             {
+                                                                 "item":  "thieves\u0027 tools|xphb"
+                                                             },
+                                                             {
+                                                                 "equipmentType":  "setGaming"
+                                                             },
+                                                             {
+                                                                 "item":  "bedroll|xphb"
+                                                             },
+                                                             {
+                                                                 "item":  "pouch|xphb",
+                                                                 "quantity":  2
+                                                             },
+                                                             {
+                                                                 "item":  "traveler\u0027s clothes|xphb"
+                                                             },
+                                                             {
+                                                                 "value":  1600
+                                                             }
+                                                         ],
+                                                   "B":  [
+                                                             {
+                                                                 "value":  5000
+                                                             }
+                                                         ]
+                                               }
+                                           ]
+                 }
+}
