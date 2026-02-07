@@ -160,6 +160,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
       }
+      .ac-options {
+        margin-top: 6px;
+        display: none;
+      }
       .grid-race {
         grid-column: 3 / 4;
         grid-row: 1 / 2;
@@ -651,7 +655,7 @@
       }
       .equipment-item {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: auto 1fr auto;
         align-items: center;
         gap: 8px;
         padding: 6px 8px;
@@ -706,6 +710,17 @@
         border-radius: 8px;
         border: 2px solid var(--line);
         background: #f6f1e8;
+        cursor: pointer;
+      }
+      .equipment-remove {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        background: #fff;
+        color: #a02a20;
+        font-weight: 700;
+        line-height: 1;
         cursor: pointer;
       }
       .item-panel {
@@ -1322,7 +1337,7 @@
             </div>
             <div class="panel grid-armor-class">
               <div class="panel-label">Armor Class</div>
-              <input id="armor-class" type="number" min="0" />
+              <span id="armor-class" class="panel-display text-center"></span>
             </div>
             <div class="panel grid-initiative">
               <div class="panel-label">Initiative</div>
@@ -1669,6 +1684,7 @@
       const alignmentInput = document.getElementById("alignment");
       const speedInput = document.getElementById("speed");
       const sizeInput = document.getElementById("size");
+      const armorClassEl = document.getElementById("armor-class");
       const levelInput = document.getElementById("level");
       const levelDecreaseBtn = document.getElementById("level-decrease");
       const levelIncreaseBtn = document.getElementById("level-increase");
@@ -1706,7 +1722,7 @@
       const proficiencyBonusEl = document.getElementById("proficiency-bonus");
       const levelEl = document.getElementById("level");
       const passivePerceptionEl = document.getElementById("passive-wisdom-perception");
-      const computedDisplayEls = [levelEl, xpInput, passivePerceptionEl, speedInput, totalHpInput];
+      const computedDisplayEls = [levelEl, xpInput, passivePerceptionEl, speedInput, totalHpInput, armorClassEl];
       const saveRows = Array.from(document.querySelectorAll(".list-item[data-ability]"))
         .filter((row) => row.querySelector(".save-value"));
       const skillRows = Array.from(document.querySelectorAll(".list-item[data-ability]"))
@@ -1891,6 +1907,8 @@
           setListValue(valueEl, formatMod(total));
         });
 
+        updateArmorClass(mods);
+
         if (passivePerceptionEl) {
           const perceptionRow = skillRows.find(
             (row) => row.textContent && row.textContent.includes("Perception")
@@ -1903,6 +1921,21 @@
         if (!isRemoteUpdate) {
           scheduleSave();
         }
+      }
+
+      function updateArmorClass(mods = {}) {
+        const dex = mods.dex ?? computeAbilityMod(toNumber(getListValue(abilityScores.dex)));
+        const con = mods.con ?? computeAbilityMod(toNumber(getListValue(abilityScores.con)));
+        const wis = mods.wis ?? computeAbilityMod(toNumber(getListValue(abilityScores.wis)));
+        const className = String(classInput?.value || "").toLowerCase();
+
+        let acBase = 10 + dex;
+        if (className.includes("barbarian")) {
+          acBase = 10 + dex + con;
+        } else if (className.includes("monk")) {
+          acBase = 10 + dex + wis;
+        }
+        setListValue(armorClassEl, String(acBase));
       }
 
       function adjustLevel(delta) {
@@ -2675,7 +2708,6 @@
         }
         const race = getRaceData(raceName);
         if (!race) return;
-        openRacePanel(race);
         const speedValue = normalizeRaceSpeed(race.speed);
         currentRaceSpeed = speedValue;
         if (speedInput) {
@@ -2867,10 +2899,49 @@
         equipmentItems.forEach((item) => {
           const weapon = getWeaponData(item.name);
           const displayName = weapon?.name || item.name;
+          const isEquipped = item.id === equippedMainId || item.id === equippedOffhandId;
           const row = document.createElement("div");
           row.className = "equipment-item";
           if (displayName === activeWeaponName) {
             row.classList.add("active");
+          }
+          const equipBtn = document.createElement("button");
+          equipBtn.type = "button";
+          equipBtn.className = "equip-btn";
+          if (isEquipped) {
+            equipBtn.classList.add("equipped");
+          }
+          equipBtn.textContent = isEquipped ? "Unequip" : "Equip";
+          equipBtn.addEventListener("click", () => {
+            handleEquipToggle(item);
+          });
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "equipment-remove";
+          removeBtn.setAttribute("aria-label", `Remove ${displayName}`);
+          removeBtn.textContent = "X";
+          removeBtn.addEventListener("click", () => {
+            const wasMain = item.id === equippedMainId;
+            const wasOffhand = item.id === equippedOffhandId;
+            equipmentItems = equipmentItems.filter((entry) => entry.id !== item.id);
+            if (wasMain) {
+              equippedMainId = "";
+              equippedMainTwoHanded = false;
+            }
+            if (wasOffhand) {
+              equippedOffhandId = "";
+            }
+            if (activeWeaponName === displayName) {
+              activeWeaponName = equipmentItems[0]?.name || "";
+            }
+            setEquipStatus("");
+            updateActiveWeaponLabel();
+            renderEquipment();
+            scheduleSave();
+          });
+          row.appendChild(removeBtn);
+          if (isEquipped) {
+            row.appendChild(equipBtn);
           }
           const label = document.createElement("div");
           label.textContent = displayName;
@@ -2933,18 +3004,9 @@
             spacer.textContent = "";
             row.appendChild(spacer);
           }
-          const equipBtn = document.createElement("button");
-          equipBtn.type = "button";
-          equipBtn.className = "equip-btn";
-          const isEquipped = item.id === equippedMainId || item.id === equippedOffhandId;
-          if (isEquipped) {
-            equipBtn.classList.add("equipped");
+          if (!isEquipped) {
+            row.appendChild(equipBtn);
           }
-          equipBtn.textContent = isEquipped ? "Unequip" : "Equip";
-          equipBtn.addEventListener("click", () => {
-            handleEquipToggle(item);
-          });
-          row.appendChild(equipBtn);
           if (isVersatileWeapon(weapon)) {
             const twoHandBtn = document.createElement("button");
             twoHandBtn.type = "button";
@@ -2981,7 +3043,7 @@
       function updateAttackRollLabel() {
         if (!attackRollBtn) return;
         const mainItem = getEquippedWeaponById(equippedMainId);
-        const weaponName = mainItem?.name || activeWeaponName;
+        const weaponName = mainItem?.name || "";
         const weapon = weaponName ? getWeaponData(weaponName) : null;
         if (!weapon) {
           attackRollBtn.textContent = "Hit";
@@ -3342,6 +3404,7 @@
                 if (spellPickerAdd) {
                   spellPickerAdd.disabled = false;
                 }
+                openSpellPanel(spell);
                 buildCantripPickerList(spellSearch?.value || "");
               });
               const name = document.createElement("strong");
@@ -4384,7 +4447,11 @@
           event.preventDefault();
           try {
             const mainItem = getEquippedWeaponById(equippedMainId);
-            const weaponName = mainItem?.name || activeWeaponName;
+            if (!mainItem) {
+              setEquipStatus("Equip a main weapon before rolling hit.");
+              return;
+            }
+            const weaponName = mainItem.name;
             const weapon = weaponName ? getWeaponData(weaponName) : null;
             const ability = getWeaponAttackAbility(weapon);
             const abilityKey = ability === "finesse"
