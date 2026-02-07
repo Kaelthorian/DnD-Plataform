@@ -236,6 +236,43 @@
         background: #fff;
         height: 100%;
       }
+      .panel .panel-display {
+        width: 100%;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-family: inherit;
+        font-size: 0.98rem;
+        background: #f6f1e8;
+        color: #4b3a2f;
+        height: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+      }
+      .level-control {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+      }
+      .level-control .panel-display {
+        flex: 1;
+      }
+      .level-adjust {
+        width: 28px;
+        min-width: 28px;
+        height: 28px;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        background: #f6f1e8;
+        color: #4b3a2f;
+        font-family: inherit;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+      }
       .text-center {
         text-align: center;
       }
@@ -247,6 +284,12 @@
       }
       .trait-list li {
         margin: 0 0 6px;
+      }
+      .trait-clickable {
+        cursor: pointer;
+      }
+      .trait-clickable:hover {
+        text-decoration: underline;
       }
       .tabs {
         display: grid;
@@ -402,12 +445,35 @@
         gap: 6px;
         justify-items: center;
       }
-      .ability input {
+      .ability input,
+      .ability .ability-score-display {
         text-align: center;
         font-size: 1.05rem;
       }
       .ability input[type="number"] {
         width: 64px;
+      }
+      .ability .ability-score-display {
+        width: 64px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        background: #f6f1e8;
+        color: #4b3a2f;
+      }
+      .ability .ability-mod-display {
+        width: 40px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        background: #f6f1e8;
+        color: #4b3a2f;
       }
       .ability input[readonly] {
         width: 40px;
@@ -799,6 +865,13 @@
         align-items: center;
         margin-bottom: 12px;
       }
+      .weapon-picker .weapon-picker-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #fff;
+        padding-bottom: 8px;
+      }
       .size-picker .weapon-picker-header {
         grid-template-columns: 1fr auto;
       }
@@ -887,6 +960,75 @@
         color: var(--muted);
       }
       .spell-remove {
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: 2px solid var(--line);
+        background: #c23a2b;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.75rem;
+      }
+      .grid-items {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 0;
+      }
+      #add-item {
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+      #items-list {
+        display: grid;
+        gap: 6px;
+        max-height: 100%;
+        overflow: auto;
+      }
+      .inventory-header,
+      .inventory-row {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr) 80px auto;
+        gap: 8px;
+        align-items: start;
+      }
+      .inventory-header.with-qty,
+      .inventory-row.with-qty {
+        grid-template-columns: 120px minmax(0, 1fr) 80px 52px auto;
+      }
+      .inventory-header {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0 4px;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f6f1e8;
+        border-radius: 6px;
+      }
+      .inventory-row {
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        padding: 6px 8px;
+        background: #fff;
+        font-size: 0.9rem;
+      }
+      .inventory-name {
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .inventory-desc {
+        color: var(--muted);
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .inventory-gold,
+      .inventory-qty {
+        text-align: center;
+      }
+      .inventory-remove {
         padding: 4px 8px;
         border-radius: 8px;
         border: 2px solid var(--line);
@@ -1188,15 +1330,19 @@
             </div>
             <div class="panel grid-speed">
               <div class="panel-label">Speed</div>
-              <input id="speed" type="number" readonly class="text-center" />
+              <span id="speed" class="panel-display text-center"></span>
             </div>
             <div class="panel grid-passive-wisdom">
               <div class="panel-label">PASSIVE WISDOM (PERCEPTION)</div>
-              <input id="passive-wisdom-perception" type="number" />
+              <span id="passive-wisdom-perception" class="panel-display text-center"></span>
             </div>
             <div class="panel grid-level">
               <div class="panel-label">Level</div>
-              <input id="level" type="number" min="1" max="20" class="text-center" readonly />
+              <div class="level-control">
+                <button id="level-decrease" class="level-adjust" type="button" aria-label="Decrease level">-</button>
+                <span id="level" class="panel-display text-center"></span>
+                <button id="level-increase" class="level-adjust" type="button" aria-label="Increase level">+</button>
+              </div>
             </div>
             <div class="panel grid-size">
               <div class="panel-label">Size</div>
@@ -1214,7 +1360,7 @@
               </div>
               <div class="panel">
               <div class="panel-label">Total HP</div>
-              <input id="total-hp" type="number" min="0" readonly />
+              <span id="total-hp" class="panel-display text-center"></span>
             </div>
             </div>
             <div class="panel grid-race">
@@ -1239,7 +1385,7 @@
             </div>
             <div class="panel grid-exp">
               <div class="panel-label">EXP</div>
-              <input id="xp" type="number" min="0" class="text-center" readonly />
+              <span id="xp" class="panel-display text-center"></span>
             </div>
             <div class="panel grid-proficiency">
               <div class="panel-label">Proficiency Bonus</div>
@@ -1259,43 +1405,43 @@
             <div class="ability ability-strength" data-ability="str">
               <h3>Strength</h3>
               <div class="ability-row">
-                <input id="str-score" type="number" min="1" max="30" readonly inputmode="none" />
-                <input id="str-mod" type="text" placeholder="Mod" readonly />
+                <span id="str-score" class="ability-score-display"></span>
+                <span id="str-mod" class="ability-mod-display"></span>
               </div>
             </div>
             <div class="ability ability-dexterity" data-ability="dex">
               <h3>Dexterity</h3>
               <div class="ability-row">
-                <input id="dex-score" type="number" min="1" max="30" readonly inputmode="none" />
-                <input id="dex-mod" type="text" placeholder="Mod" readonly />
+                <span id="dex-score" class="ability-score-display"></span>
+                <span id="dex-mod" class="ability-mod-display"></span>
               </div>
             </div>
             <div class="ability ability-constitution" data-ability="con">
               <h3>Constitution</h3>
               <div class="ability-row">
-                <input id="con-score" type="number" min="1" max="30" readonly inputmode="none" />
-                <input id="con-mod" type="text" placeholder="Mod" readonly />
+                <span id="con-score" class="ability-score-display"></span>
+                <span id="con-mod" class="ability-mod-display"></span>
               </div>
             </div>
             <div class="ability ability-intelligence" data-ability="int">
               <h3>Intelligence</h3>
               <div class="ability-row">
-                <input id="int-score" type="number" min="1" max="30" readonly inputmode="none" />
-                <input id="int-mod" type="text" placeholder="Mod" readonly />
+                <span id="int-score" class="ability-score-display"></span>
+                <span id="int-mod" class="ability-mod-display"></span>
               </div>
             </div>
             <div class="ability ability-wisdom" data-ability="wis">
               <h3>Wisdom</h3>
               <div class="ability-row">
-                <input id="wis-score" type="number" min="1" max="30" readonly inputmode="none" />
-                <input id="wis-mod" type="text" placeholder="Mod" readonly />
+                <span id="wis-score" class="ability-score-display"></span>
+                <span id="wis-mod" class="ability-mod-display"></span>
               </div>
             </div>
             <div class="ability ability-charisma" data-ability="cha">
               <h3>Charisma</h3>
               <div class="ability-row">
-                <input id="cha-score" type="number" min="1" max="30" readonly inputmode="none" />
-                <input id="cha-mod" type="text" placeholder="Mod" readonly />
+                <span id="cha-score" class="ability-score-display"></span>
+                <span id="cha-mod" class="ability-mod-display"></span>
               </div>
             </div>
           
@@ -1380,7 +1526,10 @@
             </div>
             <div class="panel grid-items">
               <div class="panel-label">Items</div>
-              <div class="panel-content"></div>
+              <div class="actions" style="margin-bottom: 8px;">
+                <button id="add-item" type="button">Add Item</button>
+              </div>
+              <div id="items-list"></div>
             </div>
             </div>
 
@@ -1455,6 +1604,14 @@
       </div>
       <div id="class-picker-list"></div>
     </aside>
+    <aside class="weapon-picker item-picker" id="item-picker" aria-live="polite" aria-label="Item picker" aria-hidden="true">
+      <div class="weapon-picker-header">
+        <input id="item-search" type="search" placeholder="Search items..." />
+        <button id="item-picker-add" class="weapon-picker-add" type="button" disabled>Add</button>
+        <button id="item-picker-close" class="weapon-picker-close" type="button">X</button>
+      </div>
+      <div id="item-picker-list"></div>
+    </aside>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -1494,6 +1651,8 @@
       const speedInput = document.getElementById("speed");
       const sizeInput = document.getElementById("size");
       const levelInput = document.getElementById("level");
+      const levelDecreaseBtn = document.getElementById("level-decrease");
+      const levelIncreaseBtn = document.getElementById("level-increase");
       const xpInput = document.getElementById("xp");
       const totalHpInput = document.getElementById("total-hp");
       const currentHpInput = document.getElementById("current-hp");
@@ -1527,7 +1686,8 @@
       };
       const proficiencyBonusEl = document.getElementById("proficiency-bonus");
       const levelEl = document.getElementById("level");
-      const passivePerceptionEl = document.getElementById("passive-perception");
+      const passivePerceptionEl = document.getElementById("passive-wisdom-perception");
+      const computedDisplayEls = [levelEl, xpInput, passivePerceptionEl, speedInput, totalHpInput];
       const saveRows = Array.from(document.querySelectorAll(".list-item[data-ability]"))
         .filter((row) => row.querySelector(".save-value"));
       const skillRows = Array.from(document.querySelectorAll(".list-item[data-ability]"))
@@ -1537,6 +1697,7 @@
       const addWeaponBtn = document.getElementById("add-weapon");
       const addSpellBtn = document.getElementById("add-spell");
       const removeSpellBtn = document.getElementById("remove-spell");
+      const addItemBtn = document.getElementById("add-item");
       const activeWeaponLabel = document.getElementById("active-weapon-label");
       const equipStatusEl = document.getElementById("equip-status");
       const weaponPicker = document.getElementById("weapon-picker");
@@ -1565,17 +1726,25 @@
       const classSearch = document.getElementById("class-search");
       const classPickerAdd = document.getElementById("class-picker-add");
       const classPickerClose = document.getElementById("class-picker-close");
+      const itemPicker = document.getElementById("item-picker");
+      const itemPickerList = document.getElementById("item-picker-list");
+      const itemSearch = document.getElementById("item-search");
+      const itemPickerAdd = document.getElementById("item-picker-add");
+      const itemPickerClose = document.getElementById("item-picker-close");
       const cantripPanel = document.getElementById("spell-panel-1");
       const itemPanel = document.getElementById("item-panel");
       const itemPanelTitle = document.getElementById("item-panel-title");
       const itemPanelBody = document.getElementById("item-panel-body");
       const itemPanelClose = document.getElementById("item-panel-close");
       const equipmentListEl = document.getElementById("equipment-list");
+      const itemsListEl = document.getElementById("items-list");
       let equipmentItems = [];
+      let inventoryItems = [];
       let cantripItems = [];
       let activeWeaponName = "";
       let pickerSelected = "";
       let cantripSelected = "";
+      let itemSelected = "";
       let raceSelected = "";
       let sizeSelected = "";
       let equippedMainId = "";
@@ -1585,6 +1754,11 @@
       let saveTimer = null;
       let currentRaceSpeed = "";
       let currentRaceSizes = [];
+      let suppressAbilityScoreDefaults = false;
+      const LOCAL_SHEET_STORAGE_KEY = "dnd_sheet_local_v1";
+      const DEFAULT_ABILITY_SCORE = 10;
+      const DEFAULT_LEVEL = 10;
+      const DEFAULT_XP = 10;
 
       function toNumber(value) {
         const num = Number(value);
@@ -1618,6 +1792,27 @@
         return Math.floor((score - 10) / 2);
       }
 
+      function isBlankValue(value) {
+        return value === undefined || value === null || String(value).trim() === "";
+      }
+
+      function applyBaseDefaults() {
+        if (!suppressAbilityScoreDefaults) {
+          Object.values(abilityScores).forEach((el) => {
+            if (!el) return;
+            if (isBlankValue(getListValue(el))) {
+              setListValue(el, String(DEFAULT_ABILITY_SCORE));
+            }
+          });
+        }
+        if (levelEl && isBlankValue(getListValue(levelEl))) {
+          setListValue(levelEl, String(DEFAULT_LEVEL));
+        }
+        if (xpInput && isBlankValue(getListValue(xpInput))) {
+          setListValue(xpInput, String(DEFAULT_XP));
+        }
+      }
+
       function getFieldValue(el) {
         if (el.type === "checkbox") {
           return el.checked;
@@ -1643,19 +1838,19 @@
       ];
 
       function recalcDerived() {
-        const levelRaw = toNumber(levelEl?.value);
-        const level = Math.min(Math.max(levelRaw || 1, 1), 20);
+        const levelRaw = toNumber(getListValue(levelEl));
+        const level = Math.min(Math.max(levelRaw || DEFAULT_LEVEL, 1), 20);
         const profBonus = proficiencyByLevel[level - 1] ?? 2;
         if (proficiencyBonusEl) {
           proficiencyBonusEl.value = formatMod(profBonus);
         }
         const mods = {};
         Object.entries(abilityScores).forEach(([ability, scoreEl]) => {
-          const score = toNumber(scoreEl?.value);
+          const score = toNumber(getListValue(scoreEl));
           const mod = computeAbilityMod(score);
           mods[ability] = mod;
           if (abilityMods[ability]) {
-            abilityMods[ability].value = formatMod(mod);
+            setListValue(abilityMods[ability], formatMod(mod));
           }
         });
 
@@ -1683,12 +1878,20 @@
           );
           const perceptionValueEl = perceptionRow?.querySelector(".skill-value");
           const perceptionMod = toNumber(getListValue(perceptionValueEl));
-          passivePerceptionEl.value = String(10 + perceptionMod);
+          setListValue(passivePerceptionEl, String(10 + perceptionMod));
         }
 
         if (!isRemoteUpdate) {
           scheduleSave();
         }
+      }
+
+      function adjustLevel(delta) {
+        const current = toNumber(getListValue(levelEl)) || 1;
+        const next = Math.min(20, Math.max(1, current + delta));
+        if (next === current) return;
+        setListValue(levelEl, String(next));
+        recalcDerived();
       }
 
       let weaponTable = [];
@@ -1699,6 +1902,11 @@
       let cantripByName = new Map();
       let cantripList = [];
       let cantripsLoaded = false;
+      let itemTable = [];
+      let itemByName = new Map();
+      let itemsLoaded = false;
+      let traitByName = new Map();
+      let traitsLoaded = false;
       let raceTable = [];
       let raceByName = new Map();
       let raceList = [];
@@ -1739,9 +1947,49 @@
         return Number.isFinite(num) ? num : "";
       }
 
+      function normalizeGoldValue(value) {
+        const text = String(value ?? "").trim();
+        if (!text) return "";
+        const num = Number(text.replace(/[^0-9.-]/g, ""));
+        return Number.isFinite(num) ? num : text;
+      }
+
+      function formatGoldValue(value) {
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return `${value} gp`;
+        }
+        const text = String(value ?? "").trim();
+        return text || "--";
+      }
+
+      function normalizeKey(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
+      }
+
+      function firstNonBlank(values = []) {
+        for (const value of values) {
+          if (value === undefined || value === null) continue;
+          const text = Array.isArray(value) ? value.join(" ").trim() : String(value).trim();
+          if (text) return text;
+        }
+        return "";
+      }
+
       function refreshRaceIndex() {
         raceByName = new Map(raceTable.map((race) => [race.name, race]));
         raceList = raceTable.map((race) => race.name);
+      }
+
+      function refreshItemIndex() {
+        itemByName = new Map();
+        itemTable.forEach((item) => {
+          itemByName.set(item.name, item);
+          itemByName.set(normalizeKey(item.name), item);
+        });
       }
 
       async function loadWeapons() {
@@ -1846,6 +2094,27 @@
         } catch (error) {
           console.error("Failed to load classes", error);
           classesLoaded = true;
+        }
+      }
+
+      async function loadItems() {
+        try {
+          const snapshot = await getDocs(collection(db, "items"));
+          itemTable = snapshot.docs
+            .map((docSnap) => {
+              const data = docSnap.data() || {};
+              const name = firstNonBlank([data.name, data.item, data.title, docSnap.id]);
+              if (!name) return null;
+              const description = firstNonBlank([data.text, data.Text]);
+              const goldValue = normalizeGoldValue(firstNonBlank([data.value, data.Value]));
+              return { name, description, goldValue };
+            })
+            .filter(Boolean);
+          refreshItemIndex();
+          itemsLoaded = true;
+        } catch (error) {
+          console.error("Failed to load items", error);
+          itemsLoaded = true;
         }
       }
 
@@ -2051,6 +2320,106 @@
         if (!abilityPicker) return;
         abilityPicker.classList.toggle("open", isOpen);
         abilityPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        if (!isOpen) {
+          suppressAbilityScoreDefaults = false;
+          applyBaseDefaults();
+          recalcDerived();
+        }
+      }
+
+      async function loadTraits() {
+        try {
+          const snapshot = await getDocs(collection(db, "traits"));
+          const rows = snapshot.docs
+            .map((docSnap) => {
+              const data = docSnap.data() || {};
+              const name = firstNonBlank([data.name, data.trait, data.title, docSnap.id]);
+              if (!name) return null;
+              const description = firstNonBlank([
+                data.description,
+                data.desc,
+                data.details,
+                data.text,
+                data["trait description"],
+                data.body,
+              ]);
+              return { name, description };
+            })
+            .filter(Boolean);
+          traitByName = new Map();
+          rows.forEach((row) => {
+            traitByName.set(row.name, row);
+            traitByName.set(normalizeKey(row.name), row);
+          });
+          traitsLoaded = true;
+        } catch (error) {
+          console.error("Failed to load traits", error);
+          traitsLoaded = true;
+        }
+      }
+
+      function getTraitData(name) {
+        if (!name) return null;
+        return traitByName.get(name) || traitByName.get(normalizeKey(name)) || null;
+      }
+
+      function getItemDataByName(name) {
+        if (!name) return null;
+        return itemByName.get(name) || itemByName.get(normalizeKey(name)) || null;
+      }
+
+      function openTraitPanel(name) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody || !name) return;
+        const trait = getTraitData(name);
+        const description = trait?.description || "No description found in Firestore traits table.";
+        itemPanelTitle.textContent = trait?.name || name;
+        itemPanelBody.innerHTML = "";
+        const rows = [
+          ["Trait", trait?.name || name],
+          ["Description", description],
+        ];
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          val.setAttribute("data-tooltip", `${label}: ${value}`);
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
+      }
+
+      function openInventoryItemPanel(name) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody || !name) return;
+        const item = getItemDataByName(name);
+        itemPanelTitle.textContent = item?.name || name;
+        itemPanelBody.innerHTML = "";
+        const rows = [
+          ["Name", item?.name || name],
+          ["Description", item?.description || "--"],
+          ["Gold Value", formatGoldValue(item?.goldValue)],
+        ];
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          val.setAttribute("data-tooltip", `${label}: ${value}`);
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
       }
 
       const standardArrayValues = [15, 14, 13, 12, 10, 8];
@@ -2071,7 +2440,7 @@
 
       function resetAbilityAssignments() {
         Object.values(abilityScores).forEach((el) => {
-          if (el) el.value = "";
+          setListValue(el, "");
         });
         recalcDerived();
       }
@@ -2167,16 +2536,16 @@
           btn.type = "button";
           btn.textContent = label;
           const scoreEl = abilityScores[key];
-          if (scoreEl && scoreEl.value) {
+          if (scoreEl && getListValue(scoreEl)) {
             btn.disabled = true;
           }
           btn.addEventListener("click", () => {
-            if (!pendingAbilitySelection || !scoreEl || scoreEl.value) return;
+            if (!pendingAbilitySelection || !scoreEl || getListValue(scoreEl)) return;
             const selectedValue =
               typeof pendingAbilitySelection === "object"
                 ? pendingAbilitySelection.value
                 : pendingAbilitySelection;
-            scoreEl.value = String(selectedValue);
+            setListValue(scoreEl, String(selectedValue));
             if (abilityMethod === "standard") {
               pendingAbilityValues = pendingAbilityValues.filter((v) => v !== pendingAbilitySelection);
             }
@@ -2187,7 +2556,7 @@
             }
             pendingAbilitySelection = null;
             recalcDerived();
-            const allFilled = Object.values(abilityScores).every((el) => el && el.value);
+            const allFilled = Object.values(abilityScores).every((el) => Boolean(getListValue(el)));
             if (allFilled) {
               setAbilityPickerOpen(false);
               if (pendingClassEntry) {
@@ -2204,6 +2573,7 @@
 
       function openAbilityPickerForClass(entry) {
         pendingClassEntry = entry;
+        suppressAbilityScoreDefaults = true;
         pendingAbilityValues = standardArrayValues.slice();
         pendingAbilitySelection = null;
         abilityMethod = "standard";
@@ -2279,7 +2649,7 @@
         if (!raceName) {
           currentRaceSpeed = "";
           currentRaceSizes = [];
-          if (speedInput) speedInput.value = "";
+          if (speedInput) setListValue(speedInput, "");
           if (sizeInput) sizeInput.value = "";
           if (traitsListEl) traitsListEl.innerHTML = "";
           return;
@@ -2290,7 +2660,7 @@
         const speedValue = normalizeRaceSpeed(race.speed);
         currentRaceSpeed = speedValue;
         if (speedInput) {
-          speedInput.value = speedValue !== "" ? String(speedValue) : "";
+          setListValue(speedInput, speedValue !== "" ? String(speedValue) : "");
         }
         const sizes = normalizeRaceSizes(race.size);
         currentRaceSizes = sizes;
@@ -2300,6 +2670,17 @@
           traits.filter(Boolean).forEach((trait) => {
             const item = document.createElement("li");
             item.textContent = trait;
+            item.classList.add("trait-clickable");
+            item.setAttribute("role", "button");
+            item.setAttribute("tabindex", "0");
+            const open = () => openTraitPanel(trait);
+            item.addEventListener("click", open);
+            item.addEventListener("keydown", (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                open();
+              }
+            });
             traitsListEl.appendChild(item);
           });
         }
@@ -2388,16 +2769,13 @@
 
       function applyClassSelection(entry, { rollHp = false } = {}) {
         if (!entry) return;
-        if (totalHpInput) {
-          totalHpInput.readOnly = true;
-        }
         if (rollHp && totalHpInput) {
           const die = normalizeHitDie(entry.hitPointDie);
           if (die) {
             const roll = { total: getMaxDieValue(die) };
-            const conMod = toNumber(abilityMods.con?.value);
+            const conMod = toNumber(getListValue(abilityMods.con));
             const total = Math.max(1, roll.total + conMod);
-            totalHpInput.value = String(total);
+            setListValue(totalHpInput, String(total));
             if (currentHpInput && (!currentHpInput.value || toNumber(currentHpInput.value) === 0)) {
               currentHpInput.value = String(total);
             }
@@ -2426,10 +2804,10 @@
           alignmentInput.disabled = false;
         }
         if (levelInput) {
-          levelInput.value = "1";
+          setListValue(levelInput, String(DEFAULT_LEVEL));
         }
         if (xpInput) {
-          xpInput.value = "1";
+          setListValue(xpInput, String(DEFAULT_XP));
         }
         applyClassSelection(entry, { rollHp: true });
         openAlignmentPicker();
@@ -2445,9 +2823,9 @@
         const detail = rollDiceDetailed(dice);
         playDiceSound();
         const abilityKey = ability === "finesse"
-          ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
+          ? (toNumber(getListValue(abilityMods.dex)) >= toNumber(getListValue(abilityMods.str)) ? "dex" : "str")
           : ability || "str";
-        const modValue = toNumber(abilityMods[abilityKey]?.value);
+        const modValue = toNumber(getListValue(abilityMods[abilityKey]));
         const total = detail.total + modValue;
         resultEl.textContent = `Rolling... (${detail.total})`;
         return setDoc(rollRef, {
@@ -2647,6 +3025,18 @@
           classSelected = "";
           if (classPickerAdd) {
             classPickerAdd.disabled = true;
+          }
+        }
+      }
+
+      function setItemPickerOpen(isOpen) {
+        if (!itemPicker) return;
+        itemPicker.classList.toggle("open", isOpen);
+        itemPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        if (isOpen) {
+          itemSelected = "";
+          if (itemPickerAdd) {
+            itemPickerAdd.disabled = true;
           }
         }
       }
@@ -3131,6 +3521,171 @@
           .filter((name) => name && !seen.has(name) && seen.add(name));
       }
 
+      function normalizeInventoryItems(items) {
+        if (!Array.isArray(items)) return [];
+        return items.flatMap((entry) => {
+          if (typeof entry === "string") {
+            const name = entry.trim();
+            return name ? [name] : [];
+          }
+          if (!entry || typeof entry !== "object") return [];
+          const name = String(entry.name || "").trim();
+          if (!name) return [];
+          const qty = Math.max(1, Math.floor(Number(entry.qty || 1)));
+          return Array.from({ length: qty }, () => name);
+        });
+      }
+
+      function removeInventoryItem(name) {
+        const key = normalizeKey(name);
+        inventoryItems = inventoryItems.filter((entry) => normalizeKey(entry) !== key);
+        renderInventoryItems();
+        scheduleSave();
+      }
+
+      function renderInventoryItems() {
+        if (!itemsListEl) return;
+        itemsListEl.innerHTML = "";
+        if (!inventoryItems.length) {
+          const empty = document.createElement("div");
+          empty.className = "spell-meta";
+          empty.textContent = "No items added.";
+          itemsListEl.appendChild(empty);
+          return;
+        }
+
+        const grouped = new Map();
+        inventoryItems.forEach((name) => {
+          const item = getItemDataByName(name) || { name, description: "", goldValue: "" };
+          const key = normalizeKey(item.name || name);
+          const existing = grouped.get(key);
+          if (existing) {
+            existing.qty += 1;
+            return;
+          }
+          grouped.set(key, {
+            key,
+            name: item.name || name,
+            description: item.description || "",
+            goldValue: item.goldValue,
+            qty: 1,
+          });
+        });
+
+        const rows = Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
+        const showQty = inventoryItems.length > 1;
+
+        const header = document.createElement("div");
+        header.className = `inventory-header${showQty ? " with-qty" : ""}`;
+        header.innerHTML = showQty
+          ? "<span>Name</span><span>Description</span><span>Gold</span><span>Qty</span><span>Action</span>"
+          : "<span>Name</span><span>Description</span><span>Gold</span><span>Action</span>";
+        itemsListEl.appendChild(header);
+
+        rows.forEach((entry) => {
+          const row = document.createElement("div");
+          row.className = `inventory-row${showQty ? " with-qty" : ""}`;
+
+          const nameEl = document.createElement("div");
+          nameEl.className = "inventory-name";
+          nameEl.textContent = entry.name;
+          nameEl.addEventListener("click", () => openInventoryItemPanel(entry.name));
+
+          const descEl = document.createElement("div");
+          descEl.className = "inventory-desc";
+          descEl.textContent = entry.description || "--";
+          descEl.title = entry.description || "";
+
+          const goldEl = document.createElement("div");
+          goldEl.className = "inventory-gold";
+          goldEl.textContent = formatGoldValue(entry.goldValue);
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "inventory-remove";
+          removeBtn.textContent = "Remove";
+          removeBtn.addEventListener("click", () => removeInventoryItem(entry.name));
+
+          row.appendChild(nameEl);
+          row.appendChild(descEl);
+          row.appendChild(goldEl);
+          if (showQty) {
+            const qtyEl = document.createElement("div");
+            qtyEl.className = "inventory-qty";
+            qtyEl.textContent = String(entry.qty);
+            row.appendChild(qtyEl);
+          }
+          row.appendChild(removeBtn);
+          itemsListEl.appendChild(row);
+        });
+      }
+
+      function buildItemPickerList(filterText = "") {
+        if (!itemPickerList) return;
+        const filter = filterText.trim().toLowerCase();
+        itemPickerList.innerHTML = "";
+
+        if (!itemsLoaded) {
+          const loading = document.createElement("div");
+          loading.className = "weapon-option";
+          loading.textContent = "Loading items...";
+          itemPickerList.appendChild(loading);
+          return;
+        }
+        if (!itemTable.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No items found.";
+          itemPickerList.appendChild(empty);
+          return;
+        }
+
+        const filtered = itemTable.filter((item) => {
+          if (!filter) return true;
+          return (
+            item.name.toLowerCase().includes(filter) ||
+            (item.description || "").toLowerCase().includes(filter)
+          );
+        });
+
+        if (!filtered.length) {
+          const empty = document.createElement("div");
+          empty.className = "weapon-option";
+          empty.textContent = "No items match your search.";
+          itemPickerList.appendChild(empty);
+          return;
+        }
+
+        const list = document.createElement("div");
+        list.className = "weapon-list";
+        filtered
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .forEach((item) => {
+            const option = document.createElement("div");
+            option.className = "weapon-option";
+            if (item.name === itemSelected) {
+              option.classList.add("selected");
+            }
+            option.addEventListener("click", () => {
+              itemSelected = item.name;
+              if (itemPickerAdd) {
+                itemPickerAdd.disabled = false;
+              }
+              openInventoryItemPanel(item.name);
+              buildItemPickerList(itemSearch?.value || "");
+            });
+            const name = document.createElement("strong");
+            name.textContent = item.name;
+            const meta = document.createElement("span");
+            meta.textContent = `${formatGoldValue(item.goldValue)} | ${item.description || "No description"}`;
+            option.appendChild(name);
+            option.appendChild(meta);
+            list.appendChild(option);
+          });
+        itemPickerList.appendChild(list);
+      }
+
       function renderCantrips() {
         if (!cantripPanel) return;
         cantripPanel.innerHTML = "";
@@ -3238,6 +3793,42 @@
         });
         buildCantripPickerList("");
         renderCantrips();
+      }
+
+      function initItemPicker() {
+        if (addItemBtn) {
+          addItemBtn.addEventListener("click", () => {
+            setItemPickerOpen(true);
+            buildItemPickerList(itemSearch?.value || "");
+          });
+        }
+        if (itemSearch) {
+          itemSearch.addEventListener("input", () => {
+            buildItemPickerList(itemSearch.value);
+          });
+        }
+        if (itemPickerAdd) {
+          itemPickerAdd.addEventListener("click", () => {
+            if (!itemSelected) return;
+            inventoryItems = [...inventoryItems, itemSelected];
+            renderInventoryItems();
+            scheduleSave();
+            setItemPickerOpen(false);
+          });
+        }
+        if (itemPickerClose) {
+          itemPickerClose.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setItemPickerOpen(false);
+          });
+        }
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setItemPickerOpen(false);
+          }
+        });
+        buildItemPickerList("");
+        renderInventoryItems();
       }
 
       function initRacePicker() {
@@ -3383,24 +3974,129 @@
         buildClassPickerList("");
       }
 
+      function buildSheetPayload() {
+        const payload = {};
+        for (const el of fieldEls) {
+          payload[el.id] = getFieldValue(el);
+        }
+        computedDisplayEls.forEach((el) => {
+          if (el?.id) {
+            payload[el.id] = getListValue(el);
+          }
+        });
+        Object.values(abilityScores).forEach((el) => {
+          if (el?.id) {
+            payload[el.id] = getListValue(el);
+          }
+        });
+        payload.equipmentItems = equipmentItems.slice();
+        payload.inventoryItems = inventoryItems.slice();
+        payload.cantripItems = cantripItems.slice();
+        payload.equippedMainId = equippedMainId;
+        payload.equippedOffhandId = equippedOffhandId;
+        payload.equippedMainTwoHanded = equippedMainTwoHanded;
+        return payload;
+      }
+
+      function saveLocalSheet(payload) {
+        try {
+          localStorage.setItem(LOCAL_SHEET_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+          console.error("Failed to save local sheet", error);
+        }
+      }
+
+      function applySheetData(data) {
+        if (!data) {
+          applyBaseDefaults();
+          recalcDerived();
+          return;
+        }
+        isRemoteUpdate = true;
+        fieldEls.forEach((el) => {
+          applyFieldValue(el, data[el.id]);
+        });
+        computedDisplayEls.forEach((el) => {
+          if (el?.id && data[el.id] !== undefined) {
+            setListValue(el, data[el.id]);
+          }
+        });
+        Object.values(abilityScores).forEach((el) => {
+          if (el?.id && data[el.id] !== undefined) {
+            setListValue(el, data[el.id]);
+          }
+        });
+        if (alignmentInput) {
+          alignmentInput.disabled = !classInput?.value;
+        }
+        if (classInput?.value && classesLoaded) {
+          const entry = classByName.get(classInput.value);
+          if (entry) {
+            applyClassSelection(entry, { rollHp: false });
+          }
+        }
+        applyRaceSelection(raceInput?.value || "");
+        if (Array.isArray(data.equipmentItems)) {
+          equipmentItems = normalizeEquipmentItems(data.equipmentItems);
+          equippedMainId = data.equippedMainId || "";
+          equippedOffhandId = data.equippedOffhandId || "";
+          equippedMainTwoHanded = Boolean(data.equippedMainTwoHanded);
+          if (!equipmentItems.some((item) => item.id === equippedMainId)) {
+            equippedMainId = "";
+          }
+          if (!equipmentItems.some((item) => item.id === equippedOffhandId)) {
+            equippedOffhandId = "";
+          }
+          if (!equippedMainId) {
+            equippedMainTwoHanded = false;
+          } else {
+            const mainItem = getEquippedWeaponById(equippedMainId);
+            const mainWeapon = mainItem ? getWeaponData(mainItem.name) : null;
+            if (!isVersatileWeapon(mainWeapon)) {
+              equippedMainTwoHanded = Boolean(mainWeapon?.properties.includes("Two-Handed"));
+            }
+          }
+          if (!equipmentItems.some((item) => item.name === activeWeaponName)) {
+            activeWeaponName = equipmentItems[0]?.name || "";
+          }
+          updateActiveWeaponLabel();
+          renderEquipment();
+        }
+        if (Array.isArray(data.cantripItems)) {
+          cantripItems = normalizeCantripItems(data.cantripItems);
+          renderCantrips();
+        }
+        if (Array.isArray(data.inventoryItems)) {
+          inventoryItems = normalizeInventoryItems(data.inventoryItems);
+          renderInventoryItems();
+        }
+        applyBaseDefaults();
+        recalcDerived();
+        isRemoteUpdate = false;
+      }
+
+      function loadLocalSheet() {
+        try {
+          const raw = localStorage.getItem(LOCAL_SHEET_STORAGE_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          applySheetData(data);
+        } catch (error) {
+          console.error("Failed to load local sheet", error);
+        }
+      }
+
       function scheduleSave() {
         if (isRemoteUpdate) return;
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(async () => {
-          const payload = {};
-          for (const el of fieldEls) {
-            payload[el.id] = getFieldValue(el);
-          }
-          payload.equipmentItems = equipmentItems.slice();
-          payload.cantripItems = cantripItems.slice();
-          payload.equippedMainId = equippedMainId;
-          payload.equippedOffhandId = equippedOffhandId;
-          payload.equippedMainTwoHanded = equippedMainTwoHanded;
+          const payload = buildSheetPayload();
+          saveLocalSheet(payload);
           try {
             await setDoc(sheetRef, payload, { merge: true });
-        } catch (error) {
-          console.error("Failed to save sheet", error);
-        }
+          } catch (error) {
+            console.error("Failed to save sheet", error);
+          }
         }, 300);
       }
 
@@ -3458,55 +4154,14 @@
         renderRoll(snap.data());
       });
 
+      loadLocalSheet();
+
       onSnapshot(sheetRef, (snap) => {
         const data = snap.data();
-        if (!data) return;
-        isRemoteUpdate = true;
-        fieldEls.forEach((el) => {
-          applyFieldValue(el, data[el.id]);
-        });
-        if (alignmentInput) {
-          alignmentInput.disabled = !classInput?.value;
+        applySheetData(data);
+        if (data) {
+          saveLocalSheet(buildSheetPayload());
         }
-        if (classInput?.value && classesLoaded) {
-          const entry = classByName.get(classInput.value);
-          if (entry) {
-            applyClassSelection(entry, { rollHp: false });
-          }
-        }
-        applyRaceSelection(raceInput?.value || "");
-        if (Array.isArray(data.equipmentItems)) {
-          equipmentItems = normalizeEquipmentItems(data.equipmentItems);
-          equippedMainId = data.equippedMainId || "";
-          equippedOffhandId = data.equippedOffhandId || "";
-          equippedMainTwoHanded = Boolean(data.equippedMainTwoHanded);
-          if (!equipmentItems.some((item) => item.id === equippedMainId)) {
-            equippedMainId = "";
-          }
-          if (!equipmentItems.some((item) => item.id === equippedOffhandId)) {
-            equippedOffhandId = "";
-          }
-          if (!equippedMainId) {
-            equippedMainTwoHanded = false;
-          } else {
-            const mainItem = getEquippedWeaponById(equippedMainId);
-            const mainWeapon = mainItem ? getWeaponData(mainItem.name) : null;
-            if (!isVersatileWeapon(mainWeapon)) {
-              equippedMainTwoHanded = Boolean(mainWeapon?.properties.includes("Two-Handed"));
-            }
-          }
-          if (!equipmentItems.some((item) => item.name === activeWeaponName)) {
-            activeWeaponName = equipmentItems[0]?.name || "";
-          }
-          updateActiveWeaponLabel();
-          renderEquipment();
-        }
-        if (Array.isArray(data.cantripItems)) {
-          cantripItems = normalizeCantripItems(data.cantripItems);
-          renderCantrips();
-        }
-        recalcDerived();
-        isRemoteUpdate = false;
       });
 
       fieldEls.forEach((el) => {
@@ -3514,26 +4169,38 @@
         el.addEventListener(evt, scheduleSave);
       });
       if (speedInput) {
-        speedInput.addEventListener("input", () => {
+        if ("value" in speedInput) speedInput.addEventListener("input", () => {
           if (currentRaceSpeed === "" || currentRaceSpeed === undefined) return;
           const lockedValue = String(currentRaceSpeed);
-          if (speedInput.value !== lockedValue) {
-            speedInput.value = lockedValue;
+          if (getListValue(speedInput) !== lockedValue) {
+            setListValue(speedInput, lockedValue);
           }
         });
       }
-      Object.values(abilityScores).forEach((el) => el?.addEventListener("input", recalcDerived));
-      levelEl?.addEventListener("input", recalcDerived);
+      Object.values(abilityScores).forEach((el) => {
+        if (el && "value" in el) {
+          el.addEventListener("input", recalcDerived);
+        }
+      });
+      if (levelEl && "value" in levelEl) {
+        levelEl.addEventListener("input", recalcDerived);
+      }
+      levelDecreaseBtn?.addEventListener("click", () => adjustLevel(-1));
+      levelIncreaseBtn?.addEventListener("click", () => adjustLevel(1));
       document.querySelectorAll(".list-item input[type='checkbox']").forEach((el) =>
         el.addEventListener("change", recalcDerived)
       );
+      applyBaseDefaults();
       recalcDerived();
       async function initApp() {
         await loadWeapons();
+        await loadItems();
         await loadCantrips();
+        await loadTraits();
         await loadRaces();
         await loadClasses();
         initEquipmentWeapons();
+        initItemPicker();
         initRacePicker();
         initSizePicker();
         initSpellPicker();
@@ -3541,6 +4208,7 @@
         initAbilityPicker();
         initClassPicker();
         renderEquipment();
+        renderInventoryItems();
         applyRaceSelection(raceInput?.value || "");
         if (classInput?.value) {
           const entry = classByName.get(classInput.value);
@@ -3642,7 +4310,7 @@
             label.classList.add("rollable");
           }
           const handler = () => {
-            const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
+            const base = computeAbilityMod(toNumber(getListValue(abilityScores[ability])));
             const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
             const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
             if (checkbox?.checked) {
@@ -3669,7 +4337,7 @@
             label.classList.add("rollable");
           }
           const handler = () => {
-            const base = computeAbilityMod(toNumber(abilityScores[ability]?.value));
+            const base = computeAbilityMod(toNumber(getListValue(abilityScores[ability])));
             const mod = base + (checkbox?.checked ? toNumber(proficiencyBonusEl?.value) : 0);
             const parts = [{ label: `${ability.toUpperCase()} Mod`, value: base }];
             if (checkbox?.checked) {
@@ -3701,9 +4369,9 @@
             const weapon = weaponName ? getWeaponData(weaponName) : null;
             const ability = getWeaponAttackAbility(weapon);
             const abilityKey = ability === "finesse"
-              ? (toNumber(abilityMods.dex?.value) >= toNumber(abilityMods.str?.value) ? "dex" : "str")
+              ? (toNumber(getListValue(abilityMods.dex)) >= toNumber(getListValue(abilityMods.str)) ? "dex" : "str")
               : ability || "str";
-            const abilityValue = toNumber(abilityMods[abilityKey]?.value);
+            const abilityValue = toNumber(getListValue(abilityMods[abilityKey]));
             const parts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: abilityValue }];
             if (weapon && isWeaponProficient(weapon)) {
               parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
