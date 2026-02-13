@@ -27,6 +27,93 @@
           var(--bg);
         color: var(--fg);
       }
+      body.startup-modal-open > *:not(.startup-modal-overlay):not(script) {
+        filter: blur(8px);
+        pointer-events: none;
+        user-select: none;
+      }
+      body.ability-picker-modal-open > *:not(.ability-picker):not(script) {
+        pointer-events: none;
+        user-select: none;
+      }
+      body.race-picker-modal-open > *:not(.race-picker):not(script) {
+        pointer-events: none;
+        user-select: none;
+      }
+      body.class-picker-modal-open > *:not(.class-picker):not(script) {
+        pointer-events: none;
+        user-select: none;
+      }
+      body.subclass-picker-modal-open > *:not(.alignment-picker):not(script) {
+        pointer-events: none;
+        user-select: none;
+      }
+      .startup-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(25, 18, 13, 0.45);
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        z-index: 3000;
+      }
+      .startup-modal-overlay[aria-hidden="true"] {
+        display: none;
+      }
+      .startup-modal {
+        width: min(520px, 100%);
+        border: 2px solid var(--line);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 18px 40px rgba(43, 31, 23, 0.3);
+        padding: 20px;
+      }
+      .startup-modal-title {
+        margin: 0 0 8px;
+        font-size: clamp(1.4rem, 2vw, 1.8rem);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        text-align: center;
+      }
+      .startup-modal-copy {
+        margin: 0 0 16px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .startup-modal-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .startup-modal-btn {
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+        color: var(--fg);
+        cursor: pointer;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .startup-modal-btn:hover,
+      .startup-modal-btn:focus-visible {
+        background: #f3e5d4;
+        outline: none;
+      }
+      .startup-modal-btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .startup-modal-btn-primary:hover,
+      .startup-modal-btn-primary:focus-visible {
+        background: #9d3f25;
+      }
+      @media (max-width: 560px) {
+        .startup-modal-actions {
+          grid-template-columns: 1fr;
+        }
+      }
       .page {
         max-width: 1200px;
         margin: 24px auto 60px;
@@ -862,12 +949,36 @@
       .ability-picker .weapon-picker-header {
         grid-template-columns: 1fr auto;
       }
+      .ability-picker {
+        left: 50%;
+        top: 50%;
+        width: min(560px, calc(100vw - 32px));
+        max-height: min(700px, calc(100vh - 32px));
+        transform: translate(-50%, -50%) scale(0.98);
+        z-index: 3500;
+      }
+      .ability-picker.open {
+        transform: translate(-50%, -50%) scale(1);
+      }
       .ability-picker .picker-title {
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
         font-size: 0.78rem;
         color: var(--muted);
+        text-align: center;
+      }
+      .ability-picker.locked #ability-picker-close {
+        display: none;
+      }
+      .race-picker.locked #race-picker-close {
+        display: none;
+      }
+      .class-picker.locked #class-picker-close {
+        display: none;
+      }
+      .alignment-picker.locked #alignment-picker-close {
+        display: none;
       }
       .ability-picker .ability-values,
       .ability-picker .ability-choices {
@@ -1821,6 +1932,16 @@
       </div>
       <div id="item-picker-list"></div>
     </aside>
+    <div class="startup-modal-overlay" id="startup-modal-overlay" aria-hidden="true">
+      <div class="startup-modal" role="dialog" aria-modal="true" aria-labelledby="startup-modal-title">
+        <h2 class="startup-modal-title" id="startup-modal-title">Welcome to DnD interactive sheet!</h2>
+        <p class="startup-modal-copy">What you want to do ? (If you make a new you lost the current one)</p>
+        <div class="startup-modal-actions">
+          <button id="startup-new-character" class="startup-modal-btn startup-modal-btn-primary" type="button">New Character</button>
+          <button id="startup-load-character" class="startup-modal-btn" type="button">Load Character</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -1879,7 +2000,7 @@
       const classInput = document.getElementById("class-level");
       const raceInput = document.getElementById("race");
       const backgroundInput = document.getElementById("background");
-      const alignmentInput = document.getElementById("alignment");
+      const subclassInput = document.getElementById("subclass");
       const speedInput = document.getElementById("speed");
       const sizeInput = document.getElementById("size");
       const armorClassEl = document.getElementById("armor-class");
@@ -1957,6 +2078,7 @@
       const alignmentPicker = document.getElementById("alignment-picker");
       const alignmentPickerList = document.getElementById("alignment-picker-list");
       const alignmentPickerClose = document.getElementById("alignment-picker-close");
+      const alignmentPickerTitle = alignmentPicker?.querySelector(".picker-title") || null;
       const spellPicker = document.getElementById("spell-picker");
       const spellPickerList = document.getElementById("spell-picker-list");
       const spellSearch = document.getElementById("spell-search");
@@ -1995,6 +2117,9 @@
       const itemSearch = document.getElementById("item-search");
       const itemPickerAdd = document.getElementById("item-picker-add");
       const itemPickerClose = document.getElementById("item-picker-close");
+      const startupModalOverlay = document.getElementById("startup-modal-overlay");
+      const startupNewCharacterBtn = document.getElementById("startup-new-character");
+      const startupLoadCharacterBtn = document.getElementById("startup-load-character");
       const cantripPanel = document.getElementById("spell-panel-1");
       const spellLevel1Panel = document.getElementById("spell-panel-2");
       const spellLevel2Panel = document.getElementById("spell-panel-3");
@@ -3724,14 +3849,43 @@
 
       function setAlignmentPickerOpen(isOpen) {
         if (!alignmentPicker) return;
+        if (!isOpen && subclassPickerLocked) return;
+        const lockedOpen = Boolean(subclassPickerLocked && isOpen);
         alignmentPicker.classList.toggle("open", isOpen);
         alignmentPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        alignmentPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("subclass-picker-modal-open", lockedOpen);
+      }
+
+      function setAbilityPickerInteractivityLock(lockedOpen) {
+        const shouldLock = Boolean(lockedOpen);
+        Array.from(document.body.children).forEach((child) => {
+          if (child === abilityPicker || child.tagName === "SCRIPT") return;
+          if (shouldLock) {
+            child.setAttribute("inert", "");
+            if (!child.hasAttribute("aria-hidden")) {
+              child.setAttribute("aria-hidden", "true");
+              child.dataset.abilityLockHidden = "1";
+            }
+            return;
+          }
+          child.removeAttribute("inert");
+          if (child.dataset.abilityLockHidden === "1") {
+            child.removeAttribute("aria-hidden");
+            delete child.dataset.abilityLockHidden;
+          }
+        });
       }
 
       function setAbilityPickerOpen(isOpen) {
         if (!abilityPicker) return;
+        if (!isOpen && abilityPickerLocked) return;
+        const lockedOpen = Boolean(abilityPickerLocked && isOpen);
         abilityPicker.classList.toggle("open", isOpen);
         abilityPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        abilityPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("ability-picker-modal-open", lockedOpen);
+        setAbilityPickerInteractivityLock(lockedOpen);
         if (!isOpen) {
           suppressAbilityScoreDefaults = false;
           applyBaseDefaults();
@@ -4008,6 +4162,11 @@
       let pendingAbilitySelection = null;
       let abilityMethod = "standard";
       let currentRollValues = [];
+      let abilityPickerLocked = false;
+      let racePickerLocked = false;
+      let classPickerLocked = false;
+      let subclassPickerLocked = false;
+      let pendingSubclassFinalizeEntry = null;
 
       function roll4d6DropLowest() {
         const rolls = [];
@@ -4138,10 +4297,13 @@
             recalcDerived();
             const allFilled = Object.values(abilityScores).every((el) => Boolean(getListValue(el)));
             if (allFilled) {
+              abilityPickerLocked = false;
               setAbilityPickerOpen(false);
               if (pendingClassEntry) {
                 finalizeClassSelection(pendingClassEntry);
                 pendingClassEntry = null;
+              } else {
+                startRequiredRaceSelection();
               }
               return;
             }
@@ -4152,6 +4314,7 @@
       }
 
       function openAbilityPickerForClass(entry) {
+        abilityPickerLocked = false;
         pendingClassEntry = entry;
         suppressAbilityScoreDefaults = true;
         pendingAbilityValues = standardArrayValues.slice();
@@ -4163,36 +4326,91 @@
         setAbilityPickerOpen(true);
       }
 
-      const alignmentOptions = [
-        "Lawful Good",
-        "Neutral Good",
-        "Chaotic Good",
-        "Lawful Neutral",
-        "Neutral",
-        "Chaotic Neutral",
-        "Lawful Evil",
-        "Neutral Evil",
-        "Chaotic Evil",
-      ];
+      function openAbilityPickerForNewCharacter() {
+        abilityPickerLocked = true;
+        pendingClassEntry = null;
+        suppressAbilityScoreDefaults = true;
+        pendingAbilityValues = [];
+        pendingAbilitySelection = null;
+        abilityMethod = "roll";
+        currentRollValues = Array.from({ length: 6 }, () => ({
+          id: `roll_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          value: roll4d6DropLowest(),
+        }));
+        resetAbilityAssignments();
+        buildAbilityPicker();
+        setAbilityPickerOpen(true);
+      }
 
-      function openAlignmentPicker() {
+      function startRequiredRaceSelection() {
+        racePickerLocked = true;
+        setRacePickerOpen(true);
+        buildRacePickerList(raceSearch?.value || "");
+        raceSearch?.focus();
+      }
+
+      function startRequiredClassSelection() {
+        classPickerLocked = true;
+        setClassPickerOpen(true);
+        buildClassPickerList(classSearch?.value || "");
+        classSearch?.focus();
+      }
+
+      function getClassSubclassNames(entry) {
+        if (!entry || !Array.isArray(entry.subclasses)) return [];
+        return entry.subclasses
+          .map((sub) => {
+            if (sub && typeof sub === "object") return String(sub.name || "").trim();
+            return String(sub || "").trim();
+          })
+          .filter(Boolean);
+      }
+
+      function syncSubclassInputForClass(entry) {
+        if (!subclassInput) return;
+        const names = getClassSubclassNames(entry);
+        subclassInput.disabled = !entry || !names.length;
+        if (!names.length) {
+          subclassInput.value = "";
+          return;
+        }
+        const current = String(subclassInput.value || "").trim();
+        if (current && !names.includes(current)) {
+          subclassInput.value = "";
+        }
+      }
+
+      function openAlignmentPicker(entry, { required = false, finalizeOnPick = false } = {}) {
+        const subclassNames = getClassSubclassNames(entry);
+        if (!subclassNames.length) return;
+        pendingSubclassFinalizeEntry = finalizeOnPick ? entry : null;
+        subclassPickerLocked = Boolean(required);
+        if (alignmentPickerTitle) {
+          alignmentPickerTitle.textContent = "Choose subclass";
+        }
         if (!alignmentPickerList) return;
         alignmentPickerList.innerHTML = "";
         const list = document.createElement("div");
         list.className = "weapon-list";
-        alignmentOptions.forEach((alignment) => {
+        subclassNames.forEach((subclassName) => {
           const option = document.createElement("div");
           option.className = "weapon-option";
-          if (alignmentInput?.value === alignment) {
+          if (subclassInput?.value === subclassName) {
             option.classList.add("selected");
           }
-          option.textContent = alignment;
+          option.textContent = subclassName;
           option.addEventListener("click", () => {
-            if (alignmentInput) {
-              alignmentInput.value = alignment;
+            if (subclassInput) {
+              subclassInput.value = subclassName;
             }
+            const finalizeEntry = pendingSubclassFinalizeEntry;
+            pendingSubclassFinalizeEntry = null;
+            subclassPickerLocked = false;
             setAlignmentPickerOpen(false);
             scheduleSave();
+            if (finalizeEntry) {
+              finalizeClassSelection(finalizeEntry);
+            }
           });
           list.appendChild(option);
         });
@@ -4395,6 +4613,7 @@
 
       function applyClassSelection(entry, { rollHp = false } = {}) {
         if (!entry) return;
+        syncSubclassInputForClass(entry);
         updateTotalHpForClass(entry);
         setSavingThrowProficiencies(entry.savingThrows || []);
         currentWeaponProficiencies = Array.isArray(entry.weaponProficiencies)
@@ -4416,9 +4635,7 @@
 
       function finalizeClassSelection(entry) {
         if (!entry) return;
-        if (alignmentInput) {
-          alignmentInput.disabled = false;
-        }
+        syncSubclassInputForClass(entry);
         if (xpInput) {
           setListValue(xpInput, String(DEFAULT_XP));
         }
@@ -4709,8 +4926,12 @@
 
       function setRacePickerOpen(isOpen) {
         if (!racePicker) return;
+        if (!isOpen && racePickerLocked) return;
+        const lockedOpen = Boolean(racePickerLocked && isOpen);
         racePicker.classList.toggle("open", isOpen);
         racePicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        racePicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("race-picker-modal-open", lockedOpen);
         if (isOpen) {
           raceSelected = "";
           if (racePickerAdd) {
@@ -4721,8 +4942,12 @@
 
       function setClassPickerOpen(isOpen) {
         if (!classPicker) return;
+        if (!isOpen && classPickerLocked) return;
+        const lockedOpen = Boolean(classPickerLocked && isOpen);
         classPicker.classList.toggle("open", isOpen);
         classPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        classPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("class-picker-modal-open", lockedOpen);
         if (isOpen) {
           classSelected = "";
           if (classPickerAdd) {
@@ -6820,20 +7045,27 @@
         if (racePickerAdd) {
           racePickerAdd.addEventListener("click", () => {
             if (!raceSelected || !raceInput) return;
+            const shouldRequireClass = racePickerLocked;
             raceInput.value = raceSelected;
             applyRaceSelection(raceSelected, { promptForSize: true });
             scheduleSave();
+            racePickerLocked = false;
             setRacePickerOpen(false);
+            if (shouldRequireClass) {
+              startRequiredClassSelection();
+            }
           });
         }
         if (racePickerClose) {
           racePickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (racePickerLocked) return;
             setRacePickerOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (racePickerLocked) return;
             setRacePickerOpen(false);
           }
         });
@@ -6855,14 +7087,29 @@
       }
 
       function initAlignmentPicker() {
+        if (subclassInput) {
+          const openSubclassPicker = () => {
+            const className = String(classInput?.value || "").trim();
+            if (!className || !classesLoaded) return;
+            const entry = classByName.get(className);
+            if (!entry || !getClassSubclassNames(entry).length) return;
+            openAlignmentPicker(entry, { required: false, finalizeOnPick: false });
+          };
+          subclassInput.addEventListener("click", openSubclassPicker);
+          subclassInput.addEventListener("focus", openSubclassPicker);
+        }
         if (alignmentPickerClose) {
           alignmentPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (subclassPickerLocked) return;
+            pendingSubclassFinalizeEntry = null;
             setAlignmentPickerOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (subclassPickerLocked) return;
+            pendingSubclassFinalizeEntry = null;
             setAlignmentPickerOpen(false);
           }
         });
@@ -6872,11 +7119,13 @@
         if (abilityPickerClose) {
           abilityPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (abilityPickerLocked) return;
             setAbilityPickerOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (abilityPickerLocked) return;
             setAbilityPickerOpen(false);
           }
         });
@@ -6909,17 +7158,25 @@
         if (classPickerAdd) {
           classPickerAdd.addEventListener("click", () => {
             if (!classSelected || !classInput) return;
+            const shouldRequireSubclass = classPickerLocked;
             classInput.value = classSelected;
+            classPickerLocked = false;
             setClassPickerOpen(false);
             const entry = classByName.get(classSelected);
             if (entry) {
-              openAbilityPickerForClass(entry);
+              const subclassNames = getClassSubclassNames(entry);
+              if (subclassNames.length) {
+                openAlignmentPicker(entry, { required: shouldRequireSubclass, finalizeOnPick: true });
+              } else {
+                finalizeClassSelection(entry);
+              }
             }
           });
         }
         if (classPickerClose) {
           classPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (classPickerLocked) return;
             setClassPickerOpen(false);
           });
         }
@@ -6939,6 +7196,7 @@
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (classPickerLocked) return;
             setClassPickerOpen(false);
             setClassEquipmentOpen(false);
           }
@@ -7073,6 +7331,76 @@
         }
       }
 
+      function buildBlankSheetData() {
+        const payload = {};
+        for (const el of fieldEls) {
+          payload[el.id] = el.type === "checkbox" ? false : "";
+        }
+        payload.level = "1";
+        payload.equipmentItems = [];
+        payload.inventoryItems = [];
+        payload.cantripItems = [];
+        payload.spellLevel1Items = [];
+        payload.spellLevel2Items = [];
+        payload.spellLevel3Items = [];
+        payload.equippedMainId = "";
+        payload.equippedOffhandId = "";
+        payload.equippedMainTwoHanded = false;
+        payload.equippedArmorId = "";
+        payload.equippedShieldId = "";
+        payload.appliedBackgroundName = "";
+        payload.appliedBackgroundAbilityBonuses = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+        payload.appliedBackgroundSkillIds = [];
+        payload.appliedBackgroundInventoryNames = [];
+        payload.appliedBackgroundEquipmentIds = [];
+        payload.appliedBackgroundFeatNames = [];
+        payload.appliedBackgroundFeatChoiceSelections = {};
+        payload.pendingBackgroundAbilityMode = 0;
+        payload.pendingBackgroundAbilityAssignments = [];
+        payload.pendingBackgroundEquipmentChoice = "A";
+        payload.appliedClassEquipmentName = "";
+        payload.appliedClassInventoryNames = [];
+        payload.appliedClassEquipmentIds = [];
+        payload.selectedFeatItems = [];
+        payload.featSelectionsByLevel = FEAT_LEVEL_MILESTONES.reduce((acc, level) => {
+          acc[String(level)] = "";
+          return acc;
+        }, {});
+        payload.featChoiceSelectionsByLevel = FEAT_LEVEL_MILESTONES.reduce((acc, level) => {
+          acc[String(level)] = {};
+          return acc;
+        }, {});
+        payload.appliedFeatAbilityBonuses = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+        return payload;
+      }
+
+      function setStartupModalOpen(isOpen) {
+        document.body.classList.toggle("startup-modal-open", Boolean(isOpen));
+        if (startupModalOverlay) {
+          startupModalOverlay.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        }
+        if (isOpen) {
+          startupNewCharacterBtn?.focus();
+        }
+      }
+
+      async function startNewCharacter() {
+        const blank = buildBlankSheetData();
+        try {
+          localStorage.removeItem(LOCAL_SHEET_STORAGE_KEY);
+        } catch (error) {
+          console.error("Failed to clear local sheet", error);
+        }
+        applySheetData(blank);
+        const payload = buildSheetPayload();
+        saveLocalSheet(payload);
+        try {
+          await setDoc(sheetRef, payload);
+        } catch (error) {
+          console.error("Failed to save new character sheet", error);
+        }
+      }
+
       function applySheetData(data) {
         if (!data) {
           applyBaseDefaults();
@@ -7093,8 +7421,10 @@
             setListValue(el, data[el.id]);
           }
         });
-        if (alignmentInput) {
-          alignmentInput.disabled = !classInput?.value;
+        if (subclassInput) {
+          const className = String(classInput?.value || "").trim();
+          const classEntry = classByName.get(className);
+          syncSubclassInputForClass(classEntry || null);
         }
         if (classInput?.value && classesLoaded) {
           const entry = classByName.get(classInput.value);
@@ -7360,6 +7690,7 @@
         }, ROLL_WINDOW_HIDE_MS);
       }
 
+      setStartupModalOpen(true);
       loadLocalSheet();
 
       onSnapshot(sheetRef, (snap) => {
@@ -7439,6 +7770,14 @@
         }
       }
       initApp();
+      startupNewCharacterBtn?.addEventListener("click", async () => {
+        await startNewCharacter();
+        setStartupModalOpen(false);
+        openAbilityPickerForNewCharacter();
+      });
+      startupLoadCharacterBtn?.addEventListener("click", () => {
+        setStartupModalOpen(false);
+      });
 
       if (rollBtn) {
         rollBtn.addEventListener("click", async () => {
