@@ -2737,7 +2737,16 @@
       }
 
       function getSelectedSubclassTags() {
-        return getSelectedTagSetFromInputs(["subclass", "class-subclass", "subclass-level"]);
+        const tags = getSelectedTagSetFromInputs(["subclass", "class-subclass", "subclass-level"]);
+        const raceSubclass = String(selectedRaceSubclass || "").trim().toLowerCase();
+        if (raceSubclass) {
+          tags.add(raceSubclass);
+          const raceName = String(raceInput?.value || "").trim().toLowerCase();
+          if (raceName) {
+            tags.add(`${raceName}: ${raceSubclass}`);
+          }
+        }
+        return tags;
       }
 
       function getSelectedFeatTags() {
@@ -4167,6 +4176,8 @@
       let classPickerLocked = false;
       let subclassPickerLocked = false;
       let pendingSubclassFinalizeEntry = null;
+      let pendingSubclassSelectionHandler = null;
+      let selectedRaceSubclass = "";
 
       function roll4d6DropLowest() {
         const rolls = [];
@@ -4206,6 +4217,19 @@
           btn.addEventListener("click", () => {
             if (!opt.enabled) return;
             abilityMethod = opt.key;
+            if (abilityMethod === "standard") {
+              pendingAbilityValues = standardArrayValues.slice();
+              pendingAbilitySelection = null;
+            }
+            if (abilityMethod === "roll") {
+              pendingAbilitySelection = null;
+              if (!currentRollValues.length) {
+                currentRollValues = Array.from({ length: 6 }, () => ({
+                  id: `roll_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                  value: roll4d6DropLowest(),
+                }));
+              }
+            }
             buildAbilityPicker();
           });
           abilityOptionsEl.appendChild(btn);
@@ -4366,6 +4390,14 @@
           .filter(Boolean);
       }
 
+      function getRaceSubclassNames(entry) {
+        if (!entry || !Array.isArray(entry.subclass)) return [];
+        return entry
+          .subclass
+          .map((sub) => String(sub || "").trim())
+          .filter(Boolean);
+      }
+
       function syncSubclassInputForClass(entry) {
         if (!subclassInput) return;
         const names = getClassSubclassNames(entry);
@@ -4380,42 +4412,83 @@
         }
       }
 
-      function openAlignmentPicker(entry, { required = false, finalizeOnPick = false } = {}) {
-        const subclassNames = getClassSubclassNames(entry);
-        if (!subclassNames.length) return;
-        pendingSubclassFinalizeEntry = finalizeOnPick ? entry : null;
+      function openSubclassChoicePicker(options, {
+        title = "Choose subclass",
+        required = false,
+        currentValue = "",
+        onSelect = null,
+      } = {}) {
+        const names = Array.isArray(options)
+          ? options.map((sub) => String(sub || "").trim()).filter(Boolean)
+          : [];
+        if (!names.length) return false;
+        pendingSubclassSelectionHandler = typeof onSelect === "function" ? onSelect : null;
         subclassPickerLocked = Boolean(required);
         if (alignmentPickerTitle) {
-          alignmentPickerTitle.textContent = "Choose subclass";
+          alignmentPickerTitle.textContent = title;
         }
         if (!alignmentPickerList) return;
         alignmentPickerList.innerHTML = "";
         const list = document.createElement("div");
         list.className = "weapon-list";
-        subclassNames.forEach((subclassName) => {
+        names.forEach((subclassName) => {
           const option = document.createElement("div");
           option.className = "weapon-option";
-          if (subclassInput?.value === subclassName) {
+          if (currentValue === subclassName) {
             option.classList.add("selected");
           }
           option.textContent = subclassName;
           option.addEventListener("click", () => {
-            if (subclassInput) {
-              subclassInput.value = subclassName;
-            }
-            const finalizeEntry = pendingSubclassFinalizeEntry;
-            pendingSubclassFinalizeEntry = null;
+            const handler = pendingSubclassSelectionHandler;
+            pendingSubclassSelectionHandler = null;
             subclassPickerLocked = false;
             setAlignmentPickerOpen(false);
             scheduleSave();
-            if (finalizeEntry) {
-              finalizeClassSelection(finalizeEntry);
-            }
+            if (handler) handler(subclassName);
           });
           list.appendChild(option);
         });
         alignmentPickerList.appendChild(list);
         setAlignmentPickerOpen(true);
+        return true;
+      }
+
+      function openAlignmentPicker(entry, { required = false, finalizeOnPick = false } = {}) {
+        const subclassNames = getClassSubclassNames(entry);
+        if (!subclassNames.length) return;
+        pendingSubclassFinalizeEntry = finalizeOnPick ? entry : null;
+        openSubclassChoicePicker(subclassNames, {
+          title: "Choose subclass",
+          required,
+          currentValue: String(subclassInput?.value || "").trim(),
+          onSelect: (subclassName) => {
+            if (subclassInput) {
+              subclassInput.value = subclassName;
+            }
+            const finalizeEntry = pendingSubclassFinalizeEntry;
+            pendingSubclassFinalizeEntry = null;
+            if (finalizeEntry) {
+              finalizeClassSelection(finalizeEntry);
+            }
+          },
+        });
+      }
+
+      function openRaceSubclassPicker(entry, { required = false, onComplete = null } = {}) {
+        const raceSubclasses = getRaceSubclassNames(entry);
+        if (!raceSubclasses.length) {
+          if (typeof onComplete === "function") onComplete();
+          return;
+        }
+        openSubclassChoicePicker(raceSubclasses, {
+          title: "Choose race subclass",
+          required,
+          currentValue: String(selectedRaceSubclass || "").trim(),
+          onSelect: (subclassName) => {
+            selectedRaceSubclass = subclassName;
+            if (typeof onComplete === "function") onComplete();
+          },
+        });
       }
 
       function openSizePicker(options) {
@@ -4448,6 +4521,7 @@
           currentRaceSpeed = "";
           currentRaceSizes = [];
           currentRaceTraits = [];
+          selectedRaceSubclass = "";
           if (speedInput) setListValue(speedInput, "");
           if (sizeInput) sizeInput.value = "";
           renderTraitsList();
@@ -4456,6 +4530,10 @@
         }
         const race = getRaceData(raceName);
         if (!race) return;
+        const raceSubclasses = getRaceSubclassNames(race);
+        if (!raceSubclasses.includes(selectedRaceSubclass)) {
+          selectedRaceSubclass = "";
+        }
         const speedValue = normalizeRaceSpeed(race.speed);
         currentRaceSpeed = speedValue;
         if (speedInput) {
@@ -7046,11 +7124,24 @@
           racePickerAdd.addEventListener("click", () => {
             if (!raceSelected || !raceInput) return;
             const shouldRequireClass = racePickerLocked;
+            const raceEntry = raceByName.get(raceSelected);
             raceInput.value = raceSelected;
             applyRaceSelection(raceSelected, { promptForSize: true });
             scheduleSave();
             racePickerLocked = false;
             setRacePickerOpen(false);
+            if (raceEntry && getRaceSubclassNames(raceEntry).length) {
+              openRaceSubclassPicker(raceEntry, {
+                required: shouldRequireClass,
+                onComplete: () => {
+                  scheduleSave();
+                  if (shouldRequireClass) {
+                    startRequiredClassSelection();
+                  }
+                },
+              });
+              return;
+            }
             if (shouldRequireClass) {
               startRequiredClassSelection();
             }
@@ -7103,6 +7194,7 @@
             event.stopPropagation();
             if (subclassPickerLocked) return;
             pendingSubclassFinalizeEntry = null;
+            pendingSubclassSelectionHandler = null;
             setAlignmentPickerOpen(false);
           });
         }
@@ -7110,6 +7202,7 @@
           if (event.key === "Escape") {
             if (subclassPickerLocked) return;
             pendingSubclassFinalizeEntry = null;
+            pendingSubclassSelectionHandler = null;
             setAlignmentPickerOpen(false);
           }
         });
@@ -7316,6 +7409,7 @@
         payload.appliedClassEquipmentName = appliedClassEquipmentName;
         payload.appliedClassInventoryNames = appliedClassInventoryNames.slice();
         payload.appliedClassEquipmentIds = appliedClassEquipmentIds.slice();
+        payload.selectedRaceSubclass = selectedRaceSubclass;
         payload.selectedFeatItems = selectedFeatItems.slice();
         payload.featSelectionsByLevel = { ...featSelectionsByLevel };
         payload.featChoiceSelectionsByLevel = { ...featChoiceSelectionsByLevel };
@@ -7361,6 +7455,7 @@
         payload.appliedClassEquipmentName = "";
         payload.appliedClassInventoryNames = [];
         payload.appliedClassEquipmentIds = [];
+        payload.selectedRaceSubclass = "";
         payload.selectedFeatItems = [];
         payload.featSelectionsByLevel = FEAT_LEVEL_MILESTONES.reduce((acc, level) => {
           acc[String(level)] = "";
@@ -7554,6 +7649,9 @@
         appliedClassEquipmentIds = Array.isArray(data.appliedClassEquipmentIds)
           ? data.appliedClassEquipmentIds.map((entry) => String(entry || "")).filter(Boolean)
           : [];
+        selectedRaceSubclass = typeof data.selectedRaceSubclass === "string"
+          ? data.selectedRaceSubclass.trim()
+          : "";
         appliedClassEquipmentIds = appliedClassEquipmentIds
           .filter((id) => equipmentItems.some((item) => item.id === id));
         appliedBackgroundEquipmentIds = appliedBackgroundEquipmentIds
