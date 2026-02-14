@@ -1,0 +1,348 @@
+Wizard,,,,,,,,,,,,,,
+,,,,,Spell Slots per Spell Level,,,,,,,,,
+Level,Proficiency Bonus,Features,Cantrips,Prepared Spells,1st,2nd,3rd,4th,5th,6th,7th,8th,9th,
+1st,2,"Spellcasting,
+Ritual Adept,
+Arcane Recovery",3,4,2,—,—,—,—,—,—,—,—,
+2nd,2,Scholar,3,5,3,—,—,—,—,—,—,—,—,
+3rd,2,Wizard Subclass,3,6,4,2,—,—,—,—,—,—,—,
+4th,2,Ability Score Improvement,4,7,4,3,—,—,—,—,—,—,—,
+5th,3,Memorize Spell,4,9,4,3,2,—,—,—,—,—,—,
+6th,3,Subclass Feature,4,10,4,3,3,—,—,—,—,—,—,
+7th,3,—,4,11,4,3,3,1,—,—,—,—,—,
+8th,3,Ability Score Improvement,4,12,4,3,3,2,—,—,—,—,—,
+9th,4,—,4,14,4,3,3,3,1,—,—,—,—,
+10th,4,Subclass Feature,5,15,4,3,3,3,2,—,—,—,—,
+11th,4,—,5,16,4,3,3,3,2,1,—,—,—,
+12th,4,Ability Score Improvement,5,16,4,3,3,3,2,1,—,—,—,
+13th,5,—,5,17,4,3,3,3,2,1,1,—,—,
+14th,5,Subclass Feature,5,18,4,3,3,3,2,1,1,—,—,
+15th,5,—,5,19,4,3,3,3,2,1,1,1,—,
+16th,5,Ability Score Improvement,5,21,4,3,3,3,2,1,1,1,—,
+17th,6,—,5,22,4,3,3,3,2,1,1,1,1,
+18th,6,Spell Mastery,5,23,4,3,3,3,3,1,1,1,1,
+19th,6,Epic Boon,5,24,4,3,3,3,3,2,1,1,1,
+20th,6,Signature Spells,5,25,4,3,3,3,3,2,2,1,1,
+Warlock,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Level,Proficiency Bonus,Features,Invocations,Cantrips,Prepared Spells,Spell Slots,Slot Level,,,,,,,
+1st,2,"Eldritch Invocations,
+Pact Magic,
+Eldritch Invocation Options",1,2,2,1,1,,,,,,,
+2nd,2,Magical Cunning,3,2,3,2,1,,,,,,,
+3rd,2,Warlock Subclass,3,2,4,2,2,,,,,,,
+4th,2,Ability Score Improvement,3,3,5,2,2,,,,,,,
+5th,3,—,5,3,6,2,3,,,,,,,
+6th,3,Subclass Feature,5,3,7,2,3,,,,,,,
+7th,3,—,6,3,8,2,4,,,,,,,
+8th,3,Ability Score Improvement,6,3,9,2,4,,,,,,,
+9th,4,Contact Patron,7,3,10,2,5,,,,,,,
+10th,4,Subclass Feature,7,4,10,2,5,,,,,,,
+11th,4,Mystic Arcanum,7,4,11,3,5,,,,,,,
+12th,4,Ability Score Improvement,8,4,11,3,5,,,,,,,
+13th,5,Mystic Arcanum,8,4,12,3,5,,,,,,,
+14th,5,Subclass Feature,8,4,12,3,5,,,,,,,
+15th,5,Mystic Arcanum,9,4,13,3,5,,,,,,,
+16th,5,Ability Score Improvement,9,4,13,3,5,,,,,,,
+17th,6,Mystic Arcanum,9,4,14,4,5,,,,,,,
+18th,6,—,10,4,14,4,5,,,,,,,
+19th,6,Epic Boon,10,4,15,4,5,,,,,,,
+20th,6,Eldritch Master,10,4,15,4,5,,,,,,,
+Sorcerer,,,,,,,,,,,,,,
+,,,,,,Spell Slots per Spell Level,,,,,,,,
+Level,Proficiency Bonus,Features,Sorcery Points,Cantrips,Prepared Spells,1st,2nd,3rd,4th,5th,6th,7th,8th,9th
+1st,2,"Spellcasting,
+Innate Sorcery",—,4,2,2,—,—,—,—,—,—,—,—
+2nd,2,"Font of Magic,
+Metamagic,
+Metamagic Options",2,4,4,3,—,—,—,—,—,—,—,—
+3rd,2,Sorcerer Subclass,3,4,6,4,2,—,—,—,—,—,—,—
+4th,2,Ability Score Improvement,4,5,7,4,3,—,—,—,—,—,—,—
+5th,3,Sorcerous Restoration,5,5,9,4,3,2,—,—,—,—,—,—
+6th,3,Subclass Feature,6,5,10,4,3,3,—,—,—,—,—,—
+7th,3,Sorcery Incarnate,7,5,11,4,3,3,1,—,—,—,—,—
+8th,3,Ability Score Improvement,8,5,12,4,3,3,2,—,—,—,—,—
+9th,4,—,9,5,14,4,3,3,3,1,—,—,—,—
+10th,4,Metamagic,10,6,15,4,3,3,3,2,—,—,—,—
+11th,4,—,11,6,16,4,3,3,3,2,1,—,—,—
+12th,4,Ability Score Improvement,12,6,16,4,3,3,3,2,1,—,—,—
+13th,5,—,13,6,17,4,3,3,3,2,1,1,—,—
+14th,5,Subclass Feature,14,6,17,4,3,3,3,2,1,1,—,—
+15th,5,—,15,6,18,4,3,3,3,2,1,1,1,—
+16th,5,Ability Score Improvement,16,6,18,4,3,3,3,2,1,1,1,—
+17th,6,Metamagic,17,6,19,4,3,3,3,2,1,1,1,1
+18th,6,Subclass Feature,18,6,20,4,3,3,3,3,1,1,1,1
+19th,6,Epic Boon,19,6,21,4,3,3,3,3,2,1,1,1
+20th,6,Arcane Apotheosis,20,6,22,4,3,3,3,3,2,2,1,1
+Rogue,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Level,Proficiency Bonus,Features,Sneak Attack,,,,,,,,,,,
+1st,2,"Expertise,
+Sneak Attack,
+Thieves' Cant,
+Weapon Mastery",1d6,,,,,,,,,,,
+2nd,2,Cunning Action,1d6,,,,,,,,,,,
+3rd,2,"Rogue Subclass,
+Steady Aim",2d6,,,,,,,,,,,
+4th,2,Ability Score Improvement,2d6,,,,,,,,,,,
+5th,3,"Cunning Strike,
+Uncanny Dodge",3d6,,,,,,,,,,,
+6th,3,Expertise,3d6,,,,,,,,,,,
+7th,3,"Evasion,
+Reliable Talent",4d6,,,,,,,,,,,
+8th,3,Ability Score Improvement,4d6,,,,,,,,,,,
+9th,4,Subclass Feature,5d6,,,,,,,,,,,
+10th,4,Ability Score Improvement,5d6,,,,,,,,,,,
+11th,4,Improved Cunning Strike,6d6,,,,,,,,,,,
+12th,4,Ability Score Improvement,6d6,,,,,,,,,,,
+13th,5,Subclass Feature,7d6,,,,,,,,,,,
+14th,5,Devious Strikes,7d6,,,,,,,,,,,
+15th,5,Slippery Mind,8d6,,,,,,,,,,,
+16th,5,Ability Score Improvement,8d6,,,,,,,,,,,
+17th,6,Subclass Feature,9d6,,,,,,,,,,,
+18th,6,Elusive,9d6,,,,,,,,,,,
+19th,6,Epic Boon,10d6,,,,,,,,,,,
+20th,6,Stroke of Luck,10d6,,,,,,,,,,,
+Ranger,,,,,,,,,,,,,,
+,,,,,Spell Slots per Spell Level,,,,,,,,,
+Level,Proficiency Bonus,Features,Favored Enemy,Prepared Spells,1st,2nd,3rd,4th,5th,,,,,
+1st,2,"Spellcasting,
+Favored Enemy,
+Weapon Mastery",2,2,2,—,—,—,—,,,,,
+2nd,2,"Deft Explorer,
+Fighting Style",2,3,2,—,—,—,—,,,,,
+3rd,2,Ranger Subclass,2,4,3,—,—,—,—,,,,,
+4th,2,Ability Score Improvement,2,5,3,—,—,—,—,,,,,
+5th,3,Extra Attack,3,6,4,2,—,—,—,,,,,
+6th,3,Roving,3,6,4,2,—,—,—,,,,,
+7th,3,Subclass Feature,3,7,4,3,—,—,—,,,,,
+8th,3,Ability Score Improvement,3,7,4,3,—,—,—,,,,,
+9th,4,Expertise,4,9,4,3,2,—,—,,,,,
+10th,4,Tireless,4,9,4,3,2,—,—,,,,,
+11th,4,Subclass Feature,4,10,4,3,3,—,—,,,,,
+12th,4,Ability Score Improvement,4,10,4,3,3,—,—,,,,,
+13th,5,Relentless Hunter,5,11,4,3,3,1,—,,,,,
+14th,5,Nature's Veil,5,11,4,3,3,1,—,,,,,
+15th,5,Subclass Feature,5,12,4,3,3,2,—,,,,,
+16th,5,Ability Score Improvement,5,12,4,3,3,2,—,,,,,
+17th,6,Precise Hunter,6,14,4,3,3,3,1,,,,,
+18th,6,Feral Senses,6,14,4,3,3,3,1,,,,,
+19th,6,Epic Boon,6,15,4,3,3,3,2,,,,,
+20th,6,Foe Slayer,6,15,4,3,3,3,2,,,,,
+Paladin,,,,,,,,,,,,,,
+,,,,,Spell Slots per Spell Level,,,,,,,,,
+Level,Proficiency Bonus,Features,Channel Divinity,Prepared Spells,1st,2nd,3rd,4th,5th,,,,,
+1st,2,"Lay on Hands,
+Spellcasting,
+Weapon Mastery",—,2,2,—,—,—,—,,,,,
+2nd,2,"Fighting Style,
+Paladin's Smite",—,3,2,—,—,—,—,,,,,
+3rd,2,"Channel Divinity,
+Paladin Subclass",2,4,3,—,—,—,—,,,,,
+4th,2,Ability Score Improvement,2,5,3,—,—,—,—,,,,,
+5th,3,"Extra Attack,
+Faithful Steed",2,6,4,2,—,—,—,,,,,
+6th,3,Aura of Protection,2,6,4,2,—,—,—,,,,,
+7th,3,Subclass Feature,2,7,4,3,—,—,—,,,,,
+8th,3,Ability Score Improvement,2,7,4,3,—,—,—,,,,,
+9th,4,Abjure Foes,2,9,4,3,2,—,—,,,,,
+10th,4,Aura of Courage,2,9,4,3,2,—,—,,,,,
+11th,4,Radiant Strikes,3,10,4,3,3,—,—,,,,,
+12th,4,Ability Score Improvement,3,10,4,3,3,—,—,,,,,
+13th,5,—,3,11,4,3,3,1,—,,,,,
+14th,5,Restoring Touch,3,11,4,3,3,1,—,,,,,
+15th,5,Subclass Feature,3,12,4,3,3,2,—,,,,,
+16th,5,Ability Score Improvement,3,12,4,3,3,2,—,,,,,
+17th,6,—,3,14,4,3,3,3,1,,,,,
+18th,6,Aura Expansion,3,14,4,3,3,3,1,,,,,
+19th,6,Epic Boon,3,15,4,3,3,3,2,,,,,
+20th,6,Subclass Feature,3,15,4,3,3,3,2,,,,,
+Monk,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Level,Proficiency Bonus,Features,Martial Arts,Focus Points,Unarmored Movement,,,,,,,,,
+1st,2,"Martial Arts,
+Unarmored Defense",1d6,—,—,,,,,,,,,
+2nd,2,"Monk's Focus,
+Unarmored Movement,
+Uncanny Metabolism",1d6,2,#ERROR!,,,,,,,,,
+3rd,2,"Deflect Attacks,
+Monk Subclass",1d6,3,#ERROR!,,,,,,,,,
+4th,2,"Ability Score Improvement,
+Slow Fall",1d6,4,#ERROR!,,,,,,,,,
+5th,3,"Extra Attack,
+Stunning Strike",1d8,5,#ERROR!,,,,,,,,,
+6th,3,"Empowered Strikes,
+Subclass Feature",1d8,6,#ERROR!,,,,,,,,,
+7th,3,Evasion,1d8,7,#ERROR!,,,,,,,,,
+8th,3,Ability Score Improvement,1d8,8,#ERROR!,,,,,,,,,
+9th,4,Acrobatic Movement,1d8,9,#ERROR!,,,,,,,,,
+10th,4,"Heightened Focus,
+Self-Restoration",1d8,10,#ERROR!,,,,,,,,,
+11th,4,Subclass Feature,1d10,11,#ERROR!,,,,,,,,,
+12th,4,Ability Score Improvement,1d10,12,#ERROR!,,,,,,,,,
+13th,5,Deflect Energy,1d10,13,#ERROR!,,,,,,,,,
+14th,5,Disciplined Survivor,1d10,14,#ERROR!,,,,,,,,,
+15th,5,Perfect Focus,1d10,15,#ERROR!,,,,,,,,,
+16th,5,Ability Score Improvement,1d10,16,#ERROR!,,,,,,,,,
+17th,6,Subclass Feature,1d12,17,#ERROR!,,,,,,,,,
+18th,6,Superior Defense,1d12,18,#ERROR!,,,,,,,,,
+19th,6,Epic Boon,1d12,19,#ERROR!,,,,,,,,,
+20th,6,Body and Mind,1d12,20,#ERROR!,,,,,,,,,
+Fighter,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Level,Proficiency Bonus,Features,Second Wind,Weapon Mastery,,,,,,,,,,
+1st,2,"Fighting Style,
+Second Wind,
+Weapon Mastery",2,3,,,,,,,,,,
+2nd,2,"Action Surge,
+Tactical Mind",2,3,,,,,,,,,,
+3rd,2,Fighter Subclass,2,3,,,,,,,,,,
+4th,2,Ability Score Improvement,3,4,,,,,,,,,,
+5th,3,"Extra Attack,
+Tactical Shift",3,4,,,,,,,,,,
+6th,3,Ability Score Improvement,3,4,,,,,,,,,,
+7th,3,Subclass Feature,3,4,,,,,,,,,,
+8th,3,Ability Score Improvement,3,4,,,,,,,,,,
+9th,4,"Indomitable,
+Tactical Master",3,4,,,,,,,,,,
+10th,4,Subclass Feature,4,5,,,,,,,,,,
+11th,4,Two Extra Attacks,4,5,,,,,,,,,,
+12th,4,Ability Score Improvement,4,5,,,,,,,,,,
+13th,5,"Indomitable,
+Studied Attacks",4,5,,,,,,,,,,
+14th,5,Ability Score Improvement,4,5,,,,,,,,,,
+15th,5,Subclass Feature,4,5,,,,,,,,,,
+16th,5,Ability Score Improvement,4,6,,,,,,,,,,
+17th,6,"Action Surge,
+Indomitable",4,6,,,,,,,,,,
+18th,6,Subclass Feature,4,6,,,,,,,,,,
+19th,6,Epic Boon,4,6,,,,,,,,,,
+20th,6,Three Extra Attacks,4,6,,,,,,,,,,
+Druid,,,,,,,,,,,,,,
+,,,,,,Spell Slots per Spell Level,,,,,,,,
+Level,Proficiency Bonus,Features,Wild Shape,Cantrips,Prepared Spells,1st,2nd,3rd,4th,5th,6th,7th,8th,9th
+1st,2,"Druidic,
+Primal Order,
+Spellcasting",—,2,4,2,—,—,—,—,—,—,—,—
+2nd,2,"Wild Companion,
+Wild Shape",2,2,5,3,—,—,—,—,—,—,—,—
+3rd,2,Druid Subclass,2,2,6,4,2,—,—,—,—,—,—,—
+4th,2,Ability Score Improvement,2,3,7,4,3,—,—,—,—,—,—,—
+5th,3,Wild Resurgence,2,3,9,4,3,2,—,—,—,—,—,—
+6th,3,Subclass Feature,3,3,10,4,3,3,—,—,—,—,—,—
+7th,3,Elemental Fury,3,3,11,4,3,3,1,—,—,—,—,—
+8th,3,Ability Score Improvement,3,3,12,4,3,3,2,—,—,—,—,—
+9th,4,—,3,3,14,4,3,3,3,1,—,—,—,—
+10th,4,Subclass Feature,3,4,15,4,3,3,3,2,—,—,—,—
+11th,4,—,3,4,16,4,3,3,3,2,1,—,—,—
+12th,4,Ability Score Improvement,3,4,16,4,3,3,3,2,1,—,—,—
+13th,5,—,3,4,17,4,3,3,3,2,1,1,—,—
+14th,5,Subclass Feature,3,4,17,4,3,3,3,2,1,1,—,—
+15th,5,Improved Elemental Fury,3,4,18,4,3,3,3,2,1,1,1,—
+16th,5,Ability Score Improvement,3,4,18,4,3,3,3,2,1,1,1,—
+17th,6,—,4,4,19,4,3,3,3,2,1,1,1,1
+18th,6,Beast Spells,4,4,20,4,3,3,3,3,1,1,1,1
+19th,6,Epic Boon,4,4,21,4,3,3,3,3,2,1,1,1
+20th,6,Archdruid,4,4,22,4,3,3,3,3,2,2,1,1
+Cleric,,,,,,,,,,,,,,
+,,,,,,Spell Slots per Spell Level,,,,,,,,
+Level,Proficiency Bonus,Features,Channel Divinity,Cantrips,Prepared Spells,1st,2nd,3rd,4th,5th,6th,7th,8th,9th
+1st,2,"Spellcasting,
+Divine Order",—,3,4,2,—,—,—,—,—,—,—,—
+2nd,2,Channel Divinity,2,3,5,3,—,—,—,—,—,—,—,—
+3rd,2,Cleric Subclass,2,3,6,4,2,—,—,—,—,—,—,—
+4th,2,Ability Score Improvement,2,4,7,4,3,—,—,—,—,—,—,—
+5th,3,Sear Undead,2,4,9,4,3,2,—,—,—,—,—,—
+6th,3,Subclass Feature,3,4,10,4,3,3,—,—,—,—,—,—
+7th,3,Blessed Strikes,3,4,11,4,3,3,1,—,—,—,—,—
+8th,3,Ability Score Improvement,3,4,12,4,3,3,2,—,—,—,—,—
+9th,4,—,3,4,14,4,3,3,3,1,—,—,—,—
+10th,4,Divine Intervention,3,5,15,4,3,3,3,2,—,—,—,—
+11th,4,—,3,5,16,4,3,3,3,2,1,—,—,—
+12th,4,Ability Score Improvement,3,5,16,4,3,3,3,2,1,—,—,—
+13th,5,—,3,5,17,4,3,3,3,2,1,1,—,—
+14th,5,Improved Blessed Strikes,3,5,17,4,3,3,3,2,1,1,—,—
+15th,5,—,3,5,18,4,3,3,3,2,1,1,1,—
+16th,5,Ability Score Improvement,3,5,18,4,3,3,3,2,1,1,1,—
+17th,6,Subclass Feature,3,5,19,4,3,3,3,2,1,1,1,1
+18th,6,—,4,5,20,4,3,3,3,3,1,1,1,1
+19th,6,Epic Boon,4,5,21,4,3,3,3,3,2,1,1,1
+20th,6,Greater Divine Intervention,4,5,22,4,3,3,3,3,2,2,1,1
+Bard,,,,,,,,,,,,,,
+,,,,,,Spell Slots per Spell Level,,,,,,,,
+Level,Proficiency Bonus,Features,Bardic Die,Cantrips,Prepared Spells,1st,2nd,3rd,4th,5th,6th,7th,8th,9th
+1st,2,"Bardic Inspiration,
+Spellcasting",1d6,2,4,2,—,—,—,—,—,—,—,—
+2nd,2,"Expertise,
+Jack of All Trades",1d6,2,5,3,—,—,—,—,—,—,—,—
+3rd,2,Bard Subclass,1d6,2,6,4,2,—,—,—,—,—,—,—
+4th,2,Ability Score Improvement,1d6,3,7,4,3,—,—,—,—,—,—,—
+5th,3,Font of Inspiration,1d8,3,9,4,3,2,—,—,—,—,—,—
+6th,3,Subclass Feature,1d8,3,10,4,3,3,—,—,—,—,—,—
+7th,3,Countercharm,1d8,3,11,4,3,3,1,—,—,—,—,—
+8th,3,Ability Score Improvement,1d8,3,12,4,3,3,2,—,—,—,—,—
+9th,4,Expertise,1d8,3,14,4,3,3,3,1,—,—,—,—
+10th,4,Magical Secrets,1d10,4,15,4,3,3,3,2,—,—,—,—
+11th,4,—,1d10,4,16,4,3,3,3,2,1,—,—,—
+12th,4,Ability Score Improvement,1d10,4,16,4,3,3,3,2,1,—,—,—
+13th,5,—,1d10,4,17,4,3,3,3,2,1,1,—,—
+14th,5,Subclass Feature,1d10,4,17,4,3,3,3,2,1,1,—,—
+15th,5,—,1d12,4,18,4,3,3,3,2,1,1,1,—
+16th,5,Ability Score Improvement,1d12,4,18,4,3,3,3,2,1,1,1,—
+17th,6,—,1d12,4,19,4,3,3,3,2,1,1,1,1
+18th,6,Superior Inspiration,1d12,4,20,4,3,3,3,3,1,1,1,1
+19th,6,Epic Boon,1d12,4,21,4,3,3,3,3,2,1,1,1
+20th,6,Words of Creation,1d12,4,22,4,3,3,3,3,2,2,1,1
+Barbarian,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,
+Level,Proficiency Bonus,Features,Rages,Rage Damage,Weapon Mastery,,,,,,,,,
+1st,2,"Rage,
+Unarmored Defense,
+Weapon Mastery",2,2,2,,,,,,,,,
+2nd,2,"Danger Sense,
+Reckless Attack",2,2,2,,,,,,,,,
+3rd,2,"Barbarian Subclass,
+Primal Knowledge",3,2,2,,,,,,,,,
+4th,2,Ability Score Improvement,3,2,3,,,,,,,,,
+5th,3,"Extra Attack,
+Fast Movement",3,2,3,,,,,,,,,
+6th,3,Subclass Feature,4,2,3,,,,,,,,,
+7th,3,"Feral Instinct,
+Instinctive Pounce",4,2,3,,,,,,,,,
+8th,3,Ability Score Improvement,4,2,3,,,,,,,,,
+9th,4,Brutal Strike,4,3,3,,,,,,,,,
+10th,4,Subclass Feature,4,3,4,,,,,,,,,
+11th,4,Relentless Rage,4,3,4,,,,,,,,,
+12th,4,Ability Score Improvement,5,3,4,,,,,,,,,
+13th,5,Improved Brutal Strike,5,3,4,,,,,,,,,
+14th,5,Subclass Feature,5,3,4,,,,,,,,,
+15th,5,Persistent Rage,5,3,4,,,,,,,,,
+16th,5,Ability Score Improvement,5,4,4,,,,,,,,,
+17th,6,Improved Brutal Strike,6,4,4,,,,,,,,,
+18th,6,Indomitable Might,6,4,4,,,,,,,,,
+19th,6,Epic Boon,6,4,4,,,,,,,,,
+20th,6,Primal Champion,6,4,4,,,,,,,,,
+Artificer,,,,,,,,,,,,,,
+,,,,,,,Spell Slots per Spell Level,,,,,,,
+Level,Proficiency Bonus,Features,Plans Known,Magic Items,Cantrips,Prepared Spells,1st,2nd,3rd,4th,5th,,,
+1st,2,"Spellcasting,
+Tinker's Magic",—,—,2,2,2,—,—,—,—,,,
+2nd,2,Replicate Magic Item,4,2,2,3,2,—,—,—,—,,,
+3rd,2,Artificer Subclass,4,2,2,4,3,—,—,—,—,,,
+4th,2,Ability Score Improvement,4,2,2,5,3,—,—,—,—,,,
+5th,3,Subclass feature,4,2,2,6,4,2,—,—,—,,,
+6th,3,Magic Item Tinker,5,3,2,6,4,2,—,—,—,,,
+7th,3,Flash of Genius,5,3,2,7,4,3,—,—,—,,,
+8th,3,Ability Score Improvement,5,3,2,7,4,3,—,—,—,,,
+9th,4,Subclass feature,5,3,2,9,4,3,2,—,—,,,
+10th,4,Magic Item Adept,6,4,3,9,4,3,2,—,—,,,
+11th,4,Spell-Storing Item,6,4,3,10,4,3,3,—,—,,,
+12th,4,Ability Score Improvement,6,4,3,10,4,3,3,—,—,,,
+13th,5,—,6,4,3,11,4,3,3,1,—,,,
+14th,5,Advanced Artifice,7,5,4,11,4,3,3,1,—,,,
+15th,5,Subclass feature,7,5,4,12,4,3,3,2,—,,,
+16th,5,Ability Score Improvement,7,5,4,12,4,3,3,2,—,,,
+17th,6,—,7,5,4,14,4,3,3,3,1,,,
+18th,6,Magic Item Master,8,6,4,14,4,3,3,3,1,,,
+19th,6,Epic Boon,8,6,4,15,4,3,3,3,2,,,
+20th,6,Soul of Artifice,8,6,4,15,4,3,3,3,2,,,

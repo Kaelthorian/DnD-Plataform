@@ -49,12 +49,13 @@
       const stickyRollEl = document.querySelector(".sticky-roll");
       const resultEl = document.getElementById("roll-result");
       const diceSoundEl = document.getElementById("dice-sound");
+      const weaponSoundEl = document.getElementById("weapon-sound");
       const spellCastSoundEl = document.getElementById("spellcast-sound");
       const rollBtn = document.getElementById("roll-btn");
       const classInput = document.getElementById("class-level");
       const raceInput = document.getElementById("race");
       const backgroundInput = document.getElementById("background");
-      const alignmentInput = document.getElementById("alignment");
+      const subclassInput = document.getElementById("subclass");
       const speedInput = document.getElementById("speed");
       const sizeInput = document.getElementById("size");
       const armorClassEl = document.getElementById("armor-class");
@@ -132,6 +133,7 @@
       const alignmentPicker = document.getElementById("alignment-picker");
       const alignmentPickerList = document.getElementById("alignment-picker-list");
       const alignmentPickerClose = document.getElementById("alignment-picker-close");
+      const alignmentPickerTitle = alignmentPicker?.querySelector(".picker-title") || null;
       const spellPicker = document.getElementById("spell-picker");
       const spellPickerList = document.getElementById("spell-picker-list");
       const spellSearch = document.getElementById("spell-search");
@@ -170,6 +172,9 @@
       const itemSearch = document.getElementById("item-search");
       const itemPickerAdd = document.getElementById("item-picker-add");
       const itemPickerClose = document.getElementById("item-picker-close");
+      const startupModalOverlay = document.getElementById("startup-modal-overlay");
+      const startupNewCharacterBtn = document.getElementById("startup-new-character");
+      const startupLoadCharacterBtn = document.getElementById("startup-load-character");
       const cantripPanel = document.getElementById("spell-panel-1");
       const spellLevel1Panel = document.getElementById("spell-panel-2");
       const spellLevel2Panel = document.getElementById("spell-panel-3");
@@ -224,6 +229,9 @@
         acc[String(level)] = {};
         return acc;
       }, {});
+      let appliedFeatAbilityBonuses = {
+        str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0,
+      };
       let pendingFeatChoiceContext = null;
 
       function toNumber(value) {
@@ -303,10 +311,84 @@
         return normalized;
       }
 
+      function normalizeFeatChoiceSelections(raw) {
+        const next = {};
+        if (!raw || typeof raw !== "object") return next;
+        Object.entries(raw).forEach(([choiceKey, values]) => {
+          if (!Array.isArray(values)) return;
+          const cleaned = values.map((entry) => String(entry || "").trim()).filter(Boolean);
+          if (cleaned.length) {
+            next[String(choiceKey)] = cleaned;
+          }
+        });
+        return next;
+      }
+
+      function normalizeBackgroundFeatChoiceSelectionMap(raw) {
+        const next = {};
+        if (!raw || typeof raw !== "object") return next;
+        Object.entries(raw).forEach(([featKey, selections]) => {
+          const key = normalizeKey(featKey);
+          if (!key) return;
+          next[key] = normalizeFeatChoiceSelections(selections);
+        });
+        return next;
+      }
+
+      function normalizeFeatNameList(values = []) {
+        if (!Array.isArray(values)) return [];
+        const out = [];
+        const seen = new Set();
+        values.forEach((entry) => {
+          const raw = String(entry || "").trim();
+          if (!raw) return;
+          const feat = getFeatData(raw);
+          const resolved = String(feat?.name || raw).trim();
+          const key = normalizeKey(resolved);
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          out.push(resolved);
+        });
+        return out;
+      }
+
+      function getBackgroundFeatChoiceSelections(featName) {
+        const key = normalizeKey(featName);
+        if (!key) return {};
+        const selections = appliedBackgroundFeatChoiceSelections[key];
+        return selections && typeof selections === "object" ? selections : {};
+      }
+
+      function forEachAppliedFeatSelection(callback) {
+        FEAT_LEVEL_MILESTONES.forEach((level) => {
+          const levelKey = String(level);
+          const featName = String(featSelectionsByLevel[levelKey] || "").trim();
+          if (!featName) return;
+          const choiceSelections = featChoiceSelectionsByLevel[levelKey] && typeof featChoiceSelectionsByLevel[levelKey] === "object"
+            ? featChoiceSelectionsByLevel[levelKey]
+            : {};
+          callback(featName, choiceSelections);
+        });
+        normalizeFeatNameList(appliedBackgroundFeatNames).forEach((featName) => {
+          callback(featName, getBackgroundFeatChoiceSelections(featName));
+        });
+      }
+
+      function normalizeAbilityBonusMap(raw) {
+        const out = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+        if (!raw || typeof raw !== "object") return out;
+        Object.keys(out).forEach((key) => {
+          out[key] = Number(raw[key]) || 0;
+        });
+        return out;
+      }
+
       function rebuildSelectedFeatItems() {
-        selectedFeatItems = FEAT_LEVEL_MILESTONES
+        const levelFeats = FEAT_LEVEL_MILESTONES
           .map((level) => String(featSelectionsByLevel[String(level)] || "").trim())
           .filter(Boolean);
+        const backgroundFeats = normalizeFeatNameList(appliedBackgroundFeatNames);
+        selectedFeatItems = normalizeFeatNameList([...levelFeats, ...backgroundFeats]);
       }
 
       function pruneFeatSelectionsForLevel(level) {
@@ -326,6 +408,7 @@
         });
         if (changed) {
           rebuildSelectedFeatItems();
+          recomputeFeatAbilityBonuses();
           renderTraitsList();
           updateAllSkillProficiencies();
         }
@@ -444,6 +527,8 @@
             const changedByPrune = pruneFeatSelectionsForLevel(level);
             if (changedByPrune) {
               buildCantripPickerList(spellSearch?.value || "");
+              recalcDerived();
+              return;
             }
             maybePromptFeatForLevel(level);
           }
@@ -490,6 +575,7 @@
       let weaponsLoaded = false;
       let armorTable = [];
       let armorByName = new Map();
+      let armorByKey = new Map();
       let armorsLoaded = false;
       let cantripTable = [];
       let cantripByName = new Map();
@@ -537,6 +623,8 @@
       let appliedBackgroundSkillIds = [];
       let appliedBackgroundInventoryNames = [];
       let appliedBackgroundEquipmentIds = [];
+      let appliedBackgroundFeatNames = [];
+      let appliedBackgroundFeatChoiceSelections = {};
       let pendingClassEquipmentEntry = null;
       let pendingClassEquipmentSelections = [];
       let appliedClassEquipmentName = "";
@@ -551,6 +639,7 @@
 
       function refreshArmorIndex() {
         armorByName = new Map(armorTable.map((armor) => [armor.name, armor]));
+        armorByKey = new Map(armorTable.map((armor) => [normalizeKey(armor.name), armor]));
       }
 
       function refreshCantripIndex() {
@@ -703,7 +792,16 @@
       }
 
       function getSelectedSubclassTags() {
-        return getSelectedTagSetFromInputs(["subclass", "class-subclass", "subclass-level"]);
+        const tags = getSelectedTagSetFromInputs(["subclass", "class-subclass", "subclass-level"]);
+        const raceSubclass = String(selectedRaceSubclass || "").trim().toLowerCase();
+        if (raceSubclass) {
+          tags.add(raceSubclass);
+          const raceName = String(raceInput?.value || "").trim().toLowerCase();
+          if (raceName) {
+            tags.add(`${raceName}: ${raceSubclass}`);
+          }
+        }
+        return tags;
       }
 
       function getSelectedFeatTags() {
@@ -1182,7 +1280,7 @@
 
       function getArmorData(name) {
         if (!name) return null;
-        return armorByName.get(name) || null;
+        return armorByName.get(name) || armorByKey.get(normalizeKey(name)) || null;
       }
 
       function getDamageDie(damage) {
@@ -1396,13 +1494,71 @@
         return `${Number.isInteger(gp) ? gp : gp.toFixed(2)} gp`;
       }
 
+      function getCatalogNameCandidates(name) {
+        const raw = String(name || "").trim();
+        if (!raw) return [];
+        const cleaned = raw
+          .replace(/\([^)]*\)/g, " ")
+          .replace(/[.;:]+$/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        const seeds = new Set([raw, cleaned, toDisplayName(cleaned)]);
+        const out = new Set();
+        const addVariants = (value) => {
+          const base = normalizeKey(value);
+          if (!base) return;
+          out.add(base);
+          if (base.endsWith("ies")) {
+            out.add(base.slice(0, -3) + "y");
+          }
+          if (base.endsWith("ves")) {
+            out.add(base.slice(0, -3) + "f");
+            out.add(base.slice(0, -3) + "fe");
+          }
+          if (base.endsWith("es")) {
+            out.add(base.slice(0, -2));
+          }
+          if (base.endsWith("s") && !base.endsWith("ss")) {
+            out.add(base.slice(0, -1));
+          }
+        };
+        seeds.forEach((seed) => addVariants(seed));
+        return Array.from(out).filter(Boolean);
+      }
+
+      function findCatalogEntryByName(name, table = []) {
+        if (!name || !Array.isArray(table) || !table.length) return null;
+        const candidates = getCatalogNameCandidates(name);
+        if (!candidates.length) return null;
+        for (const candidate of candidates) {
+          const found = table.find((entry) => normalizeKey(entry.name) === candidate);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      function resolveCatalogItem(name) {
+        const weapon = findCatalogEntryByName(name, weaponTable);
+        if (weapon) {
+          return { name: weapon.name, isWeapon: true, isArmor: false };
+        }
+        const armor = findCatalogEntryByName(name, armorTable);
+        if (armor) {
+          return { name: armor.name, isWeapon: false, isArmor: true };
+        }
+        const fallbackName = String(name || "").trim();
+        const fallbackKey = normalizeKey(fallbackName);
+        const armorLike = /\b(armor|shield|mail|breastplate|half plate)\b/.test(fallbackKey);
+        return {
+          name: toDisplayName(fallbackName),
+          isWeapon: false,
+          isArmor: armorLike,
+        };
+      }
+
       function normalizeCatalogItemName(name) {
-        const key = normalizeKey(name);
-        const weapon = weaponTable.find((entry) => normalizeKey(entry.name) === key);
-        if (weapon) return weapon.name;
-        const armor = armorTable.find((entry) => normalizeKey(entry.name) === key);
-        if (armor) return armor.name;
-        return name;
+        const resolved = resolveCatalogItem(name);
+        return resolved.name || name;
       }
 
       function parseEquipmentChoiceItems(choiceItems = []) {
@@ -1443,7 +1599,7 @@
           .map((part) =>
             part
               .replace(/^\s*(?:or\s+|and\s+|,\s*)/i, "")
-              .replace(/\s*(?:,\s*or|,\s*and)\s*$/i, "")
+              .replace(/\s*(?:,\s*or|,\s*and|\s+or|\s+and)\s*$/i, "")
               .trim()
           )
           .filter(Boolean);
@@ -1462,18 +1618,119 @@
           .filter(Boolean);
       }
 
+      function parseClassEquipmentWeaponRequirement(rawEntry) {
+        const normalized = normalizeClassEquipmentEntry(rawEntry);
+        const key = normalizeKey(normalized.name);
+        const qty = Math.max(1, Number(normalized.qty) || 1);
+        if (key === "simple weapon" || key === "simple weapons") {
+          return { qty, simple: true, martial: false, melee: false, ranged: false };
+        }
+        if (key === "simple melee weapon" || key === "simple melee weapons") {
+          return { qty, simple: true, martial: false, melee: true, ranged: false };
+        }
+        if (key === "simple ranged weapon" || key === "simple ranged weapons") {
+          return { qty, simple: true, martial: false, melee: false, ranged: true };
+        }
+        if (key === "martial weapon" || key === "martial weapons") {
+          return { qty, simple: false, martial: true, melee: false, ranged: false };
+        }
+        if (key === "martial melee weapon" || key === "martial melee weapons") {
+          return { qty, simple: false, martial: true, melee: true, ranged: false };
+        }
+        if (key === "martial ranged weapon" || key === "martial ranged weapons") {
+          return { qty, simple: false, martial: true, melee: false, ranged: true };
+        }
+        return null;
+      }
+
+      function getClassEquipmentWeaponRequirementFromText(text) {
+        const pieces = splitClassEquipmentTextToEntries(text);
+        let found = null;
+        pieces.forEach((piece) => {
+          const requirement = parseClassEquipmentWeaponRequirement(piece);
+          if (!requirement) return;
+          if (!found) {
+            found = { ...requirement };
+            return;
+          }
+          found.qty += requirement.qty;
+        });
+        return found;
+      }
+
+      function getClassEquipmentWeaponCandidates(requirement) {
+        if (!requirement) return [];
+        return weaponTable
+          .filter((weapon) => {
+            const category = normalizeKey(weapon.category || "");
+            if (requirement.simple && !category.includes("simple")) return false;
+            if (requirement.martial && !category.includes("martial")) return false;
+            if (requirement.melee && !category.includes("melee")) return false;
+            if (requirement.ranged && !category.includes("ranged")) return false;
+            return true;
+          })
+          .map((weapon) => weapon.name)
+          .sort((a, b) => a.localeCompare(b));
+      }
+
+      function getClassEquipmentWeaponRequirementLabel(requirement) {
+        if (!requirement) return "Pick weapon";
+        const scope = requirement.simple
+          ? "simple"
+          : requirement.martial
+            ? "martial"
+            : "";
+        const kind = requirement.melee
+          ? "melee"
+          : requirement.ranged
+            ? "ranged"
+            : "";
+        const parts = [scope, kind, "weapon"].filter(Boolean);
+        return `Pick ${parts.join(" ")}${requirement.qty > 1 ? ` (x${requirement.qty})` : ""}`;
+      }
+
+      function getSelectionWeaponPick(selection) {
+        if (!selection) return "";
+        if (selection.type === "choice") {
+          const picks = selection.weaponPicksByOption && typeof selection.weaponPicksByOption === "object"
+            ? selection.weaponPicksByOption
+            : {};
+          return String(picks[selection.selected] || "").trim();
+        }
+        return String(selection.weaponPick || "").trim();
+      }
+
+      function updateClassEquipmentApplyState() {
+        if (!classEquipmentApply) return;
+        const hasMissingWeaponPick = pendingClassEquipmentSelections.some((selection) => {
+          const text = selection.type === "choice"
+            ? selection.options?.[selection.selected] || selection.options?.[0] || ""
+            : selection.value || "";
+          const requirement = getClassEquipmentWeaponRequirementFromText(text);
+          if (!requirement) return false;
+          const picked = getSelectionWeaponPick(selection);
+          return !picked;
+        });
+        classEquipmentApply.disabled = hasMissingWeaponPick;
+      }
+
       function normalizeClassEquipmentEntry(rawEntry) {
         const text = String(rawEntry || "").trim();
         if (!text) return { name: "", qty: 1 };
         const numberWords = {
           one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
         };
-        const normalized = text.toLowerCase();
-        const numMatch = normalized.match(/^(\d+)\s+(.+)$/);
+        const normalized = text
+          .replace(/^\s*(?:or|and)\s+/i, "")
+          .replace(/\s+(?:or|and)\s*$/i, "")
+          .trim()
+          .toLowerCase();
+        const quantifiable = normalized.replace(/^(a|an|any)\s+/i, "").trim();
+        const numMatch = quantifiable.match(/^(\d+)\s+(.+)$/);
         if (numMatch) {
           return { name: toDisplayName(numMatch[2]), qty: Math.max(1, Number(numMatch[1])) };
         }
-        const wordMatch = normalized.match(/^(one|two|three|four|five|six|seven|eight|nine|ten)\s+(.+)$/);
+        const wordMatch = quantifiable.match(/^(one|two|three|four|five|six|seven|eight|nine|ten)\s+(.+)$/);
         if (wordMatch) {
           return { name: toDisplayName(wordMatch[2]), qty: numberWords[wordMatch[1]] || 1 };
         }
@@ -1559,18 +1816,62 @@
           .filter(Boolean);
       }
 
-      function getFeatGrantedSkillIds() {
-        const ids = new Set();
-        FEAT_LEVEL_MILESTONES.forEach((level) => {
-          const levelKey = String(level);
-          const featName = String(featSelectionsByLevel[levelKey] || "").trim();
-          if (!featName) return;
+      function getFeatAbilityBonusesFromSelections() {
+        const next = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+        forEachAppliedFeatSelection((featName, choiceSelections) => {
           const feat = getFeatData(featName);
           const modifiers = feat?.modifiers && typeof feat.modifiers === "object"
             ? feat.modifiers
             : {};
-          const choiceSelections = featChoiceSelectionsByLevel[levelKey] && typeof featChoiceSelectionsByLevel[levelKey] === "object"
-            ? featChoiceSelectionsByLevel[levelKey]
+
+          const addBonus = (abilityName, amount) => {
+            const key = normalizeAbilityKey(abilityName);
+            if (!key || !(key in next)) return;
+            next[key] += Number(amount) || 0;
+          };
+
+          if (modifiers.ability_score_fixed && typeof modifiers.ability_score_fixed === "object") {
+            Object.entries(modifiers.ability_score_fixed).forEach(([abilityName, amount]) => {
+              addBonus(abilityName, amount);
+            });
+          }
+
+          const selectedAbilities = Array.isArray(choiceSelections.ability_score_choice)
+            ? choiceSelections.ability_score_choice
+            : [];
+          if (selectedAbilities.length) {
+            const count = Math.max(1, Number(modifiers.ability_score_choice_count) || 1);
+            const totalBy = Math.max(1, Number(modifiers.ability_score_increase?.by) || 1);
+            let perPick = totalBy;
+            if (String(featName).toLowerCase() === "ability score improvement" && count >= 2 && totalBy >= 2) {
+              perPick = 1;
+            } else if (count > 1 && totalBy > 1) {
+              perPick = Math.max(1, Math.floor(totalBy / count));
+            }
+            selectedAbilities.forEach((abilityName) => addBonus(abilityName, perPick));
+          }
+        });
+        return next;
+      }
+
+      function recomputeFeatAbilityBonuses() {
+        const next = getFeatAbilityBonusesFromSelections();
+        const current = normalizeAbilityBonusMap(appliedFeatAbilityBonuses);
+        Object.keys(current).forEach((ability) => {
+          const delta = (Number(next[ability]) || 0) - (Number(current[ability]) || 0);
+          if (!delta || !abilityScores[ability]) return;
+          const score = toNumber(getListValue(abilityScores[ability]));
+          setListValue(abilityScores[ability], String(score + delta));
+        });
+        appliedFeatAbilityBonuses = next;
+      }
+
+      function getFeatGrantedSkillIds() {
+        const ids = new Set();
+        forEachAppliedFeatSelection((featName, choiceSelections) => {
+          const feat = getFeatData(featName);
+          const modifiers = feat?.modifiers && typeof feat.modifiers === "object"
+            ? feat.modifiers
             : {};
 
           const addSkillId = (value) => {
@@ -1652,7 +1953,14 @@
           if (appliedBackgroundEquipmentIds.includes(equippedShieldId)) equippedShieldId = "";
         }
         appliedBackgroundEquipmentIds = [];
+        appliedBackgroundFeatNames = [];
+        appliedBackgroundFeatChoiceSelections = {};
         appliedBackgroundName = "";
+        rebuildSelectedFeatItems();
+        recomputeFeatAbilityBonuses();
+        renderTraitsList();
+        updateAllSkillProficiencies();
+        buildCantripPickerList(spellSearch?.value || "");
       }
 
       function setSizePickerOpen(isOpen) {
@@ -1663,14 +1971,43 @@
 
       function setAlignmentPickerOpen(isOpen) {
         if (!alignmentPicker) return;
+        if (!isOpen && subclassPickerLocked) return;
+        const lockedOpen = Boolean(subclassPickerLocked && isOpen);
         alignmentPicker.classList.toggle("open", isOpen);
         alignmentPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        alignmentPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("subclass-picker-modal-open", lockedOpen);
+      }
+
+      function setAbilityPickerInteractivityLock(lockedOpen) {
+        const shouldLock = Boolean(lockedOpen);
+        Array.from(document.body.children).forEach((child) => {
+          if (child === abilityPicker || child.tagName === "SCRIPT") return;
+          if (shouldLock) {
+            child.setAttribute("inert", "");
+            if (!child.hasAttribute("aria-hidden")) {
+              child.setAttribute("aria-hidden", "true");
+              child.dataset.abilityLockHidden = "1";
+            }
+            return;
+          }
+          child.removeAttribute("inert");
+          if (child.dataset.abilityLockHidden === "1") {
+            child.removeAttribute("aria-hidden");
+            delete child.dataset.abilityLockHidden;
+          }
+        });
       }
 
       function setAbilityPickerOpen(isOpen) {
         if (!abilityPicker) return;
+        if (!isOpen && abilityPickerLocked) return;
+        const lockedOpen = Boolean(abilityPickerLocked && isOpen);
         abilityPicker.classList.toggle("open", isOpen);
         abilityPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        abilityPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("ability-picker-modal-open", lockedOpen);
+        setAbilityPickerInteractivityLock(lockedOpen);
         if (!isOpen) {
           suppressAbilityScoreDefaults = false;
           applyBaseDefaults();
@@ -1895,6 +2232,23 @@
           });
           traitsListEl.appendChild(item);
         });
+
+        normalizeFeatNameList(appliedBackgroundFeatNames).forEach((featName) => {
+          const item = document.createElement("li");
+          item.textContent = `Feat (Background): ${featName}`;
+          item.classList.add("trait-clickable");
+          item.setAttribute("role", "button");
+          item.setAttribute("tabindex", "0");
+          const open = () => openFeatPanel(featName);
+          item.addEventListener("click", open);
+          item.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              open();
+            }
+          });
+          traitsListEl.appendChild(item);
+        });
       }
 
       function openInventoryItemPanel(name) {
@@ -1930,6 +2284,17 @@
       let pendingAbilitySelection = null;
       let abilityMethod = "standard";
       let currentRollValues = [];
+      let abilityPickerLocked = false;
+      let racePickerLocked = false;
+      let classPickerLocked = false;
+      let subclassPickerLocked = false;
+      let backgroundPickerLocked = false;
+      let backgroundConfigLocked = false;
+      let pendingSubclassFinalizeEntry = null;
+      let pendingSubclassSelectionHandler = null;
+      let pendingBackgroundClassEntry = null;
+      let newCharacterSetupFlowActive = false;
+      let selectedRaceSubclass = "";
 
       function roll4d6DropLowest() {
         const rolls = [];
@@ -1969,6 +2334,19 @@
           btn.addEventListener("click", () => {
             if (!opt.enabled) return;
             abilityMethod = opt.key;
+            if (abilityMethod === "standard") {
+              pendingAbilityValues = standardArrayValues.slice();
+              pendingAbilitySelection = null;
+            }
+            if (abilityMethod === "roll") {
+              pendingAbilitySelection = null;
+              if (!currentRollValues.length) {
+                currentRollValues = Array.from({ length: 6 }, () => ({
+                  id: `roll_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                  value: roll4d6DropLowest(),
+                }));
+              }
+            }
             buildAbilityPicker();
           });
           abilityOptionsEl.appendChild(btn);
@@ -2060,10 +2438,13 @@
             recalcDerived();
             const allFilled = Object.values(abilityScores).every((el) => Boolean(getListValue(el)));
             if (allFilled) {
+              abilityPickerLocked = false;
               setAbilityPickerOpen(false);
               if (pendingClassEntry) {
                 finalizeClassSelection(pendingClassEntry);
                 pendingClassEntry = null;
+              } else {
+                startRequiredRaceSelection();
               }
               return;
             }
@@ -2074,6 +2455,7 @@
       }
 
       function openAbilityPickerForClass(entry) {
+        abilityPickerLocked = false;
         pendingClassEntry = entry;
         suppressAbilityScoreDefaults = true;
         pendingAbilityValues = standardArrayValues.slice();
@@ -2085,41 +2467,154 @@
         setAbilityPickerOpen(true);
       }
 
-      const alignmentOptions = [
-        "Lawful Good",
-        "Neutral Good",
-        "Chaotic Good",
-        "Lawful Neutral",
-        "Neutral",
-        "Chaotic Neutral",
-        "Lawful Evil",
-        "Neutral Evil",
-        "Chaotic Evil",
-      ];
+      function openAbilityPickerForNewCharacter() {
+        abilityPickerLocked = true;
+        pendingClassEntry = null;
+        newCharacterSetupFlowActive = true;
+        pendingBackgroundClassEntry = null;
+        suppressAbilityScoreDefaults = true;
+        pendingAbilityValues = [];
+        pendingAbilitySelection = null;
+        abilityMethod = "roll";
+        currentRollValues = Array.from({ length: 6 }, () => ({
+          id: `roll_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          value: roll4d6DropLowest(),
+        }));
+        resetAbilityAssignments();
+        buildAbilityPicker();
+        setAbilityPickerOpen(true);
+      }
 
-      function openAlignmentPicker() {
+      function startRequiredRaceSelection() {
+        racePickerLocked = true;
+        setRacePickerOpen(true);
+        buildRacePickerList(raceSearch?.value || "");
+        raceSearch?.focus();
+      }
+
+      function startRequiredClassSelection() {
+        classPickerLocked = true;
+        setClassPickerOpen(true);
+        buildClassPickerList(classSearch?.value || "");
+        classSearch?.focus();
+      }
+
+      function startRequiredBackgroundSelection() {
+        backgroundPickerLocked = true;
+        setBackgroundPickerOpen(true);
+        buildBackgroundPickerList(backgroundSearch?.value || "");
+        backgroundSearch?.focus();
+      }
+
+      function getClassSubclassNames(entry) {
+        if (!entry || !Array.isArray(entry.subclasses)) return [];
+        return entry.subclasses
+          .map((sub) => {
+            if (sub && typeof sub === "object") return String(sub.name || "").trim();
+            return String(sub || "").trim();
+          })
+          .filter(Boolean);
+      }
+
+      function getRaceSubclassNames(entry) {
+        if (!entry || !Array.isArray(entry.subclass)) return [];
+        return entry
+          .subclass
+          .map((sub) => String(sub || "").trim())
+          .filter(Boolean);
+      }
+
+      function syncSubclassInputForClass(entry) {
+        if (!subclassInput) return;
+        const names = getClassSubclassNames(entry);
+        subclassInput.disabled = !entry || !names.length;
+        if (!names.length) {
+          subclassInput.value = "";
+          return;
+        }
+        const current = String(subclassInput.value || "").trim();
+        if (current && !names.includes(current)) {
+          subclassInput.value = "";
+        }
+      }
+
+      function openSubclassChoicePicker(options, {
+        title = "Choose subclass",
+        required = false,
+        currentValue = "",
+        onSelect = null,
+      } = {}) {
+        const names = Array.isArray(options)
+          ? options.map((sub) => String(sub || "").trim()).filter(Boolean)
+          : [];
+        if (!names.length) return false;
+        pendingSubclassSelectionHandler = typeof onSelect === "function" ? onSelect : null;
+        subclassPickerLocked = Boolean(required);
+        if (alignmentPickerTitle) {
+          alignmentPickerTitle.textContent = title;
+        }
         if (!alignmentPickerList) return;
         alignmentPickerList.innerHTML = "";
         const list = document.createElement("div");
         list.className = "weapon-list";
-        alignmentOptions.forEach((alignment) => {
+        names.forEach((subclassName) => {
           const option = document.createElement("div");
           option.className = "weapon-option";
-          if (alignmentInput?.value === alignment) {
+          if (currentValue === subclassName) {
             option.classList.add("selected");
           }
-          option.textContent = alignment;
+          option.textContent = subclassName;
           option.addEventListener("click", () => {
-            if (alignmentInput) {
-              alignmentInput.value = alignment;
-            }
+            const handler = pendingSubclassSelectionHandler;
+            pendingSubclassSelectionHandler = null;
+            subclassPickerLocked = false;
             setAlignmentPickerOpen(false);
             scheduleSave();
+            if (handler) handler(subclassName);
           });
           list.appendChild(option);
         });
         alignmentPickerList.appendChild(list);
         setAlignmentPickerOpen(true);
+        return true;
+      }
+
+      function openAlignmentPicker(entry, { required = false, finalizeOnPick = false } = {}) {
+        const subclassNames = getClassSubclassNames(entry);
+        if (!subclassNames.length) return;
+        pendingSubclassFinalizeEntry = finalizeOnPick ? entry : null;
+        openSubclassChoicePicker(subclassNames, {
+          title: "Choose subclass",
+          required,
+          currentValue: String(subclassInput?.value || "").trim(),
+          onSelect: (subclassName) => {
+            if (subclassInput) {
+              subclassInput.value = subclassName;
+            }
+            const finalizeEntry = pendingSubclassFinalizeEntry;
+            pendingSubclassFinalizeEntry = null;
+            if (finalizeEntry) {
+              finalizeClassSelection(finalizeEntry);
+            }
+          },
+        });
+      }
+
+      function openRaceSubclassPicker(entry, { required = false, onComplete = null } = {}) {
+        const raceSubclasses = getRaceSubclassNames(entry);
+        if (!raceSubclasses.length) {
+          if (typeof onComplete === "function") onComplete();
+          return;
+        }
+        openSubclassChoicePicker(raceSubclasses, {
+          title: "Choose race subclass",
+          required,
+          currentValue: String(selectedRaceSubclass || "").trim(),
+          onSelect: (subclassName) => {
+            selectedRaceSubclass = subclassName;
+            if (typeof onComplete === "function") onComplete();
+          },
+        });
       }
 
       function openSizePicker(options) {
@@ -2152,6 +2647,7 @@
           currentRaceSpeed = "";
           currentRaceSizes = [];
           currentRaceTraits = [];
+          selectedRaceSubclass = "";
           if (speedInput) setListValue(speedInput, "");
           if (sizeInput) sizeInput.value = "";
           renderTraitsList();
@@ -2160,6 +2656,10 @@
         }
         const race = getRaceData(raceName);
         if (!race) return;
+        const raceSubclasses = getRaceSubclassNames(race);
+        if (!raceSubclasses.includes(selectedRaceSubclass)) {
+          selectedRaceSubclass = "";
+        }
         const speedValue = normalizeRaceSpeed(race.speed);
         currentRaceSpeed = speedValue;
         if (speedInput) {
@@ -2228,6 +2728,15 @@
         if (!spellCastSoundEl) return;
         spellCastSoundEl.currentTime = 0;
         const playPromise = spellCastSoundEl.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {});
+        }
+      }
+
+      function playWeaponSound() {
+        if (!weaponSoundEl) return;
+        weaponSoundEl.currentTime = 0;
+        const playPromise = weaponSoundEl.play();
         if (playPromise && typeof playPromise.catch === "function") {
           playPromise.catch(() => {});
         }
@@ -2308,6 +2817,7 @@
 
       function applyClassSelection(entry, { rollHp = false } = {}) {
         if (!entry) return;
+        syncSubclassInputForClass(entry);
         updateTotalHpForClass(entry);
         setSavingThrowProficiencies(entry.savingThrows || []);
         currentWeaponProficiencies = Array.isArray(entry.weaponProficiencies)
@@ -2329,14 +2839,17 @@
 
       function finalizeClassSelection(entry) {
         if (!entry) return;
-        if (alignmentInput) {
-          alignmentInput.disabled = false;
-        }
+        syncSubclassInputForClass(entry);
         if (xpInput) {
           setListValue(xpInput, String(DEFAULT_XP));
         }
         applyClassSelection(entry, { rollHp: true });
-        openClassEquipmentPicker(entry);
+        if (newCharacterSetupFlowActive) {
+          pendingBackgroundClassEntry = entry;
+          startRequiredBackgroundSelection();
+        } else {
+          openClassEquipmentPicker(entry);
+        }
         scheduleSave();
         openClassPanel(entry);
         if (itemPanel) {
@@ -2622,8 +3135,12 @@
 
       function setRacePickerOpen(isOpen) {
         if (!racePicker) return;
+        if (!isOpen && racePickerLocked) return;
+        const lockedOpen = Boolean(racePickerLocked && isOpen);
         racePicker.classList.toggle("open", isOpen);
         racePicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        racePicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("race-picker-modal-open", lockedOpen);
         if (isOpen) {
           raceSelected = "";
           if (racePickerAdd) {
@@ -2634,8 +3151,12 @@
 
       function setClassPickerOpen(isOpen) {
         if (!classPicker) return;
+        if (!isOpen && classPickerLocked) return;
+        const lockedOpen = Boolean(classPickerLocked && isOpen);
         classPicker.classList.toggle("open", isOpen);
         classPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        classPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("class-picker-modal-open", lockedOpen);
         if (isOpen) {
           classSelected = "";
           if (classPickerAdd) {
@@ -2655,8 +3176,12 @@
 
       function setBackgroundPickerOpen(isOpen) {
         if (!backgroundPicker) return;
+        if (!isOpen && backgroundPickerLocked) return;
+        const lockedOpen = Boolean(backgroundPickerLocked && isOpen);
         backgroundPicker.classList.toggle("open", isOpen);
         backgroundPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        backgroundPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("background-picker-modal-open", lockedOpen);
         if (isOpen) {
           backgroundSelected = "";
           if (backgroundPickerAdd) {
@@ -2667,8 +3192,12 @@
 
       function setBackgroundConfigOpen(isOpen) {
         if (!backgroundConfigPicker) return;
+        if (!isOpen && backgroundConfigLocked) return;
+        const lockedOpen = Boolean(backgroundConfigLocked && isOpen);
         backgroundConfigPicker.classList.toggle("open", isOpen);
         backgroundConfigPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        backgroundConfigPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("background-config-modal-open", lockedOpen);
         if (!isOpen) {
           pendingBackgroundEntry = null;
         }
@@ -3281,6 +3810,7 @@
                 .filter(([, values]) => values.length)
             )
           : {};
+        recomputeFeatAbilityBonuses();
         rebuildSelectedFeatItems();
         renderTraitsList();
         updateAllSkillProficiencies();
@@ -3538,10 +4068,55 @@
           const title = document.createElement("h4");
           title.textContent = `Choice ${idx + 1}`;
           card.appendChild(title);
+          const subChoiceWrap = document.createElement("div");
+          const renderWeaponSubChoice = (text) => {
+            subChoiceWrap.innerHTML = "";
+            const requirement = getClassEquipmentWeaponRequirementFromText(text);
+            if (!requirement) {
+              updateClassEquipmentApplyState();
+              return;
+            }
+            const label = document.createElement("div");
+            label.className = "spell-meta";
+            label.textContent = getClassEquipmentWeaponRequirementLabel(requirement);
+            subChoiceWrap.appendChild(label);
+            const pick = document.createElement("select");
+            const first = document.createElement("option");
+            first.value = "";
+            first.textContent = "Select a weapon";
+            pick.appendChild(first);
+            const candidates = getClassEquipmentWeaponCandidates(requirement);
+            candidates.forEach((name) => {
+              const option = document.createElement("option");
+              option.value = name;
+              option.textContent = name;
+              pick.appendChild(option);
+            });
+            const selectedPick = getSelectionWeaponPick(selection);
+            if (selectedPick && candidates.includes(selectedPick)) {
+              pick.value = selectedPick;
+            }
+            pick.addEventListener("change", () => {
+              const value = String(pick.value || "").trim();
+              if (selection.type === "choice") {
+                if (!selection.weaponPicksByOption || typeof selection.weaponPicksByOption !== "object") {
+                  selection.weaponPicksByOption = {};
+                }
+                selection.weaponPicksByOption[selection.selected] = value;
+              } else {
+                selection.weaponPick = value;
+              }
+              updateClassEquipmentApplyState();
+            });
+            subChoiceWrap.appendChild(pick);
+            updateClassEquipmentApplyState();
+          };
           if (selection.type === "fixed") {
             const text = document.createElement("div");
-            text.textContent = selection.value || "--";
+            const fixedText = selection.value || "--";
+            text.textContent = fixedText;
             card.appendChild(text);
+            renderWeaponSubChoice(fixedText);
           } else {
             const select = document.createElement("select");
             selection.options.forEach((optionText, optIdx) => {
@@ -3553,11 +4128,16 @@
             });
             select.addEventListener("change", () => {
               selection.selected = Math.max(0, Number(select.value) || 0);
+              renderWeaponSubChoice(selection.options[selection.selected] || selection.options[0] || "");
+              updateClassEquipmentApplyState();
             });
             card.appendChild(select);
+            renderWeaponSubChoice(selection.options[selection.selected] || selection.options[0] || "");
           }
+          card.appendChild(subChoiceWrap);
           classEquipmentBody.appendChild(card);
         });
+        updateClassEquipmentApplyState();
       }
 
       function applyClassStartingEquipment(entry) {
@@ -3570,15 +4150,32 @@
             selection.type === "choice"
               ? selection.options[selection.selected] || selection.options[0] || ""
               : selection.value;
+          const chosenWeapon = getSelectionWeaponPick(selection);
           splitClassEquipmentTextToEntries(text).forEach((rawPiece) => {
+            const requirement = parseClassEquipmentWeaponRequirement(rawPiece);
+            if (requirement) {
+              if (!chosenWeapon) return;
+              for (let count = 0; count < requirement.qty; count += 1) {
+                const eq = createEquipmentItem(chosenWeapon);
+                equipmentItems.push(eq);
+                equipmentAdds.push(eq.id);
+              }
+              return;
+            }
             const normalized = normalizeClassEquipmentEntry(rawPiece);
             if (!normalized.name) return;
+            const resolved = resolveCatalogItem(normalized.name);
+            const resolvedName = resolved.name || normalized.name;
             const qty = Math.max(1, Number(normalized.qty) || 1);
+            const isWeapon = Boolean(resolved.isWeapon);
+            const isArmorOrShield = Boolean(resolved.isArmor);
             for (let idx = 0; idx < qty; idx += 1) {
-              inventoryItems.push(normalized.name);
-              inventoryAdds.push(normalized.name);
-              if (getWeaponData(normalized.name) || getArmorData(normalized.name)) {
-                const eq = createEquipmentItem(normalized.name);
+              if (!isWeapon && !isArmorOrShield) {
+                inventoryItems.push(resolvedName);
+                inventoryAdds.push(resolvedName);
+              }
+              if (isWeapon || isArmorOrShield) {
+                const eq = createEquipmentItem(resolvedName);
                 equipmentItems.push(eq);
                 equipmentAdds.push(eq.id);
               }
@@ -3597,6 +4194,7 @@
         pendingClassEquipmentEntry = entry;
         pendingClassEquipmentSelections = [];
         buildClassEquipmentPicker(entry);
+        updateClassEquipmentApplyState();
         setClassEquipmentOpen(true);
       }
 
@@ -3831,6 +4429,12 @@
 
         const skills = extractBackgroundSkillNames(entry);
         setBackgroundSkillProficiencies(skills);
+        appliedBackgroundFeatNames = normalizeFeatNameList(extractBackgroundFeatNames(entry));
+        appliedBackgroundFeatChoiceSelections = {};
+        rebuildSelectedFeatItems();
+        recomputeFeatAbilityBonuses();
+        renderTraitsList();
+        updateAllSkillProficiencies();
 
         const choiceSet = entry.startingEquipment?.[0] || {};
         const selectedChoice = choiceSet[pendingBackgroundEquipmentChoice] || [];
@@ -3842,7 +4446,7 @@
           const isWeapon = Boolean(getWeaponData(row.name));
           const isArmor = Boolean(getArmorData(row.name));
           for (let idx = 0; idx < qty; idx += 1) {
-            if (!isWeapon) {
+            if (!isWeapon && !isArmor) {
               inventoryItems.push(row.name);
               inventoryAdds.push(row.name);
             }
@@ -4659,20 +5263,40 @@
         if (racePickerAdd) {
           racePickerAdd.addEventListener("click", () => {
             if (!raceSelected || !raceInput) return;
+            const shouldRequireClass = racePickerLocked;
+            const raceEntry = raceByName.get(raceSelected);
             raceInput.value = raceSelected;
             applyRaceSelection(raceSelected, { promptForSize: true });
             scheduleSave();
+            racePickerLocked = false;
             setRacePickerOpen(false);
+            if (raceEntry && getRaceSubclassNames(raceEntry).length) {
+              openRaceSubclassPicker(raceEntry, {
+                required: shouldRequireClass,
+                onComplete: () => {
+                  scheduleSave();
+                  if (shouldRequireClass) {
+                    startRequiredClassSelection();
+                  }
+                },
+              });
+              return;
+            }
+            if (shouldRequireClass) {
+              startRequiredClassSelection();
+            }
           });
         }
         if (racePickerClose) {
           racePickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (racePickerLocked) return;
             setRacePickerOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (racePickerLocked) return;
             setRacePickerOpen(false);
           }
         });
@@ -4694,14 +5318,31 @@
       }
 
       function initAlignmentPicker() {
+        if (subclassInput) {
+          const openSubclassPicker = () => {
+            const className = String(classInput?.value || "").trim();
+            if (!className || !classesLoaded) return;
+            const entry = classByName.get(className);
+            if (!entry || !getClassSubclassNames(entry).length) return;
+            openAlignmentPicker(entry, { required: false, finalizeOnPick: false });
+          };
+          subclassInput.addEventListener("click", openSubclassPicker);
+          subclassInput.addEventListener("focus", openSubclassPicker);
+        }
         if (alignmentPickerClose) {
           alignmentPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (subclassPickerLocked) return;
+            pendingSubclassFinalizeEntry = null;
+            pendingSubclassSelectionHandler = null;
             setAlignmentPickerOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (subclassPickerLocked) return;
+            pendingSubclassFinalizeEntry = null;
+            pendingSubclassSelectionHandler = null;
             setAlignmentPickerOpen(false);
           }
         });
@@ -4711,11 +5352,13 @@
         if (abilityPickerClose) {
           abilityPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (abilityPickerLocked) return;
             setAbilityPickerOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (abilityPickerLocked) return;
             setAbilityPickerOpen(false);
           }
         });
@@ -4748,17 +5391,25 @@
         if (classPickerAdd) {
           classPickerAdd.addEventListener("click", () => {
             if (!classSelected || !classInput) return;
+            const shouldRequireSubclass = classPickerLocked;
             classInput.value = classSelected;
+            classPickerLocked = false;
             setClassPickerOpen(false);
             const entry = classByName.get(classSelected);
             if (entry) {
-              openAbilityPickerForClass(entry);
+              const subclassNames = getClassSubclassNames(entry);
+              if (subclassNames.length) {
+                openAlignmentPicker(entry, { required: shouldRequireSubclass, finalizeOnPick: true });
+              } else {
+                finalizeClassSelection(entry);
+              }
             }
           });
         }
         if (classPickerClose) {
           classPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (classPickerLocked) return;
             setClassPickerOpen(false);
           });
         }
@@ -4778,6 +5429,7 @@
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (classPickerLocked) return;
             setClassPickerOpen(false);
             setClassEquipmentOpen(false);
           }
@@ -4820,11 +5472,14 @@
         if (backgroundPickerAdd) {
           backgroundPickerAdd.addEventListener("click", () => {
             if (!backgroundSelected || !backgroundInput) return;
+            const requiresConfig = backgroundPickerLocked;
             backgroundInput.value = backgroundSelected;
             const entry = backgroundByName.get(backgroundSelected);
+            backgroundPickerLocked = false;
             setBackgroundPickerOpen(false);
             if (entry) {
               openBackgroundPanel(entry);
+              backgroundConfigLocked = requiresConfig;
               openBackgroundConfig(entry);
             }
           });
@@ -4832,6 +5487,7 @@
         if (backgroundPickerClose) {
           backgroundPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (backgroundPickerLocked) return;
             setBackgroundPickerOpen(false);
           });
         }
@@ -4840,17 +5496,29 @@
             if (!pendingBackgroundEntry) return;
             applyBackgroundSelection(pendingBackgroundEntry);
             scheduleSave();
+            const wasRequiredConfig = backgroundConfigLocked;
+            backgroundConfigLocked = false;
             setBackgroundConfigOpen(false);
+            if (wasRequiredConfig) {
+              const classEntry = pendingBackgroundClassEntry;
+              pendingBackgroundClassEntry = null;
+              newCharacterSetupFlowActive = false;
+              if (classEntry) {
+                openClassEquipmentPicker(classEntry);
+              }
+            }
           });
         }
         if (backgroundConfigClose) {
           backgroundConfigClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (backgroundConfigLocked) return;
             setBackgroundConfigOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (backgroundPickerLocked || backgroundConfigLocked) return;
             setBackgroundPickerOpen(false);
             setBackgroundConfigOpen(false);
           }
@@ -4889,15 +5557,19 @@
         payload.appliedBackgroundSkillIds = appliedBackgroundSkillIds.slice();
         payload.appliedBackgroundInventoryNames = appliedBackgroundInventoryNames.slice();
         payload.appliedBackgroundEquipmentIds = appliedBackgroundEquipmentIds.slice();
+        payload.appliedBackgroundFeatNames = appliedBackgroundFeatNames.slice();
+        payload.appliedBackgroundFeatChoiceSelections = { ...appliedBackgroundFeatChoiceSelections };
         payload.pendingBackgroundAbilityMode = pendingBackgroundAbilityMode;
         payload.pendingBackgroundAbilityAssignments = pendingBackgroundAbilityAssignments.slice();
         payload.pendingBackgroundEquipmentChoice = pendingBackgroundEquipmentChoice;
         payload.appliedClassEquipmentName = appliedClassEquipmentName;
         payload.appliedClassInventoryNames = appliedClassInventoryNames.slice();
         payload.appliedClassEquipmentIds = appliedClassEquipmentIds.slice();
+        payload.selectedRaceSubclass = selectedRaceSubclass;
         payload.selectedFeatItems = selectedFeatItems.slice();
         payload.featSelectionsByLevel = { ...featSelectionsByLevel };
         payload.featChoiceSelectionsByLevel = { ...featChoiceSelectionsByLevel };
+        payload.appliedFeatAbilityBonuses = { ...appliedFeatAbilityBonuses };
         return payload;
       }
 
@@ -4906,6 +5578,77 @@
           localStorage.setItem(LOCAL_SHEET_STORAGE_KEY, JSON.stringify(payload));
         } catch (error) {
           console.error("Failed to save local sheet", error);
+        }
+      }
+
+      function buildBlankSheetData() {
+        const payload = {};
+        for (const el of fieldEls) {
+          payload[el.id] = el.type === "checkbox" ? false : "";
+        }
+        payload.level = "1";
+        payload.equipmentItems = [];
+        payload.inventoryItems = [];
+        payload.cantripItems = [];
+        payload.spellLevel1Items = [];
+        payload.spellLevel2Items = [];
+        payload.spellLevel3Items = [];
+        payload.equippedMainId = "";
+        payload.equippedOffhandId = "";
+        payload.equippedMainTwoHanded = false;
+        payload.equippedArmorId = "";
+        payload.equippedShieldId = "";
+        payload.appliedBackgroundName = "";
+        payload.appliedBackgroundAbilityBonuses = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+        payload.appliedBackgroundSkillIds = [];
+        payload.appliedBackgroundInventoryNames = [];
+        payload.appliedBackgroundEquipmentIds = [];
+        payload.appliedBackgroundFeatNames = [];
+        payload.appliedBackgroundFeatChoiceSelections = {};
+        payload.pendingBackgroundAbilityMode = 0;
+        payload.pendingBackgroundAbilityAssignments = [];
+        payload.pendingBackgroundEquipmentChoice = "A";
+        payload.appliedClassEquipmentName = "";
+        payload.appliedClassInventoryNames = [];
+        payload.appliedClassEquipmentIds = [];
+        payload.selectedRaceSubclass = "";
+        payload.selectedFeatItems = [];
+        payload.featSelectionsByLevel = FEAT_LEVEL_MILESTONES.reduce((acc, level) => {
+          acc[String(level)] = "";
+          return acc;
+        }, {});
+        payload.featChoiceSelectionsByLevel = FEAT_LEVEL_MILESTONES.reduce((acc, level) => {
+          acc[String(level)] = {};
+          return acc;
+        }, {});
+        payload.appliedFeatAbilityBonuses = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+        return payload;
+      }
+
+      function setStartupModalOpen(isOpen) {
+        document.body.classList.toggle("startup-modal-open", Boolean(isOpen));
+        if (startupModalOverlay) {
+          startupModalOverlay.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        }
+        if (isOpen) {
+          startupNewCharacterBtn?.focus();
+        }
+      }
+
+      async function startNewCharacter() {
+        const blank = buildBlankSheetData();
+        try {
+          localStorage.removeItem(LOCAL_SHEET_STORAGE_KEY);
+        } catch (error) {
+          console.error("Failed to clear local sheet", error);
+        }
+        applySheetData(blank);
+        const payload = buildSheetPayload();
+        saveLocalSheet(payload);
+        try {
+          await setDoc(sheetRef, payload);
+        } catch (error) {
+          console.error("Failed to save new character sheet", error);
         }
       }
 
@@ -4929,8 +5672,10 @@
             setListValue(el, data[el.id]);
           }
         });
-        if (alignmentInput) {
-          alignmentInput.disabled = !classInput?.value;
+        if (subclassInput) {
+          const className = String(classInput?.value || "").trim();
+          const classEntry = classByName.get(className);
+          syncSubclassInputForClass(classEntry || null);
         }
         if (classInput?.value && classesLoaded) {
           const entry = classByName.get(classInput.value);
@@ -4940,6 +5685,8 @@
         }
         featSelectionsByLevel = normalizeFeatSelectionMap(data.featSelectionsByLevel);
         featChoiceSelectionsByLevel = normalizeFeatChoiceSelectionMap(data.featChoiceSelectionsByLevel);
+        const hasIncomingFeatBonuses = data.appliedFeatAbilityBonuses && typeof data.appliedFeatAbilityBonuses === "object";
+        appliedFeatAbilityBonuses = normalizeAbilityBonusMap(data.appliedFeatAbilityBonuses);
         if (Array.isArray(data.selectedFeatItems) && data.selectedFeatItems.length) {
           selectedFeatItems = data.selectedFeatItems
             .map((entry) => String(entry || "").trim())
@@ -4952,6 +5699,9 @@
           });
         } else {
           rebuildSelectedFeatItems();
+        }
+        if (!hasIncomingFeatBonuses) {
+          recomputeFeatAbilityBonuses();
         }
         applyRaceSelection(raceInput?.value || "");
         if (Array.isArray(data.equipmentItems)) {
@@ -5033,6 +5783,8 @@
         appliedBackgroundEquipmentIds = Array.isArray(data.appliedBackgroundEquipmentIds)
           ? data.appliedBackgroundEquipmentIds.map((entry) => String(entry || "")).filter(Boolean)
           : [];
+        appliedBackgroundFeatNames = normalizeFeatNameList(data.appliedBackgroundFeatNames);
+        appliedBackgroundFeatChoiceSelections = normalizeBackgroundFeatChoiceSelectionMap(data.appliedBackgroundFeatChoiceSelections);
         pendingBackgroundAbilityMode = Number.isFinite(Number(data.pendingBackgroundAbilityMode))
           ? Number(data.pendingBackgroundAbilityMode)
           : 0;
@@ -5053,6 +5805,9 @@
         appliedClassEquipmentIds = Array.isArray(data.appliedClassEquipmentIds)
           ? data.appliedClassEquipmentIds.map((entry) => String(entry || "")).filter(Boolean)
           : [];
+        selectedRaceSubclass = typeof data.selectedRaceSubclass === "string"
+          ? data.selectedRaceSubclass.trim()
+          : "";
         appliedClassEquipmentIds = appliedClassEquipmentIds
           .filter((id) => equipmentItems.some((item) => item.id === id));
         appliedBackgroundEquipmentIds = appliedBackgroundEquipmentIds
@@ -5108,6 +5863,37 @@
         const time = when
           ? when.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
           : "now";
+        if (data.type === "weaponAttack") {
+          const header = document.createElement("div");
+          header.textContent = `${data.label || "Weapon Attack"} (by ${who} at ${time})`;
+          resultEl.appendChild(header);
+
+          const attackLine = document.createElement("div");
+          attackLine.className = "roll-line";
+          const attackMod = Number(data.attackMod) || 0;
+          const attackRoll = Number(data.attackRoll) || 0;
+          const attackTotal = Number(data.attackTotal) || 0;
+          attackLine.textContent = `Attack: d20 ${attackRoll} ${attackMod >= 0 ? "+" : ""}${attackMod} = ${attackTotal}`;
+          resultEl.appendChild(attackLine);
+
+          const damageLine = document.createElement("div");
+          damageLine.className = "roll-line";
+          const damageMod = Number(data.damageMod) || 0;
+          const damageBase = Number(data.damageBase) || 0;
+          const damageDice = String(data.damageDice || "").trim();
+          const damageType = String(data.damageType || "").trim();
+          const damageDetail = String(data.damageDetail || "").trim();
+          const damageLabel = damageType ? `${damageDice} ${damageType}` : damageDice;
+          const detailText = damageDetail ? ` (${damageDetail})` : "";
+          damageLine.textContent = `Damage: ${damageLabel}${detailText} ${damageMod >= 0 ? "+" : ""}${damageMod} = ${damageBase + damageMod}`;
+          resultEl.appendChild(damageLine);
+
+          const total = document.createElement("div");
+          total.className = "roll-total";
+          total.textContent = `Damage Total: ${Number(data.damageTotal) || (damageBase + damageMod)}`;
+          resultEl.appendChild(total);
+          return;
+        }
         if (Array.isArray(data.parts)) {
           const header = document.createElement("div");
           header.textContent = `${data.label} (by ${who} at ${time})`;
@@ -5158,6 +5944,7 @@
         }, ROLL_WINDOW_HIDE_MS);
       }
 
+      setStartupModalOpen(true);
       loadLocalSheet();
 
       onSnapshot(sheetRef, (snap) => {
@@ -5237,6 +6024,14 @@
         }
       }
       initApp();
+      startupNewCharacterBtn?.addEventListener("click", async () => {
+        await startNewCharacter();
+        setStartupModalOpen(false);
+        openAbilityPickerForNewCharacter();
+      });
+      startupLoadCharacterBtn?.addEventListener("click", () => {
+        setStartupModalOpen(false);
+      });
 
       if (rollBtn) {
         rollBtn.addEventListener("click", async () => {
@@ -5395,12 +6190,53 @@
               ? (toNumber(getListValue(abilityMods.dex)) >= toNumber(getListValue(abilityMods.str)) ? "dex" : "str")
               : ability || "str";
             const abilityValue = toNumber(getListValue(abilityMods[abilityKey]));
-            const parts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: abilityValue }];
+            const attackBonusParts = [{ label: `${abilityKey.toUpperCase()} Mod`, value: abilityValue }];
             if (weapon && isWeaponProficient(weapon)) {
-              parts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
+              attackBonusParts.push({ label: "Proficiency", value: toNumber(proficiencyBonusEl?.value) });
             }
-            const label = weaponName ? `${weaponName} Hit` : "Hit Roll";
-            rollD20WithParts(parts, label);
+            const attackMod = attackBonusParts.reduce((sum, part) => sum + (Number(part.value) || 0), 0);
+            const attackRoll = Math.floor(Math.random() * 20) + 1;
+            const attackTotal = attackRoll + attackMod;
+
+            const useTwoHands =
+              mainItem.id === equippedMainId && equippedMainTwoHanded && isVersatileWeapon(weapon);
+            const damageDice = getWeaponDamageDie(weapon, useTwoHands);
+            if (!damageDice) {
+              setEquipStatus("This weapon has no damage dice configured.");
+              return;
+            }
+            const damageType = String(weapon.damage || "").split(" ").slice(1).join(" ").trim();
+            const damageDetail = rollDiceDetailed(damageDice);
+            const damageBase = Number(damageDetail.total) || 0;
+            const damageMod = abilityValue;
+            const damageTotal = damageBase + damageMod;
+
+            playDiceSound(playWeaponSound);
+
+            const label = weaponName ? `${weaponName} Attack` : "Weapon Attack";
+            const localData = {
+              type: "weaponAttack",
+              label,
+              attackRoll,
+              attackMod,
+              attackTotal,
+              damageDice,
+              damageType,
+              damageDetail: Array.isArray(damageDetail.rolls) ? damageDetail.rolls.join("+") : "",
+              damageBase,
+              damageMod,
+              damageTotal,
+              by: "you",
+              at: { seconds: Math.floor(Date.now() / 1000) },
+            };
+            renderRoll(localData);
+            setDoc(rollRef, {
+              ...localData,
+              by: "anonymous",
+              at: serverTimestamp(),
+            }).catch((error) => {
+              console.error("Failed to save attack roll", error);
+            });
           } catch (error) {
             console.error("Failed to roll attack", error);
           }

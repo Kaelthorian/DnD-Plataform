@@ -32,19 +32,27 @@
         pointer-events: none;
         user-select: none;
       }
-      body.ability-picker-modal-open > *:not(.ability-picker):not(script) {
+      body.ability-picker-modal-open > *:not(.ability-picker):not(.item-panel):not(script) {
         pointer-events: none;
         user-select: none;
       }
-      body.race-picker-modal-open > *:not(.race-picker):not(script) {
+      body.race-picker-modal-open > *:not(.race-picker):not(.item-panel):not(script) {
         pointer-events: none;
         user-select: none;
       }
-      body.class-picker-modal-open > *:not(.class-picker):not(script) {
+      body.class-picker-modal-open > *:not(.class-picker):not(.item-panel):not(script) {
         pointer-events: none;
         user-select: none;
       }
-      body.subclass-picker-modal-open > *:not(.alignment-picker):not(script) {
+      body.subclass-picker-modal-open > *:not(.alignment-picker):not(.item-panel):not(script) {
+        pointer-events: none;
+        user-select: none;
+      }
+      body.background-picker-modal-open > *:not(.background-picker):not(.item-panel):not(script) {
+        pointer-events: none;
+        user-select: none;
+      }
+      body.background-config-modal-open > *:not(.background-config-picker):not(.item-panel):not(script) {
         pointer-events: none;
         user-select: none;
       }
@@ -425,12 +433,15 @@
       }
       .grid-equipment {
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
       .grid-equipment .panel-label {
         top: 8px;
       }
       .grid-equipment .actions {
         margin-top: 20px;
+        flex: 0 0 auto;
       }
       .grid-spells .panel-label {
         top: 8px;
@@ -440,6 +451,8 @@
       }
       #equipment-list {
         max-height: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
         overflow: auto;
       }
       .tab-actions {
@@ -768,7 +781,7 @@
       }
       .equipment-item.active {
         border-color: var(--accent);
-        box-shadow: 0 0 0 2px rgba(184, 74, 45, 0.15);
+        box-shadow: 0 0 0 1px rgba(184, 74, 45, 0.15);
       }
       .equip-btn {
         padding: 4px 8px;
@@ -980,6 +993,12 @@
       .alignment-picker.locked #alignment-picker-close {
         display: none;
       }
+      .background-picker.locked #background-picker-close {
+        display: none;
+      }
+      .background-config-picker.locked #background-config-close {
+        display: none;
+      }
       .ability-picker .ability-values,
       .ability-picker .ability-choices {
         display: grid;
@@ -1131,7 +1150,7 @@
         color: var(--muted);
       }
       .alignment-picker .weapon-picker-header {
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto auto;
       }
       .weapon-picker-header input {
         width: 100%;
@@ -1269,7 +1288,7 @@
       }
       .inventory-header.with-qty,
       .inventory-row.with-qty {
-        grid-template-columns: 120px minmax(0, 1fr) 80px 52px auto;
+        grid-template-columns: 120px minmax(0, 1fr) 80px 52px 76px auto;
       }
       .inventory-header {
         font-size: 0.75rem;
@@ -1311,6 +1330,16 @@
         color: #fff;
         cursor: pointer;
         font-size: 0.75rem;
+      }
+      .inventory-remove-qty {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid #cdbba8;
+        border-radius: 8px;
+        padding: 4px 6px;
+        font-family: inherit;
+        font-size: 0.8rem;
+        text-align: center;
       }
       @media (max-width: 960px) {
         .layout {
@@ -1855,6 +1884,7 @@
     <aside class="weapon-picker alignment-picker" id="alignment-picker" aria-live="polite" aria-label="Alignment picker" aria-hidden="true">
       <div class="weapon-picker-header">
         <div class="picker-title">Choose alignment</div>
+        <button id="alignment-picker-add" class="weapon-picker-add" type="button" disabled>Add</button>
         <button id="alignment-picker-close" class="weapon-picker-close" type="button">X</button>
       </div>
       <div id="alignment-picker-list"></div>
@@ -1950,6 +1980,7 @@
         getFirestore,
         doc,
         setDoc,
+        getDocFromServer,
         onSnapshot,
         serverTimestamp,
         collection,
@@ -2077,6 +2108,7 @@
       const sizePickerClose = document.getElementById("size-picker-close");
       const alignmentPicker = document.getElementById("alignment-picker");
       const alignmentPickerList = document.getElementById("alignment-picker-list");
+      const alignmentPickerAdd = document.getElementById("alignment-picker-add");
       const alignmentPickerClose = document.getElementById("alignment-picker-close");
       const alignmentPickerTitle = alignmentPicker?.querySelector(".picker-title") || null;
       const spellPicker = document.getElementById("spell-picker");
@@ -2182,6 +2214,12 @@
       function toNumber(value) {
         const num = Number(value);
         return Number.isFinite(num) ? num : 0;
+      }
+
+      function floorRollTotal(value) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return 1;
+        return Math.max(1, Math.floor(num));
       }
 
       function formatMod(num) {
@@ -2836,7 +2874,7 @@
       async function loadArmors() {
         try {
           const data = await fetchJsonWithFallback(
-            ["./Data/armors.json", "./Items/armors.json"],
+            ["./Data/armors.json", "./Data/Items/armors.json", "./Items/armors.json"],
             "Armor"
           );
           armorTable = Object.values(data || {})
@@ -3439,13 +3477,71 @@
         return `${Number.isInteger(gp) ? gp : gp.toFixed(2)} gp`;
       }
 
+      function getCatalogNameCandidates(name) {
+        const raw = String(name || "").trim();
+        if (!raw) return [];
+        const cleaned = raw
+          .replace(/\([^)]*\)/g, " ")
+          .replace(/[.;:]+$/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        const seeds = new Set([raw, cleaned, toDisplayName(cleaned)]);
+        const out = new Set();
+        const addVariants = (value) => {
+          const base = normalizeKey(value);
+          if (!base) return;
+          out.add(base);
+          if (base.endsWith("ies")) {
+            out.add(base.slice(0, -3) + "y");
+          }
+          if (base.endsWith("ves")) {
+            out.add(base.slice(0, -3) + "f");
+            out.add(base.slice(0, -3) + "fe");
+          }
+          if (base.endsWith("es")) {
+            out.add(base.slice(0, -2));
+          }
+          if (base.endsWith("s") && !base.endsWith("ss")) {
+            out.add(base.slice(0, -1));
+          }
+        };
+        seeds.forEach((seed) => addVariants(seed));
+        return Array.from(out).filter(Boolean);
+      }
+
+      function findCatalogEntryByName(name, table = []) {
+        if (!name || !Array.isArray(table) || !table.length) return null;
+        const candidates = getCatalogNameCandidates(name);
+        if (!candidates.length) return null;
+        for (const candidate of candidates) {
+          const found = table.find((entry) => normalizeKey(entry.name) === candidate);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      function resolveCatalogItem(name) {
+        const weapon = findCatalogEntryByName(name, weaponTable);
+        if (weapon) {
+          return { name: weapon.name, isWeapon: true, isArmor: false };
+        }
+        const armor = findCatalogEntryByName(name, armorTable);
+        if (armor) {
+          return { name: armor.name, isWeapon: false, isArmor: true };
+        }
+        const fallbackName = String(name || "").trim();
+        const fallbackKey = normalizeKey(fallbackName);
+        const armorLike = /\b(armor|shield|mail|breastplate|half plate)\b/.test(fallbackKey);
+        return {
+          name: toDisplayName(fallbackName),
+          isWeapon: false,
+          isArmor: armorLike,
+        };
+      }
+
       function normalizeCatalogItemName(name) {
-        const key = normalizeKey(name);
-        const weapon = weaponTable.find((entry) => normalizeKey(entry.name) === key);
-        if (weapon) return weapon.name;
-        const armor = armorTable.find((entry) => normalizeKey(entry.name) === key);
-        if (armor) return armor.name;
-        return name;
+        const resolved = resolveCatalogItem(name);
+        return resolved.name || name;
       }
 
       function parseEquipmentChoiceItems(choiceItems = []) {
@@ -3864,6 +3960,19 @@
         alignmentPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
         alignmentPicker.classList.toggle("locked", lockedOpen);
         document.body.classList.toggle("subclass-picker-modal-open", lockedOpen);
+        if (isOpen) {
+          if (alignmentPickerAdd) {
+            alignmentPickerAdd.disabled = !pendingSubclassSelection;
+          }
+          return;
+        }
+        pendingSubclassOptions = [];
+        pendingSubclassSelection = "";
+        pendingSubclassSelectionHandler = null;
+        pendingSubclassFinalizeEntry = null;
+        if (alignmentPickerAdd) {
+          alignmentPickerAdd.disabled = true;
+        }
       }
 
       function setAbilityPickerInteractivityLock(lockedOpen) {
@@ -4175,8 +4284,14 @@
       let racePickerLocked = false;
       let classPickerLocked = false;
       let subclassPickerLocked = false;
+      let backgroundPickerLocked = false;
+      let backgroundConfigLocked = false;
       let pendingSubclassFinalizeEntry = null;
       let pendingSubclassSelectionHandler = null;
+      let pendingSubclassOptions = [];
+      let pendingSubclassSelection = "";
+      let pendingBackgroundClassEntry = null;
+      let newCharacterSetupFlowActive = false;
       let selectedRaceSubclass = "";
 
       function roll4d6DropLowest() {
@@ -4353,6 +4468,8 @@
       function openAbilityPickerForNewCharacter() {
         abilityPickerLocked = true;
         pendingClassEntry = null;
+        newCharacterSetupFlowActive = true;
+        pendingBackgroundClassEntry = null;
         suppressAbilityScoreDefaults = true;
         pendingAbilityValues = [];
         pendingAbilitySelection = null;
@@ -4380,6 +4497,13 @@
         classSearch?.focus();
       }
 
+      function startRequiredBackgroundSelection() {
+        backgroundPickerLocked = true;
+        setBackgroundPickerOpen(true);
+        buildBackgroundPickerList(backgroundSearch?.value || "");
+        backgroundSearch?.focus();
+      }
+
       function getClassSubclassNames(entry) {
         if (!entry || !Array.isArray(entry.subclasses)) return [];
         return entry.subclasses
@@ -4390,12 +4514,43 @@
           .filter(Boolean);
       }
 
+      function getClassSubclassOptions(entry) {
+        if (!entry || !Array.isArray(entry.subclasses)) return [];
+        return entry.subclasses
+          .map((sub) => {
+            if (sub && typeof sub === "object") {
+              return {
+                name: String(sub.name || "").trim(),
+                description: String(sub.description || "").trim(),
+                source: entry.name || "Class",
+              };
+            }
+            return {
+              name: String(sub || "").trim(),
+              description: "",
+              source: entry.name || "Class",
+            };
+          })
+          .filter((option) => option.name);
+      }
+
       function getRaceSubclassNames(entry) {
         if (!entry || !Array.isArray(entry.subclass)) return [];
         return entry
           .subclass
           .map((sub) => String(sub || "").trim())
           .filter(Boolean);
+      }
+
+      function getRaceSubclassOptions(entry) {
+        if (!entry || !Array.isArray(entry.subclass)) return [];
+        return entry.subclass
+          .map((sub) => ({
+            name: String(sub || "").trim(),
+            description: "",
+            source: entry.name || "Race",
+          }))
+          .filter((option) => option.name);
       }
 
       function syncSubclassInputForClass(entry) {
@@ -4412,18 +4567,68 @@
         }
       }
 
+      function openSubclassPanel(option) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody || !option) return;
+        itemPanelTitle.textContent = option.name || "Subclass";
+        itemPanelBody.innerHTML = "";
+        const rows = [
+          ["Description", option.description || "No description available."],
+          ["Source", option.source || "--"],
+        ];
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          val.setAttribute("data-tooltip", `${label}: ${value}`);
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
+      }
+
+      function commitPendingSubclassSelection() {
+        if (!pendingSubclassSelection) return;
+        const handler = pendingSubclassSelectionHandler;
+        const selected = pendingSubclassSelection;
+        subclassPickerLocked = false;
+        setAlignmentPickerOpen(false);
+        scheduleSave();
+        if (handler) handler(selected);
+      }
+
       function openSubclassChoicePicker(options, {
         title = "Choose subclass",
         required = false,
         currentValue = "",
         onSelect = null,
       } = {}) {
-        const names = Array.isArray(options)
-          ? options.map((sub) => String(sub || "").trim()).filter(Boolean)
+        const normalized = Array.isArray(options)
+          ? options
+            .map((sub) => {
+              if (sub && typeof sub === "object") {
+                return {
+                  name: String(sub.name || "").trim(),
+                  description: String(sub.description || "").trim(),
+                  source: String(sub.source || "").trim(),
+                };
+              }
+              return { name: String(sub || "").trim(), description: "", source: "" };
+            })
+            .filter((sub) => sub.name)
           : [];
-        if (!names.length) return false;
+        if (!normalized.length) return false;
+        pendingSubclassOptions = normalized;
         pendingSubclassSelectionHandler = typeof onSelect === "function" ? onSelect : null;
         subclassPickerLocked = Boolean(required);
+        pendingSubclassSelection = normalized.some((option) => option.name === currentValue)
+          ? currentValue
+          : "";
         if (alignmentPickerTitle) {
           alignmentPickerTitle.textContent = title;
         }
@@ -4431,33 +4636,48 @@
         alignmentPickerList.innerHTML = "";
         const list = document.createElement("div");
         list.className = "weapon-list";
-        names.forEach((subclassName) => {
+        normalized.forEach((optionData) => {
+          const subclassName = optionData.name;
           const option = document.createElement("div");
           option.className = "weapon-option";
-          if (currentValue === subclassName) {
+          if (pendingSubclassSelection === subclassName) {
             option.classList.add("selected");
           }
           option.textContent = subclassName;
           option.addEventListener("click", () => {
-            const handler = pendingSubclassSelectionHandler;
-            pendingSubclassSelectionHandler = null;
-            subclassPickerLocked = false;
-            setAlignmentPickerOpen(false);
-            scheduleSave();
-            if (handler) handler(subclassName);
+            pendingSubclassSelection = subclassName;
+            openSubclassPanel(optionData);
+            if (alignmentPickerAdd) {
+              alignmentPickerAdd.disabled = false;
+            }
+            openSubclassChoicePicker(normalized, {
+              title,
+              required,
+              currentValue: pendingSubclassSelection,
+              onSelect,
+            });
           });
           list.appendChild(option);
         });
         alignmentPickerList.appendChild(list);
+        if (alignmentPickerAdd) {
+          alignmentPickerAdd.disabled = !pendingSubclassSelection;
+        }
+        if (pendingSubclassSelection) {
+          const selected = normalized.find((option) => option.name === pendingSubclassSelection);
+          if (selected) {
+            openSubclassPanel(selected);
+          }
+        }
         setAlignmentPickerOpen(true);
         return true;
       }
 
       function openAlignmentPicker(entry, { required = false, finalizeOnPick = false } = {}) {
-        const subclassNames = getClassSubclassNames(entry);
-        if (!subclassNames.length) return;
+        const subclassOptions = getClassSubclassOptions(entry);
+        if (!subclassOptions.length) return;
         pendingSubclassFinalizeEntry = finalizeOnPick ? entry : null;
-        openSubclassChoicePicker(subclassNames, {
+        openSubclassChoicePicker(subclassOptions, {
           title: "Choose subclass",
           required,
           currentValue: String(subclassInput?.value || "").trim(),
@@ -4475,12 +4695,12 @@
       }
 
       function openRaceSubclassPicker(entry, { required = false, onComplete = null } = {}) {
-        const raceSubclasses = getRaceSubclassNames(entry);
-        if (!raceSubclasses.length) {
+        const raceSubclassOptions = getRaceSubclassOptions(entry);
+        if (!raceSubclassOptions.length) {
           if (typeof onComplete === "function") onComplete();
           return;
         }
-        openSubclassChoicePicker(raceSubclasses, {
+        openSubclassChoicePicker(raceSubclassOptions, {
           title: "Choose race subclass",
           required,
           currentValue: String(selectedRaceSubclass || "").trim(),
@@ -4718,7 +4938,12 @@
           setListValue(xpInput, String(DEFAULT_XP));
         }
         applyClassSelection(entry, { rollHp: true });
-        openClassEquipmentPicker(entry);
+        if (newCharacterSetupFlowActive) {
+          pendingBackgroundClassEntry = entry;
+          startRequiredBackgroundSelection();
+        } else {
+          openClassEquipmentPicker(entry);
+        }
         scheduleSave();
         openClassPanel(entry);
         if (itemPanel) {
@@ -4734,7 +4959,7 @@
           ? (toNumber(getListValue(abilityMods.dex)) >= toNumber(getListValue(abilityMods.str)) ? "dex" : "str")
           : ability || "str";
         const modValue = toNumber(getListValue(abilityMods[abilityKey]));
-        const total = detail.total + modValue;
+        const total = floorRollTotal(detail.total + modValue);
         resultEl.textContent = `Rolling... (${detail.total})`;
         return setDoc(rollRef, {
           roll: detail.total,
@@ -4843,51 +5068,6 @@
               ? (item.id === equippedShieldId ? "Shield" : "Shield")
               : (item.id === equippedArmorId ? "Worn" : "Armor");
             row.appendChild(badge);
-          }
-          const useTwoHands =
-            item.id === equippedMainId && equippedMainTwoHanded && isVersatileWeapon(weapon);
-          const dice = getTwoHandDamageDie(weapon, useTwoHands);
-          if (dice && !isArmor) {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "equipment-dmg";
-            btn.textContent = dice;
-            btn.addEventListener("click", () => {
-              const isEquipped = item.id === equippedMainId || item.id === equippedOffhandId;
-              if (!isEquipped) {
-                setEquipStatus("Equip this weapon before rolling damage.");
-                return;
-              }
-              if (equippedMainTwoHanded && item.id !== equippedMainId) {
-                setEquipStatus("You can't use an offhand weapon while using two hands.");
-                return;
-              }
-              const currentWeapon = getWeaponData(item.name);
-              const currentUseTwoHands =
-                item.id === equippedMainId &&
-                equippedMainTwoHanded &&
-                isVersatileWeapon(currentWeapon);
-              if (equippedMainTwoHanded && item.id === equippedMainId) {
-                const isValidTwoHand =
-                  isVersatileWeapon(currentWeapon) || currentWeapon?.properties.includes("Two-Handed");
-                if (!isValidTwoHand) {
-                  setEquipStatus("This weapon can't be used with two hands.");
-                  return;
-                }
-              }
-              const currentDice = getTwoHandDamageDie(currentWeapon, currentUseTwoHands);
-              activeWeaponName = displayName;
-              updateActiveWeaponLabel();
-              renderEquipment();
-              const ability = getWeaponAttackAbility(currentWeapon);
-              const labelText = `${displayName} Damage (${currentDice})`;
-              rollDamage(currentDice, labelText, ability);
-            });
-            row.appendChild(btn);
-          } else {
-            const spacer = document.createElement("div");
-            spacer.textContent = "";
-            row.appendChild(spacer);
           }
           if (!isEquipped && !isArmor) {
             row.appendChild(equipBtn);
@@ -5045,8 +5225,12 @@
 
       function setBackgroundPickerOpen(isOpen) {
         if (!backgroundPicker) return;
+        if (!isOpen && backgroundPickerLocked) return;
+        const lockedOpen = Boolean(backgroundPickerLocked && isOpen);
         backgroundPicker.classList.toggle("open", isOpen);
         backgroundPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        backgroundPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("background-picker-modal-open", lockedOpen);
         if (isOpen) {
           backgroundSelected = "";
           if (backgroundPickerAdd) {
@@ -5057,8 +5241,12 @@
 
       function setBackgroundConfigOpen(isOpen) {
         if (!backgroundConfigPicker) return;
+        if (!isOpen && backgroundConfigLocked) return;
+        const lockedOpen = Boolean(backgroundConfigLocked && isOpen);
         backgroundConfigPicker.classList.toggle("open", isOpen);
         backgroundConfigPicker.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        backgroundConfigPicker.classList.toggle("locked", lockedOpen);
+        document.body.classList.toggle("background-config-modal-open", lockedOpen);
         if (!isOpen) {
           pendingBackgroundEntry = null;
         }
@@ -6025,10 +6213,11 @@
             }
             const normalized = normalizeClassEquipmentEntry(rawPiece);
             if (!normalized.name) return;
-            const resolvedName = normalizeCatalogItemName(normalized.name);
+            const resolved = resolveCatalogItem(normalized.name);
+            const resolvedName = resolved.name || normalized.name;
             const qty = Math.max(1, Number(normalized.qty) || 1);
-            const isWeapon = Boolean(getWeaponData(resolvedName));
-            const isArmorOrShield = Boolean(getArmorData(resolvedName));
+            const isWeapon = Boolean(resolved.isWeapon);
+            const isArmorOrShield = Boolean(resolved.isArmor);
             for (let idx = 0; idx < qty; idx += 1) {
               if (!isWeapon && !isArmorOrShield) {
                 inventoryItems.push(resolvedName);
@@ -6397,9 +6586,20 @@
         });
       }
 
-      function removeInventoryItem(name) {
+      function removeInventoryItem(name, qty = Number.POSITIVE_INFINITY) {
         const key = normalizeKey(name);
-        inventoryItems = inventoryItems.filter((entry) => normalizeKey(entry) !== key);
+        let toRemove = Number.isFinite(Number(qty))
+          ? Math.max(1, Math.floor(Number(qty)))
+          : Number.POSITIVE_INFINITY;
+        const next = [];
+        inventoryItems.forEach((entry) => {
+          if (normalizeKey(entry) === key && toRemove > 0) {
+            toRemove -= 1;
+            return;
+          }
+          next.push(entry);
+        });
+        inventoryItems = next;
         renderInventoryItems();
         scheduleSave();
       }
@@ -6434,12 +6634,12 @@
         });
 
         const rows = Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
-        const showQty = inventoryItems.length > 1;
+        const showQty = rows.some((entry) => entry.qty > 1);
 
         const header = document.createElement("div");
         header.className = `inventory-header${showQty ? " with-qty" : ""}`;
         header.innerHTML = showQty
-          ? "<span>Name</span><span>Description</span><span>Gold</span><span>Qty</span><span>Action</span>"
+          ? "<span>Name</span><span>Description</span><span>Gold</span><span>Qty</span><span>Remove Qty</span><span>Action</span>"
           : "<span>Name</span><span>Description</span><span>Gold</span><span>Action</span>";
         itemsListEl.appendChild(header);
 
@@ -6465,7 +6665,6 @@
           removeBtn.type = "button";
           removeBtn.className = "inventory-remove";
           removeBtn.textContent = "Remove";
-          removeBtn.addEventListener("click", () => removeInventoryItem(entry.name));
 
           row.appendChild(nameEl);
           row.appendChild(descEl);
@@ -6475,6 +6674,35 @@
             qtyEl.className = "inventory-qty";
             qtyEl.textContent = String(entry.qty);
             row.appendChild(qtyEl);
+            if (entry.qty > 1) {
+              const removeQtyInput = document.createElement("input");
+              removeQtyInput.type = "number";
+              removeQtyInput.className = "inventory-remove-qty";
+              removeQtyInput.min = "1";
+              removeQtyInput.max = String(entry.qty);
+              removeQtyInput.step = "1";
+              removeQtyInput.value = "1";
+              removeQtyInput.setAttribute("aria-label", `Remove quantity for ${entry.name}`);
+              removeBtn.addEventListener("click", () => {
+                const requested = Math.max(1, Math.floor(Number(removeQtyInput.value) || 1));
+                const removeCount = Math.min(entry.qty, requested);
+                removeInventoryItem(entry.name, removeCount);
+              });
+              removeQtyInput.addEventListener("keydown", (event) => {
+                if (event.key !== "Enter") return;
+                const requested = Math.max(1, Math.floor(Number(removeQtyInput.value) || 1));
+                const removeCount = Math.min(entry.qty, requested);
+                removeInventoryItem(entry.name, removeCount);
+              });
+              row.appendChild(removeQtyInput);
+            } else {
+              const spacer = document.createElement("div");
+              spacer.textContent = "";
+              row.appendChild(spacer);
+              removeBtn.addEventListener("click", () => removeInventoryItem(entry.name, 1));
+            }
+          } else {
+            removeBtn.addEventListener("click", () => removeInventoryItem(entry.name, 1));
           }
           row.appendChild(removeBtn);
           itemsListEl.appendChild(row);
@@ -7189,20 +7417,22 @@
           subclassInput.addEventListener("click", openSubclassPicker);
           subclassInput.addEventListener("focus", openSubclassPicker);
         }
+        if (alignmentPickerAdd) {
+          alignmentPickerAdd.addEventListener("click", (event) => {
+            event.stopPropagation();
+            commitPendingSubclassSelection();
+          });
+        }
         if (alignmentPickerClose) {
           alignmentPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
             if (subclassPickerLocked) return;
-            pendingSubclassFinalizeEntry = null;
-            pendingSubclassSelectionHandler = null;
             setAlignmentPickerOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
             if (subclassPickerLocked) return;
-            pendingSubclassFinalizeEntry = null;
-            pendingSubclassSelectionHandler = null;
             setAlignmentPickerOpen(false);
           }
         });
@@ -7332,11 +7562,14 @@
         if (backgroundPickerAdd) {
           backgroundPickerAdd.addEventListener("click", () => {
             if (!backgroundSelected || !backgroundInput) return;
+            const requiresConfig = backgroundPickerLocked;
             backgroundInput.value = backgroundSelected;
             const entry = backgroundByName.get(backgroundSelected);
+            backgroundPickerLocked = false;
             setBackgroundPickerOpen(false);
             if (entry) {
               openBackgroundPanel(entry);
+              backgroundConfigLocked = requiresConfig;
               openBackgroundConfig(entry);
             }
           });
@@ -7344,6 +7577,7 @@
         if (backgroundPickerClose) {
           backgroundPickerClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (backgroundPickerLocked) return;
             setBackgroundPickerOpen(false);
           });
         }
@@ -7352,17 +7586,29 @@
             if (!pendingBackgroundEntry) return;
             applyBackgroundSelection(pendingBackgroundEntry);
             scheduleSave();
+            const wasRequiredConfig = backgroundConfigLocked;
+            backgroundConfigLocked = false;
             setBackgroundConfigOpen(false);
+            if (wasRequiredConfig) {
+              const classEntry = pendingBackgroundClassEntry;
+              pendingBackgroundClassEntry = null;
+              newCharacterSetupFlowActive = false;
+              if (classEntry) {
+                openClassEquipmentPicker(classEntry);
+              }
+            }
           });
         }
         if (backgroundConfigClose) {
           backgroundConfigClose.addEventListener("click", (event) => {
             event.stopPropagation();
+            if (backgroundConfigLocked) return;
             setBackgroundConfigOpen(false);
           });
         }
         document.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
+            if (backgroundPickerLocked || backgroundConfigLocked) return;
             setBackgroundPickerOpen(false);
             setBackgroundConfigOpen(false);
           }
@@ -7491,6 +7737,11 @@
         saveLocalSheet(payload);
         try {
           await setDoc(sheetRef, payload);
+          const fresh = await getDocFromServer(sheetRef);
+          if (fresh.exists()) {
+            applySheetData(fresh.data());
+            saveLocalSheet(buildSheetPayload());
+          }
         } catch (error) {
           console.error("Failed to save new character sheet", error);
         }
@@ -7535,12 +7786,28 @@
           selectedFeatItems = data.selectedFeatItems
             .map((entry) => String(entry || "").trim())
             .filter(Boolean);
-          FEAT_LEVEL_MILESTONES.forEach((level, index) => {
-            const key = String(level);
-            if (!featSelectionsByLevel[key] && selectedFeatItems[index]) {
-              featSelectionsByLevel[key] = selectedFeatItems[index];
-            }
-          });
+          const hasExplicitLevelFeats = FEAT_LEVEL_MILESTONES.some(
+            (level) => Boolean(String(featSelectionsByLevel[String(level)] || "").trim())
+          );
+          if (!hasExplicitLevelFeats) {
+            const backgroundFeatSet = new Set(
+              normalizeFeatNameList(data.appliedBackgroundFeatNames).map((entry) => normalizeKey(entry))
+            );
+            const legacyLevelFeats = selectedFeatItems.filter(
+              (featName) => !backgroundFeatSet.has(normalizeKey(featName))
+            );
+            const currentLevel = Math.min(
+              Math.max(toNumber(data.level ?? getListValue(levelEl)) || 1, 1),
+              20
+            );
+            const unlockedMilestones = FEAT_LEVEL_MILESTONES.filter((level) => level <= currentLevel);
+            unlockedMilestones.forEach((level, index) => {
+              const key = String(level);
+              if (!featSelectionsByLevel[key] && legacyLevelFeats[index]) {
+                featSelectionsByLevel[key] = legacyLevelFeats[index];
+              }
+            });
+          }
         } else {
           rebuildSelectedFeatItems();
         }
@@ -7724,17 +7991,22 @@
           damageLine.className = "roll-line";
           const damageMod = Number(data.damageMod) || 0;
           const damageBase = Number(data.damageBase) || 0;
+          const damageMultiplier = Math.max(1, Number(data.damageMultiplier) || 1);
           const damageDice = String(data.damageDice || "").trim();
           const damageType = String(data.damageType || "").trim();
           const damageDetail = String(data.damageDetail || "").trim();
           const damageLabel = damageType ? `${damageDice} ${damageType}` : damageDice;
           const detailText = damageDetail ? ` (${damageDetail})` : "";
-          damageLine.textContent = `Damage: ${damageLabel}${detailText} ${damageMod >= 0 ? "+" : ""}${damageMod} = ${damageBase + damageMod}`;
+          const baseDamageTotal = damageBase + damageMod;
+          const finalDamageTotal = baseDamageTotal * damageMultiplier;
+          damageLine.textContent = damageMultiplier > 1
+            ? `Damage: ${damageLabel}${detailText} ${damageMod >= 0 ? "+" : ""}${damageMod} = ${baseDamageTotal} x${damageMultiplier}`
+            : `Damage: ${damageLabel}${detailText} ${damageMod >= 0 ? "+" : ""}${damageMod} = ${baseDamageTotal}`;
           resultEl.appendChild(damageLine);
 
           const total = document.createElement("div");
           total.className = "roll-total";
-          total.textContent = `Damage Total: ${Number(data.damageTotal) || (damageBase + damageMod)}`;
+          total.textContent = `Damage Total: ${Number(data.damageTotal) || finalDamageTotal}`;
           resultEl.appendChild(total);
           return;
         }
@@ -7898,7 +8170,7 @@
       function rollD20WithParts(parts, label, onDiceEnded = null) {
         const roll = Math.floor(Math.random() * 20) + 1;
         playDiceSound(onDiceEnded);
-        const total = parts.reduce((sum, part) => sum + part.value, roll);
+        const total = floorRollTotal(parts.reduce((sum, part) => sum + part.value, roll));
         const localData = {
           roll,
           value: total,
@@ -8040,7 +8312,8 @@
             }
             const attackMod = attackBonusParts.reduce((sum, part) => sum + (Number(part.value) || 0), 0);
             const attackRoll = Math.floor(Math.random() * 20) + 1;
-            const attackTotal = attackRoll + attackMod;
+            const attackTotal = floorRollTotal(attackRoll + attackMod);
+            const isCritical = attackRoll === 20;
 
             const useTwoHands =
               mainItem.id === equippedMainId && equippedMainTwoHanded && isVersatileWeapon(weapon);
@@ -8053,7 +8326,8 @@
             const damageDetail = rollDiceDetailed(damageDice);
             const damageBase = Number(damageDetail.total) || 0;
             const damageMod = abilityValue;
-            const damageTotal = damageBase + damageMod;
+            const damageMultiplier = isCritical ? 2 : 1;
+            const damageTotal = floorRollTotal((damageBase + damageMod) * damageMultiplier);
 
             playDiceSound(playWeaponSound);
 
@@ -8069,7 +8343,9 @@
               damageDetail: Array.isArray(damageDetail.rolls) ? damageDetail.rolls.join("+") : "",
               damageBase,
               damageMod,
+              damageMultiplier,
               damageTotal,
+              isCritical,
               by: "you",
               at: { seconds: Math.floor(Date.now() / 1000) },
             };
@@ -8150,7 +8426,7 @@
         const partLabel = damageType ? `${dice} ${damageType}` : dice;
         const localData = {
           roll: detail.total,
-          value: detail.total,
+          value: floorRollTotal(detail.total),
           label,
           parts: [{ label: partLabel, value: detail.total, detail: detail.rolls.join("+") }],
           by: "you",
@@ -8159,7 +8435,7 @@
         renderRoll(localData);
         setDoc(rollRef, {
           roll: detail.total,
-          value: detail.total,
+          value: floorRollTotal(detail.total),
           label,
           parts: [{ label: partLabel, value: detail.total, detail: detail.rolls.join("+") }],
           by: "anonymous",
