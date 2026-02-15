@@ -5967,4 +5967,5 @@
       setupInitiativeRoll();
       setupItemPanel();
       console.log("Firebase initialized", app.name);
+      
     
