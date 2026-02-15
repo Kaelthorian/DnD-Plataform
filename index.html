@@ -2197,6 +2197,8 @@
       const FEAT_LEVEL_SET = new Set(FEAT_LEVEL_MILESTONES.map((level) => String(level)));
       let featPromptLevel = 0;
       let lastObservedLevelForFeatPrompt = DEFAULT_LEVEL;
+      let lastObservedClassForProgression = "";
+      let lastObservedLevelForProgression = DEFAULT_LEVEL;
       let selectedFeatItems = [];
       let featSelectionsByLevel = FEAT_LEVEL_MILESTONES.reduce((acc, level) => {
         acc[String(level)] = "";
@@ -2490,6 +2492,7 @@
             updateTotalHpForClass(classEntry, mods);
           }
         }
+        syncClassLevelProgressionForCurrentCharacter();
 
         if (passivePerceptionEl) {
           const perceptionRow = skillRows.find(
@@ -2594,6 +2597,10 @@
       let classByName = new Map();
       let classList = [];
       let classesLoaded = false;
+      let classLevelUpTable = {};
+      let classLevelUpByName = new Map();
+      let classLevelUpLoaded = false;
+      let currentClassProgressionFeatures = [];
       let classSelected = "";
       let pendingBackgroundEntry = null;
       let pendingBackgroundAbilityMode = 0;
@@ -2645,6 +2652,16 @@
       function refreshClassIndex() {
         classByName = new Map(classTable.map((entry) => [entry.name, entry]));
         classList = classTable.map((entry) => entry.name);
+      }
+
+      function refreshClassLevelUpIndex() {
+        classLevelUpByName = new Map();
+        Object.entries(classLevelUpTable || {}).forEach(([name, entry]) => {
+          const key = String(name || "").trim();
+          if (!key || !entry || typeof entry !== "object") return;
+          classLevelUpByName.set(key, entry);
+          classLevelUpByName.set(normalizeKey(key), entry);
+        });
       }
 
       function refreshBackgroundIndex() {
@@ -3100,36 +3117,46 @@
 
       async function loadClasses() {
         try {
-          const response = await fetch("./Data/class.json");
-          if (!response.ok) {
-            throw new Error(`Class fetch failed: ${response.status}`);
+          let snapshot = await getDocs(collection(db, "classes"));
+          if (!snapshot?.docs?.length) {
+            snapshot = await getDocs(collection(db, "class"));
           }
-          const data = await response.json();
-          classTable = Object.values(data || {})
-            .map((entry) => {
-              const name = (entry?.name || "").trim();
+          classTable = snapshot.docs
+            .map((docSnap) => {
+              const entry = docSnap.data() || {};
+              const name = String(entry.name || docSnap.id || "").trim();
               if (!name) return null;
               return {
                 name,
-                description: (entry.description || "").trim(),
+                description: String(entry.description || "").trim(),
                 subclasses: Array.isArray(entry.subclasses) ? entry.subclasses.slice() : [],
                 primaryAbility: Array.isArray(entry["primary ability"])
                   ? entry["primary ability"].slice()
+                  : Array.isArray(entry.primaryAbility)
+                    ? entry.primaryAbility.slice()
                   : [],
-                hitPointDie: (entry["hit point die"] || "").trim(),
-                hitPointDieModifier: (entry["hit point die modifier"] || "").trim(),
-                hitPointPerAdditionalLevelDie: (entry["hit point per additional level die"] || "").trim(),
+                hitPointDie: String(entry["hit point die"] || entry.hitPointDie || "").trim(),
+                hitPointDieModifier: String(entry["hit point die modifier"] || entry.hitPointDieModifier || "").trim(),
+                hitPointPerAdditionalLevelDie: String(entry["hit point per additional level die"] || entry.hitPointPerAdditionalLevelDie || "").trim(),
                 savingThrows: Array.isArray(entry["saving throws proficiencies options"])
                   ? entry["saving throws proficiencies options"].slice()
+                  : Array.isArray(entry.savingThrows)
+                    ? entry.savingThrows.slice()
                   : [],
                 weaponProficiencies: Array.isArray(entry["weapon proficiencies"])
                   ? entry["weapon proficiencies"].slice()
+                  : Array.isArray(entry.weaponProficiencies)
+                    ? entry.weaponProficiencies.slice()
                   : [],
                 armorTraining: Array.isArray(entry["armor training"])
                   ? entry["armor training"].slice()
+                  : Array.isArray(entry.armorTraining)
+                    ? entry.armorTraining.slice()
                   : [],
                 startingEquipment: Array.isArray(entry["starting equipment"])
                   ? entry["starting equipment"].slice()
+                  : Array.isArray(entry.startingEquipment)
+                    ? entry.startingEquipment.slice()
                   : [],
               };
             })
@@ -3139,6 +3166,23 @@
         } catch (error) {
           console.error("Failed to load classes", error);
           classesLoaded = true;
+        }
+      }
+
+      async function loadClassLevelUpData() {
+        try {
+          const data = await fetchJsonWithFallback(
+            ["./Data/races/race-level-up-datastore.json"],
+            "Class level-up datastore"
+          );
+          classLevelUpTable = data && typeof data === "object" ? data : {};
+          refreshClassLevelUpIndex();
+          classLevelUpLoaded = true;
+        } catch (error) {
+          console.error("Failed to load class level-up datastore", error);
+          classLevelUpTable = {};
+          refreshClassLevelUpIndex();
+          classLevelUpLoaded = true;
         }
       }
 
@@ -3574,22 +3618,35 @@
         const matches = Array.from(
           text.matchAll(/\(([a-z])\)\s*([^()]+?)(?=(?:,\s*)?\([a-z]\)|$)/gi)
         );
-        if (matches.length < 2) {
-          return { type: "fixed", value: text };
+        if (matches.length >= 2) {
+          const options = matches
+            .map((match) => String(match[2] || "").trim())
+            .map((part) =>
+              part
+                .replace(/^\s*(?:or\s+|and\s+|,\s*)/i, "")
+                .replace(/\s*(?:,\s*or|,\s*and|\s+or|\s+and)\s*$/i, "")
+                .trim()
+            )
+            .filter(Boolean);
+          if (options.length) {
+            return { type: "choice", options };
+          }
         }
-        const options = matches
-          .map((match) => String(match[2] || "").trim())
+        const fallbackOptions = text
+          .replace(/\(([a-z])\)\s*/gi, "")
+          .split(/\s+or\s+/i)
           .map((part) =>
-            part
+            String(part || "")
+              .trim()
               .replace(/^\s*(?:or\s+|and\s+|,\s*)/i, "")
               .replace(/\s*(?:,\s*or|,\s*and|\s+or|\s+and)\s*$/i, "")
               .trim()
           )
           .filter(Boolean);
-        if (!options.length) {
-          return { type: "fixed", value: text };
+        if (fallbackOptions.length >= 2) {
+          return { type: "choice", options: fallbackOptions };
         }
-        return { type: "choice", options };
+        return { type: "fixed", value: text };
       }
 
       function splitClassEquipmentTextToEntries(text) {
@@ -3672,15 +3729,25 @@
         return `Pick ${parts.join(" ")}${requirement.qty > 1 ? ` (x${requirement.qty})` : ""}`;
       }
 
-      function getSelectionWeaponPick(selection) {
-        if (!selection) return "";
+      function getSelectionWeaponPicks(selection, qty = 1) {
+        const size = Math.max(1, Number(qty) || 1);
+        if (!selection) return Array(size).fill("");
         if (selection.type === "choice") {
-          const picks = selection.weaponPicksByOption && typeof selection.weaponPicksByOption === "object"
+          const picksByOption = selection.weaponPicksByOption && typeof selection.weaponPicksByOption === "object"
             ? selection.weaponPicksByOption
             : {};
-          return String(picks[selection.selected] || "").trim();
+          const raw = picksByOption[selection.selected];
+          const values = Array.isArray(raw) ? raw : [raw];
+          return Array.from({ length: size }, (_, idx) => String(values[idx] || "").trim());
         }
-        return String(selection.weaponPick || "").trim();
+        const raw = Array.isArray(selection.weaponPicks)
+          ? selection.weaponPicks
+          : [selection.weaponPick || ""];
+        return Array.from({ length: size }, (_, idx) => String(raw[idx] || "").trim());
+      }
+
+      function getSelectionWeaponPick(selection) {
+        return getSelectionWeaponPicks(selection, 1)[0] || "";
       }
 
       function updateClassEquipmentApplyState() {
@@ -3691,8 +3758,8 @@
             : selection.value || "";
           const requirement = getClassEquipmentWeaponRequirementFromText(text);
           if (!requirement) return false;
-          const picked = getSelectionWeaponPick(selection);
-          return !picked;
+          const picks = getSelectionWeaponPicks(selection, requirement.qty);
+          return picks.some((picked) => !picked);
         });
         classEquipmentApply.disabled = hasMissingWeaponPick;
       }
@@ -4207,6 +4274,23 @@
           traitsListEl.appendChild(item);
         });
 
+        currentClassProgressionFeatures.forEach((feature) => {
+          const item = document.createElement("li");
+          item.textContent = `Class (Lv ${feature.level}): ${feature.name}`;
+          item.classList.add("trait-clickable");
+          item.setAttribute("role", "button");
+          item.setAttribute("tabindex", "0");
+          const open = () => openClassFeaturePanel(feature.name, feature.level);
+          item.addEventListener("click", open);
+          item.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              open();
+            }
+          });
+          traitsListEl.appendChild(item);
+        });
+
         FEAT_LEVEL_MILESTONES.forEach((level) => {
           const featName = String(featSelectionsByLevel[String(level)] || "").trim();
           if (!featName) return;
@@ -4291,6 +4375,7 @@
       let pendingSubclassOptions = [];
       let pendingSubclassSelection = "";
       let pendingBackgroundClassEntry = null;
+      let requireBackgroundAfterClassEquipment = false;
       let newCharacterSetupFlowActive = false;
       let selectedRaceSubclass = "";
 
@@ -4886,6 +4971,142 @@
         }
       }
 
+      function toProgressionNumber(value) {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+      }
+
+      function getCurrentCharacterLevel() {
+        return Math.min(Math.max(toNumber(getListValue(levelEl)) || 1, 1), 20);
+      }
+
+      function getClassProgressionSource(className) {
+        const key = String(className || "").trim();
+        if (!key) return null;
+        return classLevelUpByName.get(key) || classLevelUpByName.get(normalizeKey(key)) || null;
+      }
+
+      function getClassProgressionEntry(className, level) {
+        const source = getClassProgressionSource(className);
+        const levelKey = String(Math.min(Math.max(Number(level) || 1, 1), 20));
+        if (!source || typeof source !== "object" || !source.progression || typeof source.progression !== "object") {
+          return null;
+        }
+        const entry = source.progression[levelKey];
+        return entry && typeof entry === "object" ? entry : null;
+      }
+
+      function getCurrentClassProgressionEntry() {
+        const className = String(classInput?.value || "").trim();
+        if (!className) return null;
+        return getClassProgressionEntry(className, getCurrentCharacterLevel());
+      }
+
+      function getClassCantripCapForCurrentLevel() {
+        const entry = getCurrentClassProgressionEntry();
+        if (!entry || !Object.prototype.hasOwnProperty.call(entry, "cantrips")) return null;
+        return toProgressionNumber(entry.cantrips);
+      }
+
+      function getClassSpellSlotCountsForEntry(entry) {
+        const out = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
+        if (!entry || typeof entry !== "object") return out;
+        const pactSlots = toProgressionNumber(entry.spell_slots);
+        const pactSlotLevel = toProgressionNumber(entry.slot_level);
+        if (pactSlots !== null && pactSlotLevel !== null && pactSlotLevel >= 1 && pactSlotLevel <= 9) {
+          out[pactSlotLevel] = Math.max(0, Math.floor(pactSlots));
+          return out;
+        }
+        const slotKeys = [
+          ["1st", 1], ["2nd", 2], ["3rd", 3], ["4th", 4], ["5th", 5],
+          ["6th", 6], ["7th", 7], ["8th", 8], ["9th", 9],
+        ];
+        slotKeys.forEach(([key, slotLevel]) => {
+          const value = toProgressionNumber(entry[key]);
+          out[slotLevel] = value === null ? 0 : Math.max(0, Math.floor(value));
+        });
+        return out;
+      }
+
+      function getClassSpellSlotCountsForCurrentLevel() {
+        return getClassSpellSlotCountsForEntry(getCurrentClassProgressionEntry());
+      }
+
+      function getCumulativeClassFeatures(className, level) {
+        const source = getClassProgressionSource(className);
+        if (!source || typeof source !== "object" || !source.progression || typeof source.progression !== "object") {
+          return [];
+        }
+        const maxLevel = Math.min(Math.max(Number(level) || 1, 1), 20);
+        const features = [];
+        const seen = new Set();
+        for (let i = 1; i <= maxLevel; i += 1) {
+          const row = source.progression[String(i)];
+          const rowFeatures = Array.isArray(row?.features) ? row.features : [];
+          rowFeatures.forEach((featureName) => {
+            const name = String(featureName || "").trim();
+            if (!name || name === "—") return;
+            const key = normalizeKey(name);
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            features.push({ name, level: i });
+          });
+        }
+        return features;
+      }
+
+      function openClassFeaturePanel(featureName, grantedLevel) {
+        if (!itemPanel || !itemPanelTitle || !itemPanelBody || !featureName) return;
+        const className = String(classInput?.value || "").trim() || "--";
+        itemPanelTitle.textContent = featureName;
+        itemPanelBody.innerHTML = "";
+        const rows = [
+          ["Feature", featureName],
+          ["Class", className],
+          ["Granted Level", `Lv ${grantedLevel}`],
+          ["Description", "No detailed description found in datastore."],
+        ];
+        rows.forEach(([label, value]) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          const strong = document.createElement("strong");
+          strong.textContent = label;
+          const val = document.createElement("div");
+          val.textContent = value;
+          val.className = "item-tooltip";
+          val.setAttribute("data-tooltip", `${label}: ${value}`);
+          row.appendChild(strong);
+          row.appendChild(val);
+          itemPanelBody.appendChild(row);
+        });
+        itemPanel.classList.add("open");
+        itemPanel.setAttribute("aria-hidden", "false");
+      }
+
+      function syncClassLevelProgressionForCurrentCharacter({ force = false } = {}) {
+        const className = String(classInput?.value || "").trim();
+        const level = getCurrentCharacterLevel();
+        if (!force && className === lastObservedClassForProgression && level === lastObservedLevelForProgression) {
+          return;
+        }
+        lastObservedClassForProgression = className;
+        lastObservedLevelForProgression = level;
+
+        currentClassProgressionFeatures = className
+          ? getCumulativeClassFeatures(className, level)
+          : [];
+        renderTraitsList();
+
+        const cantripCap = getClassCantripCapForCurrentLevel();
+        if (Number.isFinite(cantripCap) && cantripItems.length > cantripCap) {
+          cantripItems = cantripItems.slice(0, cantripCap);
+          renderCantrips();
+        }
+
+        const slotCounts = getClassSpellSlotCountsForCurrentLevel();
+        renderSpellSlotSquares(slotCounts);
+      }
+
       function setSavingThrowProficiencies(options = []) {
         const optionSet = new Set(
           options.map((value) => String(value || "").trim().toLowerCase()).filter(Boolean)
@@ -4928,6 +5149,7 @@
           proficienciesListEl.appendChild(weaponItem);
           proficienciesListEl.appendChild(armorItem);
         }
+        syncClassLevelProgressionForCurrentCharacter({ force: true });
         buildCantripPickerList(spellSearch?.value || "");
       }
 
@@ -4938,12 +5160,13 @@
           setListValue(xpInput, String(DEFAULT_XP));
         }
         applyClassSelection(entry, { rollHp: true });
-        if (newCharacterSetupFlowActive) {
-          pendingBackgroundClassEntry = entry;
-          startRequiredBackgroundSelection();
-        } else {
-          openClassEquipmentPicker(entry);
-        }
+        const currentBackgroundName = String(backgroundInput?.value || "").trim();
+        const hasBackgroundSelection = Boolean(
+          currentBackgroundName && backgroundByName.has(currentBackgroundName)
+        );
+        requireBackgroundAfterClassEquipment = Boolean(newCharacterSetupFlowActive || !hasBackgroundSelection);
+        pendingBackgroundClassEntry = requireBackgroundAfterClassEquipment ? null : pendingBackgroundClassEntry;
+        openClassEquipmentPicker(entry);
         scheduleSave();
         openClassPanel(entry);
         if (itemPanel) {
@@ -6065,8 +6288,7 @@
               if (classPickerAdd) {
                 classPickerAdd.disabled = false;
               }
-              openClassPanel(entry);
-              buildClassPickerList(classSearch?.value || "");
+              commitClassPickerSelection(entry.name);
             });
             const name = document.createElement("strong");
             name.textContent = entry.name;
@@ -6129,35 +6351,54 @@
             label.className = "spell-meta";
             label.textContent = getClassEquipmentWeaponRequirementLabel(requirement);
             subChoiceWrap.appendChild(label);
-            const pick = document.createElement("select");
-            const first = document.createElement("option");
-            first.value = "";
-            first.textContent = "Select a weapon";
-            pick.appendChild(first);
             const candidates = getClassEquipmentWeaponCandidates(requirement);
-            candidates.forEach((name) => {
-              const option = document.createElement("option");
-              option.value = name;
-              option.textContent = name;
-              pick.appendChild(option);
-            });
-            const selectedPick = getSelectionWeaponPick(selection);
-            if (selectedPick && candidates.includes(selectedPick)) {
-              pick.value = selectedPick;
-            }
-            pick.addEventListener("change", () => {
-              const value = String(pick.value || "").trim();
-              if (selection.type === "choice") {
-                if (!selection.weaponPicksByOption || typeof selection.weaponPicksByOption !== "object") {
-                  selection.weaponPicksByOption = {};
-                }
-                selection.weaponPicksByOption[selection.selected] = value;
-              } else {
-                selection.weaponPick = value;
+            const selectedPicks = getSelectionWeaponPicks(selection, requirement.qty);
+            for (let pickIdx = 0; pickIdx < requirement.qty; pickIdx += 1) {
+              const pick = document.createElement("select");
+              pick.style.marginTop = pickIdx === 0 ? "6px" : "4px";
+              const first = document.createElement("option");
+              first.value = "";
+              first.textContent = requirement.qty > 1
+                ? `Select weapon ${pickIdx + 1}`
+                : "Select a weapon";
+              pick.appendChild(first);
+              candidates.forEach((name) => {
+                const option = document.createElement("option");
+                option.value = name;
+                option.textContent = name;
+                pick.appendChild(option);
+              });
+              const selectedPick = selectedPicks[pickIdx];
+              if (selectedPick && candidates.includes(selectedPick)) {
+                pick.value = selectedPick;
               }
-              updateClassEquipmentApplyState();
-            });
-            subChoiceWrap.appendChild(pick);
+              pick.addEventListener("change", () => {
+                const nextPicks = getSelectionWeaponPicks(selection, requirement.qty);
+                nextPicks[pickIdx] = String(pick.value || "").trim();
+                if (selection.type === "choice") {
+                  if (!selection.weaponPicksByOption || typeof selection.weaponPicksByOption !== "object") {
+                    selection.weaponPicksByOption = {};
+                  }
+                  selection.weaponPicksByOption[selection.selected] = nextPicks;
+                } else {
+                  selection.weaponPicks = nextPicks;
+                  selection.weaponPick = nextPicks[0] || "";
+                }
+                updateClassEquipmentApplyState();
+              });
+              subChoiceWrap.appendChild(pick);
+            }
+            if (selection.type === "choice") {
+              if (!selection.weaponPicksByOption || typeof selection.weaponPicksByOption !== "object") {
+                selection.weaponPicksByOption = {};
+              }
+              if (!Array.isArray(selection.weaponPicksByOption[selection.selected])) {
+                selection.weaponPicksByOption[selection.selected] = selectedPicks;
+              }
+            } else if (!Array.isArray(selection.weaponPicks)) {
+              selection.weaponPicks = selectedPicks;
+              selection.weaponPick = selectedPicks[0] || "";
+            }
             updateClassEquipmentApplyState();
           };
           if (selection.type === "fixed") {
@@ -6199,12 +6440,14 @@
             selection.type === "choice"
               ? selection.options[selection.selected] || selection.options[0] || ""
               : selection.value;
-          const chosenWeapon = getSelectionWeaponPick(selection);
           splitClassEquipmentTextToEntries(text).forEach((rawPiece) => {
             const requirement = parseClassEquipmentWeaponRequirement(rawPiece);
             if (requirement) {
-              if (!chosenWeapon) return;
+              const chosenWeapons = getSelectionWeaponPicks(selection, requirement.qty).filter(Boolean);
+              if (chosenWeapons.length < requirement.qty) return;
               for (let count = 0; count < requirement.qty; count += 1) {
+                const chosenWeapon = chosenWeapons[count] || chosenWeapons[0];
+                if (!chosenWeapon) continue;
                 const eq = createEquipmentItem(chosenWeapon);
                 equipmentItems.push(eq);
                 equipmentAdds.push(eq.id);
@@ -6245,6 +6488,25 @@
         buildClassEquipmentPicker(entry);
         updateClassEquipmentApplyState();
         setClassEquipmentOpen(true);
+      }
+
+      function commitClassPickerSelection(selectedName = "") {
+        if (!classInput) return;
+        const fallbackInput = String(classInput.value || "").trim();
+        const chosen = String(selectedName || classSelected || fallbackInput).trim();
+        if (!chosen) return;
+        const entry = classByName.get(chosen);
+        if (!entry) return;
+        const shouldRequireSubclass = classPickerLocked;
+        classSelected = chosen;
+        classInput.value = chosen;
+        classPickerLocked = false;
+        setClassPickerOpen(false);
+        const subclassNames = getClassSubclassNames(entry);
+        if (subclassNames.length && shouldRequireSubclass) {
+          openAlignmentPicker(entry, { required: false, finalizeOnPick: false });
+        }
+        finalizeClassSelection(entry);
       }
 
       function buildBackgroundPickerList(filterText = "") {
@@ -7059,17 +7321,20 @@
         spellLevel3Panel.appendChild(list);
       }
 
-      function renderSpellSlotSquares() {
+      function renderSpellSlotSquares(slotCountsByLevel = null) {
+        const counts = slotCountsByLevel && typeof slotCountsByLevel === "object"
+          ? slotCountsByLevel
+          : { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
         const slotCounts = {
-          "spell-panel-2": 4,
-          "spell-panel-3": 3,
-          "spell-panel-4": 3,
-          "spell-panel-5": 3,
-          "spell-panel-6": 3,
-          "spell-panel-7": 2,
-          "spell-panel-8": 2,
-          "spell-panel-9": 1,
-          "spell-panel-10": 1,
+          "spell-panel-2": counts[1] || 0,
+          "spell-panel-3": counts[2] || 0,
+          "spell-panel-4": counts[3] || 0,
+          "spell-panel-5": counts[4] || 0,
+          "spell-panel-6": counts[5] || 0,
+          "spell-panel-7": counts[6] || 0,
+          "spell-panel-8": counts[7] || 0,
+          "spell-panel-9": counts[8] || 0,
+          "spell-panel-10": counts[9] || 0,
         };
         Object.entries(slotCounts).forEach(([panelId, count]) => {
           const panel = document.getElementById(panelId);
@@ -7077,7 +7342,7 @@
           panel.innerHTML = "";
           const grid = document.createElement("div");
           grid.className = "spell-slot-grid";
-          for (let i = 0; i < count; i += 1) {
+          for (let i = 0; i < Math.max(0, Math.floor(Number(count) || 0)); i += 1) {
             const square = document.createElement("div");
             square.className = "spell-list-anchor";
             square.setAttribute("aria-label", `Spell slot ${i + 1}`);
@@ -7146,6 +7411,11 @@
                 scheduleSave();
               }
             } else {
+              const cantripCap = getClassCantripCapForCurrentLevel();
+              if (Number.isFinite(cantripCap) && cantripItems.length >= cantripCap) {
+                setSpellPickerOpen(false);
+                return;
+              }
               if (!cantripItems.includes(cantripSelected)) {
                 cantripItems = [...cantripItems, cantripSelected];
                 renderCantrips();
@@ -7480,20 +7750,7 @@
         }
         if (classPickerAdd) {
           classPickerAdd.addEventListener("click", () => {
-            if (!classSelected || !classInput) return;
-            const shouldRequireSubclass = classPickerLocked;
-            classInput.value = classSelected;
-            classPickerLocked = false;
-            setClassPickerOpen(false);
-            const entry = classByName.get(classSelected);
-            if (entry) {
-              const subclassNames = getClassSubclassNames(entry);
-              if (subclassNames.length) {
-                openAlignmentPicker(entry, { required: shouldRequireSubclass, finalizeOnPick: true });
-              } else {
-                finalizeClassSelection(entry);
-              }
-            }
+            commitClassPickerSelection();
           });
         }
         if (classPickerClose) {
@@ -7509,6 +7766,10 @@
             applyClassStartingEquipment(pendingClassEquipmentEntry);
             scheduleSave();
             setClassEquipmentOpen(false);
+            if (requireBackgroundAfterClassEquipment) {
+              requireBackgroundAfterClassEquipment = false;
+              startRequiredBackgroundSelection();
+            }
           });
         }
         if (classEquipmentClose) {
@@ -8117,6 +8378,7 @@
         await loadRaces();
         await loadBackgrounds();
         await loadClasses();
+        await loadClassLevelUpData();
         initEquipmentWeapons();
         initItemPicker();
         initRacePicker();
@@ -8138,6 +8400,7 @@
             applyClassSelection(entry, { rollHp: false });
           }
         }
+        syncClassLevelProgressionForCurrentCharacter({ force: true });
       }
       initApp();
       startupNewCharacterBtn?.addEventListener("click", async () => {
@@ -8610,6 +8873,17 @@
         itemPanelTitle.textContent = entry.name || "Class";
         itemPanelBody.innerHTML = "";
         const subclassNames = entry.subclasses.map((sub) => sub.name).filter(Boolean);
+        const equipmentOptionsSummary = Array.isArray(entry.startingEquipment)
+          ? entry.startingEquipment
+              .map((line, idx) => {
+                const parsed = parseClassEquipmentLine(line);
+                if (parsed.type === "choice" && parsed.options.length) {
+                  return `${idx + 1}. ${parsed.options.join(" OR ")}`;
+                }
+                return `${idx + 1}. ${parsed.value || "--"}`;
+              })
+              .join("\n")
+          : "--";
         const rows = [
           ["Description", entry.description || "--"],
           ["Primary Ability", entry.primaryAbility.join(", ") || "--"],
@@ -8619,7 +8893,7 @@
           ["Saving Throws", entry.savingThrows.join(", ") || "--"],
           ["Weapon Proficiencies", entry.weaponProficiencies.join(", ") || "--"],
           ["Armor Training", entry.armorTraining.join(", ") || "--"],
-          ["Starting Equipment", entry.startingEquipment.join(", ") || "--"],
+          ["Starting Equipment", equipmentOptionsSummary],
           ["Subclasses", subclassNames.join(", ") || "--"],
         ];
         rows.forEach(([label, value]) => {
