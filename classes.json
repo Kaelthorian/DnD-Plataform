@@ -1,0 +1,70 @@
+[
+  {
+    "name": "Artificer",
+    "description": "Source: TCE. Hit Die: d8. Armor: light, medium, shield. Weapons: simple, \"proficiency\":\"firearms\",\"optional\":true."
+  },
+  {
+    "name": "Barbarian",
+    "description": "Source: XPHB. Hit Die: d12. Armor: light, medium, shield. Weapons: simple, martial."
+  },
+  {
+    "name": "Bard",
+    "description": "Source: PHB. Hit Die: d8. Armor: light. Weapons: simple, hand crossbow, longsword, rapier, shortsword."
+  },
+  {
+    "name": "Cleric",
+    "description": "Source: XPHB. Hit Die: d8. Armor: light, medium, shield. Weapons: simple."
+  },
+  {
+    "name": "Druid",
+    "description": "Source: PHB. Hit Die: d8. Armor: light, medium, \"proficiency\":\"shield\",\"full\":\"shields (druids will not wear armor or use shields made of metal)\". Weapons: club, dagger, dart, javelin, mace, quarterstaff, scimitar, sickle, sling, spear."
+  },
+  {
+    "name": "Expert Sidekick",
+    "description": "Source: TCE."
+  },
+  {
+    "name": "Fighter",
+    "description": "Source: XPHB. Hit Die: d10. Armor: light, medium, heavy, shield. Weapons: simple, martial."
+  },
+  {
+    "name": "Monk",
+    "description": "Source: XPHB. Hit Die: d8. Weapons: simple, Martial weapons that have the Light property."
+  },
+  {
+    "name": "Mystic",
+    "description": "Source: UATheMysticClass. Hit Die: d8. Armor: light. Weapons: simple."
+  },
+  {
+    "name": "Paladin",
+    "description": "Source: XPHB. Hit Die: d10. Armor: light, medium, heavy, shield. Weapons: simple, martial."
+  },
+  {
+    "name": "Ranger",
+    "description": "Source: XPHB. Hit Die: d10. Armor: light, medium, shield. Weapons: simple, martial."
+  },
+  {
+    "name": "Rogue",
+    "description": "Source: XPHB. Hit Die: d8. Armor: light. Weapons: simple, Martial weapons that have the Finesse or Light property."
+  },
+  {
+    "name": "Sorcerer",
+    "description": "Source: PHB. Hit Die: d6. Weapons: dagger, dart, sling, quarterstaff, light crossbow."
+  },
+  {
+    "name": "Spellcaster Sidekick",
+    "description": "Source: TCE."
+  },
+  {
+    "name": "Warlock",
+    "description": "Source: XPHB. Hit Die: d8. Armor: light. Weapons: simple."
+  },
+  {
+    "name": "Warrior Sidekick",
+    "description": "Source: TCE."
+  },
+  {
+    "name": "Wizard",
+    "description": "Source: PHB. Hit Die: d6. Weapons: dagger, dart, sling, quarterstaff, light crossbow."
+  }
+]

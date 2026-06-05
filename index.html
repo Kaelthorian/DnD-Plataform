@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Planilla DnD</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #d7d7d7;
+      color: #111;
+      font-family: Arial, sans-serif;
+    }
+
+    .app {
+      width: min(100vw - 24px, 1120px);
+      margin: 0 auto;
+      padding: 18px 0 28px;
+    }
+
+    .sheet-page {
+      position: relative;
+      width: 100%;
+      margin: 0 auto 18px;
+      background: #fff;
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .field-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .field {
+      position: absolute;
+      border: 1px solid transparent;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.02);
+      color: #111;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: clamp(8px, 1.08vw, 13px);
+      line-height: 1.15;
+      outline: none;
+      padding: 1px 3px;
+      resize: none;
+    }
+
+    .field:hover,
+    .field:focus {
+      border-color: rgba(0, 0, 0, 0.55);
+      background: rgba(255, 255, 255, 0.68);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
+    }
+
+    .field.textarea {
+      padding: 4px 5px;
+    }
+
+    .field.select {
+      caret-color: transparent;
+      cursor: pointer;
+      padding-right: 14px;
+    }
+
+    .option-menu {
+      position: fixed;
+      z-index: 20;
+      display: flex;
+      width: min(720px, calc(100vw - 24px));
+      height: min(380px, calc(100vh - 24px));
+      max-height: min(380px, calc(100vh - 24px));
+      border: 1px solid rgba(0, 0, 0, 0.38);
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.26);
+      overflow: hidden;
+    }
+
+    .option-menu[hidden] {
+      display: none;
+    }
+
+    .option-list {
+      width: 42%;
+      min-width: 190px;
+      height: 100%;
+      overflow-y: scroll;
+      overscroll-behavior: contain;
+      border-right: 1px solid #d0d0d0;
+    }
+
+    .option-item {
+      display: block;
+      width: 100%;
+      padding: 7px 9px;
+      border: 0;
+      background: transparent;
+      color: #111;
+      font: 12px/1.2 "Segoe UI", Arial, sans-serif;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .option-item:hover,
+    .option-item.active,
+    .option-item:focus {
+      background: #1f5eff;
+      color: #fff;
+      outline: none;
+    }
+
+    .option-description {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      color: #111;
+      font: 12px/1.35 "Segoe UI", Arial, sans-serif;
+    }
+
+    .option-description-title {
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .option-description-line {
+      margin: 0 0 7px;
+    }
+
+    @media (max-width: 720px) {
+      .option-menu {
+        flex-direction: column;
+      }
+
+      .option-list {
+        width: 100%;
+        max-height: 210px;
+        border-right: 0;
+        border-bottom: 1px solid #d0d0d0;
+      }
+
+      .option-description {
+        max-height: 140px;
+      }
+    }
+
+    .field.checkbox {
+      appearance: none;
+      padding: 0;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .field.checkbox:hover,
+    .field.checkbox:focus {
+      border-color: #111;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .field.checkbox:checked {
+      background:
+        radial-gradient(circle at center, #111 0 42%, transparent 44%),
+        rgba(255, 255, 255, 0.35);
+      border-color: #111;
+    }
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      background: #d7d7d7;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .status {
+      position: fixed;
+      right: 10px;
+      bottom: 8px;
+      z-index: 6;
+      padding: 5px 8px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .status.visible {
+      opacity: 1;
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: 100vw;
+        padding: 0;
+      }
+
+      .sheet-page {
+        margin-bottom: 8px;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app"></main>
+  <div class="loading" id="loading">Cargando planilla...</div>
+  <div class="status" id="status">Guardado</div>
+  <div class="option-menu" id="optionMenu" hidden>
+    <div class="option-list" id="optionList"></div>
+    <div class="option-description" id="optionDescription"></div>
+  </div>
+
+  <script type="module">
+    import * as pdfjsLib from "./node_modules/pdfjs-dist/build/pdf.mjs";
+
+    const STORAGE_KEY = "dnd-character-sheet-pdf-fields-v2";
+    const BASE_WIDTH = 1000;
+    const desktopStore = window.dndSheet || null;
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "./node_modules/pdfjs-dist/build/pdf.worker.mjs";
+
+    const app = document.getElementById("app");
+    const loading = document.getElementById("loading");
+    const status = document.getElementById("status");
+    const optionMenu = document.getElementById("optionMenu");
+    const optionList = document.getElementById("optionList");
+    const optionDescription = document.getElementById("optionDescription");
+    let fieldOptions = new Map();
+    let activeSelectField = null;
+
+    function base64ToBytes(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    async function loadPdfBytes() {
+      if (desktopStore?.loadPdf) return base64ToBytes(await desktopStore.loadPdf());
+      const response = await fetch("./DnD_5E_CharacterSheet_FormFillable.pdf");
+      return new Uint8Array(await response.arrayBuffer());
+    }
+
+    async function loadRaceOptions() {
+      if (desktopStore?.loadRaces) return desktopStore.loadRaces();
+      const response = await fetch("./races.json");
+      return response.json();
+    }
+
+    async function loadBackgroundOptions() {
+      if (desktopStore?.loadBackgrounds) return desktopStore.loadBackgrounds();
+      const response = await fetch("./backgrounds.json");
+      return response.json();
+    }
+
+    async function loadClassOptions() {
+      if (desktopStore?.loadClasses) return desktopStore.loadClasses();
+      const response = await fetch("./classes.json");
+      return response.json();
+    }
+
+    function getSelectOptions(key) {
+      const normalizedKey = key.trim().toLowerCase();
+      if (normalizedKey === "race") return fieldOptions.get("race");
+      if (normalizedKey === "background") return fieldOptions.get("background");
+      if (normalizedKey === "classlevel" || normalizedKey.startsWith("spellcasting class")) return fieldOptions.get("class");
+      return null;
+    }
+
+    function optionName(option) {
+      return typeof option === "string" ? option : option.name;
+    }
+
+    function optionDescriptionText(option) {
+      return typeof option === "string" ? "" : option.description || "";
+    }
+
+    function splitDescriptionLines(description) {
+      return description
+        .replace(/\s+(Age|Alignment|Size|Speed|Flight|Source|Hit Die|Armor|Weapons|Ability Scores|Feat|Skill Proficiencies|Tool Proficiencies|Languages|Equipment):/g, "\n$1:")
+        .split(/\n|(?<=[.!?])\s+(?=[A-Z])/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 12);
+    }
+
+    function setOptionDescription(option) {
+      const name = optionName(option);
+      const description = optionDescriptionText(option) || "No hay descripcion disponible.";
+      optionDescription.textContent = "";
+
+      const title = document.createElement("div");
+      title.className = "option-description-title";
+      title.textContent = name;
+      optionDescription.appendChild(title);
+
+      splitDescriptionLines(description).forEach((line) => {
+        const body = document.createElement("p");
+        body.className = "option-description-line";
+        body.textContent = line;
+        optionDescription.appendChild(body);
+      });
+    }
+
+    function positionOptionMenu(field) {
+      const rect = field.getBoundingClientRect();
+      const margin = 8;
+      const menuWidth = Math.min(720, window.innerWidth - 24);
+      const left = Math.min(Math.max(margin, rect.left), window.innerWidth - menuWidth - margin);
+      const spaceBelow = window.innerHeight - rect.bottom - margin;
+      const top = spaceBelow >= 260 ? rect.bottom + 2 : Math.max(margin, rect.top - Math.min(380, window.innerHeight - 24));
+
+      optionMenu.style.left = `${left}px`;
+      optionMenu.style.top = `${top}px`;
+      optionMenu.style.width = `${Math.max(menuWidth, rect.width)}px`;
+    }
+
+    function closeOptionMenu() {
+      optionMenu.hidden = true;
+      optionList.textContent = "";
+      optionDescription.textContent = "";
+      activeSelectField = null;
+    }
+
+    function openOptionMenu(field, options) {
+      activeSelectField = field;
+      optionList.textContent = "";
+      options.forEach((option, index) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = `option-item ${field.value === optionName(option) ? "active" : ""}`;
+        item.textContent = optionName(option);
+        item.addEventListener("mouseenter", () => setOptionDescription(option));
+        item.addEventListener("focus", () => setOptionDescription(option));
+        item.addEventListener("click", () => {
+          field.value = optionName(option);
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+          field.dispatchEvent(new Event("change", { bubbles: true }));
+          closeOptionMenu();
+        });
+        optionList.appendChild(item);
+        if (index === 0 || field.value === optionName(option)) setOptionDescription(option);
+      });
+
+      optionMenu.hidden = false;
+      positionOptionMenu(field);
+    }
+
+    function fieldKey(annotation, pageNumber, index) {
+      return annotation.fieldName || `page-${pageNumber}-field-${index}`;
+    }
+
+    function makeField(annotation, pageNumber, index, viewport) {
+      if (annotation.fieldType === "Btn" && !annotation.checkBox) return null;
+      if (annotation.fieldType !== "Tx" && annotation.fieldType !== "Btn") return null;
+
+      const rect = viewport.convertToViewportRectangle(annotation.rect);
+      const left = Math.min(rect[0], rect[2]);
+      const top = Math.min(rect[1], rect[3]);
+      const width = Math.abs(rect[2] - rect[0]);
+      const height = Math.abs(rect[3] - rect[1]);
+      const isCheckbox = annotation.fieldType === "Btn" && annotation.checkBox;
+      const isMultiline = annotation.multiLine && !isCheckbox;
+      const key = fieldKey(annotation, pageNumber, index);
+      const selectOptions = getSelectOptions(key);
+      const isSelect = Boolean(selectOptions);
+      const element = isSelect
+        ? document.createElement("input")
+        : isMultiline
+          ? document.createElement("textarea")
+          : document.createElement("input");
+
+      element.dataset.key = key;
+      element.name = key;
+      element.title = annotation.fieldName || key;
+      element.className = `field ${isCheckbox ? "checkbox" : ""} ${isMultiline ? "textarea" : ""} ${isSelect ? "select" : ""}`;
+      if (isCheckbox) element.type = "checkbox";
+      else if (isSelect) {
+        element.type = "text";
+        element.readOnly = true;
+        element.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          openOptionMenu(element, selectOptions);
+        });
+        element.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+            event.preventDefault();
+            openOptionMenu(element, selectOptions);
+          } else if (event.key === "Escape") {
+            closeOptionMenu();
+          } else if (event.key === "Delete" || event.key === "Backspace") {
+            event.preventDefault();
+            element.value = "";
+            element.dispatchEvent(new Event("input", { bubbles: true }));
+            element.dispatchEvent(new Event("change", { bubbles: true }));
+            closeOptionMenu();
+          }
+        });
+      } else if (!isMultiline) element.type = "text";
+
+      element.style.left = `${(left / viewport.width) * 100}%`;
+      element.style.top = `${(top / viewport.height) * 100}%`;
+      element.style.width = `${(width / viewport.width) * 100}%`;
+      element.style.height = `${(height / viewport.height) * 100}%`;
+      return element;
+    }
+
+    function collectData() {
+      const data = {};
+      document.querySelectorAll(".field").forEach((element) => {
+        const key = element.dataset.key;
+        if (!key) return;
+        data[key] = element.type === "checkbox" ? element.checked : element.value;
+      });
+      return data;
+    }
+
+    function applyData(data) {
+      document.querySelectorAll(".field").forEach((element) => {
+        const key = element.dataset.key;
+        if (!data || !(key in data)) return;
+        if (element.type === "checkbox") element.checked = Boolean(data[key]);
+        else element.value = data[key];
+      });
+    }
+
+    let statusTimer;
+    function showStatus(text) {
+      status.textContent = text;
+      status.classList.add("visible");
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => status.classList.remove("visible"), 900);
+    }
+
+    async function saveData() {
+      const data = collectData();
+      if (desktopStore) await desktopStore.save(data);
+      else localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      showStatus("Guardado automatico");
+    }
+
+    async function loadData() {
+      if (desktopStore) return desktopStore.load();
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }
+
+    let saveTimer;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveData().catch(console.error), 220);
+    }
+
+    async function renderPage(pdf, pageNumber) {
+      const page = await pdf.getPage(pageNumber);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = BASE_WIDTH / baseViewport.width;
+      const viewport = page.getViewport({ scale });
+
+      const pageNode = document.createElement("section");
+      pageNode.className = "sheet-page";
+      pageNode.style.aspectRatio = `${viewport.width} / ${viewport.height}`;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      pageNode.appendChild(canvas);
+
+      const layer = document.createElement("form");
+      layer.className = "field-layer";
+      layer.autocomplete = "off";
+      pageNode.appendChild(layer);
+      app.appendChild(pageNode);
+
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+
+      const annotations = await page.getAnnotations({ intent: "display" });
+      annotations.forEach((annotation, index) => {
+        const field = makeField(annotation, pageNumber, index, viewport);
+        if (field) layer.appendChild(field);
+      });
+    }
+
+    async function init() {
+      const [raceOptions, backgroundOptions, classOptions] = await Promise.all([
+        loadRaceOptions(),
+        loadBackgroundOptions(),
+        loadClassOptions()
+      ]);
+      fieldOptions = new Map([
+        ["race", raceOptions],
+        ["background", backgroundOptions],
+        ["class", classOptions]
+      ]);
+
+      const pdfBytes = await loadPdfBytes();
+      const pdf = await pdfjsLib.getDocument({ data: pdfBytes, disableWorker: true }).promise;
+
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+        await renderPage(pdf, pageNumber);
+      }
+
+      applyData(await loadData());
+      app.addEventListener("input", scheduleSave);
+      app.addEventListener("change", scheduleSave);
+      document.addEventListener("pointerdown", (event) => {
+        if (!activeSelectField) return;
+        if (event.target === activeSelectField || optionMenu.contains(event.target)) return;
+        closeOptionMenu();
+      });
+      window.addEventListener("resize", closeOptionMenu);
+      window.addEventListener("scroll", (event) => {
+        if (optionMenu.contains(event.target)) return;
+        closeOptionMenu();
+      }, true);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeOptionMenu();
+      });
+      loading.style.display = "none";
+    }
+
+    init().catch((error) => {
+      console.error(error);
+      loading.textContent = `No se pudo cargar el PDF: ${error?.message || error}`;
+    });
+  </script>
+</body>
+</html>

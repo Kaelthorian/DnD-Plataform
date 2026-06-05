@@ -1,0 +1,586 @@
+[
+  {
+    "name": "Aberrant Heir",
+    "description": "Ability Scores: Strength, Constitution, Charisma Strength, Constitution, Charisma Feat: Aberrant Dragonmark Aberrant Dragonmark Skill Proficiencies: History and Intimidation History and Intimidation Tool Proficiencies: Disguise Kit Disguise Kit Equipment: Choose A or B: (A) Dagger, Disguise Kit, Costume, Traveler's Clothes, 16 GP; or (B) 50 GP Choose A or B: (A) Dagger, Disguise Kit, Costume, Traveler's Clothes, 16 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Acolyte",
+    "description": "Skill Proficiencies: Insight, Religion Insight, Religion Languages: Two of your choice Two of your choice Equipment: A holy symbol (a gift to you when you entered the priesthood), a prayer book or prayer wheel, 5 sticks of incense, vestments, a set of common clothes, and a belt pouch containing 15 gp A holy symbol (a gift to you when you entered the priesthood), a prayer book or prayer wheel, 5 sticks of incense, vestments, a set of common clothes, and a belt pouch containing 15 gp Feature: Shelter of the Faithf..."
+  },
+  {
+    "name": "Anthropologist",
+    "description": "Skill Proficiencies: Insight, Religion Insight, Religion Languages: Two of your choice Two of your choice Equipment: A leather-bound diary, a Ink (1-ounce bottle), an ink pen, a set of traveler's clothes, one trinket of special significance, and a pouch containing 10 gp A leather-bound diary, a Ink (1-ounce bottle), an ink pen, a set of traveler's clothes, one trinket of special significance, and a pouch containing 10 gp Cultural Chameleon Before becoming an adventurer, you spent much of your adult life away fro..."
+  },
+  {
+    "name": "Archaeologist",
+    "description": "Skill Proficiencies: History, Survival History, Survival Tool Proficiencies: Cartographer's tools or navigator's tools Cartographer's tools or navigator's tools Languages: One of your choice One of your choice Equipment: A Map or Scroll Case containing a map to a ruin or dungeon, a bullseye lantern, a miner's pick, a set of traveler's clothes, a shovel, a two-person tent, a trinket recovered from a dig site, and a pouch containing 25 gp A Map or Scroll Case containing a map to a ruin or dungeon, a bullseye lante..."
+  },
+  {
+    "name": "Artisan",
+    "description": "Ability Scores: Strength, Dexterity, Intelligence Strength, Dexterity, Intelligence Feat: Crafter Crafter Skill Proficiencies: Investigation, Persuasion Investigation, Persuasion Tool Proficiency: Choose one kind of Artisan's Tools Choose one kind of Artisan's Tools Equipment: Choose A or B: (A) Artisan's Tools (same as above), 2 Pouch, Traveler's Clothes, 32 GP; or (B) 50 GP Choose A or B: (A) Artisan's Tools (same as above), 2 Pouch, Traveler's Clothes, 32 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Astral Drifter",
+    "description": "Skill Proficiencies: Insight, Religion Insight, Religion Languages: Two of your choice (Celestial or Gith recommended) Two of your choice (Celestial or Gith recommended) Equipment: A set of traveler's clothes, a diary, an ink pen, a Ink (1-ounce bottle), and a pouch containing 10 gp A set of traveler's clothes, a diary, an ink pen, a Ink (1-ounce bottle), and a pouch containing 10 gp Longevity You are 20d6 years older than you look, because you have spent that much time in the Astral Sea without aging. Feature:..."
+  },
+  {
+    "name": "Athlete",
+    "description": "Skill Proficiencies: Acrobatics, Athletics Acrobatics, Athletics Languages: One of your choice One of your choice Tool Proficiencies: Vehicles (land) Vehicles (land) Equipment: A bronze discus or leather ball, a lucky charm or past trophy, a set of traveler's clothes, and a pouch containing 10 gp A bronze discus or leather ball, a lucky charm or past trophy, a set of traveler's clothes, and a pouch containing 10 gp Feature: Echoes of Victory You have attracted admiration among spectators, fellow athletes, and tr..."
+  },
+  {
+    "name": "Augen Trust (Spy)",
+    "description": "Source: EGW."
+  },
+  {
+    "name": "Azorius Functionary",
+    "description": "Skill Proficiencies: Insight, Intimidation Insight, Intimidation Languages: Two of your choice Two of your choice Equipment: An Azorius insignia, a scroll containing the text of a law important to you, a Ink (1-ounce bottle), a ink pen, a set of fine clothes, and a belt pouch containing 10 gp (Azorius-minted 1-zino coins) An Azorius insignia, a scroll containing the text of a law important to you, a Ink (1-ounce bottle), a ink pen, a set of fine clothes, and a belt pouch containing 10 gp (Azorius-minted 1-zino c..."
+  },
+  {
+    "name": "Baldur's Gate Acolyte",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Charlatan",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Criminal",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Entertainer",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Folk Hero",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Guild Artisan",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Hermit",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Noble",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Outlander",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Sage",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Sailor",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Soldier",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Baldur's Gate Urchin",
+    "description": "Source: BGDIA."
+  },
+  {
+    "name": "Boros Legionnaire",
+    "description": "Skill Proficiencies: Athletics, Intimidation Athletics, Intimidation Tool Proficiencies: One type of gaming set One type of gaming set Languages: Choose one of Celestial, Draconic, Goblin, or Minotaur Choose one of Celestial, Draconic, Goblin, or Minotaur Equipment: A Boros insignia, a feather from an angel's wing, a tattered piece of a Boros banner (a souvenir from a famous battle), a set of common clothes, and a belt pouch containing 2 gp (Boros-minted 1-zino coins) A Boros insignia, a feather from an angel's..."
+  },
+  {
+    "name": "Carouser",
+    "description": "Ability Scores: Dexterity, Intelligence, Charisma Dexterity, Intelligence, Charisma Feat: Tireless Reveler Tireless Reveler Skill Proficiencies: Deception and Persuasion Deception and Persuasion Tool Proficiency: Choose one kind of Gaming Set Choose one kind of Gaming Set Equipment: Choose A or B: (A) Dagger, Gaming Set (same as above), Fine Clothes, Glass Bottle, Mirror, Perfume, Pouch, Tinderbox, 19 GP; or (B) 50 GP Choose A or B: (A) Dagger, Gaming Set (same as above), Fine Clothes, Glass Bottle, Mirror, Perf..."
+  },
+  {
+    "name": "Celebrity Adventurer's Scion",
+    "description": "Skill Proficiencies: Perception, Performance Perception, Performance Tool Proficiencies: Disguise kit Disguise kit Languages: Two of your choice Two of your choice Equipment: Disguise kit, a set of fine clothes, and a belt pouch containing 30 gp. Disguise kit, a set of fine clothes, and a belt pouch containing 30 gp. Feature: Name Dropping You know and have met any number of powerful people across the land—and some of them might even remember you. You might be able to wrangle minor assistance from a major figure..."
+  },
+  {
+    "name": "Charlatan",
+    "description": "Skill Proficiencies: Deception, Sleight of Hand Deception, Sleight of Hand Tool Proficiencies: Disguise kit, Forgery kit Disguise kit, Forgery kit Equipment: A set of fine clothes, a disguise kit, tools of the con of your choice (ten stoppered bottles filled with colored liquid, a set of weighted dice, a deck of marked cards, or a signet ring of an imaginary duke), and a belt pouch containing 15 gp A set of fine clothes, a disguise kit, tools of the con of your choice (ten stoppered bottles filled with colored l..."
+  },
+  {
+    "name": "Chondathan Freebooter",
+    "description": "Ability Scores: Strength, Dexterity, Wisdom Strength, Dexterity, Wisdom Feat: Skilled Skilled Skill Proficiencies: Athletics and Sleight of Hand Athletics and Sleight of Hand Tool Proficiencies: Weaver's Tools Weaver's Tools Equipment: Choose A or B: (A) Dagger, Weaver's Tools, Backpack, Ball Bearings, Basket, Bedroll, Bucket, Rations (3 days' worth), Rope, Signal Whistle, Traveler's Clothes, 38 GP; or (B) 50 GP Choose A or B: (A) Dagger, Weaver's Tools, Backpack, Ball Bearings, Basket, Bedroll, Bucket, Rations..."
+  },
+  {
+    "name": "City Watch",
+    "description": "Skill Proficiencies: Athletics, Insight Athletics, Insight Languages: Any two of your choice Any two of your choice Equipment: A uniform in the style of your unit and indicative of your rank, a horn with which to summon help, a set of manacles, and a pouch containing 10 gp A uniform in the style of your unit and indicative of your rank, a horn with which to summon help, a set of manacles, and a pouch containing 10 gp Feature: Watcher's Eye Your experience in enforcing the law, and dealing with lawbreakers, gives..."
+  },
+  {
+    "name": "Clan Crafter",
+    "description": "Skill Proficiencies: History, Insight History, Insight Tool Proficiencies: One type of artisan's tools One type of artisan's tools Languages: Dwarvish or one of your choice if you already speak Dwarvish Dwarvish or one of your choice if you already speak Dwarvish Equipment: A set of artisan's tools with which you are proficient, a maker's mark chisel used to mark your handiwork with the symbol of the clan of crafters you learned your skill from, a set of traveler's clothes, and a pouch containing 5 gp and a gem..."
+  },
+  {
+    "name": "Cloistered Scholar",
+    "description": "Skill Proficiencies: History, plus your choice of one from among Arcana, Nature, and Religion History, plus your choice of one from among Arcana, Nature, and Religion Languages: any two of your choice any two of your choice Equipment: The scholar's robes of your cloister, a writing kit (small pouch with a quill, ink, folded parchment, and a small penknife), a borrowed book on the subject of your current study, and a pouch containing 10 gp The scholar's robes of your cloister, a writing kit (small pouch with a qu..."
+  },
+  {
+    "name": "Cobalt Scholar (Sage)",
+    "description": "Source: EGW."
+  },
+  {
+    "name": "Courtier",
+    "description": "Skill Proficiencies: Insight, Persuasion Insight, Persuasion Languages: Any two of your choice Any two of your choice Equipment: A set of fine clothes and a pouch containing 5 gp A set of fine clothes and a pouch containing 5 gp Feature: Court Functionary Your knowledge of how bureaucracies function lets you gain access to the records and inner workings of any noble court or government you encounter. You know who the movers and shakers are, whom to go to for the favors you seek, and what the current intrigues of..."
+  },
+  {
+    "name": "Criminal",
+    "description": "Skill Proficiencies: Deception, Stealth Deception, Stealth Tool Proficiencies: One type of gaming set, thieves' tools One type of gaming set, thieves' tools Equipment: A crowbar, a set of dark common clothes including a hood, and a belt pouch containing 15 gp A crowbar, a set of dark common clothes including a hood, and a belt pouch containing 15 gp Feature: Criminal Contact You have a reliable and trustworthy contact who acts as your liaison to a network of other criminals. You know how to get messages to and f..."
+  },
+  {
+    "name": "Custom Background",
+    "description": "Skill Proficiencies: Two of your choice Two of your choice Languages and Tool Proficiencies: Two of your choice Two of your choice Equipment: The equipment package from any background The equipment package from any background Feature: Choose a Feature Choose a feature from any background. Suggested Characteristics Use the suggested characteristics from any background. See the section on @book Customizing a Background in the Player's Handbook for more information."
+  },
+  {
+    "name": "Dead Magic Dweller",
+    "description": "Ability Scores: Strength, Constitution, Wisdom Strength, Constitution, Wisdom Feat: Healer Healer Skill Proficiencies: Medicine and Survival Medicine and Survival Tool Proficiencies: Leatherworker's Tools Leatherworker's Tools Equipment: Choose A or B: (A) Greatclub, Leatherworker's Tools, Bedroll, Blanket, Healer's Kit, Pole, Rations (3 days' worth), Tent, Tinderbox, 5 Torch, Traveler's Clothes, Waterskin, 32 GP; or (B) 50 GP Choose A or B: (A) Greatclub, Leatherworker's Tools, Bedroll, Blanket, Healer's Kit, P..."
+  },
+  {
+    "name": "Dimir Operative",
+    "description": "Skill Proficiencies: Deception, Stealth Deception, Stealth Tool Proficiencies: Disguise kit Disguise kit Languages: One of your choice One of your choice Equipment: A Dimir insignia, three small knives, a set of dark-colored common clothes, and the starting equipment of the background described in this chapter for your secondary guild A Dimir insignia, three small knives, a set of dark-colored common clothes, and the starting equipment of the background described in this chapter for your secondary guild Feature:..."
+  },
+  {
+    "name": "Dragon Cultist",
+    "description": "Ability Scores: Dexterity, Constitution, Intelligence Dexterity, Constitution, Intelligence Feat: Cult of the Dragon Initiate Cult of the Dragon Initiate Skill Proficiencies: Deception and Stealth Deception and Stealth Tool Proficiencies: Calligrapher's Supplies Calligrapher's Supplies Equipment: Choose A or B: (A) Calligrapher's Supplies, Dagger, Glass Bottle, Lamp, Manacles, Oil (5 flasks), 2 Pouch, Robe, Rope, 30 GP; or (B) 50 GP Choose A or B: (A) Calligrapher's Supplies, Dagger, Glass Bottle, Lamp, Manacles..."
+  },
+  {
+    "name": "Emerald Enclave Caretaker",
+    "description": "Ability Scores: Constitution, Intelligence, Wisdom Constitution, Intelligence, Wisdom Feat: Emerald Enclave Fledgling Emerald Enclave Fledgling Skill Proficiencies: Nature and Survival Nature and Survival Tool Proficiencies: Herbalism Kit Herbalism Kit Equipment: Choose A or B: (A) Shortbow, Arrow, Herbalism Kit, Bedroll, Blanket, Pouch, Tent, Traveler's Clothes, 13 GP; or (B) 50 GP Choose A or B: (A) Shortbow, Arrow, Herbalism Kit, Bedroll, Blanket, Pouch, Tent, Traveler's Clothes, 13 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Entertainer",
+    "description": "Skill Proficiencies: Acrobatics, Performance Acrobatics, Performance Tool Proficiencies: Disguise kit, one type of musical instrument Disguise kit, one type of musical instrument Equipment: A musical instrument (one of your choice), the favor of an admirer (love letter, lock of hair, or trinket), costume clothes, and a belt pouch containing 15 gp A musical instrument (one of your choice), the favor of an admirer (love letter, lock of hair, or trinket), costume clothes, and a belt pouch containing 15 gp Feature:..."
+  },
+  {
+    "name": "Faceless",
+    "description": "Skill Proficiencies: Deception, Intimidation Deception, Intimidation Tool Proficiencies: Disguise kit Disguise kit Languages: One of your choice One of your choice Equipment: Disguise kit, a costume clothes, a pouch containing 10 gp Disguise kit, a costume clothes, a pouch containing 10 gp Faceless Persona A faceless character adventures behind the mask of a public persona. This persona is as natural to them as their hidden, true face, but it disguises their identity. Roll on the Faceless Persona table to determ..."
+  },
+  {
+    "name": "Faction Agent",
+    "description": "Skill Proficiencies: Insight and one Intelligence, Wisdom, or Charisma skill of your choice, as appropriate to your faction Insight and one Intelligence, Wisdom, or Charisma skill of your choice, as appropriate to your faction Languages: Any two of your choice Any two of your choice Equipment: Badge or emblem of your faction, a copy of a seminal faction text (or code-book for a covert faction), a set of common clothes, and a pouch containing 15 gp Badge or emblem of your faction, a copy of a seminal faction text..."
+  },
+  {
+    "name": "Failed Merchant",
+    "description": "Skill Proficiencies: Investigation, Persuasion Investigation, Persuasion Tool Proficiencies: One type of artisan's tools One type of artisan's tools Languages: Any one of your choice Any one of your choice Equipment: One set of artisan's tools, merchant's scale, a set of fine clothes, and a belt pouch containing 10 gp One set of artisan's tools, merchant's scale, a set of fine clothes, and a belt pouch containing 10 gp Feature: Supply Chain From your time as a merchant, you retain connections with wholesalers, s..."
+  },
+  {
+    "name": "Far Traveler",
+    "description": "Skill Proficiencies: Insight, Perception Insight, Perception Tool Proficiencies: Any one musical instrument or gaming set of your choice, likely something native to your homeland Any one musical instrument or gaming set of your choice, likely something native to your homeland Languages: Any one of your choice Any one of your choice Equipment: One set of traveler's clothes, any one musical instrument or gaming set you are proficient with, poorly wrought maps from your homeland that depict where you are in Faerûn,..."
+  },
+  {
+    "name": "Farmer",
+    "description": "Ability Scores: Strength, Constitution, Wisdom Strength, Constitution, Wisdom Feat: Tough Tough Skill Proficiencies: Animal Handling, Nature Animal Handling, Nature Tool Proficiency: Carpenter's Tools Carpenter's Tools Equipment: Choose A or B: (A) Sickle, Carpenter's Tools, Healer's Kit, Iron Pot, Shovel, 30 GP; or (B) 50 GP Choose A or B: (A) Sickle, Carpenter's Tools, Healer's Kit, Iron Pot, Shovel, 30 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Feylost",
+    "description": "Skill Proficiencies: Deception, Survival Deception, Survival Tool Proficiencies: One type of musical instrument One type of musical instrument Languages: One of your choice of Elvish, Gnomish, Goblin, or Sylvan One of your choice of Elvish, Gnomish, Goblin, or Sylvan Equipment: A musical instrument (one of your choice), a Traveler's Clothes, three trinkets (each determined by rolling on the Feywild Trinket table), and a pouch containing 8 gp A musical instrument (one of your choice), a Traveler's Clothes, three..."
+  },
+  {
+    "name": "Fisher",
+    "description": "Skill Proficiencies: History, Survival History, Survival Languages: One of your choice One of your choice Equipment: Fishing tackle, a net, a favorite fishing lure or oiled leather wading boots, a set of traveler's clothes, and a belt pouch containing 10 gp Fishing tackle, a net, a favorite fishing lure or oiled leather wading boots, a set of traveler's clothes, and a belt pouch containing 10 gp Feature: Harvest the Water You gain advantage on ability checks made using fishing tackle. If you have access to a bod..."
+  },
+  {
+    "name": "Flaming Fist Mercenary",
+    "description": "Ability Scores: Strength, Constitution, Charisma Strength, Constitution, Charisma Feat: Tough Tough Skill Proficiencies: Intimidation and Perception Intimidation and Perception Tool Proficiencies: Smith's Tools Smith's Tools Equipment: Choose A or B: (A) Mace, Smith's Tools, Fine Clothes, Manacles, Portable Ram, 4 GP; or (B) 50 GP Choose A or B: (A) Mace, Smith's Tools, Fine Clothes, Manacles, Portable Ram, 4 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Folk Hero",
+    "description": "Skill Proficiencies: Animal Handling, Survival Animal Handling, Survival Tool Proficiencies: One type of artisan's tools, vehicles (land) One type of artisan's tools, vehicles (land) Equipment: A set of artisan's tools (one of your choice), a shovel, an iron pot, a set of common clothes, and a belt pouch containing 10 gp A set of artisan's tools (one of your choice), a shovel, an iron pot, a set of common clothes, and a belt pouch containing 10 gp Feature: Rustic Hospitality Since you come from the ranks of the..."
+  },
+  {
+    "name": "Gambler",
+    "description": "Skill Proficiencies: Deception, Insight Deception, Insight Tool Proficiencies: One gaming set One gaming set Languages: Any one of your choice Any one of your choice Equipment: One gaming set, a lucky charm, a set of fine clothes, and a belt pouch containing 15 gp One gaming set, a lucky charm, a set of fine clothes, and a belt pouch containing 15 gp Feature: Never Tell Me the Odds Odds and probability are your bread and butter. During downtime activities that involve games of chance or figuring odds on the best..."
+  },
+  {
+    "name": "Gate Warden",
+    "description": "Skill Proficiencies: Persuasion, Survival Persuasion, Survival Languages: Two of your choice (Abyssal, Celestial, or Infernal recommended) Two of your choice (Abyssal, Celestial, or Infernal recommended) Equipment: A ring of keys to unknown locks, a blank book, an ink pen or quill, a bottle of black ink, a set of traveler's clothes, and a pouch containing 10 gp A ring of keys to unknown locks, a blank book, an ink pen or quill, a bottle of black ink, a set of traveler's clothes, and a pouch containing 10 gp Feat..."
+  },
+  {
+    "name": "Genie Touched",
+    "description": "Ability Scores: Dexterity, Wisdom, Charisma Dexterity, Wisdom, Charisma Feat: Magic Initiate (Wizard) Magic Initiate (Wizard) Skill Proficiencies: Perception and Persuasion Perception and Persuasion Tool Proficiencies: Glassblower's Tools Glassblower's Tools Equipment: Choose A or B: (A) Light Hammer, Glassblower's Tools, Fine Clothes, Lamp, Oil (3 flasks), Waterskin, 2 GP; or (B) 50 GP Choose A or B: (A) Light Hammer, Glassblower's Tools, Fine Clothes, Lamp, Oil (3 flasks), Waterskin, 2 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Giant Foundling",
+    "description": "Skill Proficiencies: Intimidation, Survival Intimidation, Survival Languages: Giant and one other language of your choice Giant and one other language of your choice Equipment: A backpack, a set of traveler's clothes, a small stone or sprig that reminds you of home, and a pouch containing 10 gp A backpack, a set of traveler's clothes, a small stone or sprig that reminds you of home, and a pouch containing 10 gp Origin Stories How you came to live among colossal creatures is up to you to determine, but the Foundl..."
+  },
+  {
+    "name": "Golgari Agent",
+    "description": "Skill Proficiencies: Nature, Survival Nature, Survival Tool Proficiencies: Poisoner's kit Poisoner's kit Languages: Choose one of Elvish, Giant, or Kraul Choose one of Elvish, Giant, or Kraul Equipment: A Golgari insignia, a poisoner's kit, a pet beetle or spider, a set of common clothes, and a belt pouch containing 10 gp worth of mixed coins A Golgari insignia, a poisoner's kit, a pet beetle or spider, a set of common clothes, and a belt pouch containing 10 gp worth of mixed coins Feature: Undercity Paths You k..."
+  },
+  {
+    "name": "Grinner",
+    "description": "Skill Proficiencies: Deception, Performance Deception, Performance Tool Proficiencies: One type of musical instrument, thieves' tools One type of musical instrument, thieves' tools Equipment: A set of fine clothes, a disguise kit, a musical instrument of your choice, a gold-plated ring depicting a smiling face, and a pouch containing 15 gp A set of fine clothes, a disguise kit, a musical instrument of your choice, a gold-plated ring depicting a smiling face, and a pouch containing 15 gp Feature: Ballad of the Gr..."
+  },
+  {
+    "name": "Gruul Anarch",
+    "description": "Skill Proficiencies: Animal Handling, Athletics Animal Handling, Athletics Tool Proficiencies: Herbalism kit Herbalism kit Languages: Choose one of Draconic, Giant, Goblin, or Sylvan Choose one of Draconic, Giant, Goblin, or Sylvan Equipment: A Gruul insignia, a hunting trap, an herbalism kit, the skull of a boar, a beast-hide cloak, a set of traveler's clothes, and a belt pouch containing 10 gp (Azorius 1-zino coins) A Gruul insignia, a hunting trap, an herbalism kit, the skull of a boar, a beast-hide cloak, a..."
+  },
+  {
+    "name": "Guard",
+    "description": "Ability Scores: Strength, Intelligence, Wisdom Strength, Intelligence, Wisdom Feat: Alert Alert Skill Proficiencies: Athletics, Perception Athletics, Perception Tool Proficiency: Choose one kind of Gaming Set Choose one kind of Gaming Set Equipment: Choose A or B: (A) Spear, Light Crossbow, 20 Bolt, Gaming Set (same as above), Hooded Lantern, Manacles, Quiver, Traveler's Clothes, 12 GP; or (B) 50 GP Choose A or B: (A) Spear, Light Crossbow, 20 Bolt, Gaming Set (same as above), Hooded Lantern, Manacles, Quiver, T..."
+  },
+  {
+    "name": "Guide",
+    "description": "Ability Scores: Dexterity, Constitution, Wisdom Dexterity, Constitution, Wisdom Feat: Magic Initiate (Druid) Magic Initiate (Druid) Skill Proficiencies: Stealth, Survival Stealth, Survival Tool Proficiency: Cartographer's Tools Cartographer's Tools Equipment: Choose A or B: (A) Shortbow, Arrow, Cartographer's Tools, Bedroll, Quiver, Tent, Traveler's Clothes, 3 GP; or (B) 50 GP Choose A or B: (A) Shortbow, Arrow, Cartographer's Tools, Bedroll, Quiver, Tent, Traveler's Clothes, 3 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Guild Artisan",
+    "description": "Skill Proficiencies: Insight, Persuasion Insight, Persuasion Tool Proficiencies: One type of artisan's tools One type of artisan's tools Languages: One of your choice One of your choice Equipment: A set of artisan's tools (one of your choice), a letter of introduction from your guild, a set of traveler's clothes, and a belt pouch containing 15 gp A set of artisan's tools (one of your choice), a letter of introduction from your guild, a set of traveler's clothes, and a belt pouch containing 15 gp Feature: Guild M..."
+  },
+  {
+    "name": "Harper",
+    "description": "Ability Scores: Dexterity, Intelligence, Charisma Dexterity, Intelligence, Charisma Feat: Harper Agent Harper Agent Skill Proficiencies: Performance and Sleight of Hand Performance and Sleight of Hand Tool Proficiencies: Disguise Kit Disguise Kit Equipment: Choose A or B: (A) Disguise Kit, Bedroll, Costume, Grappling Hook, Rope, Traveler's Clothes, 14 GP; or (B) 50 GP Choose A or B: (A) Disguise Kit, Bedroll, Costume, Grappling Hook, Rope, Traveler's Clothes, 14 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Haunted One",
+    "description": "Skill Proficiencies: Choose two from among Arcana, Investigation, Religion, or Survival Choose two from among Arcana, Investigation, Religion, or Survival Languages: Choose two, one of which must be Abyssal, Celestial, Deep Speech, Draconic, Infernal, Primordial, Sylvan, or Undercommon Choose two, one of which must be Abyssal, Celestial, Deep Speech, Draconic, Infernal, Primordial, Sylvan, or Undercommon Equipment: Monster hunter's pack (containing a chest, a crowbar, a hammer, three wooden stakes, a holy symbol..."
+  },
+  {
+    "name": "Hermit",
+    "description": "Skill Proficiencies: Medicine, Religion Medicine, Religion Tool Proficiencies: Herbalism kit Herbalism kit Languages: One of your choice One of your choice Equipment: A Map or Scroll Case stuffed full of notes from your studies or prayers, a winter blanket, a set of common clothes, an herbalism kit, and 5 gp A Map or Scroll Case stuffed full of notes from your studies or prayers, a winter blanket, a set of common clothes, an herbalism kit, and 5 gp Feature: Discovery The quiet seclusion of your extended hermitag..."
+  },
+  {
+    "name": "House Agent",
+    "description": "Skill Proficiencies: Investigation, Persuasion Investigation, Persuasion Tool Proficiencies: Two proficiencies from the House Tool Proficiencies table Equipment: A set of fine clothes, house signet ring, identification papers, and a purse containing 20 gp. A set of fine clothes, house signet ring, identification papers, and a purse containing 20 gp. Cannith Alchemist's supplies and tinker's tools Deneith One gaming set and vehicles (land) Ghallanda Brewer's supplies and cook's utensils Jorasco Alchemist's suppli..."
+  },
+  {
+    "name": "House Cannith Heir",
+    "description": "Ability Scores: Strength, Dexterity, Intelligence Strength, Dexterity, Intelligence Feat: Mark of Making Mark of Making Skill Proficiencies: Investigation and Sleight of Hand Investigation and Sleight of Hand Tool Proficiencies: Choose one kind of Artisan's Tools Choose one kind of Artisan's Tools Equipment: Choose A or B: (A) Artisan's Tools (same as above), Crowbar, Fine Clothes, 2 Pouch, 17 GP; or (B) 50 GP Choose A or B: (A) Artisan's Tools (same as above), Crowbar, Fine Clothes, 2 Pouch, 17 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Deneith Heir",
+    "description": "Ability Scores: Strength, Constitution, Wisdom Strength, Constitution, Wisdom Feat: Mark of Sentinel Mark of Sentinel Skill Proficiencies: Insight and Perception Insight and Perception Tool Proficiencies: Choose one kind of Gaming Set Choose one kind of Gaming Set Equipment: Choose A or B: (A) Spear, Shortbow, Arrow, Gaming Set (same as above), Fine Clothes, Healer's Kit, Quiver, 1 GP; or (B) 50 GP Choose A or B: (A) Spear, Shortbow, Arrow, Gaming Set (same as above), Fine Clothes, Healer's Kit, Quiver, 1 GP; or..."
+  },
+  {
+    "name": "House Ghallanda Heir",
+    "description": "Ability Scores: Dexterity, Wisdom, Charisma Dexterity, Wisdom, Charisma Feat: Mark of Hospitality Mark of Hospitality Skill Proficiencies: Insight and Persuasion Insight and Persuasion Tool Proficiencies: Cook's Utensils Cook's Utensils Equipment: Choose A or B: (A) Cook's Utensils, Fine Clothes, Iron Pot, Lamp, Oil (5 flasks), Perfume, 26 GP; or (B) 50 GP Choose A or B: (A) Cook's Utensils, Fine Clothes, Iron Pot, Lamp, Oil (5 flasks), Perfume, 26 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Jorasco Heir",
+    "description": "Ability Scores: Dexterity, Constitution, Wisdom Dexterity, Constitution, Wisdom Feat: Mark of Healing Mark of Healing Skill Proficiencies: Medicine and Stealth Medicine and Stealth Tool Proficiencies: Herbalism Kit Herbalism Kit Equipment: Choose A or B: (A) Herbalism Kit, Fine Clothes, Healer's Kit, 25 GP; or (B) 50 GP Choose A or B: (A) Herbalism Kit, Fine Clothes, Healer's Kit, 25 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Kundarak Heir",
+    "description": "Ability Scores: Strength, Constitution, Intelligence Strength, Constitution, Intelligence Feat: Mark of Warding Mark of Warding Skill Proficiencies: Arcana and Investigation Arcana and Investigation Tool Proficiencies: Thieves' Tools Thieves' Tools Equipment: Choose A or B: (A) Thieves' Tools, Fine Clothes, 10 GP; or (B) 50 GP Choose A or B: (A) Thieves' Tools, Fine Clothes, 10 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Lyrandar Heir",
+    "description": "Ability Scores: Strength, Dexterity, Charisma Strength, Dexterity, Charisma Feat: Mark of Storm Mark of Storm Skill Proficiencies: Acrobatics and Nature Acrobatics and Nature Tool Proficiencies: Navigator's Tools Navigator's Tools Equipment: Choose A or B: (A) Navigator's Tools, Fine Clothes, 10 GP; or (B) 50 GP Choose A or B: (A) Navigator's Tools, Fine Clothes, 10 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Medani Heir",
+    "description": "Ability Scores: Dexterity, Intelligence, Wisdom Dexterity, Intelligence, Wisdom Feat: Mark of Detection Mark of Detection Skill Proficiencies: Insight and Investigation Insight and Investigation Tool Proficiencies: Disguise Kit Disguise Kit Equipment: Choose A or B: (A) Disguise Kit, Fine Clothes, 10 GP; or (B) 50 GP Choose A or B: (A) Disguise Kit, Fine Clothes, 10 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Orien Heir",
+    "description": "Ability Scores: Dexterity, Constitution, Intelligence Dexterity, Constitution, Intelligence Feat: Mark of Passage Mark of Passage Skill Proficiencies: Acrobatics and Athletics Acrobatics and Athletics Tool Proficiencies: Cartographer's Tools Cartographer's Tools Equipment: Choose A or B: (A) Cartographer's Tools, Fine Clothes, Map, Map or Scroll Case, 18 GP; or (B) 50 GP Choose A or B: (A) Cartographer's Tools, Fine Clothes, Map, Map or Scroll Case, 18 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Phiarlan Heir",
+    "description": "Ability Scores: Dexterity, Wisdom, Charisma Dexterity, Wisdom, Charisma Feat: Mark of Shadow Mark of Shadow Skill Proficiencies: Deception and Stealth Deception and Stealth Tool Proficiencies: Disguise Kit Disguise Kit Equipment: Choose A or B: (A) Disguise Kit, Fine Clothes, 10 GP; or (B) 50 GP Choose A or B: (A) Disguise Kit, Fine Clothes, 10 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Sivis Heir",
+    "description": "Ability Scores: Intelligence, Wisdom, Charisma Intelligence, Wisdom, Charisma Feat: Mark of Scribing Mark of Scribing Skill Proficiencies: History and Perception History and Perception Tool Proficiencies: Calligrapher's Supplies Calligrapher's Supplies Equipment: Choose A or B: (A) Calligrapher's Supplies, Fine Clothes, Ink, 5 Ink Pen, Paper (30 sheets), Parchment (9 sheets), 8 GP; or (B) 50 GP Choose A or B: (A) Calligrapher's Supplies, Fine Clothes, Ink, 5 Ink Pen, Paper (30 sheets), Parchment (9 sheets), 8 GP..."
+  },
+  {
+    "name": "House Tharashk Heir",
+    "description": "Ability Scores: Constitution, Intelligence, Wisdom Constitution, Intelligence, Wisdom Feat: Mark of Finding Mark of Finding Skill Proficiencies: Perception and Survival Perception and Survival Tool Proficiencies: Choose one kind of Gaming Set Choose one kind of Gaming Set Equipment: Choose A or B: (A) Gaming Set (same as above), Climber's Kit, Fine Clothes, Hunting Trap, Manacles, 2 GP; or (B) 50 GP Choose A or B: (A) Gaming Set (same as above), Climber's Kit, Fine Clothes, Hunting Trap, Manacles, 2 GP; or (B) 5..."
+  },
+  {
+    "name": "House Thuranni Heir",
+    "description": "Ability Scores: Dexterity, Intelligence, Charisma Dexterity, Intelligence, Charisma Feat: Mark of Shadow Mark of Shadow Skill Proficiencies: Performance and Stealth Performance and Stealth Tool Proficiencies: Choose one kind of Musical Instrument Choose one kind of Musical Instrument Equipment: Choose A or B: (A) Musical Instrument (same as above), Costume, Fine Clothes, 13 GP; or (B) 50 GP Choose A or B: (A) Musical Instrument (same as above), Costume, Fine Clothes, 13 GP; or (B) 50 GP"
+  },
+  {
+    "name": "House Vadalis Heir",
+    "description": "Ability Scores: Constitution, Wisdom, Charisma Constitution, Wisdom, Charisma Feat: Mark of Handling Mark of Handling Skill Proficiencies: Animal Handling and Nature Animal Handling and Nature Tool Proficiencies: Herbalism Kit Herbalism Kit Equipment: Choose A or B: (A) Herbalism Kit, Fine Clothes, Net, 29 GP; or (B) 50 GP Choose A or B: (A) Herbalism Kit, Fine Clothes, Net, 29 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Ice Fisher",
+    "description": "Ability Scores: Strength, Dexterity, Constitution Strength, Dexterity, Constitution Feat: Alert Alert Skill Proficiencies: Animal Handling and Athletics Animal Handling and Athletics Tool Proficiencies: Woodcarver's Tools Woodcarver's Tools Equipment: Choose A or B: (A) Woodcarver's Tools, Basket, Block and Tackle, Chain, Hunting Trap, Net, Pole, Rations (3 days' worth), Traveler's Clothes, 32 GP; or (B) 50 GP Choose A or B: (A) Woodcarver's Tools, Basket, Block and Tackle, Chain, Hunting Trap, Net, Pole, Ration..."
+  },
+  {
+    "name": "Inheritor",
+    "description": "Skill Proficiencies: Survival, plus one from among Arcana, History, and Religion Survival, plus one from among Arcana, History, and Religion Languages: Any one of your choice Any one of your choice Tool Proficiencies: Your choice of a gaming set or a musical instrument Your choice of a gaming set or a musical instrument Equipment: Your inheritance, a set of traveler's clothes, the tool you choose for this background's tool proficiency (gaming set or musical instrument), and a pouch containing 15 gp Your inherita..."
+  },
+  {
+    "name": "Initiate",
+    "description": "Skill Proficiencies: Athletics, Intimidation Athletics, Intimidation Tool Proficiencies: One type of gaming set, vehicles (land) One type of gaming set, vehicles (land) Equipment: A simple puzzle box, a scroll containing the basic teachings of the five gods, a gaming set, a set of common clothes, and a belt pouch containing 15 gp. If you have completed any trials before the start of the campaign, you also have any cartouches you have earned A simple puzzle box, a scroll containing the basic teachings of the five..."
+  },
+  {
+    "name": "Initiate (Dissenter)",
+    "description": "Source: PSA."
+  },
+  {
+    "name": "Inquisitive",
+    "description": "Ability Scores: Constitution, Intelligence, Charisma Constitution, Intelligence, Charisma Feat: Alert Alert Skill Proficiencies: Insight and Investigation Insight and Investigation Tool Proficiencies: Thieves' Tools Thieves' Tools Equipment: Choose A or B: (A) Thieves' Tools, Bullseye Lantern, Crowbar, Oil (10 flasks), Traveler's Clothes, 10 GP; or (B) 50 GP Choose A or B: (A) Thieves' Tools, Bullseye Lantern, Crowbar, Oil (10 flasks), Traveler's Clothes, 10 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Inquisitor",
+    "description": "Skill Proficiencies: Investigation, Religion Investigation, Religion Tool Proficiencies: Thieves' tools, one type of artisan's tools Thieves' tools, one type of artisan's tools Equipment: A holy symbol, a set of traveler's clothes, and a belt pouch containing 15 gp A holy symbol, a set of traveler's clothes, and a belt pouch containing 15 gp Feature: Legal Authority As an inquisitor of the church, you have the authority to arrest criminals. In the absence of other authorities, you are authorized to pass judgemen..."
+  },
+  {
+    "name": "Investigator",
+    "description": "Skill Proficiencies: Choose two from among Insight, Investigation, or Perception Choose two from among Insight, Investigation, or Perception Tool Proficiencies: Disguise kit, Thieves' tools Disguise kit, Thieves' tools Equipment: A magnifying glass, evidence from a past case (choose one or roll for a trinket from the Horror Trinket later in this chapter), a Common Clothes, and 10 gp A magnifying glass, evidence from a past case (choose one or roll for a trinket from the Horror Trinket later in this chapter), a C..."
+  },
+  {
+    "name": "Izzet Engineer",
+    "description": "Skill Proficiencies: Arcana, Investigation Arcana, Investigation Tool Proficiencies: One type of artisan's tools One type of artisan's tools Languages: Choose one of Draconic, Goblin, or Vedalken Choose one of Draconic, Goblin, or Vedalken Equipment: An Izzet insignia, one set of artisan's tools, the charred and twisted remains of a failed experiment, a hammer, a block and tackle, a set of common clothes, and a belt pouch containing 5 gp (Azorius 1-zino coins) An Izzet insignia, one set of artisan's tools, the c..."
+  },
+  {
+    "name": "Knight of Solamnia",
+    "description": "Skill Proficiencies: Athletics, Survival Athletics, Survival Languages: Two of your choice Two of your choice Equipment: An insignia of rank, a playing card set, a set of common clothes, and a pouch containing 10 gp An insignia of rank, a playing card set, a set of common clothes, and a pouch containing 10 gp Feature: Squire of Solamnia You gain the Squire of Solamnia feat. In addition, the Knights of Solamnia provide you free, modest lodging and food at any of their fortresses or encampments. Building a Knight..."
+  },
+  {
+    "name": "Knight of the Gauntlet",
+    "description": "Ability Scores: Strength, Intelligence, Wisdom Strength, Intelligence, Wisdom Feat: Tyro of the Gauntlet Tyro of the Gauntlet Skill Proficiencies: Athletics and Medicine Athletics and Medicine Tool Proficiencies: Smith's Tools Smith's Tools Equipment: Choose A or B: (A) Spear, Smith's Tools, Bullseye Lantern, Holy Symbol, Manacles, Oil (5 flasks), Tinderbox, Traveler's Clothes, 9 GP; or (B) 50 GP Choose A or B: (A) Spear, Smith's Tools, Bullseye Lantern, Holy Symbol, Manacles, Oil (5 flasks), Tinderbox, Traveler..."
+  },
+  {
+    "name": "Knight of the Order",
+    "description": "Skill Proficiencies: Persuasion, plus one from among Arcana, History, Nature, and Religion, as appropriate for your order Persuasion, plus one from among Arcana, History, Nature, and Religion, as appropriate for your order Tool Proficiencies: Your choice of a gaming set or a musical instrument Your choice of a gaming set or a musical instrument Languages: Any one of your choice Any one of your choice Equipment: One set of traveler's clothes, a signet, banner, or seal representing your place or rank in the order,..."
+  },
+  {
+    "name": "Lords' Alliance Vassal",
+    "description": "Ability Scores: Strength, Intelligence, Charisma Strength, Intelligence, Charisma Feat: Lords' Alliance Agent Lords' Alliance Agent Skill Proficiencies: Insight and Persuasion Insight and Persuasion Tool Proficiencies: Calligrapher's Supplies Calligrapher's Supplies Equipment: Choose A or B: (A) 2 Javelin, Calligrapher's Supplies, Fine Clothes, Ink, 5 Ink Pen, Parchment (9 sheets), 13 GP; or (B) 50 GP Choose A or B: (A) 2 Javelin, Calligrapher's Supplies, Fine Clothes, Ink, 5 Ink Pen, Parchment (9 sheets), 13 GP..."
+  },
+  {
+    "name": "Lorehold Student",
+    "description": "Skill Proficiencies: History, Religion History, Religion Languages: Two of your choice Two of your choice Equipment: A Ink (1-ounce bottle), an ink pen, a hammer, a hooded lantern, a tinderbox, a tome of history, a school uniform, and a pouch containing 15 gp A Ink (1-ounce bottle), an ink pen, a hammer, a hooded lantern, a tinderbox, a tome of history, a school uniform, and a pouch containing 15 gp Feature: Lorehold Initiate You gain the Strixhaven Initiate feat and must choose Lorehold within it. In addition,..."
+  },
+  {
+    "name": "Lorwyn Expert",
+    "description": "Ability Scores: Strength, Constitution, Wisdom Strength, Constitution, Wisdom Feat: Child of the Sun Child of the Sun Skill Proficiencies: Athletics and Nature Athletics and Nature Tool Proficiency: Cartographer's Tools Cartographer's Tools Equipment: Choose A or B: (A) Quarterstaff, Cartographer's Tools, Backpack, Basket, Parchment (4 sheets), Rope, Traveler's Clothes, 29 GP; or (B) 50 GP Choose A or B: (A) Quarterstaff, Cartographer's Tools, Backpack, Basket, Parchment (4 sheets), Rope, Traveler's Clothes, 29..."
+  },
+  {
+    "name": "Luxonborn (Acolyte)",
+    "description": "Source: EGW."
+  },
+  {
+    "name": "Mage of High Sorcery",
+    "description": "Skill Proficiencies: Arcana, History Arcana, History Languages: Two of your choice Two of your choice Equipment: A Ink (1-ounce bottle), an ink pen, a set of common clothes, and a pouch containing 10 gp A Ink (1-ounce bottle), an ink pen, a set of common clothes, and a pouch containing 10 gp Feature: Initiate of High Sorcery You gain the Initiate of High Sorcery feat. In addition, the Mages of High Sorcery provide you with free, modest lodging and food indefinitely at any occupied Tower of High Sorcery and for o..."
+  },
+  {
+    "name": "Marine",
+    "description": "Skill Proficiencies: Athletics, Survival Athletics, Survival Tool Proficiencies: Vehicles (water, land) Vehicles (water, land) Equipment: A dagger that belonged to a fallen comrade, a folded flag emblazoned with the symbol of your ship or company, a set of traveler's clothes, and a belt pouch containing 10 gp A dagger that belonged to a fallen comrade, a folded flag emblazoned with the symbol of your ship or company, a set of traveler's clothes, and a belt pouch containing 10 gp Feature: Steady You can move twic..."
+  },
+  {
+    "name": "Mercenary Veteran",
+    "description": "Skill Proficiencies: Athletics, Persuasion Athletics, Persuasion Tool Proficiencies: One type of gaming set, vehicles (land) One type of gaming set, vehicles (land) Equipment: A uniform of your company (traveler's clothes in quality), an insignia of your rank, a gaming set of your choice, and a pouch containing the remainder of your last wages (10 gp). A uniform of your company (traveler's clothes in quality), an insignia of your rank, a gaming set of your choice, and a pouch containing the remainder of your las..."
+  },
+  {
+    "name": "Merchant",
+    "description": "Ability Scores: Constitution, Intelligence, Charisma Constitution, Intelligence, Charisma Feat: Lucky Lucky Skill Proficiencies: Animal Handling, Persuasion Animal Handling, Persuasion Tool Proficiency: Navigator's Tools Navigator's Tools Equipment: Choose A or B: (A) Navigator's Tools, Pouch, Traveler's Clothes, 22 GP; or (B) 50 GP Choose A or B: (A) Navigator's Tools, Pouch, Traveler's Clothes, 22 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Moonwell Pilgrim",
+    "description": "Ability Scores: Constitution, Wisdom, Charisma Constitution, Wisdom, Charisma Feat: Magic Initiate (Druid) Magic Initiate (Druid) Skill Proficiencies: Nature and Performance Nature and Performance Tool Proficiencies: Painter's Supplies Painter's Supplies Equipment: Choose A or B: (A) Quarterstaff, Painter's Supplies, Bedroll, Bell, Pouch, Robe, String, Traveler's Clothes, Waterskin, 38 GP; or (B) 50 GP Choose A or B: (A) Quarterstaff, Painter's Supplies, Bedroll, Bell, Pouch, Robe, String, Traveler's Clothes, Wa..."
+  },
+  {
+    "name": "Mulhorandi Tomb Raider",
+    "description": "Ability Scores: Dexterity, Constitution, Intelligence Dexterity, Constitution, Intelligence Feat: Lucky Lucky Skill Proficiencies: Investigation and Religion Investigation and Religion Tool Proficiencies: Mason's Tools Mason's Tools Equipment: Choose A or B: (A) Dagger, Light Hammer, Mason's Tools, Backpack, Bedroll, Crowbar, Ladder, Pole, 2 Pouch, Rope, String, Tinderbox, 5 Torch, Traveler's Clothes, Waterskin 26 GP; or (B) 50 GP Choose A or B: (A) Dagger, Light Hammer, Mason's Tools, Backpack, Bedroll, Crowbar..."
+  },
+  {
+    "name": "Myriad Operative (Criminal)",
+    "description": "Source: EGW."
+  },
+  {
+    "name": "Mythalkeeper",
+    "description": "Ability Scores: Intelligence, Wisdom, Charisma Intelligence, Wisdom, Charisma Feat: Crafter Crafter Skill Proficiencies: Arcana and History Arcana and History Tool Proficiencies: Jeweler's Tools Jeweler's Tools Equipment: Choose A or B: (A) Quarterstaff, Jeweler's Tools, Perfume, Pouch, Robe, Shovel, String, Waterskin, 16 GP; or (B) 50 GP Choose A or B: (A) Quarterstaff, Jeweler's Tools, Perfume, Pouch, Robe, Shovel, String, Waterskin, 16 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Noble",
+    "description": "Skill Proficiencies: History, Persuasion History, Persuasion Tool Proficiencies: One type of gaming set One type of gaming set Languages: One of your choice One of your choice Equipment: A set of fine clothes, a signet ring, a scroll of pedigree, and a purse containing 25 gp A set of fine clothes, a signet ring, a scroll of pedigree, and a purse containing 25 gp Feature: Position of Privilege Thanks to your noble birth, people are inclined to think the best of you. You are welcome in high society, and people ass..."
+  },
+  {
+    "name": "Orzhov Representative",
+    "description": "Skill Proficiencies: Intimidation, Religion Intimidation, Religion Languages: Two of your choice Two of your choice Equipment: An Orzhov insignia, a foot-long chain made of ten gold coins, vestments, a set of fine clothes, and a belt pouch containing 1 pp (an Orzhov-minted 10-zino coin) An Orzhov insignia, a foot-long chain made of ten gold coins, vestments, a set of fine clothes, and a belt pouch containing 1 pp (an Orzhov-minted 10-zino coin) Feature: Leverage You can exert leverage over one or more individual..."
+  },
+  {
+    "name": "Outlander",
+    "description": "Skill Proficiencies: Athletics, Survival Athletics, Survival Tool Proficiencies: One type of musical instrument One type of musical instrument Languages: One of your choice One of your choice Equipment: A staff, a hunting trap, a trophy from an animal you killed, a set of traveler's clothes, and a belt pouch containing 10 gp A staff, a hunting trap, a trophy from an animal you killed, a set of traveler's clothes, and a belt pouch containing 10 gp Feature: Wanderer You have an excellent memory for maps and geogra..."
+  },
+  {
+    "name": "Plaintiff",
+    "description": "Skill Proficiencies: Medicine, Persuasion Medicine, Persuasion Tool Proficiencies: One type of artisan's tools One type of artisan's tools Languages: Any one of your choice Any one of your choice Equipment: One set of artisan's tools, fine clothes, 20 gp One set of artisan's tools, fine clothes, 20 gp Feature: Legalese Your experience with your local legal system has given you a firm knowledge of the ins and outs of that system. Even when the law is not on your side, you can use complex terms like ex injuria jus..."
+  },
+  {
+    "name": "Planar Philosopher",
+    "description": "Skill Proficiencies: Arcana, the skill associated with your faction (see the Sigil Faction Affinities table) or one skill of your choice Arcana, the skill associated with your faction (see the Sigil Faction Affinities table) or one skill of your choice Languages: Two of your choice Two of your choice Equipment: A portal key (such as a bag of golden tea leaves or the tooth of a planar beast), a manifesto of your guiding philosophy, a set of common clothes in your faction's style, and a pouch containing 10 gp wort..."
+  },
+  {
+    "name": "Prismari Student",
+    "description": "Skill Proficiencies: Acrobatics, Performance Acrobatics, Performance Tool Proficiencies: One type of musical instrument or artisan's tools One type of musical instrument or artisan's tools Languages: One of your choice One of your choice Equipment: A Ink (1-ounce bottle), an ink pen, a set of artisan's tools or a musical instrument (one of your choice), a school uniform, and a pouch containing 10 gp A Ink (1-ounce bottle), an ink pen, a set of artisan's tools or a musical instrument (one of your choice), a schoo..."
+  },
+  {
+    "name": "Purple Dragon Squire",
+    "description": "Ability Scores: Strength, Wisdom, Charisma Strength, Wisdom, Charisma Feat: Purple Dragon Rook Purple Dragon Rook Skill Proficiencies: Animal Handling and Insight Animal Handling and Insight Tool Proficiencies: Navigator's Tools Navigator's Tools Equipment: Choose A or B: (A) Spear, Navigator's Tools, Fine Clothes, 9 GP; or (B) 50 GP Choose A or B: (A) Spear, Navigator's Tools, Fine Clothes, 9 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Quandrix Student",
+    "description": "Skill Proficiencies: Arcana, Nature Arcana, Nature Tool Proficiencies: One type of artisan's tools One type of artisan's tools Languages: One of your choice One of your choice Equipment: A Ink (1-ounce bottle), an ink pen, an abacus, a book of arcane theory, a school uniform, and a pouch containing 15 gp A Ink (1-ounce bottle), an ink pen, an abacus, a book of arcane theory, a school uniform, and a pouch containing 15 gp Feature: Quandrix Initiate You gain the Strixhaven Initiate feat and must choose Quandrix wi..."
+  },
+  {
+    "name": "Rakdos Cultist",
+    "description": "Skill Proficiencies: Acrobatics, Performance Acrobatics, Performance Tool Proficiencies: One type of musical instrument One type of musical instrument Languages: Choose either Abyssal or Giant Choose either Abyssal or Giant Equipment: A Rakdos insignia, a musical instrument (one of your choice), a costume clothes, a hooded lantern made of wrought iron, a 10-foot length of chain with sharply spiked links, a tinderbox, 10 torch, a set of common clothes, a belt pouch containing 10 gp (a mix of Azorius and Boros 1-z..."
+  },
+  {
+    "name": "Rashemi Wanderer",
+    "description": "Ability Scores: Strength, Constitution, Charisma Strength, Constitution, Charisma Feat: Tough Tough Skill Proficiencies: Intimidation and Perception Intimidation and Perception Tool Proficiencies: Cartographer's Tools Cartographer's Tools Equipment: Choose A or B: (A) Cartographer's Tools, Backpack, Bedroll, Hooded Lantern, Oil (3 flasks), Rope, Tinderbox, Traveler's Clothes, Waterskin, 23 GP; or (B) 50 GP Choose A or B: (A) Cartographer's Tools, Backpack, Bedroll, Hooded Lantern, Oil (3 flasks), Rope, Tinderbox..."
+  },
+  {
+    "name": "Revelry Pirate (Sailor)",
+    "description": "Source: EGW."
+  },
+  {
+    "name": "Rewarded",
+    "description": "Skill Proficiencies: Insight, Persuasion Insight, Persuasion Languages: One of your choice One of your choice Equipment: A bottle of black ink, an ink pen, five sheets of paper, a gaming set (matching your chosen proficiency), a signet ring, a set of fine clothes, and a pouch containing 18 gp A bottle of black ink, an ink pen, five sheets of paper, a gaming set (matching your chosen proficiency), a signet ring, a set of fine clothes, and a pouch containing 18 gp Tool Proficiencies: One gaming set of your choice..."
+  },
+  {
+    "name": "Rival Intern",
+    "description": "Skill Proficiencies: History, Investigation History, Investigation Tool Proficiencies: One type of artisan's tools One type of artisan's tools Languages: Any one of your choice Any one of your choice Equipment: One set of artisan's tools, a ledger from your previous employer containing a small piece of useful information, a set of fine clothes, and a belt pouch containing 10 gp One set of artisan's tools, a ledger from your previous employer containing a small piece of useful information, a set of fine clothes,..."
+  },
+  {
+    "name": "Ruined",
+    "description": "Skill Proficiencies: Stealth, Survival Stealth, Survival Languages: One of your choice One of your choice Equipment: A cracked hourglass, a set of rusty manacles, a half-empty bottle, a hunting trap, a gaming set (matching your chosen proficiency), a set of traveler's clothes, and a pouch containing 13 gp A cracked hourglass, a set of rusty manacles, a half-empty bottle, a hunting trap, a gaming set (matching your chosen proficiency), a set of traveler's clothes, and a pouch containing 13 gp Tool Proficiencies:..."
+  },
+  {
+    "name": "Rune Carver",
+    "description": "Skill Proficiencies: History, Perception History, Perception Tool Proficiencies: One set of artisan's tools One set of artisan's tools Languages: Giant Giant Equipment: A set of artisan's tools (one of your choice), a small knife, a whetstone, a set of common clothes, and a pouch containing 10 gp A set of artisan's tools (one of your choice), a small knife, a whetstone, a set of common clothes, and a pouch containing 10 gp Rune Styles Each rune carver has a unique style and preferred medium. To determine how you..."
+  },
+  {
+    "name": "Sage",
+    "description": "Skill Proficiencies: Arcana, History Arcana, History Languages: Two of your choice Two of your choice Equipment: A Ink (1-ounce bottle), a quill, a small knife, a letter from a dead colleague posing a question you have not yet been able to answer, a set of common clothes, and a belt pouch containing 10 gp A Ink (1-ounce bottle), a quill, a small knife, a letter from a dead colleague posing a question you have not yet been able to answer, a set of common clothes, and a belt pouch containing 10 gp Feature: Researc..."
+  },
+  {
+    "name": "Sailor",
+    "description": "Skill Proficiencies: Athletics, Perception Athletics, Perception Tool Proficiencies: Navigator's tools, vehicles (water) Navigator's tools, vehicles (water) Equipment: A belaying pin (club), silk rope (50 feet), a lucky charm such as a rabbit foot or a small stone with a hole in the center (or you may roll for a random trinket on the Trinkets table in chapter 5), a set of common clothes, and a belt pouch containing 10 gp A belaying pin (club), silk rope (50 feet), a lucky charm such as a rabbit foot or a small s..."
+  },
+  {
+    "name": "Scribe",
+    "description": "Ability Scores: Dexterity, Intelligence, Wisdom Dexterity, Intelligence, Wisdom Feat: Skilled Skilled Skill Proficiencies: Investigation, Perception Investigation, Perception Tool Proficiency: Calligrapher's Supplies Calligrapher's Supplies Equipment: Choose A or B: (A) Calligrapher's Supplies, Fine Clothes, Lamp, Oil (3 flasks), Parchment (12 sheets), 23 GP; or (B) 50 GP Choose A or B: (A) Calligrapher's Supplies, Fine Clothes, Lamp, Oil (3 flasks), Parchment (12 sheets), 23 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Selesnya Initiate",
+    "description": "Skill Proficiencies: Nature, Persuasion Nature, Persuasion Tool Proficiencies: One type of artisan's tools or one musical instrument One type of artisan's tools or one musical instrument Languages: Choose one of Elvish, Loxodon, or Sylvan Choose one of Elvish, Loxodon, or Sylvan Equipment: A Selesnya insignia, a healer's kit, robes, a set of common clothes, and a belt pouch containing 5 gp (Azorius 1-zino coins) A Selesnya insignia, a healer's kit, robes, a set of common clothes, and a belt pouch containing 5 gp..."
+  },
+  {
+    "name": "Shadowmasters Exile",
+    "description": "Ability Scores: Dexterity, Intelligence, Charisma Dexterity, Intelligence, Charisma Feat: Savage Attacker Savage Attacker Skill Proficiencies: Acrobatics and Stealth Acrobatics and Stealth Tool Proficiencies: Thieves' Tools Thieves' Tools Equipment: Choose A or B: (A) 2 Daggers, Thieves' Tools, Caltrops, Costume, Grappling Hook, Iron Spikes, Mirror, 2 Pouch, Rope, Traveler's Clothes, 3 GP; or (B) 50 GP Choose A or B: (A) 2 Daggers, Thieves' Tools, Caltrops, Costume, Grappling Hook, Iron Spikes, Mirror, 2 Pouch,..."
+  },
+  {
+    "name": "Shadowmoor Expert",
+    "description": "Ability Scores: Dexterity, Intelligence, Charisma Dexterity, Intelligence, Charisma Feat: Shadowmoor Hexer Shadowmoor Hexer Skill Proficiencies: Acrobatics and Deception Acrobatics and Deception Tool Proficiency: Glassblower's Tools Glassblower's Tools Equipment: Choose A or B: (A) Dagger, Glassblower's Tools, Backpack, Hunting Trap, Lamp, Oil (3 flasks), Traveler's Clothes, Waterskin, 8 GP; or (B) 50 GP Choose A or B: (A) Dagger, Glassblower's Tools, Backpack, Hunting Trap, Lamp, Oil (3 flasks), Traveler's Clot..."
+  },
+  {
+    "name": "Shipwright",
+    "description": "Skill Proficiencies: History, Perception History, Perception Tool Proficiencies: Carpenter's tools, Vehicles (water) Carpenter's tools, Vehicles (water) Equipment: A set of well-loved carpenter's tools, a blank book, Ink (1-ounce bottle), an ink pen, a set of traveler's clothes, and a leather pouch with 10 gp A set of well-loved carpenter's tools, a blank book, Ink (1-ounce bottle), an ink pen, a set of traveler's clothes, and a leather pouch with 10 gp Feature: I'll Patch It! Provided you have carpenter's tools..."
+  },
+  {
+    "name": "Silverquill Student",
+    "description": "Skill Proficiencies: Intimidation, Persuasion Intimidation, Persuasion Languages: Two of your choice Two of your choice Equipment: A Ink (1-ounce bottle), an ink pen, a book of poetry, a school uniform, and a pouch containing 15 gp A Ink (1-ounce bottle), an ink pen, a book of poetry, a school uniform, and a pouch containing 15 gp Feature: Silverquill Initiate You gain the Strixhaven Initiate feat and must choose Silverquill within it. In addition, if you have the Spellcasting or Pact Magic feature, the spells o..."
+  },
+  {
+    "name": "Simic Scientist",
+    "description": "Skill Proficiencies: Arcana, Medicine Arcana, Medicine Languages: Two of your choice Two of your choice Equipment: A Simic insignia, a set of common clothes, a book of research notes, an ink pen, a Ink (1-ounce bottle), a oil (flask) (made from blubber), a acid (vial) (derived from digestive juices), a vial of fish scales, a vial of seaweed, a vial of jellyfish stingers, a glass bottle of unidentified slime, and a belt pouch containing 10 gp (Azorius 1-zino coins) A Simic insignia, a set of common clothes, a boo..."
+  },
+  {
+    "name": "Smuggler",
+    "description": "Skill Proficiencies: Athletics, Deception Athletics, Deception Tool Proficiencies: Vehicles (water) Vehicles (water) Equipment: A fancy leather vest or a pair of leather boots, a set of common clothes, and a leather pouch with 15 gp A fancy leather vest or a pair of leather boots, a set of common clothes, and a leather pouch with 15 gp Feature: Down Low You are acquainted with a network of smugglers who are willing to help you out of tight situations. While in a particular town, city, or other similarly sized co..."
+  },
+  {
+    "name": "Soldier",
+    "description": "Skill Proficiencies: Athletics, Intimidation Athletics, Intimidation Tool Proficiencies: One type of gaming set, vehicles (land) One type of gaming set, vehicles (land) Equipment: An insignia of rank, a trophy taken from a fallen enemy (a dagger, broken blade, or piece of a banner), a bone dice set or playing card set, a set of common clothes, and a belt pouch containing 10 gp An insignia of rank, a trophy taken from a fallen enemy (a dagger, broken blade, or piece of a banner), a bone dice set or playing card s..."
+  },
+  {
+    "name": "Spellfire Initiate",
+    "description": "Ability Scores: Constitution, Intelligence, Charisma Constitution, Intelligence, Charisma Feat: Spellfire Spark Spellfire Spark Skill Proficiencies: Arcana and Perception Arcana and Perception Tool Proficiencies: Choose one kind of Gaming Set Choose one kind of Gaming Set Equipment: Choose A or B: (A) Gaming Set (same as above), Arcane Focus (Crystal or Wand), 2 Pouch, Traveler's Clothes, 36 GP; or (B) 50 GP Choose A or B: (A) Gaming Set (same as above), Arcane Focus (Crystal or Wand), 2 Pouch, Traveler's Clothe..."
+  },
+  {
+    "name": "Urban Bounty Hunter",
+    "description": "Skill Proficiencies: Choose two from among Deception, Insight, Persuasion, and Stealth Choose two from among Deception, Insight, Persuasion, and Stealth Tool Proficiencies: Choose two from among one type of gaming set, one musical instrument, and thieves' tools Choose two from among one type of gaming set, one musical instrument, and thieves' tools Equipment: A set of clothes appropriate to your duties and a pouch containing 20 gp A set of clothes appropriate to your duties and a pouch containing 20 gp Feature:..."
+  },
+  {
+    "name": "Urchin",
+    "description": "Skill Proficiencies: Sleight of Hand, Stealth Sleight of Hand, Stealth Tool Proficiencies: Disguise kit, Thieves' tools Disguise kit, Thieves' tools Equipment: A small knife, a map of the city you grew up in, a pet mouse, a token to remember your parents by, a set of common clothes, and a belt pouch containing 10 gp A small knife, a map of the city you grew up in, a pet mouse, a token to remember your parents by, a set of common clothes, and a belt pouch containing 10 gp Feature: City Secrets You know the secret..."
+  },
+  {
+    "name": "Uthgardt Tribe Member",
+    "description": "Skill Proficiencies: Athletics, Survival Athletics, Survival Languages: Any one of your choice Any one of your choice Tool Proficiencies: One type of musical instrument or artisan's tools One type of musical instrument or artisan's tools Equipment: A hunting trap, a totemic token or set of tattoos marking your loyalty to Uthgar and your tribal totem, a set of traveler's clothes, and a pouch containing 10 gp A hunting trap, a totemic token or set of tattoos marking your loyalty to Uthgar and your tribal totem, a..."
+  },
+  {
+    "name": "Vampire Devotee",
+    "description": "Ability Scores: Strength, Constitution, Charisma Strength, Constitution, Charisma Feat: Vampire's Plaything Vampire's Plaything Skill Proficiencies: Persuasion and Stealth Persuasion and Stealth Tool Proficiency: Cook's Utensils Cook's Utensils Equipment: Choose A or B: (A) Cook's Utensils, Fine Clothes, 2 Glass Bottle, Healer's Kit, Perfume, Lamp, Oil (3 flasks), Waterskin, 19 GP; or (B) 50 GP Choose A or B: (A) Cook's Utensils, Fine Clothes, 2 Glass Bottle, Healer's Kit, Perfume, Lamp, Oil (3 flasks), Waterski..."
+  },
+  {
+    "name": "Vampire Survivor",
+    "description": "Ability Scores: Dexterity, Constitution, Wisdom Dexterity, Constitution, Wisdom Feat: Vampire Hunter Vampire Hunter Skill Proficiencies: Insight and Religion Insight and Religion Tool Proficiency: Woodcarver's Tools Woodcarver's Tools Equipment: Choose A or B: (A) Woodcarver's Tools, Crowbar, Hooded Lantern, Holy Symbol (reliquary), Holy Water, Mirror, Oil (3 flasks), Tinderbox, Traveler's Clothes, Waterskin, 4 GP; or (B) 50 GP Choose A or B: (A) Woodcarver's Tools, Crowbar, Hooded Lantern, Holy Symbol (reliquar..."
+  },
+  {
+    "name": "Variant City Watch (Investigator)",
+    "description": "Skill Proficiencies: Insight, Investigation Insight, Investigation Languages: Any two of your choice Any two of your choice Equipment: A uniform in the style of your unit and indicative of your rank, a horn with which to summon help, a set of manacles, and a pouch containing 10 gp A uniform in the style of your unit and indicative of your rank, a horn with which to summon help, a set of manacles, and a pouch containing 10 gp Feature: Watcher's Eye Your experience in enforcing the law, and dealing with lawbreaker..."
+  },
+  {
+    "name": "Variant Criminal (Spy)",
+    "description": "Source: PHB."
+  },
+  {
+    "name": "Variant Entertainer (Gladiator)",
+    "description": "Source: PHB."
+  },
+  {
+    "name": "Variant Guild Artisan (Guild Merchant)",
+    "description": "Source: PHB. Skill proficiencies: \"insight\":true,\"persuasion\":true."
+  },
+  {
+    "name": "Variant Noble (Knight)",
+    "description": "Source: PHB."
+  },
+  {
+    "name": "Variant Noble (Retainers)",
+    "description": "Source: PHB."
+  },
+  {
+    "name": "Variant Sailor (Pirate)",
+    "description": "Source: PHB."
+  },
+  {
+    "name": "Vizier",
+    "description": "Skill Proficiencies: History, Religion History, Religion Tool Proficiencies: One type of artisan's tools, one type of musical instrument One type of artisan's tools, one type of musical instrument Equipment: A set of artisan's tools or a musical instrument (one of your choice), a scroll of your god's teachings, a vizier's cartouche, a set of fine clothes, and a pouch containing 25 gp A set of artisan's tools or a musical instrument (one of your choice), a scroll of your god's teachings, a vizier's cartouche, a s..."
+  },
+  {
+    "name": "Vizier (Dissenter)",
+    "description": "Source: PSA."
+  },
+  {
+    "name": "Volstrucker Agent",
+    "description": "Skill Proficiencies: Deception, Stealth Deception, Stealth Tool Proficiencies: Poisoner's kit Poisoner's kit Languages: One of your choice One of your choice Equipment: A set of common clothes, a black cloak with a hood, a poisoner's kit, and a pouch containing 10 gp A set of common clothes, a black cloak with a hood, a poisoner's kit, and a pouch containing 10 gp Feature: Shadow Network You have access to the Volstrucker shadow network, which allows you to communicate with other members of the order over long d..."
+  },
+  {
+    "name": "Waterdhavian Noble",
+    "description": "Skill Proficiencies: History, Persuasion History, Persuasion Languages: Any one of your choice Any one of your choice Tool Proficiencies: One type of gaming set or musical instrument One type of gaming set or musical instrument Equipment: A set of fine clothes, a signet ring or brooch, a scroll of pedigree, a skin of fine zzar or wine, and a purse containing 20 gp A set of fine clothes, a signet ring or brooch, a scroll of pedigree, a skin of fine zzar or wine, and a purse containing 20 gp Feature: Kept in Style..."
+  },
+  {
+    "name": "Wayfarer",
+    "description": "Ability Scores: Dexterity, Wisdom, Charisma Dexterity, Wisdom, Charisma Feat: Lucky Lucky Skill Proficiencies: Insight, Stealth Insight, Stealth Tool Proficiency: Thieves' Tools Thieves' Tools Equipment: Choose A or B: (A) Dagger, Thieves' Tools, Gaming Set (any), Bedroll, Pouch, Traveler's Clothes, 16 GP; or (B) 50 GP Choose A or B: (A) Dagger, Thieves' Tools, Gaming Set (any), Bedroll, Pouch, Traveler's Clothes, 16 GP; or (B) 50 GP"
+  },
+  {
+    "name": "Wildspacer",
+    "description": "Skill Proficiencies: Athletics, Survival Athletics, Survival Tool Proficiencies: Navigator's tools, vehicles (space) Navigator's tools, vehicles (space) Equipment: A belaying pin (club), a set of traveler's clothes, a grappling hook, Hempen Rope (50 feet), and a pouch containing 10 gp A belaying pin (club), a set of traveler's clothes, a grappling hook, Hempen Rope (50 feet), and a pouch containing 10 gp Close Encounter You had a harrowing encounter with one of Wildspace's many terrors. You escaped with your lif..."
+  },
+  {
+    "name": "Witchlight Hand",
+    "description": "Skill Proficiencies: Performance, Sleight of Hand Performance, Sleight of Hand Tool Proficiencies: Disguise kit or one type of musical Instrument Disguise kit or one type of musical Instrument Languages: One of your choice One of your choice Equipment: A disguise kit or a musical instrument of your choice, a deck of cards, a carnival uniform or costume clothes, one trinket (determined by rolling on the Feywild Trinket), and a pouch containing 8 gp A disguise kit or a musical instrument of your choice, a deck of..."
+  },
+  {
+    "name": "Witherbloom Student",
+    "description": "Skill Proficiencies: Nature, Survival Nature, Survival Tool Proficiencies: Herbalism kit Herbalism kit Languages: One of your choice One of your choice Equipment: A Ink (1-ounce bottle), an ink pen, a book about plant identification, an iron pot, an herbalism kit, a school uniform, and a pouch containing 15 gp A Ink (1-ounce bottle), an ink pen, a book about plant identification, an iron pot, an herbalism kit, a school uniform, and a pouch containing 15 gp Feature: Witherbloom Initiate You gain the Strixhaven In..."
+  },
+  {
+    "name": "Zhentarim Mercenary",
+    "description": "Ability Scores: Strength, Dexterity, Charisma Strength, Dexterity, Charisma Feat: Zhentarim Ruffian Zhentarim Ruffian Skill Proficiencies: Intimidation and Perception Intimidation and Perception Tool Proficiencies: Forgery Kit Forgery Kit Equipment: Choose A or B: (A) Club, Dagger, Forgery Kit, Fine Clothes, Hooded Lantern, Oil (3 flasks), 2 Pouch, String, Tinderbox, 11 GP; or (B) 50 GP Choose A or B: (A) Club, Dagger, Forgery Kit, Fine Clothes, Hooded Lantern, Oil (3 flasks), 2 Pouch, String, Tinderbox, 11 GP;..."
+  }
+]

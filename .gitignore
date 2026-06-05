@@ -1,0 +1,11 @@
+node_modules/
+dist/
+release/
+installer/
+installer-final/
+installer-pdf/
+installer-pdf-fixed/
+installer-pdf-fields/
+*.log
+npm-debug.log*
+character-sheet.json

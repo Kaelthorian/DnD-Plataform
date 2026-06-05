@@ -1,0 +1,53 @@
+{
+  "name": "dnd-character-sheet-desktop",
+  "version": "1.0.0",
+  "description": "Planilla de personaje DnD de escritorio",
+  "main": "main.js",
+  "author": "WallyCode",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "set ELECTRON_RUN_AS_NODE=& electron .",
+    "dist": "set ELECTRON_RUN_AS_NODE=& electron-builder --win nsis",
+    "dist:portable": "set ELECTRON_RUN_AS_NODE=& electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.wallycode.dndcharactersheet",
+    "productName": "Planilla DnD",
+    "directories": {
+      "output": "installer-pdf-fields"
+    },
+    "files": [
+      "index.html",
+      "races.json",
+      "backgrounds.json",
+      "classes.json",
+      "DnD_5E_CharacterSheet_FormFillable.pdf",
+      "main.js",
+      "preload.js",
+      "package.json",
+      "node_modules/pdfjs-dist/**"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Planilla DnD"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.7.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^6.0.227"
+  }
+}

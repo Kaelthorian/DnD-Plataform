@@ -1,0 +1,394 @@
+[
+  {
+    "name": "Aarakocra",
+    "description": "Age Aarakocra reach maturity by age 3. Compared to humans, aarakocra don't usually live longer than 30 years. Alignment Most aarakocra are good and rarely choose sides when it comes to law and chaos. Tribal leaders and warriors might be lawful, while explorers and adventurers might tend toward chaotic. Size Aarakocra are about 5 feet tall. They have thin, lightweight bodies that weigh between 80 and 100 pounds. Your size is Medium. Flight You have a flying speed of 50 feet. To use this speed, you can't be wearin..."
+  },
+  {
+    "name": "Aasimar",
+    "description": "Age Aasimar mature at the same rate as humans, but they can live up to 160 years. Size Aasimar have the same range of height and weight as humans. Darkvision Blessed with a radiant soul, your vision can easily cut through darkness. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Celestial Resistance You have resistance to necrotic damage and radiant damage. Healing Hands As an action, you..."
+  },
+  {
+    "name": "Aetherborn",
+    "description": "Age Aetherborn come into being as adults and live no more than a few years. Alignment As a rule, aetherborn are driven by hedonism and self-interest, making them neutral at best and thoroughly evil at worst. Neutral aetherborn might devote much of their time (and wealth) to parties and social activity, while evil aetherborn are usually involved in the criminal underworld. Size Aetherborn are about the same size as humans, ranging from 5 to 6 feet tall. They are quite light—only about 100 pounds—and their weight..."
+  },
+  {
+    "name": "Astral Elf",
+    "description": "Creature Type You are a Humanoid. You are also considered an elf for any prerequisite or effect that requires you to be an elf. Astral Fire You know one of the following cantrips of your choice: dancing lights, light, or sacred flame. Intelligence, Wisdom, or Charisma is your spellcasting ability for it (choose when you select this race). Darkvision You can see in dim light within 60 feet of yourself as if it were bright light, and in darkness as if it were dim light. You discern colors in that darkness only as..."
+  },
+  {
+    "name": "Autognome",
+    "description": "Creature Type You are a Construct. Armored Casing You are encased in thin metal or some other durable material. While you aren't wearing armor, your base Armor Class is 13 + your Dexterity modifier. Built for Success You can add a d4 to one attack roll, ability check, or saving throw you make, and you can do so after seeing the d20 roll but before the effects of the roll are resolved. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long..."
+  },
+  {
+    "name": "Aven",
+    "description": "Age Like humans, aven reach adulthood in their late teens and can theoretically live into their 80s. Of course, most find a glorious (or inglorious) death long before that point. Alignment Most aven lean toward some form of neutrality. Ibis-headed aven, focused more on knowledge than any other virtue, are usually neutral. Hawk-headed aven are inclined toward lawful neutral. Size Aven stand from 5 to 6 feet tall, but their bodies are slender and their bones are partially hollow to facilitate their flight. Your si..."
+  },
+  {
+    "name": "Boggart",
+    "description": "Source: LFL."
+  },
+  {
+    "name": "Bugbear",
+    "description": "Age Bugbears reach adulthood at age 16 and live up to 80 years. Alignment Bugbears live on the fringes of society even in Darguun, where they value self-sufficiency and violence. They are generally chaotic, organizing in loose tribes under charismatic and powerful leaders. Size Your size is Medium. Darkvision You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Long-Limbed When you make a mele..."
+  },
+  {
+    "name": "Bullywug",
+    "description": "Amphibious You can breathe air and water. Speak with Frogs and Toads You can communicate simple concepts to frogs and toads when you speak in Bullywug. Swamp Camouflage You have advantage on Dexterity (Stealth) checks made to hide in swampy terrain. Standing Leap Your long jump is up to 20 feet and your high jump is up to 10 feet, with or without a running start. Languages You can speak, read, and write Bullywug."
+  },
+  {
+    "name": "Centaur",
+    "description": "Age Centaurs mature and age at about the same rate as humans. Alignment Centaurs are inclined toward neutrality. Those who join the Selesnya are more often neutral good, while those who join the Gruul are typically chaotic neutral. Size Centaurs stand between 6 and 7 feet tall, with their equine bodies reaching about 4 feet at the withers. Your size is Medium. Fey Your creature type is fey, rather than humanoid. Charge If you move at least 30 feet straight toward a target and then hit it with a melee weapon atta..."
+  },
+  {
+    "name": "Changeling",
+    "description": "Changeling Instincts Thanks to your connection to the fey realm, you gain proficiency in two of the following skills of your choice: Deception, Insight, Intimidation, Performance, or Persuasion. Shape-Shifter As an action, you can shape-shift to change your appearance and your voice. You determine the specifics of the changes, including your coloration, hair length, and sex. You can also adjust your height and weight and can change your size between Medium and Small. You can make yourself appear as a member of a..."
+  },
+  {
+    "name": "Custom Lineage",
+    "description": "Instead of choosing one of the game's races for your character at 1st level, you can use the following traits to represent your character's lineage, giving you full control over how your character's origin shaped them: Creature Type You are a humanoid. You determine your appearance and whether you resemble any of your kin. Size You are Small or Medium (your choice). Feat You gain one feat of your choice for which you qualify. Variable Trait You gain one of the following options of your choice: (a) darkvision wit..."
+  },
+  {
+    "name": "Deep Gnome",
+    "description": "Creature Type You are a Humanoid. You are also considered a gnome for any prerequisite or effect that requires you to be a gnome. Darkvision You can see in dim light within 120 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Gift of the Svirfneblin Starting at 3rd level, you can cast the disguise self spell with this trait. Starting at 5th level, you can also cast the nondetection spell with it, without requiring a materi..."
+  },
+  {
+    "name": "Dhampir",
+    "description": "Darkvision You have Darkvision with a range of 60 feet. Spider Climb You have a Climb Speed equal to your Speed. When you reach character level 3, you can move up, down, and across vertical surfaces and along ceilings while leaving your hands free. Trace of Undeath You have Resistance to Necrotic damage. Vampiric Bite When you use your Unarmed Strike and deal damage, you can choose to bite with your fangs. You deal Piercing damage equal to 1d4 plus your Constitution modifier instead of the normal damage of an Un..."
+  },
+  {
+    "name": "Dragonborn",
+    "description": "Age Young dragonborn grow quickly. They walk hours after hatching, attain the size and development of a 10-year-old human child by the age of 3, and reach adulthood by 15. They live to be around 80. Size Dragonborn are taller and heavier than humans, standing well over 6 feet tall and averaging almost 250 pounds. Your size is Medium. Draconic Ancestry You have draconic ancestry. Choose one type of dragon from the Draconic Ancestry table. Your breath weapon and damage resistance are determined by the dragon type,..."
+  },
+  {
+    "name": "Dragonborn (Chromatic)",
+    "description": "Chromatic Ancestry You have a chromatic dragon ancestor, granting you a special magical affinity. Choose one kind of dragon from the Chromatic Ancestry table. This determines the damage type for your other traits, as shown in the table. Black Acid Blue Lightning Green Poison Red Fire White Cold Breath Weapon When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in a 30-foot line that is 5 feet wide. Each creature in that area must make a Dexterity..."
+  },
+  {
+    "name": "Dragonborn (Gem)",
+    "description": "Gem Ancestry You have a gem dragon ancestor, granting you a special magical affinity. Choose one kind of dragon from the Gem Ancestry table. This determines the damage type for your other traits, as shown in the table. Amethyst Force Crystal Radiant Emerald Psychic Sapphire Thunder Topaz Necrotic Breath Weapon When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in a 15-foot cone. Each creature in that area must make a Dexterity saving throw (DC =..."
+  },
+  {
+    "name": "Dragonborn (Metallic)",
+    "description": "Metallic Ancestry You have a metallic dragon ancestor, granting you a special magical affinity. Choose one kind of dragon from the Metallic Ancestry table. This determines the damage type for your other traits, as shown in the table. Brass Fire Bronze Lightning Copper Acid Gold Fire Silver Cold Breath Weapon When you take the Attack action on your turn, you can replace one of your attacks with an exhalation of magical energy in a 15-foot cone. Each creature in that area must make a Dexterity saving throw (DC = 8..."
+  },
+  {
+    "name": "Duergar",
+    "description": "Creature Type You are a Humanoid. You are also considered a dwarf for any prerequisite or effect that requires you to be a dwarf. Darkvision You can see in dim light within 120 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Duergar Magic Starting at 3rd level, you can cast the enlarge/reduce spell on yourself with this trait, without requiring a material component. Starting at 5th level, you can also cast the invisibilit..."
+  },
+  {
+    "name": "Dwarf",
+    "description": "Age Dwarves mature at the same rate as humans, but they're considered young until they reach the age of 50. On average, they live about 350 years. Size Dwarves stand between 4 and 5 feet tall and average about 150 pounds. Your size is Medium. Speed Your speed is not reduced by wearing heavy armor. Darkvision Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You ca..."
+  },
+  {
+    "name": "Dwarf (Kaladesh)",
+    "description": "Age Dwarves mature at the same rate as humans, but they're considered young until they reach the age of 50. On average, they live about 350 years. Alignment Most dwarves are lawful, believing firmly in the benefits of a well-ordered society. They tend toward good as well, with a strong sense of fair play and a belief that everyone deserves to share in the benefits of a just order. Size Dwarves stand around 5 feet tall and average about 150 pounds. Your size is Medium. Speed Your base walking speed is 25 feet. Yo..."
+  },
+  {
+    "name": "Eladrin",
+    "description": "Choose your eladrin's season: autumn, winter, spring, or summer. When finishing a long rest, you can change your season. See the \"Info\" tab for more information. Creature Type You are a Humanoid. You are also considered an elf for any prerequisite or effect that requires you to be an elf. Darkvision You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Fey Ancestry You have advantage on saving..."
+  },
+  {
+    "name": "Elf",
+    "description": "Age Although elves reach physical maturity at about the same age as humans, the elven understanding of adulthood goes beyond physical growth to encompass worldly experience. An elf typically claims adulthood and an adult name around the age of 100 and can live to be 750 years old. Size Elves range from under 5 to over 6 feet tall and have slender builds. Your size is Medium. Darkvision Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light wi..."
+  },
+  {
+    "name": "Elf (Kaladesh)",
+    "description": "Age Although elves reach physical maturity at about the same age as humans, the elven understanding of adulthood goes beyond physical growth to encompass worldly experience. An elf typically claims adulthood and an adult name around the age of 100 and can live to be 750 years old. Alignment Elves love freedom, variety, and self-expression, so they lean strongly toward the gentler aspects of chaos. They value and protect others' freedom as well as their own, and they are more often good than not. Size Elves range..."
+  },
+  {
+    "name": "Elf (Zendikar)",
+    "description": "Age Although elves reach physical maturity at about the same age as humans, the elven understanding of adulthood goes beyond physical growth to encompass worldly experience. An elf typically claims adulthood and an adult name around the age of 100 and can live to be 750 years old. Alignment Elves love freedom, variety, and self-expression, so they lean strongly toward the gentler aspects of chaos. They value and protect others' freedom as well as their own, and they are more often good than not. Size Elves range..."
+  },
+  {
+    "name": "Faerie",
+    "description": "Source: LFL."
+  },
+  {
+    "name": "Fairy",
+    "description": "Creature Type You are a Fey. Fairy Magic You know the druidcraft cantrip. Starting at 3rd level, you can cast the faerie fire spell with this trait. Starting at 5th level, you can also cast the enlarge/reduce spell with this trait. Once you cast faerie fire or enlarge/reduce with this trait, you can't cast that spell with it again until you finish a long rest. You can also cast either of those spells using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting a..."
+  },
+  {
+    "name": "Firbolg",
+    "description": "Firbolg Magic You can cast detect magic and disguise self spells with this trait. When you use this version of disguise self, you can seem up to 3 feet shorter or taller. Once you cast either of these spells with this trait, you can't cast that spell with it again until you finish a long rest. You can also cast these spells using any spell slots you have. Intelligence, Wisdom, or Charisma is your spellcasting ability for these spells when you cast them with this trait (choose when you select this race). Hidden S..."
+  },
+  {
+    "name": "Flamekin",
+    "description": "Source: LFL."
+  },
+  {
+    "name": "Genasi",
+    "description": "Age Genasi mature at about the same rate as humans and reach adulthood in their late teens. They live somewhat longer than humans do, up to 120 years. Alignment Independent and self-reliant, genasi tend toward a neutral alignment. Size Genasi are as varied as their mortal parents but are generally built like humans, standing anywhere from 5 feet to over 6 feet tall. Your size is Medium. Languages You can speak, read, and write Common and Primordial. Primordial is a guttural language, filled with harsh syllables..."
+  },
+  {
+    "name": "Giff",
+    "description": "Astral Spark Your psychic connection to the Astral Plane enables you to mystically access a spark of divine power, which you can channel through your weapons. When you hit a target with a simple or martial weapon, you can cause the target to take extra force damage equal to your proficiency bonus. You can use this trait a number of times equal to your proficiency bonus, but you can use it no more than once per turn. You regain all expended uses when you finish a long rest. Firearms Mastery You have a mystical co..."
+  },
+  {
+    "name": "Gith",
+    "description": "Age Gith reach adulthood in their late teens and live for about a century. Size Gith are taller and leaner than humans, with most a slender 6 feet in height. Languages You can speak, read, and write Common and Gith."
+  },
+  {
+    "name": "Githyanki",
+    "description": "Astral Knowledge You can mystically access a reservoir of experiences of entities connected to the Astral Plane. Whenever you finish a long rest, you gain proficiency in one skill of your choice and with one weapon or tool of your choice, selected from the Player's Handbook, as you momentarily project your consciousness into the Astral Plane. These proficiencies last until the end of your next long rest. Githyanki Psionics You know the mage hand cantrip, and the hand is invisible when you cast the cantrip with t..."
+  },
+  {
+    "name": "Githzerai",
+    "description": "Githzerai Psionics You know the mage hand cantrip, and the hand is invisible when you cast the cantrip with this trait. Starting at 3rd level, you can cast the shield spell with this trait. Starting at 5th level, you can also cast the detect thoughts spell with it. Once you cast shield or detect thoughts spell with this trait, you can't cast that spell with it again until you finish a long rest. You can also cast either of those spells using any spell slots you have of the appropriate level. Intelligence, Wisdom..."
+  },
+  {
+    "name": "Gnoll",
+    "description": "Bite Your fanged maw is a natural weapon, which you can use to make unarmed strikes. If you hit with it, you deal piercing damage equal to 1d4 + your Strength modifier, instead of the bludgeoning damage normal for an unarmed strike. Darkvision You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Rampage When you reduce a creature to 0 hit points with a melee attack on your turn, you can take a..."
+  },
+  {
+    "name": "Gnome",
+    "description": "Age Gnomes mature at the same rate humans do, and most are expected to settle down into an adult life by around age 40. They can live 350 to almost 500 years. Size Gnomes are between 3 and 4 feet tall and average about 40 pounds. Your size is Small. Darkvision Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gra..."
+  },
+  {
+    "name": "Gnome (Deep)",
+    "description": "Innate Spellcasting You have an innate ability to cast the following spells, requiring no material components: At will: nondetection (self only) nondetection (self only) 1/day each: blindness/deafness, blur, disguise self blindness/deafness, blur, disguise self Intelligence is your spellcasting ability for these spells. Stone Camouflage You have advantage on Dexterity (Stealth) checks to hide in rocky terrain. Gnome Cunning You have advantage on Intelligence, Wisdom, and Charisma saving throws against magic. Sup..."
+  },
+  {
+    "name": "Goblin",
+    "description": "Creature Type You are a Humanoid. You are also considered a goblinoid for any prerequisite or effect that requires you to be a goblinoid. Darkvision You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were in dim light. You discern colors in that darkness only as shades of gray. Fey Ancestry You have advantage on saving throws you make to avoid or end the charmed condition on yourself. Fury of the Small When you damage a creature with an attack or a spell and the cr..."
+  },
+  {
+    "name": "Goblin (Dankwood)",
+    "description": "Source: AWM."
+  },
+  {
+    "name": "Goliath",
+    "description": "Little Giant You have proficiency in the Athletics skill, and you count as one size larger when determining your carrying weight and the weight you can push, drag, or lift. Mountain Born You have resistance to cold damage. You also naturally acclimate to high altitudes, even if you've never been to one. This includes elevations above 20,000 feet. Stone's Endurance You can supernaturally draw on unyielding stone to shrug off harm. When you take damage, you can use your reaction to roll a d12. Add your Constitutio..."
+  },
+  {
+    "name": "Grimlock",
+    "description": "Blindsight You have no eyes, and cannot be blinded. You can perceive your surroundings within 30 ft., or 10 ft. while deafened. You are considered blind beyond this radius. Keen Hearing and Smell You have advantage on Wisdom (Perception) checks that rely on hearing or smell. Stone Camouflage You have advantage on Dexterity (Stealth) checks made to hide in rocky terrain. Languages You can speak, read, and write Undercommon."
+  },
+  {
+    "name": "Grung",
+    "description": "Age Grungs mature to adulthood in a single year, but have been known to live up to 50 years. Alignment Most grungs are lawful, having been raised in a strict caste system. They tend toward evil as well, coming from a culture where social advancement occurs rarely, and most often because another member of your army has died and there is no one else of that caste to fill the vacancy. Size Grungs stand between 2½ and 3½ feet tall and average about 30 pounds. Your size is Small. Arboreal Alertness You have proficien..."
+  },
+  {
+    "name": "Hadozee",
+    "description": "Size You are Medium or Small. You choose the size when you select this race. Dexterous Feet As a bonus action, you can use your feet to manipulate an object, open or close a door or container, or pick up or set down a Tiny object. Glide When you fall at least 10 feet above the ground, you can use your reaction to extend your skin membranes to glide horizontally a number of feet equal to your walking speed, and you take 0 damage from the fall. You determine the direction of the glide. Hadozee Dodge The magic that..."
+  },
+  {
+    "name": "Half-Elf",
+    "description": "Age Half-elves mature at the same rate humans do and reach adulthood around the age of 20. They live much longer than humans, however, often exceeding 180 years. Size Half-elves are about the same size as humans, ranging from 5 to 6 feet tall. Your size is Medium. Darkvision Thanks to your elf blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shad..."
+  },
+  {
+    "name": "Half-Orc",
+    "description": "Age Half-orcs mature a little faster than humans, reaching adulthood around age 14. They age noticeably faster and rarely live longer than 75 years. Size Half-orcs are somewhat larger and bulkier than humans, and they range from 5 to well over 6 feet tall. Your size is Medium. Darkvision Thanks to your orc blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkne..."
+  },
+  {
+    "name": "Halfling",
+    "description": "Age A halfling reaches adulthood at the age of 20 and generally lives into the middle of his or her second century. Size Halflings average about 3 feet tall and weigh about 40 pounds. Your size is Small. Lucky When you roll a 1 on an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll. Brave You have advantage on saving throws against being frightened. Halfling Nimbleness You can move through the space of any creature that is of a size larger than yours. Languages You ca..."
+  },
+  {
+    "name": "Harengon",
+    "description": "Size You are Medium or Small. You choose the size when you select this race. Hare-Trigger You can add your proficiency bonus to your initiative rolls. Leporine Senses You have proficiency in the Perception skill. Lucky Footwork When you fail a Dexterity saving throw, you can use your reaction to roll a d4 and add it to the save, potentially turning the failure into a success. You can't use this reaction if you're prone or your speed is 0. Rabbit Hop As a bonus action, you can jump a number of feet equal to five..."
+  },
+  {
+    "name": "Hexblood",
+    "description": "Creature Type You are a Fey. Size You are Medium or Small. You choose the size when you gain this lineage. Ancestral Legacy If you replace a race with this lineage, you can keep the following elements of that race: any skill proficiencies you gained from it and any climbing, flying, or swimming speed you gained from it. If you don't keep any of those elements or you choose this lineage at character creation, you gain proficiency in two skills of your choice. Darkvision You can see in dim light within 60 feet of..."
+  },
+  {
+    "name": "Hobgoblin",
+    "description": "Creature Type You are a Humanoid. You are also considered a goblinoid for any prerequisite or effect that requires you to be a goblinoid. Darkvision You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Fey Ancestry You have advantage on saving throws you make to avoid or end the charmed condition on yourself. Fey Gift You can use this trait to take the Help action as a bonus action, and you c..."
+  },
+  {
+    "name": "Human",
+    "description": "Age Humans reach adulthood in their late teens and live less than a century. Size Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Regardless of your position in that range, your size is Medium. Languages You can speak, read, and write Common and one extra language of your choice. Humans typically learn the languages of other peoples they deal with, including obscure dialects. They are fond of sprinkling their speech with words borrowed from other tongues: Orc curses, Elvish m..."
+  },
+  {
+    "name": "Human (Innistrad)",
+    "description": "Age Humans reach adulthood in their late teens and live less than a century. Alignment Humans tend toward no particular alignment. Size Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Regardless of your position in that range, your size is Medium. Languages You can speak, read, and write Common and one extra language of your choice."
+  },
+  {
+    "name": "Human (Ixalan)",
+    "description": "Source: PSX."
+  },
+  {
+    "name": "Human (Kaladesh)",
+    "description": "Source: PSK."
+  },
+  {
+    "name": "Human (Zendikar)",
+    "description": "Source: PSZ."
+  },
+  {
+    "name": "Kalashtar",
+    "description": "Dual Mind You have Advantage on Wisdom and Charisma saving throws. Mental Discipline You have Resistance to Psychic damage. Mind Link You have telepathy with a range in feet equal to 10 times your level. When you're using this trait to speak telepathically to a creature, you can take a Magic action to give that creature the ability to speak telepathically with you for 1 hour or until you take another Magic action to end this effect. Severed from Dreams You can't be the target of the Dream spell. In addition, whe..."
+  },
+  {
+    "name": "Kender",
+    "description": "Fearless You have advantage on saving throws you make to avoid or end the frightened condition on yourself. When you fail a saving throw to avoid or end the frightened condition on yourself, you can choose to succeed instead. Once you succeed on a saving throw in this way, you can't do so again until you finish a long rest. Kender Curiosity Thanks to the mystical origin of your people, you gain proficiency with one of the following skills of your choice: Insight, Investigation, Sleight of Hand, Stealth, or Survi..."
+  },
+  {
+    "name": "Kenku",
+    "description": "Size Your size is Medium or Small. You choose the size when you select this race. Expert Duplication When you copy writing or craftwork produced by yourself or someone else, you have advantage on any ability checks you make to produce an exact duplicate. Kenku Recall Thanks to your supernaturally good memory, you have proficiency in two skills of your choice. Moreover, when you make an ability check using any skill in which you have proficiency, you can give yourself advantage on the check before rolling the d20..."
+  },
+  {
+    "name": "Khenra",
+    "description": "Age Khenra mature quickly, reaching adulthood in their early teens. Khenra initiates are usually the youngest in a crop, completing the trials by their late teens. Even without a violent death, they rarely live past 60. Alignment Most khenra lean toward chaotic alignments. They have no particular inclination toward good or evil. Size Khenra have similar builds to humans. Your size is Medium. Khenra Weapon Training You have proficiency with the khopesh (longsword), spear, and javelin. Khenra Twins If your twin is..."
+  },
+  {
+    "name": "Khoravar",
+    "description": "Darkvision You have Darkvision with a range of 60 feet. Fey Ancestry You have Advantage on saving throws you make to avoid or end the Charmed condition. Fey Gift You know the Friends cantrip. Whenever you finish a Long Rest, you can replace that cantrip with a different cantrip from the Cleric, Druid, or Wizard spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for it (choose the ability when you select this species). Lethargy Resilience When you fail a saving throw to avoid or end the Un..."
+  },
+  {
+    "name": "Kithkin",
+    "description": "Source: LFL."
+  },
+  {
+    "name": "Kobold",
+    "description": "Darkvision You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were in dim light. You discern colors in that darkness only as shades of gray. Draconic Cry As a bonus action, you let out a cry at your enemies within 10 feet of you. Until the start of your next turn, you and your allies have advantage on attack rolls against any of those enemies who could hear you. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended u..."
+  },
+  {
+    "name": "Kor",
+    "description": "Age Kor mature at the same rate as humans and live about as long. Alignment Most kor are lawful good, with a strong dedication to community and the traditions of their ancestors. Size Kor average nearly 6 feet tall, but are much lighter and more slender than humans. Your size is Medium. Brave You have advantage on saving throws against being frightened. Climbing You also have a climbing speed of 30 feet as long as you are not encumbered or wearing heavy armor. Kor Climbing You have proficiency in the Athletics a..."
+  },
+  {
+    "name": "Kuo-Toa",
+    "description": "Amphibious You can breathe air and water. Otherworldly Perception You can sense the presence of any creature within 30 feet of you that is invisible or on the Ethereal Plane. You can pinpoint such a creature that is moving. Slippery You have advantage on ability checks and saving throws made to escape a grapple. Sunlight Sensitivity While in sunlight, you have disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight. Superior Darkvision You have superior vision in dark and dim co..."
+  },
+  {
+    "name": "Leonin",
+    "description": "Age Leonin mature and age at about the same rate as humans. Alignment Leonin tend toward good alignments. Leonin who are focused on the pride lean toward lawful good. Size Leonin are typically over 6 feet tall, with some standing over 7 feet. Your size is Medium. Darkvision You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Claws Your claws are natural weapons, which you can use to make unarm..."
+  },
+  {
+    "name": "Lizardfolk",
+    "description": "Speed Your walking speed is 30 feet, and you have a swimming speed equal to your walking speed. Bite You have a fanged maw that you can use to make unarmed strikes. When you hit with it, the strike deals 1d6 + your Strength modifier slashing damage, instead of the bludgeoning damage normal for an unarmed strike. Hold Breath You can hold your breath for up to 15 minutes at a time. Hungry Jaws You can throw yourself into a feeding frenzy. As a bonus action, you can make a special attack with your Bite. If the atta..."
+  },
+  {
+    "name": "Locathah",
+    "description": "Age Locathah mature to adulthood by the age of 10 but have been known to live up to 80 years. Alignment Most locathah are true neutral or have some aspect of neutrality in their alignment. They tend toward good, coming from a culture where compassion for the downtrodden is a commonality. Natural Armor You have tough, scaly skin. When you aren't wearing armor, your AC is 12 + your Dexterity modifier. You can use your natural armor to determine your AC if the armor you wear would leave you with a lower AC. A shiel..."
+  },
+  {
+    "name": "Lorwyn Changeling",
+    "description": "Shape Self As an action, you can reshape your body to a two-legged Humanoid shape or to a four-legged Beast shape. While you have a Humanoid shape, you can wear clothing and armor made for a Humanoid of your size. Darkvision You have Darkvision with a range of 120 feet. Delightful Imitator You have proficiency in the Deception or Performance skill. Unpredictable Movement When you roll Initiative, you can immediately move up to half your Speed, provided you don't have Disadvantage on the Initiative roll."
+  },
+  {
+    "name": "Loxodon",
+    "description": "Age Loxodons physically mature at the same rate as humans, but they live about 450 years. They highly value the weight of wisdom and experience and are considered young until they reach the age of 60. Alignment Most loxodons are lawful, believing in the value of a peaceful, ordered life. They also tend toward good. Size Loxodons stand between 7 and 8 feet tall. Their massive bodies weigh between 300 and 400 pounds. Your size is Medium. Powerful Build You count as one size larger when determining your carrying ca..."
+  },
+  {
+    "name": "Merfolk",
+    "description": "Age Merfolk mature at the same rate humans do and reach adulthood around the age of 20. They live considerably longer than humans, though, often reaching well over 100 years. Alignment Most merfolk are neutral, though merfolk of the Emeria and Cosi creeds have chaotic leanings. Amphibious You can breathe air and water. Size Merfolk are about the same size and build as humans. Your size is Medium. Swimming You have a swimming speed of 30 feet. Languages You can speak, read, and write Common, Merfolk, and one extr..."
+  },
+  {
+    "name": "Minotaur",
+    "description": "These traits are also suitable for minotaurs in other D&D worlds where these people have avoided the demonic influence of Baphomet. Age Minotaurs enter adulthood at around the age of 17 and can live up to 150 years. Alignment Most minotaurs who join the Boros Legion lean toward lawful alignments, while those associated with the Cult of Rakdos or the Gruul Clans tend toward chaotic alignments. Size Minotaurs average over 6 feet in height, and they have stocky builds. Your size is Medium. Horns Your horns are natu..."
+  },
+  {
+    "name": "Minotaur (Amonkhet)",
+    "description": "Age Minotaurs develop more slowly than humans, reaching full maturity around the age of 20. They typically become acolytes at around 8 or 9 years old, making them among the older members of their crops. Once they reach maturity, though, minotaurs age quickly, rushing headlong through the trials (as they do all aspects of life) to complete them before they pass their peak. A minotaur allowed to die of old age would rarely live beyond 40. Alignment Most minotaurs lean toward chaotic alignments, and they have a sli..."
+  },
+  {
+    "name": "Naga",
+    "description": "Age Like humans, naga reach adulthood in their late teens. They show no signs of aging beyond that point except for growing larger, so in theory, a naga could live well over a century. Alignment Most naga are either neutral or neutral evil in alignment. Size Naga stand about 5 feet tall when upright, but the total length of their bodies, head to tail, ranges from 10 to as much as 20 feet. Your size is Medium. Speed Burst By lowering your body to the ground and propelling yourself with your arms, you can move mor..."
+  },
+  {
+    "name": "Orc",
+    "description": "Adrenaline Rush You can take the Dash action as a bonus action. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest. Whenever you use this trait, you gain a number of temporary hit points equal to your proficiency bonus. Darkvision You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Powerful Build You count a..."
+  },
+  {
+    "name": "Orc (Ixalan)",
+    "description": "Age Orcs mature a little faster than humans, reaching adulthood around age 14. They age noticeably faster and rarely live longer than 75 years. Alignment Most orcs lean toward chaotic alignments, and many serve on pirate ships that encourage an inclination toward evil. Size Orcs average over 6 feet in height, and they have strong, stocky builds. Your size is Medium. Menacing You gain proficiency in the Intimidation skill. Relentless Endurance When you are reduced to 0 hit points but not killed outright, you can..."
+  },
+  {
+    "name": "Owlin",
+    "description": "Size You are Medium or Small. You choose the size when you select this race. Darkvision You can see in dim light within 120 feet of yourself as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Flight Thanks to your wings, you have a flying speed equal to your walking speed. You can't use this flying speed if you're wearing medium or heavy armor. Silent Feathers You have proficiency in the Stealth skill."
+  },
+  {
+    "name": "Plasmoid",
+    "description": "Creature Type You are an Ooze. Size You are Medium or Small. You choose the size when you select this race. Amorphous You can squeeze through a space as narrow as 1 inch wide, provided you are wearing and carrying nothing. You have advantage on ability checks you make to initiate or escape a grapple. Darkvision You can see in dim light within 60 feet of yourself as if it were bright light, and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Hold Breath You can hol..."
+  },
+  {
+    "name": "Reborn",
+    "description": "Size You are Medium or Small. You choose the size when you gain this lineage. Ancestral Legacy If you replace a race with this lineage, you can keep the following elements of that race: any skill proficiencies you gained from it and any climbing, flying, or swimming speed you gained from it. If you don't keep any of those elements or you choose this lineage at character creation, you gain proficiency in two skills of your choice. Deathless Nature You have escaped death, a fact represented by the following benefi..."
+  },
+  {
+    "name": "Rimekin",
+    "description": "Cold Fire Magic You know the Ray of Frost cantrip. When you reach character levels 3 and 5, you learn the Ice Knife spell and the Flame Blade spell, respectively. You always have those spells prepared. You can cast each once without a spell slot, and you regain the ability to cast these spells in this way when you finish a Long Rest. You can also cast the spells using any spell slots you have of the appropriate level. When you cast Flame Blade using this trait, the spell deals Cold damage instead of Fire damage...."
+  },
+  {
+    "name": "Satyr",
+    "description": "Age Satyrs mature and age at about the same rate as humans. Alignment Satyrs delight in living a life free of the mantle of law. They gravitate toward being good, but some have devious streaks and enjoy causing dismay. Size Satyrs range from just under 5 feet to about 6 feet in height, with generally slender builds. Your size is Medium. Fey Your creature type is fey, rather than humanoid. Ram You can use your head and horns to make unarmed strikes. If you hit with them, you deal bludgeoning damage equal to 1d4 +..."
+  },
+  {
+    "name": "Sea Elf",
+    "description": "Creature Type You are a Humanoid. You are also considered an elf for any prerequisite or effect that requires you to be an elf. Speed Your walking speed is 30 feet, and you have a swimming speed equal to your walking speed. Child of the Sea You can breathe air and water, and you have resistance to cold damage. Darkvision You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Fey Ancestry You ha..."
+  },
+  {
+    "name": "Shadar-Kai",
+    "description": "Creature Type You are a Humanoid. You are also considered an elf for any prerequisite or effect that requires you to be an elf. Blessing of the Raven Queen As a bonus action, you can magically teleport up to 30 feet to an unoccupied space you can see. You can use this trait a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest. Starting at 3rd level, you also gain resistance to all damage when you teleport using this trait. The resistance lasts until the..."
+  },
+  {
+    "name": "Shifter",
+    "description": "Age Shifters are quick to mature both physically and emotionally, reaching young adulthood at age 10. They rarely live to be more than 70 years old. Alignment Shifters tend toward neutrality, being more focused on survival than concepts of good and evil. A love of personal freedom can drive shifters toward chaotic alignments. Size Your size is Medium. Speed Your base walking speed is 30 feet. Darkvision You have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it w..."
+  },
+  {
+    "name": "Simic Hybrid",
+    "description": "Age Hybrids begin their lives as adult humans, elves, or vedalken. They age at a slightly accelerated rate, so their maximum life spans are probably reduced somewhat. The Guardian Project has not been operating long enough to observe the full effect of this phenomenon. Alignment Most hybrids share the generally neutral outlook of the Simic Combine. They are more interested in scientific research and the standing of their guild than in moral or ethical questions. Those who leave the Combine, however, often do so..."
+  },
+  {
+    "name": "Siren",
+    "description": "Alignment Most sirens lean toward chaotic alignment, cherishing the freedom and independence that comes from joining a pirate crew. Size Sirens stand about 5 to 6 feet tall, but their bodies are slender and their bones partially hollow to facilitate their flight. Your size is Medium. Siren's Song You know the friends cantrip and can cast it without material components. Flight You have a flying speed of 30 feet. You can't use your flying speed while you wear medium or heavy armor. (If your campaign uses the varia..."
+  },
+  {
+    "name": "Skeleton",
+    "description": "Creature Type You are Undead. Brittle Bones You are vulnerable to bludgeoning damage. Undead Nature You are immune to poison damage and exhaustion, and you can't be poisoned. You don't require air, food, drink, or sleep. Darkvision You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Languages You can't speak, but you can understand the languages you knew in life."
+  },
+  {
+    "name": "Tabaxi",
+    "description": "Age Tabaxi have lifespans equivalent to humans. Size Tabaxi are taller on average than humans and relatively slender. Your size is Medium. Darkvision You have a cat's keen senses, especially in the dark. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Feline Agility Your reflexes and agility allow you to move with a burst of speed. When you move on your turn in combat, you can double your..."
+  },
+  {
+    "name": "Thri-kreen",
+    "description": "Creature Type You are a Monstrosity. Size You are Medium or Small. You choose the size when you select this race. Chameleon Carapace While you aren't wearing armor, your carapace gives you a base Armor Class of 13 + your Dexterity modifier. As an action, you can change the color of your carapace to match the color and texture of your surroundings, giving you advantage on Dexterity (Stealth) checks made to hide in those surroundings. Darkvision You can see in dim light within 60 feet of yourself as if it were bri..."
+  },
+  {
+    "name": "Tiefling",
+    "description": "Age Tieflings mature at the same rate as humans but live a few years longer. Size Tieflings are about the same size and build as humans. Your size is Medium. Darkvision Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Hellish Resistance You have resistance to fire damage. Infernal Legacy You know the tha..."
+  },
+  {
+    "name": "Tortle",
+    "description": "Size You are Medium or Small. You choose the size when you select this race. Claws You have claws that you can use to make unarmed strikes. When you hit with them, the strike deals 1d6 + your Strength modifier slashing damage, instead of the bludgeoning damage normal for an unarmed strike. Hold Breath You can hold your breath for up to 1 hour. Natural Armor Your shell provides you a base AC of 17 (your Dexterity modifier doesn't affect this number). You can't wear light, medium, or heavy armor, but if you are us..."
+  },
+  {
+    "name": "Triton",
+    "description": "Speed Your walking speed is 30 feet, and you have a swimming speed equal to your walking speed. Amphibious You can breathe air and water. Control Air and Water You can cast fog cloud with this trait. Starting at 3rd level, you can cast the gust of wind spell with this trait. Starting at 5th level, you can also cast the water walk spell with it. Once you cast any of these spells with this trait, you can't cast that spell with it again until you finish a long rest. You can also cast these spells using any spell sl..."
+  },
+  {
+    "name": "Troglodyte",
+    "description": "Chameleon Skin You have advantage on Dexterity (Stealth) checks made to hide. Stench Any creature other than a troglodyte that starts its turn within 5 ft. of you must succeed on a 12 Constitution saving throw or be poisoned until the start of the creature's next turn. On a successful saving throw, the creature is immune to the stench of all troglodytes for 1 hour. Sunlight Sensitivity While in sunlight, you have disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight. Natural A..."
+  },
+  {
+    "name": "Vampire",
+    "description": "Age Vampires don't mature and age in the same way that other races do. Every living vampire is either a bloodchief, infected by Ulamog's influence in the distant reaches of history, or was spawned by a bloodchief from a living human. Most vampires are thus very old, but few have any memory of their earliest years. Alignment Vampires have no innate tendency toward evil, but consuming the life energy of other creatures often pushes them to that end. Regardless of their moral bent, the strict hierarchies of their b..."
+  },
+  {
+    "name": "Vedalken",
+    "description": "Age Vedalken mature slower than humans do, reaching maturity around age 40. Their life span is typically 350 years, with some living to the age of 500. Alignment Vedalken are usually lawful and non-evil. Size Tall and slender, Vedalken stand 6 to 6½ feet tall on average and usually weigh less than 200 pounds. Your size is Medium. Vedalken Dispassion You have advantage on all Intelligence, Wisdom, and Charisma saving throws. Tireless Precision You are proficient in one of the following skills of your choice: Arca..."
+  },
+  {
+    "name": "Verdan",
+    "description": "Age Verdan reach adulthood at around the age of 24, and it is thought that they might live to nearly 200 years old. However, because no verdan has died of old age since the race's initial creation, their upper age limits remain subject to speculation. Alignment Verdan are generally good, although their absence of racial identity and shared history can sometimes see individual verdan become untethered from any moral or ethical framework. Size Verdan start out similar in size to the goblins they were created from,..."
+  },
+  {
+    "name": "Warforged",
+    "description": "Construct Resilience You have Resistance to Poison damage. You also have Advantage on saving throws to avoid or end the Poisoned condition. Integrated Protection You gain a +1 bonus to your Armor Class. In addition, armor you have donned can't be removed against your will while you're alive. Sentry's Rest You don't need to sleep, and magic can't put you to sleep. You can finish a Long Rest in 6 hours if you spend those hours in an inactive, motionless state. During this time, you appear inert but remain consciou..."
+  },
+  {
+    "name": "Yuan-Ti",
+    "description": "Size You are Medium or Small. You choose the size when you select this race. Darkvision You can see in dim light within 60 feet of you as if it were bright light and in darkness as if it were dim light. You discern colors in that darkness only as shades of gray. Magic Resistance You have advantage on saving throws against spells. Poison Resilience You have advantage on saving throws you make to avoid or end the poisoned condition on yourself. You also have resistance to poison damage. Serpentine Spellcasting You..."
+  },
+  {
+    "name": "Yuan-ti Pureblood",
+    "description": "Age Purebloods mature at the same rate as humans and have lifespans similar in length to theirs. Size Purebloods match humans in average size and weight. Your size is Medium. Darkvision You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't discern color in darkness, only shades of gray. Innate Spellcasting You know the poison spray cantrip. You can cast animal friendship an unlimited number of times with this trait, but you can target only s..."
+  },
+  {
+    "name": "Zombie",
+    "description": "Creature Type You are Undead. Undead Fortitude If damage reduces you to 0 hit points, you must make a Constitution saving throw with a DC of 5+the damage taken, unless the damage is radiant or from a critical hit. On a success, you drop to 1 hit point instead. Undead Nature You are immune to poison damage, and you can't be poisoned. You don't require air, food, drink, or sleep. Darkvision You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can't..."
+  }
+]
