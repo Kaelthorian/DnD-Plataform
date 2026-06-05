@@ -114,6 +114,12 @@
       cursor: pointer;
     }
 
+    .option-empty {
+      padding: 9px;
+      color: #555;
+      font: 12px/1.3 "Segoe UI", Arial, sans-serif;
+    }
+
     .option-item:hover,
     .option-item.active,
     .option-item:focus {
@@ -248,6 +254,7 @@
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
     let fieldOptions = new Map();
+    let spells = [];
     let activeSelectField = null;
 
     function base64ToBytes(base64) {
@@ -281,12 +288,98 @@
       return response.json();
     }
 
-    function getSelectOptions(key) {
+    async function loadSpellOptions() {
+      if (desktopStore?.loadSpells) return desktopStore.loadSpells();
+      const response = await fetch("./spells.json");
+      return response.json();
+    }
+
+    function getSpellLevel(pageNumber, rect) {
+      if (pageNumber !== 3) return null;
+      const x = rect[0];
+      const y = rect[1];
+      if (x < 210) {
+        if (y >= 480) return 0;
+        if (y >= 228) return 1;
+        return 2;
+      }
+      if (x < 400) {
+        if (y >= 399) return 3;
+        if (y >= 173) return 4;
+        return 5;
+      }
+      if (y >= 455) return 6;
+      if (y >= 285) return 7;
+      if (y >= 144) return 8;
+      return 9;
+    }
+
+    function getSelectOptions(key, pageNumber, rect) {
       const normalizedKey = key.trim().toLowerCase();
       if (normalizedKey === "race") return fieldOptions.get("race");
       if (normalizedKey === "background") return fieldOptions.get("background");
       if (normalizedKey === "classlevel" || normalizedKey.startsWith("spellcasting class")) return fieldOptions.get("class");
+      if (normalizedKey.startsWith("spells ")) return { type: "spell", level: getSpellLevel(pageNumber, rect) };
       return null;
+    }
+
+    function getFieldValueByNormalizedKey(normalizedKey) {
+      const field = [...document.querySelectorAll(".field")].find((element) => element.dataset.key?.trim().toLowerCase() === normalizedKey);
+      return field?.value?.trim() || "";
+    }
+
+    function getSelectedClassName() {
+      return getFieldValueByNormalizedKey("spellcasting class 2") || getFieldValueByNormalizedKey("classlevel");
+    }
+
+    function getSelectedRaceName() {
+      return getFieldValueByNormalizedKey("race");
+    }
+
+    const SPELL_SLOT_TOTAL_KEYS = new Map([
+      [1, "SlotsTotal 19"],
+      [2, "SlotsTotal 20"],
+      [3, "SlotsTotal 21"],
+      [4, "SlotsTotal 22"],
+      [5, "SlotsTotal 23"],
+      [6, "SlotsTotal 24"],
+      [7, "SlotsTotal 25"],
+      [8, "SlotsTotal 26"],
+      [9, "SlotsTotal 27"]
+    ]);
+
+    function getSpellLevelLimit(level) {
+      if (level === 0) return Infinity;
+      const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
+      if (!totalKey) return Infinity;
+      const value = getFieldValueByNormalizedKey(totalKey.toLowerCase());
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : Infinity;
+    }
+
+    function getSelectedSpellCount(level, exceptField) {
+      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+        .filter((field) => field !== exceptField && Number(field.dataset.spellLevel) === level && field.value.trim())
+        .length;
+    }
+
+    function spellMatchesSelection(spell, level) {
+      if (spell.level !== level) return false;
+      const className = getSelectedClassName();
+      const raceName = getSelectedRaceName();
+      const classMatches = className && spell.classes?.some((name) => name.toLowerCase() === className.toLowerCase());
+      const raceMatches = raceName && spell.races?.some((name) => name.toLowerCase() === raceName.toLowerCase());
+      if (className || raceName) return Boolean(classMatches || raceMatches);
+      return true;
+    }
+
+    function getSpellOptions(level) {
+      return spells.filter((spell) => spellMatchesSelection(spell, level));
+    }
+
+    function resolveSelectOptions(field) {
+      if (field.dataset.optionType === "spell") return getSpellOptions(Number(field.dataset.spellLevel));
+      return fieldOptions.get(field.dataset.optionType) || [];
     }
 
     function optionName(option) {
@@ -344,9 +437,27 @@
       activeSelectField = null;
     }
 
-    function openOptionMenu(field, options) {
+    function openOptionMenu(field) {
+      const options = resolveSelectOptions(field);
+      if (field.dataset.optionType === "spell") {
+        const level = Number(field.dataset.spellLevel);
+        const limit = getSpellLevelLimit(level);
+        const used = getSelectedSpellCount(level, field);
+        if (!field.value.trim() && used >= limit) {
+          showStatus(`Limite de spells nivel ${level} alcanzado`);
+          return;
+        }
+      }
+
       activeSelectField = field;
       optionList.textContent = "";
+      if (!options.length) {
+        const emptyItem = document.createElement("div");
+        emptyItem.className = "option-empty";
+        emptyItem.textContent = "No hay opciones para el filtro actual.";
+        optionList.appendChild(emptyItem);
+        setOptionDescription({ name: "Sin opciones", description: "Elegí una clase o raza compatible, o usá otra sección de nivel de spell." });
+      }
       options.forEach((option, index) => {
         const item = document.createElement("button");
         item.type = "button";
@@ -384,7 +495,7 @@
       const isCheckbox = annotation.fieldType === "Btn" && annotation.checkBox;
       const isMultiline = annotation.multiLine && !isCheckbox;
       const key = fieldKey(annotation, pageNumber, index);
-      const selectOptions = getSelectOptions(key);
+      const selectOptions = getSelectOptions(key, pageNumber, annotation.rect);
       const isSelect = Boolean(selectOptions);
       const element = isSelect
         ? document.createElement("input")
@@ -400,14 +511,22 @@
       else if (isSelect) {
         element.type = "text";
         element.readOnly = true;
+        if (Array.isArray(selectOptions)) {
+          const normalizedKey = key.trim().toLowerCase();
+          element.dataset.optionType = normalizedKey === "race" ? "race" : normalizedKey === "background" ? "background" : "class";
+        } else {
+          element.dataset.optionType = selectOptions.type;
+          element.dataset.spellLevel = String(selectOptions.level);
+          element.title = `Spell level ${selectOptions.level}`;
+        }
         element.addEventListener("pointerdown", (event) => {
           event.preventDefault();
-          openOptionMenu(element, selectOptions);
+          openOptionMenu(element);
         });
         element.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
             event.preventDefault();
-            openOptionMenu(element, selectOptions);
+            openOptionMenu(element);
           } else if (event.key === "Escape") {
             closeOptionMenu();
           } else if (event.key === "Delete" || event.key === "Backspace") {
@@ -504,16 +623,18 @@
     }
 
     async function init() {
-      const [raceOptions, backgroundOptions, classOptions] = await Promise.all([
+      const [raceOptions, backgroundOptions, classOptions, spellOptions] = await Promise.all([
         loadRaceOptions(),
         loadBackgroundOptions(),
-        loadClassOptions()
+        loadClassOptions(),
+        loadSpellOptions()
       ]);
       fieldOptions = new Map([
         ["race", raceOptions],
         ["background", backgroundOptions],
         ["class", classOptions]
       ]);
+      spells = spellOptions;
 
       const pdfBytes = await loadPdfBytes();
       const pdf = await pdfjsLib.getDocument({ data: pdfBytes, disableWorker: true }).promise;

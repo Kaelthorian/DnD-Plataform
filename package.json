@@ -22,6 +22,7 @@
       "races.json",
       "backgrounds.json",
       "classes.json",
+      "spells.json",
       "DnD_5E_CharacterSheet_FormFillable.pdf",
       "main.js",
       "preload.js",

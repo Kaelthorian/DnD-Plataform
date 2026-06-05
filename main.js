@@ -22,6 +22,10 @@ function classesFilePath() {
   return path.join(__dirname, "classes.json");
 }
 
+function spellsFilePath() {
+  return path.join(__dirname, "spells.json");
+}
+
 async function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -102,5 +106,10 @@ ipcMain.handle("backgrounds:load", async () => {
 
 ipcMain.handle("classes:load", async () => {
   const raw = await fs.readFile(classesFilePath(), "utf8");
+  return JSON.parse(raw);
+});
+
+ipcMain.handle("spells:load", async () => {
+  const raw = await fs.readFile(spellsFilePath(), "utf8");
   return JSON.parse(raw);
 });
