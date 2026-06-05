@@ -75,6 +75,12 @@
       padding-right: 14px;
     }
 
+    .field.number {
+      text-align: center;
+      padding-left: 1px;
+      padding-right: 1px;
+    }
+
     .option-menu {
       position: fixed;
       z-index: 20;
@@ -167,22 +173,24 @@
     .field.checkbox {
       appearance: none;
       padding: 0;
+      border: 0;
       border-radius: 50%;
       background: transparent;
+      box-shadow: none;
       cursor: pointer;
     }
 
     .field.checkbox:hover,
     .field.checkbox:focus {
-      border-color: #111;
-      background: rgba(255, 255, 255, 0.7);
+      border: 0;
+      background: transparent;
+      box-shadow: none;
     }
 
     .field.checkbox:checked {
-      background:
-        radial-gradient(circle at center, #111 0 42%, transparent 44%),
-        rgba(255, 255, 255, 0.35);
-      border-color: #111;
+      background: radial-gradient(circle at center, #111 0 46%, transparent 49%);
+      border: 0;
+      box-shadow: none;
     }
 
     .loading {
@@ -294,6 +302,17 @@
       return response.json();
     }
 
+    function levelOptions() {
+      return Array.from({ length: 20 }, (_item, index) => {
+        const level = index + 1;
+        const proficiency = proficiencyBonusForLevel(level);
+        return {
+          name: String(level),
+          description: `Character level ${level}. Proficiency bonus ${formatModifier(proficiency)}.`
+        };
+      });
+    }
+
     function getSpellLevel(pageNumber, rect) {
       if (pageNumber !== 3) return null;
       const x = rect[0];
@@ -319,8 +338,71 @@
       if (normalizedKey === "race") return fieldOptions.get("race");
       if (normalizedKey === "background") return fieldOptions.get("background");
       if (normalizedKey === "classlevel" || normalizedKey.startsWith("spellcasting class")) return fieldOptions.get("class");
+      if (normalizedKey === "characterlevel") return fieldOptions.get("level");
       if (normalizedKey.startsWith("spells ")) return { type: "spell", level: getSpellLevel(pageNumber, rect) };
       return null;
+    }
+
+    const CENTERED_NUMBER_FIELDS = new Set([
+      "str",
+      "strmod",
+      "dex",
+      "dexmod",
+      "con",
+      "conmod",
+      "int",
+      "intmod",
+      "wis",
+      "wismod",
+      "cha",
+      "chamod",
+      "profbonus",
+      "ac",
+      "initiative",
+      "speed",
+      "inspiration",
+      "xp",
+      "hpmax",
+      "hpcurrent",
+      "hptemp",
+      "hdtotal",
+      "hd",
+      "passive",
+      "cp",
+      "sp",
+      "ep",
+      "gp",
+      "pp",
+      "spellcastingability 2",
+      "spellsavedc  2",
+      "spellatkbonus 2"
+    ]);
+
+    function isCenteredNumberField(normalizedKey) {
+      return CENTERED_NUMBER_FIELDS.has(normalizedKey)
+        || normalizedKey.startsWith("st ")
+        || normalizedKey.startsWith("slotstotal ")
+        || normalizedKey.startsWith("slotsremaining ")
+        || [
+          "acrobatics",
+          "animal",
+          "arcana",
+          "athletics",
+          "deception",
+          "history",
+          "insight",
+          "intimidation",
+          "investigation",
+          "medicine",
+          "nature",
+          "perception",
+          "performance",
+          "persuasion",
+          "religion",
+          "sleightofhand",
+          "stealth",
+          "survival"
+        ].includes(normalizedKey);
     }
 
     function getFieldValueByNormalizedKey(normalizedKey) {
@@ -495,6 +577,7 @@
       const isCheckbox = annotation.fieldType === "Btn" && annotation.checkBox;
       const isMultiline = annotation.multiLine && !isCheckbox;
       const key = fieldKey(annotation, pageNumber, index);
+      const normalizedKey = key.trim().toLowerCase();
       const selectOptions = getSelectOptions(key, pageNumber, annotation.rect);
       const isSelect = Boolean(selectOptions);
       const element = isSelect
@@ -507,12 +590,12 @@
       element.name = key;
       element.title = annotation.fieldName || key;
       element.className = `field ${isCheckbox ? "checkbox" : ""} ${isMultiline ? "textarea" : ""} ${isSelect ? "select" : ""}`;
+      if (!isCheckbox && isCenteredNumberField(normalizedKey)) element.classList.add("number");
       if (isCheckbox) element.type = "checkbox";
       else if (isSelect) {
         element.type = "text";
         element.readOnly = true;
         if (Array.isArray(selectOptions)) {
-          const normalizedKey = key.trim().toLowerCase();
           element.dataset.optionType = normalizedKey === "race" ? "race" : normalizedKey === "background" ? "background" : "class";
         } else {
           element.dataset.optionType = selectOptions.type;
@@ -539,10 +622,56 @@
         });
       } else if (!isMultiline) element.type = "text";
 
-      element.style.left = `${(left / viewport.width) * 100}%`;
+      const fieldSize = isCheckbox ? Math.min(width, height) : null;
+      const fieldLeft = isCheckbox ? left + ((width - fieldSize) / 2) : left;
+      const fieldTop = isCheckbox ? top + ((height - fieldSize) / 2) : top;
+      element.style.left = `${(fieldLeft / viewport.width) * 100}%`;
+      element.style.top = `${(fieldTop / viewport.height) * 100}%`;
+      const fieldWidth = normalizedKey === "classlevel" ? width * 0.68 : width;
+      element.style.width = `${((isCheckbox ? fieldSize : fieldWidth) / viewport.width) * 100}%`;
+      element.style.height = `${((isCheckbox ? fieldSize : height) / viewport.height) * 100}%`;
+      return element;
+    }
+
+    function makeSyntheticLevelField(viewport) {
+      const classLevelRect = [270.043, 728.184, 375.883, 743.841];
+      const rect = viewport.convertToViewportRectangle(classLevelRect);
+      const left = Math.min(rect[0], rect[2]);
+      const top = Math.min(rect[1], rect[3]);
+      const width = Math.abs(rect[2] - rect[0]);
+      const height = Math.abs(rect[3] - rect[1]);
+      const element = document.createElement("input");
+
+      element.dataset.key = "CharacterLevel";
+      element.dataset.optionType = "level";
+      element.name = "CharacterLevel";
+      element.title = "Character Level";
+      element.className = "field select number";
+      element.type = "text";
+      element.readOnly = true;
+      element.placeholder = "Lvl";
+      element.style.left = `${((left + width * 0.72) / viewport.width) * 100}%`;
       element.style.top = `${(top / viewport.height) * 100}%`;
-      element.style.width = `${(width / viewport.width) * 100}%`;
+      element.style.width = `${((width * 0.28) / viewport.width) * 100}%`;
       element.style.height = `${(height / viewport.height) * 100}%`;
+      element.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        openOptionMenu(element);
+      });
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+          event.preventDefault();
+          openOptionMenu(element);
+        } else if (event.key === "Escape") {
+          closeOptionMenu();
+        } else if (event.key === "Delete" || event.key === "Backspace") {
+          event.preventDefault();
+          element.value = "";
+          element.dispatchEvent(new Event("input", { bubbles: true }));
+          element.dispatchEvent(new Event("change", { bubbles: true }));
+          closeOptionMenu();
+        }
+      });
       return element;
     }
 
@@ -586,6 +715,135 @@
       return raw ? JSON.parse(raw) : null;
     }
 
+    function formatModifier(value) {
+      if (!Number.isFinite(value)) return "";
+      if (value > 0) return `+${value}`;
+      return String(value);
+    }
+
+    function abilityModifier(score) {
+      const parsed = Number.parseInt(String(score).trim(), 10);
+      if (!Number.isFinite(parsed)) return null;
+      return Math.floor((parsed - 10) / 2);
+    }
+
+    function proficiencyBonusForLevel(level) {
+      const parsed = Number.parseInt(String(level).trim(), 10);
+      if (!Number.isFinite(parsed) || parsed < 1) return 0;
+      return Math.ceil(parsed / 4) + 1;
+    }
+
+    function getFieldByKey(key) {
+      const normalizedKey = key.trim().toLowerCase();
+      return [...document.querySelectorAll(".field")].find((element) => element.dataset.key?.trim().toLowerCase() === normalizedKey) || null;
+    }
+
+    function setFieldValue(key, value) {
+      const field = getFieldByKey(key);
+      if (!field) return;
+      field.value = value;
+    }
+
+    const DERIVED_STAT_FIELDS = {
+      STR: {
+        modifier: "STRmod",
+        saves: [{ field: "ST Strength", proficiency: "Check Box 11" }],
+        skills: [{ field: "Athletics", proficiency: "Check Box 26" }]
+      },
+      DEX: {
+        modifier: "DEXmod",
+        saves: [{ field: "ST Dexterity", proficiency: "Check Box 18" }],
+        skills: [
+          { field: "Acrobatics", proficiency: "Check Box 23" },
+          { field: "SleightofHand", proficiency: "Check Box 38" },
+          { field: "Stealth", proficiency: "Check Box 39" }
+        ]
+      },
+      CON: {
+        modifier: "CONmod",
+        saves: [{ field: "ST Constitution", proficiency: "Check Box 19" }],
+        skills: []
+      },
+      INT: {
+        modifier: "INTmod",
+        saves: [{ field: "ST Intelligence", proficiency: "Check Box 20" }],
+        skills: [
+          { field: "Arcana", proficiency: "Check Box 25" },
+          { field: "History", proficiency: "Check Box 28" },
+          { field: "Investigation", proficiency: "Check Box 31" },
+          { field: "Nature", proficiency: "Check Box 33" },
+          { field: "Religion", proficiency: "Check Box 37" }
+        ]
+      },
+      WIS: {
+        modifier: "WISmod",
+        saves: [{ field: "ST Wisdom", proficiency: "Check Box 21" }],
+        skills: [
+          { field: "Animal", proficiency: "Check Box 24" },
+          { field: "Insight", proficiency: "Check Box 29" },
+          { field: "Medicine", proficiency: "Check Box 32" },
+          { field: "Perception", proficiency: "Check Box 34" },
+          { field: "Survival", proficiency: "Check Box 40" }
+        ]
+      },
+      CHA: {
+        modifier: "CHamod",
+        saves: [{ field: "ST Charisma", proficiency: "Check Box 22" }],
+        skills: [
+          { field: "Deception", proficiency: "Check Box 27" },
+          { field: "Intimidation", proficiency: "Check Box 30" },
+          { field: "Performance", proficiency: "Check Box 35" },
+          { field: "Persuasion", proficiency: "Check Box 36" }
+        ]
+      }
+    };
+
+    function proficiencyBonus() {
+      const level = getFieldByKey("CharacterLevel")?.value || "";
+      return proficiencyBonusForLevel(level);
+    }
+
+    function isProficient(checkboxKey) {
+      return Boolean(getFieldByKey(checkboxKey)?.checked);
+    }
+
+    function derivedFieldValue(baseModifier, proficiencyKey) {
+      return baseModifier + (isProficient(proficiencyKey) ? proficiencyBonus() : 0);
+    }
+
+    function updateProficiencyBonus() {
+      const level = getFieldByKey("CharacterLevel")?.value || "";
+      const bonus = proficiencyBonusForLevel(level);
+      setFieldValue("ProfBonus", level ? formatModifier(bonus) : "");
+    }
+
+    function updateDerivedStats() {
+      updateProficiencyBonus();
+      Object.entries(DERIVED_STAT_FIELDS).forEach(([ability, config]) => {
+        const abilityField = getFieldByKey(ability);
+        const modifier = abilityModifier(abilityField?.value || "");
+        const formatted = formatModifier(modifier);
+        setFieldValue(config.modifier, formatted);
+        [...config.saves, ...config.skills].forEach((target) => {
+          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency);
+          setFieldValue(target.field, formatModifier(value));
+        });
+      });
+    }
+
+    function handleDerivedStatInput(event) {
+      const key = event.target?.dataset?.key?.trim();
+      if (!key) return;
+      const upperKey = key.toUpperCase();
+      const isAbility = Boolean(DERIVED_STAT_FIELDS[upperKey]);
+      const isProficiencyCheckbox = Object.values(DERIVED_STAT_FIELDS)
+        .flatMap((config) => [...config.saves, ...config.skills])
+        .some((target) => target.proficiency.toLowerCase() === key.toLowerCase());
+      const isLevel = key.toLowerCase() === "characterlevel";
+      if (!isAbility && !isProficiencyCheckbox && !isLevel) return;
+      updateDerivedStats();
+    }
+
     let saveTimer;
     function scheduleSave() {
       clearTimeout(saveTimer);
@@ -620,6 +878,7 @@
         const field = makeField(annotation, pageNumber, index, viewport);
         if (field) layer.appendChild(field);
       });
+      if (pageNumber === 1) layer.appendChild(makeSyntheticLevelField(viewport));
     }
 
     async function init() {
@@ -632,7 +891,8 @@
       fieldOptions = new Map([
         ["race", raceOptions],
         ["background", backgroundOptions],
-        ["class", classOptions]
+        ["class", classOptions],
+        ["level", levelOptions()]
       ]);
       spells = spellOptions;
 
@@ -644,6 +904,9 @@
       }
 
       applyData(await loadData());
+      updateDerivedStats();
+      app.addEventListener("input", handleDerivedStatInput);
+      app.addEventListener("change", handleDerivedStatInput);
       app.addEventListener("input", scheduleSave);
       app.addEventListener("change", scheduleSave);
       document.addEventListener("pointerdown", (event) => {
