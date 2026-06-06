@@ -51,6 +51,18 @@ async function createWindow() {
     return { action: "deny" };
   });
 
+  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`No se pudo cargar ${validatedURL}: ${errorCode} ${errorDescription}`);
+  });
+
+  win.webContents.on("render-process-gone", (_event, details) => {
+    console.error(`El renderer se cerro inesperadamente: ${details.reason}`);
+  });
+
+  win.webContents.on("console-message", (_event, level, message) => {
+    if (level >= 2) console.error(`Renderer: ${message}`);
+  });
+
   await win.loadFile(path.join(__dirname, "index.html"));
 }
 

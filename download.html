@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Descargar Planilla DnD</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      color-scheme: light;
+      --bg: #e5e2dc;
+      --panel: #fffdf8;
+      --ink: #161616;
+      --muted: #5c5c5c;
+      --line: #c8c1b4;
+      --accent: #8b1e24;
+      --accent-dark: #651418;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(135deg, rgba(139, 30, 36, 0.12), transparent 38%),
+        linear-gradient(315deg, rgba(23, 68, 92, 0.12), transparent 42%),
+        var(--bg);
+      color: var(--ink);
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      width: min(100% - 32px, 680px);
+      padding: 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.18);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .release {
+      margin: 24px 0;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f7f4ee;
+    }
+
+    .release strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+
+    .download-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 150ms ease, transform 150ms ease;
+    }
+
+    .download-button:hover,
+    .download-button:focus {
+      background: var(--accent-dark);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .download-button[aria-disabled="true"] {
+      background: #777;
+      pointer-events: none;
+      transform: none;
+    }
+
+    .fallback {
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    .fallback a {
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    @media (max-width: 520px) {
+      main {
+        padding: 24px;
+      }
+
+      .download-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Planilla DnD</h1>
+    <p>Descarga automaticamente la ultima version publicada en GitHub.</p>
+
+    <section class="release" aria-live="polite">
+      <strong>Ultima version</strong>
+      <p id="releaseInfo">Buscando release...</p>
+    </section>
+
+    <a class="download-button" id="downloadButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" aria-disabled="true">
+      Preparando descarga
+    </a>
+
+    <p class="fallback">
+      Si el boton no inicia la descarga, abre la
+      <a href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest">pagina del ultimo release</a>.
+    </p>
+  </main>
+
+  <script>
+    const REPO = "Kaelthorian/DnD-Plataform";
+    const releaseInfo = document.getElementById("releaseInfo");
+    const downloadButton = document.getElementById("downloadButton");
+
+    function formatDate(value) {
+      return new Intl.DateTimeFormat("es-AR", {
+        dateStyle: "medium"
+      }).format(new Date(value));
+    }
+
+    function pickDownloadAsset(assets) {
+      const preferredExtensions = [".exe", ".msi", ".zip", ".7z"];
+      return preferredExtensions
+        .map((extension) => assets.find((asset) => asset.name.toLowerCase().endsWith(extension)))
+        .find(Boolean) || assets[0] || null;
+    }
+
+    async function loadLatestRelease() {
+      try {
+        const response = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+          headers: { Accept: "application/vnd.github+json" }
+        });
+
+        if (!response.ok) throw new Error(`GitHub respondio ${response.status}`);
+
+        const release = await response.json();
+        const asset = pickDownloadAsset(release.assets || []);
+        const releaseUrl = release.html_url || `https://github.com/${REPO}/releases/latest`;
+
+        releaseInfo.textContent = `${release.name || release.tag_name} - publicado el ${formatDate(release.published_at)}.`;
+
+        downloadButton.href = asset ? asset.browser_download_url : releaseUrl;
+        downloadButton.textContent = asset ? `Descargar ${asset.name}` : "Ver ultimo release";
+        downloadButton.removeAttribute("aria-disabled");
+      } catch (error) {
+        releaseInfo.textContent = "No se pudo consultar GitHub ahora. Usa el enlace al release.";
+        downloadButton.href = `https://github.com/${REPO}/releases/latest`;
+        downloadButton.textContent = "Abrir ultimo release";
+        downloadButton.removeAttribute("aria-disabled");
+      }
+    }
+
+    loadLatestRelease();
+  </script>
+</body>
+</html>

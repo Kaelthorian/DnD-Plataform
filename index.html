@@ -224,6 +224,175 @@
       opacity: 1;
     }
 
+    .download-release {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 40;
+      display: flex;
+      max-width: min(360px, calc(100vw - 24px));
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px 9px 12px;
+      border: 1px solid rgba(0, 0, 0, 0.24);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #111;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+      font: 12px/1.25 "Segoe UI", Arial, sans-serif;
+    }
+
+    .download-release-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .download-release-button {
+      flex: 0 0 auto;
+      display: inline-flex;
+      min-height: 32px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      border-radius: 4px;
+      background: #111;
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .download-release-button:hover,
+    .download-release-button:focus {
+      background: #8b1e24;
+      outline: none;
+    }
+
+    .prepared-spells-panel {
+      position: absolute;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 4px 5px;
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(0, 0, 0, 0.34);
+      border-radius: 3px;
+      font: 10px/1.15 "Segoe UI", Arial, sans-serif;
+    }
+
+    .prepared-spells-empty {
+      margin: auto 0;
+      color: #555;
+      text-align: center;
+    }
+
+    .prepared-spell-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 20px 22px 34px;
+      gap: 3px;
+      align-items: center;
+      min-height: 18px;
+    }
+
+    .prepared-spell-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .prepared-spell-damage-type {
+      display: inline-grid;
+      width: 18px;
+      height: 18px;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      background: #fff;
+      color: #111;
+      font: 700 11px/1 "Segoe UI Symbol", "Segoe UI", Arial, sans-serif;
+      cursor: default;
+    }
+
+    .dice-button {
+      display: inline-grid;
+      min-width: 22px;
+      height: 18px;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.36);
+      border-radius: 3px;
+      background: #f7f7f7;
+      color: #111;
+      font: 700 9px/1 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .dice-button:hover,
+    .dice-button:focus {
+      background: #111;
+      color: #fff;
+      outline: none;
+    }
+
+    .dice-tray {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 30;
+      width: min(320px, calc(100vw - 24px));
+      padding: 12px 14px;
+      border-radius: 4px;
+      background: #111;
+      color: #fff;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+      transform: translate(120%, 120%);
+      transition: transform 220ms ease;
+      pointer-events: none;
+    }
+
+    .dice-tray.visible {
+      transform: translate(0, 0);
+    }
+
+    .dice-title {
+      margin-bottom: 5px;
+      font: 700 12px/1.2 "Segoe UI", Arial, sans-serif;
+    }
+
+    .dice-result {
+      font: 700 24px/1.1 "Segoe UI", Arial, sans-serif;
+    }
+
+    .dice-detail {
+      margin-top: 4px;
+      color: #d8d8d8;
+      font: 11px/1.25 "Segoe UI", Arial, sans-serif;
+    }
+
+    .damage-tooltip {
+      position: fixed;
+      z-index: 31;
+      max-width: 180px;
+      padding: 7px 9px;
+      border-radius: 4px;
+      background: #111;
+      color: #fff;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+      font: 11px/1.25 "Segoe UI", Arial, sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(4px);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+
+    .damage-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     @media (max-width: 720px) {
       .app {
         width: 100vw;
@@ -234,10 +403,20 @@
         margin-bottom: 8px;
         box-shadow: none;
       }
+
+      .download-release {
+        top: 8px;
+        right: 8px;
+        left: 8px;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="download-release" aria-live="polite">
+    <span class="download-release-text" id="downloadReleaseText">Buscando ultima version...</span>
+    <a class="download-release-button" id="downloadReleaseButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" target="_blank" rel="noopener">Descargar</a>
+  </div>
   <main class="app" id="app"></main>
   <div class="loading" id="loading">Cargando planilla...</div>
   <div class="status" id="status">Guardado</div>
@@ -245,15 +424,17 @@
     <div class="option-list" id="optionList"></div>
     <div class="option-description" id="optionDescription"></div>
   </div>
+  <div class="dice-tray" id="diceTray" aria-live="polite">
+    <div class="dice-title" id="diceTitle"></div>
+    <div class="dice-result" id="diceResult"></div>
+    <div class="dice-detail" id="diceDetail"></div>
+  </div>
+  <div class="damage-tooltip" id="damageTooltip"></div>
 
   <script type="module">
-    import * as pdfjsLib from "./node_modules/pdfjs-dist/build/pdf.mjs";
-
     const STORAGE_KEY = "dnd-character-sheet-pdf-fields-v2";
     const BASE_WIDTH = 1000;
     const desktopStore = window.dndSheet || null;
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "./node_modules/pdfjs-dist/build/pdf.worker.mjs";
 
     const app = document.getElementById("app");
     const loading = document.getElementById("loading");
@@ -261,9 +442,29 @@
     const optionMenu = document.getElementById("optionMenu");
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
+    const diceTray = document.getElementById("diceTray");
+    const diceTitle = document.getElementById("diceTitle");
+    const diceResult = document.getElementById("diceResult");
+    const diceDetail = document.getElementById("diceDetail");
+    const damageTooltip = document.getElementById("damageTooltip");
     let fieldOptions = new Map();
     let spells = [];
     let activeSelectField = null;
+    let pdfjsLib = null;
+    let preparedSpellsPanel = null;
+    let diceTimer = null;
+
+    async function loadPdfJs() {
+      try {
+        if (!Promise.try) {
+          Promise.try = (callback, ...args) => new Promise((resolve) => resolve(callback(...args)));
+        }
+        pdfjsLib = await import("./node_modules/pdfjs-dist/legacy/build/pdf.mjs");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs";
+      } catch (error) {
+        throw new Error("No se encontro PDF.js. Ejecuta `npm install` en la carpeta del proyecto antes de abrir la app.");
+      }
+    }
 
     function base64ToBytes(base64) {
       const binary = atob(base64);
@@ -275,6 +476,9 @@
     async function loadPdfBytes() {
       if (desktopStore?.loadPdf) return base64ToBytes(await desktopStore.loadPdf());
       const response = await fetch("./DnD_5E_CharacterSheet_FormFillable.pdf");
+      if (!response.ok) {
+        throw new Error(`No se encontro DnD_5E_CharacterSheet_FormFillable.pdf (${response.status})`);
+      }
       return new Uint8Array(await response.arrayBuffer());
     }
 
@@ -430,6 +634,78 @@
       [9, "SlotsTotal 27"]
     ]);
 
+    const SPELL_SLOT_REMAINING_KEYS = new Map([
+      [1, "SlotsRemaining 19"],
+      [2, "SlotsRemaining 20"],
+      [3, "SlotsRemaining 21"],
+      [4, "SlotsRemaining 22"],
+      [5, "SlotsRemaining 23"],
+      [6, "SlotsRemaining 24"],
+      [7, "SlotsRemaining 25"],
+      [8, "SlotsRemaining 26"],
+      [9, "SlotsRemaining 27"]
+    ]);
+
+    const FULL_CASTER_SLOTS = [
+      [],
+      [2],
+      [3],
+      [4, 2],
+      [4, 3],
+      [4, 3, 2],
+      [4, 3, 3],
+      [4, 3, 3, 1],
+      [4, 3, 3, 2],
+      [4, 3, 3, 3, 1],
+      [4, 3, 3, 3, 2],
+      [4, 3, 3, 3, 2, 1],
+      [4, 3, 3, 3, 2, 1],
+      [4, 3, 3, 3, 2, 1, 1],
+      [4, 3, 3, 3, 2, 1, 1],
+      [4, 3, 3, 3, 2, 1, 1, 1],
+      [4, 3, 3, 3, 2, 1, 1, 1],
+      [4, 3, 3, 3, 2, 1, 1, 1, 1],
+      [4, 3, 3, 3, 3, 1, 1, 1, 1],
+      [4, 3, 3, 3, 3, 2, 1, 1, 1],
+      [4, 3, 3, 3, 3, 2, 2, 1, 1]
+    ];
+
+    function spellSlotsForCharacter() {
+      const level = Math.min(20, Math.max(1, getCharacterLevel()));
+      const className = normalizeName(getSelectedClassName());
+      if (["bard", "cleric", "druid", "sorcerer", "wizard", "spellcaster sidekick"].includes(className)) {
+        return FULL_CASTER_SLOTS[level] || [];
+      }
+      if (className === "artificer") {
+        return FULL_CASTER_SLOTS[Math.ceil(level / 2)] || [];
+      }
+      if (className === "paladin" || className === "ranger") {
+        if (level < 2) return [];
+        return FULL_CASTER_SLOTS[Math.ceil((level - 1) / 2)] || [];
+      }
+      if (className === "warlock") {
+        const slotLevel = level < 3 ? 1 : level < 5 ? 2 : level < 7 ? 3 : level < 9 ? 4 : 5;
+        const count = level === 1 ? 1 : level < 11 ? 2 : level < 17 ? 3 : 4;
+        const slots = [];
+        slots[slotLevel - 1] = count;
+        return slots;
+      }
+      return [];
+    }
+
+    function maxSpellLevelForCharacter() {
+      const slots = spellSlotsForCharacter();
+      for (let level = 9; level >= 1; level -= 1) {
+        if ((slots[level - 1] || 0) > 0) return level;
+      }
+      return 0;
+    }
+
+    function canUseSpellLevel(level) {
+      if (level === 0) return true;
+      return level <= maxSpellLevelForCharacter();
+    }
+
     function getSpellLevelLimit(level) {
       if (level === 0) return Infinity;
       const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
@@ -445,8 +721,16 @@
         .length;
     }
 
+    function isSpellAlreadySelected(spellName, exceptField = null) {
+      const normalized = normalizeName(spellName);
+      if (!normalized) return false;
+      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+        .some((field) => field !== exceptField && normalizeName(field.value || "") === normalized);
+    }
+
     function spellMatchesSelection(spell, level) {
       if (spell.level !== level) return false;
+      if (!canUseSpellLevel(level)) return false;
       const className = getSelectedClassName();
       const raceName = getSelectedRaceName();
       const classMatches = className && spell.classes?.some((name) => name.toLowerCase() === className.toLowerCase());
@@ -455,12 +739,266 @@
       return true;
     }
 
-    function getSpellOptions(level) {
-      return spells.filter((spell) => spellMatchesSelection(spell, level));
+    function getSpellOptions(level, field = null) {
+      return spells.filter((spell) => spellMatchesSelection(spell, level) && !isSpellAlreadySelected(spell.name, field));
+    }
+
+    function normalizeName(name) {
+      return name.trim().toLowerCase();
+    }
+
+    function findSpellByName(name) {
+      const normalized = normalizeName(name);
+      return spells.find((spell) => normalizeName(spell.name) === normalized) || null;
+    }
+
+    function parseSignedNumber(value) {
+      const match = String(value || "").match(/[+-]?\d+/);
+      return match ? Number.parseInt(match[0], 10) : 0;
+    }
+
+    function getSpellAttackBonus() {
+      return parseSignedNumber(getFieldValueByNormalizedKey("spellatkbonus 2"));
+    }
+
+    function getStrengthModifier() {
+      return parseSignedNumber(getFieldValueByNormalizedKey("strmod"));
+    }
+
+    function getUnarmedAttackBonus() {
+      return getStrengthModifier() + parseSignedNumber(getFieldValueByNormalizedKey("profbonus"));
+    }
+
+    function getCharacterLevel() {
+      return Number.parseInt(getFieldValueByNormalizedKey("characterlevel"), 10) || 1;
+    }
+
+    function scaledCantripDice(expression) {
+      const match = expression.match(/^(\d+)d(\d+)(.*)$/i);
+      if (!match) return expression;
+      const level = getCharacterLevel();
+      const multiplier = level >= 17 ? 4 : level >= 11 ? 3 : level >= 5 ? 2 : 1;
+      return `${Number(match[1]) * multiplier}d${match[2]}${match[3] || ""}`;
+    }
+
+    function damageDiceForSpell(spell) {
+      if (!spell?.description) return null;
+      const hitMatch = spell.description.match(/on a hit[^.]*?takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
+      const damageMatch = spell.description.match(/takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
+      const expression = hitMatch?.[1] || damageMatch?.[1] || spell.description.match(/\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i)?.[0] || null;
+      if (!expression) return null;
+      return spell.level === 0 ? scaledCantripDice(expression.replace(/\s+/g, "")) : expression.replace(/\s+/g, "");
+    }
+
+    function damageTypeForSpell(spell) {
+      if (!spell?.description) return "";
+      const typedAfterDice = spell.description.match(/\d+d\d+(?:\s*[+-]\s*\d+)?\s+([a-z]+)\s+damage/i);
+      if (typedAfterDice?.[1]) return typedAfterDice[1].toLowerCase();
+      const typedDamage = spell.description.match(/\b(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\s+damage\b/i);
+      return typedDamage?.[1]?.toLowerCase() || "";
+    }
+
+    const DAMAGE_TYPE_SYMBOLS = {
+      acid: "⌁",
+      bludgeoning: "●",
+      cold: "✣",
+      fire: "▲",
+      force: "◆",
+      lightning: "ϟ",
+      necrotic: "☾",
+      piercing: "↓",
+      poison: "☠",
+      psychic: "◌",
+      radiant: "✹",
+      slashing: "╱",
+      thunder: "◉"
+    };
+
+    function damageTypeSymbol(type) {
+      return DAMAGE_TYPE_SYMBOLS[type] || "?";
+    }
+
+    function showDamageTooltip(anchor, type) {
+      damageTooltip.textContent = type || "Sin tipo de danio detectado";
+      const rect = anchor.getBoundingClientRect();
+      const margin = 8;
+      damageTooltip.classList.add("visible");
+      const tooltipRect = damageTooltip.getBoundingClientRect();
+      const left = Math.min(Math.max(margin, rect.left + rect.width / 2 - tooltipRect.width / 2), window.innerWidth - tooltipRect.width - margin);
+      const top = rect.top > tooltipRect.height + margin
+        ? rect.top - tooltipRect.height - 6
+        : rect.bottom + 6;
+      damageTooltip.style.left = `${left}px`;
+      damageTooltip.style.top = `${top}px`;
+    }
+
+    function hideDamageTooltip() {
+      damageTooltip.classList.remove("visible");
+    }
+
+    function descriptionForSpell(spell) {
+      return spell?.description || "Sin descripcion disponible.";
+    }
+
+    function rollDie(sides) {
+      return Math.floor(Math.random() * sides) + 1;
+    }
+
+    function rollDiceExpression(expression) {
+      const match = expression.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
+      if (!match) return null;
+      const count = Number.parseInt(match[1], 10);
+      const sides = Number.parseInt(match[2], 10);
+      const bonus = Number.parseInt(match[3] || "0", 10);
+      if (!Number.isFinite(count) || !Number.isFinite(sides) || count < 1 || count > 40 || sides < 2) return null;
+      const rolls = Array.from({ length: count }, () => rollDie(sides));
+      const total = rolls.reduce((sum, roll) => sum + roll, bonus);
+      return { total, rolls, bonus };
+    }
+
+    function showDiceTray(title, result, detail) {
+      diceTitle.textContent = title;
+      diceResult.textContent = result;
+      diceDetail.textContent = detail;
+      diceTray.classList.add("visible");
+      clearTimeout(diceTimer);
+      diceTimer = setTimeout(() => diceTray.classList.remove("visible"), 3600);
+    }
+
+    function rollAttack(attackName, bonus, label) {
+      const d20 = rollDie(20);
+      const total = d20 + bonus;
+      showDiceTray(`${attackName}: ataque`, String(total), `d20 ${d20} ${formatModifier(bonus)} ${label}`);
+    }
+
+    function rollDamage(attackName, expression, damageType) {
+      if (expression === "unarmed") {
+        const strengthModifier = getStrengthModifier();
+        const total = Math.max(0, 1 + strengthModifier);
+        showDiceTray(`${attackName}: danio`, String(total), `1 ${formatModifier(strengthModifier)} ${damageType}`);
+        return;
+      }
+      const roll = rollDiceExpression(expression);
+      if (!roll) {
+        showDiceTray(`${attackName}: danio`, "N/A", "No encontre dados de danio en la descripcion.");
+        return;
+      }
+      const bonusText = roll.bonus ? ` ${formatModifier(roll.bonus)}` : "";
+      showDiceTray(`${attackName}: danio`, String(roll.total), `${expression}: ${roll.rolls.join(" + ")}${bonusText} ${damageType}`.trim());
+    }
+
+    function preparedAttackSelections() {
+      const strengthModifier = getStrengthModifier();
+      const unarmed = {
+        name: "Ataque desarmado",
+        damage: "unarmed",
+        damageLabel: `1${formatModifier(strengthModifier)}`,
+        damageType: "bludgeoning",
+        description: "Melee weapon attack using Strength. Hit: bludgeoning damage equal to 1 + your Strength modifier.",
+        attackBonus: getUnarmedAttackBonus(),
+        attackLabel: "unarmed strike",
+        level: -1
+      };
+      const preparedSpells = [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+        .filter((field) => {
+          if (!field.value.trim()) return false;
+          if (Number(field.dataset.spellLevel) === 0) return true;
+          const checkbox = getFieldByKey(field.dataset.preparedKey);
+          return checkbox?.checked;
+        })
+        .map((field) => {
+          const spellName = field.value.trim();
+          const spell = findSpellByName(spellName);
+          return {
+            name: spellName,
+            damage: damageDiceForSpell(spell),
+            damageLabel: damageDiceForSpell(spell),
+            damageType: damageTypeForSpell(spell),
+            description: descriptionForSpell(spell),
+            attackBonus: getSpellAttackBonus(),
+            attackLabel: "spell attack",
+            level: Number(field.dataset.spellLevel)
+          };
+        })
+        .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+      return [unarmed, ...preparedSpells];
+    }
+
+    function updatePreparedSpellsPanel() {
+      if (!preparedSpellsPanel) return;
+      preparedSpellsPanel.textContent = "";
+      const preparedAttacks = preparedAttackSelections();
+      preparedAttacks.forEach((spell) => {
+        const row = document.createElement("div");
+        row.className = "prepared-spell-row";
+
+        const name = document.createElement("div");
+        name.className = "prepared-spell-name";
+        name.textContent = spell.name;
+        name.title = spell.description;
+
+        const damageType = document.createElement("div");
+        damageType.className = "prepared-spell-damage-type";
+        damageType.tabIndex = 0;
+        damageType.textContent = damageTypeSymbol(spell.damageType);
+        damageType.setAttribute("aria-label", spell.damageType || "Sin tipo de danio detectado");
+        damageType.addEventListener("mouseenter", () => showDamageTooltip(damageType, spell.damageType));
+        damageType.addEventListener("mouseleave", hideDamageTooltip);
+        damageType.addEventListener("focus", () => showDamageTooltip(damageType, spell.damageType));
+        damageType.addEventListener("blur", hideDamageTooltip);
+
+        const attackButton = document.createElement("button");
+        attackButton.type = "button";
+        attackButton.className = "dice-button";
+        attackButton.textContent = "d20";
+        attackButton.title = `Tirar ataque para ${spell.name}`;
+        attackButton.addEventListener("click", () => rollAttack(spell.name, spell.attackBonus, spell.attackLabel));
+
+        const damageButton = document.createElement("button");
+        damageButton.type = "button";
+        damageButton.className = "dice-button";
+        damageButton.textContent = spell.damageLabel || "--";
+        damageButton.title = spell.damageLabel ? `Tirar danio ${spell.damageLabel} ${spell.damageType}`.trim() : "Sin dados de danio detectados";
+        damageButton.addEventListener("click", () => rollDamage(spell.name, spell.damage || "", spell.damageType));
+
+        row.append(name, damageType, attackButton, damageButton);
+        preparedSpellsPanel.appendChild(row);
+      });
+    }
+
+    function pruneUnavailableSpellSelections() {
+      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => {
+        const level = Number(field.dataset.spellLevel);
+        if (!field.value.trim() || canUseSpellLevel(level)) return;
+        field.value = "";
+      });
+    }
+
+    function pruneDuplicateSpellSelections() {
+      const seen = new Set();
+      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => {
+        const normalized = normalizeName(field.value || "");
+        if (!normalized) return;
+        if (!seen.has(normalized)) {
+          seen.add(normalized);
+          return;
+        }
+        field.value = "";
+      });
+    }
+
+    function handleSpellAvailabilityChange(event) {
+      const key = event.target?.dataset?.key?.trim().toLowerCase();
+      if (!["characterlevel", "spellcasting class 2", "classlevel"].includes(key)) return;
+      updateSpellSlots();
+      pruneUnavailableSpellSelections();
+      pruneDuplicateSpellSelections();
+      updatePreparedSpellsPanel();
+      scheduleSave();
     }
 
     function resolveSelectOptions(field) {
-      if (field.dataset.optionType === "spell") return getSpellOptions(Number(field.dataset.spellLevel));
+      if (field.dataset.optionType === "spell") return getSpellOptions(Number(field.dataset.spellLevel), field);
       return fieldOptions.get(field.dataset.optionType) || [];
     }
 
@@ -523,6 +1061,10 @@
       const options = resolveSelectOptions(field);
       if (field.dataset.optionType === "spell") {
         const level = Number(field.dataset.spellLevel);
+        if (!canUseSpellLevel(level)) {
+          showStatus(`Nivel de spell ${level} no disponible para tu nivel`);
+          return;
+        }
         const limit = getSpellLevelLimit(level);
         const used = getSelectedSpellCount(level, field);
         if (!field.value.trim() && used >= limit) {
@@ -548,6 +1090,11 @@
         item.addEventListener("mouseenter", () => setOptionDescription(option));
         item.addEventListener("focus", () => setOptionDescription(option));
         item.addEventListener("click", () => {
+          if (field.dataset.optionType === "spell" && isSpellAlreadySelected(optionName(option), field)) {
+            showStatus("Esa magia ya esta seleccionada");
+            closeOptionMenu();
+            return;
+          }
           field.value = optionName(option);
           field.dispatchEvent(new Event("input", { bubbles: true }));
           field.dispatchEvent(new Event("change", { bubbles: true }));
@@ -563,6 +1110,16 @@
 
     function fieldKey(annotation, pageNumber, index) {
       return annotation.fieldName || `page-${pageNumber}-field-${index}`;
+    }
+
+    function setPdfRectDataset(element, rect, pageNumber) {
+      element.dataset.pageNumber = String(pageNumber);
+      element.dataset.pdfX1 = String(Math.min(rect[0], rect[2]));
+      element.dataset.pdfY1 = String(Math.min(rect[1], rect[3]));
+      element.dataset.pdfX2 = String(Math.max(rect[0], rect[2]));
+      element.dataset.pdfY2 = String(Math.max(rect[1], rect[3]));
+      element.dataset.pdfCenterX = String((rect[0] + rect[2]) / 2);
+      element.dataset.pdfCenterY = String((rect[1] + rect[3]) / 2);
     }
 
     function makeField(annotation, pageNumber, index, viewport) {
@@ -590,6 +1147,7 @@
       element.name = key;
       element.title = annotation.fieldName || key;
       element.className = `field ${isCheckbox ? "checkbox" : ""} ${isMultiline ? "textarea" : ""} ${isSelect ? "select" : ""}`;
+      setPdfRectDataset(element, annotation.rect, pageNumber);
       if (!isCheckbox && isCenteredNumberField(normalizedKey)) element.classList.add("number");
       if (isCheckbox) element.type = "checkbox";
       else if (isSelect) {
@@ -631,6 +1189,56 @@
       element.style.width = `${((isCheckbox ? fieldSize : fieldWidth) / viewport.width) * 100}%`;
       element.style.height = `${((isCheckbox ? fieldSize : height) / viewport.height) * 100}%`;
       return element;
+    }
+
+    function placeFromPdfRect(element, viewport, pdfRect) {
+      const rect = viewport.convertToViewportRectangle(pdfRect);
+      const left = Math.min(rect[0], rect[2]);
+      const top = Math.min(rect[1], rect[3]);
+      const width = Math.abs(rect[2] - rect[0]);
+      const height = Math.abs(rect[3] - rect[1]);
+      element.style.left = `${(left / viewport.width) * 100}%`;
+      element.style.top = `${(top / viewport.height) * 100}%`;
+      element.style.width = `${(width / viewport.width) * 100}%`;
+      element.style.height = `${(height / viewport.height) * 100}%`;
+    }
+
+    function createPreparedSpellsPanel(layer, viewport) {
+      const panel = document.createElement("div");
+      panel.className = "prepared-spells-panel";
+      panel.dataset.overlay = "prepared-spells";
+      placeFromPdfRect(panel, viewport, [221, 206, 390, 401]);
+      layer.appendChild(panel);
+      preparedSpellsPanel = panel;
+      updatePreparedSpellsPanel();
+    }
+
+    function linkPreparedSpellFields(layer) {
+      const spellFields = [...layer.querySelectorAll(".field.select[data-option-type='spell']")];
+      const checkboxes = [...layer.querySelectorAll(".field.checkbox")];
+      spellFields.forEach((spellField) => {
+        const spellY = Number(spellField.dataset.pdfCenterY);
+        const spellX1 = Number(spellField.dataset.pdfX1);
+        const spellX2 = Number(spellField.dataset.pdfX2);
+        const candidates = checkboxes
+          .map((checkbox) => {
+            const checkboxY = Number(checkbox.dataset.pdfCenterY);
+            const checkboxX = Number(checkbox.dataset.pdfCenterX);
+            const rowDistance = Math.abs(checkboxY - spellY);
+            const isLeftDot = checkboxX < spellX1 && checkboxX > spellX1 - 18;
+            const isRightDot = checkboxX > spellX2 && checkboxX < spellX2 + 34;
+            return { checkbox, rowDistance, isLeftDot, isRightDot };
+          })
+          .filter((candidate) => candidate.rowDistance <= 7 && (candidate.isLeftDot || candidate.isRightDot))
+          .sort((a, b) => {
+            if (a.isLeftDot !== b.isLeftDot) return a.isLeftDot ? -1 : 1;
+            return a.rowDistance - b.rowDistance;
+          });
+        const preparedCheckbox = candidates[0]?.checkbox;
+        if (!preparedCheckbox) return;
+        spellField.dataset.preparedKey = preparedCheckbox.dataset.key;
+        preparedCheckbox.dataset.spellKey = spellField.dataset.key;
+      });
     }
 
     function makeSyntheticLevelField(viewport) {
@@ -831,6 +1439,16 @@
       });
     }
 
+    function updateSpellSlots() {
+      const slots = spellSlotsForCharacter();
+      for (let level = 1; level <= 9; level += 1) {
+        const total = slots[level - 1] || 0;
+        const value = total ? String(total) : "";
+        setFieldValue(SPELL_SLOT_TOTAL_KEYS.get(level), value);
+        setFieldValue(SPELL_SLOT_REMAINING_KEYS.get(level), value);
+      }
+    }
+
     function handleDerivedStatInput(event) {
       const key = event.target?.dataset?.key?.trim();
       if (!key) return;
@@ -879,9 +1497,12 @@
         if (field) layer.appendChild(field);
       });
       if (pageNumber === 1) layer.appendChild(makeSyntheticLevelField(viewport));
+      if (pageNumber === 1) createPreparedSpellsPanel(layer, viewport);
+      if (pageNumber === 3) linkPreparedSpellFields(layer);
     }
 
     async function init() {
+      await loadPdfJs();
       const [raceOptions, backgroundOptions, classOptions, spellOptions] = await Promise.all([
         loadRaceOptions(),
         loadBackgroundOptions(),
@@ -904,11 +1525,17 @@
       }
 
       applyData(await loadData());
+      pruneDuplicateSpellSelections();
       updateDerivedStats();
+      updateSpellSlots();
+      updatePreparedSpellsPanel();
       app.addEventListener("input", handleDerivedStatInput);
       app.addEventListener("change", handleDerivedStatInput);
       app.addEventListener("input", scheduleSave);
       app.addEventListener("change", scheduleSave);
+      app.addEventListener("input", updatePreparedSpellsPanel);
+      app.addEventListener("change", updatePreparedSpellsPanel);
+      app.addEventListener("change", handleSpellAvailabilityChange);
       document.addEventListener("pointerdown", (event) => {
         if (!activeSelectField) return;
         if (event.target === activeSelectField || optionMenu.contains(event.target)) return;
@@ -929,6 +1556,39 @@
       console.error(error);
       loading.textContent = `No se pudo cargar el PDF: ${error?.message || error}`;
     });
+  </script>
+  <script>
+    const RELEASE_REPO = "Kaelthorian/DnD-Plataform";
+    const downloadReleaseText = document.getElementById("downloadReleaseText");
+    const downloadReleaseButton = document.getElementById("downloadReleaseButton");
+
+    function pickReleaseAsset(assets) {
+      const preferredExtensions = [".exe", ".msi", ".zip", ".7z"];
+      return preferredExtensions
+        .map((extension) => assets.find((asset) => asset.name.toLowerCase().endsWith(extension)))
+        .find(Boolean) || assets[0] || null;
+    }
+
+    async function loadDownloadRelease() {
+      try {
+        const response = await fetch(`https://api.github.com/repos/${RELEASE_REPO}/releases/latest`, {
+          headers: { Accept: "application/vnd.github+json" }
+        });
+        if (!response.ok) throw new Error(`GitHub respondio ${response.status}`);
+
+        const release = await response.json();
+        const asset = pickReleaseAsset(release.assets || []);
+        downloadReleaseText.textContent = release.tag_name ? `Ultima version: ${release.tag_name}` : "Ultima version disponible";
+        downloadReleaseButton.href = asset ? asset.browser_download_url : release.html_url;
+        downloadReleaseButton.textContent = asset ? "Descargar" : "Ver release";
+      } catch (error) {
+        downloadReleaseText.textContent = "Ultima version";
+        downloadReleaseButton.href = `https://github.com/${RELEASE_REPO}/releases/latest`;
+        downloadReleaseButton.textContent = "Ver release";
+      }
+    }
+
+    loadDownloadRelease();
   </script>
 </body>
 </html>
