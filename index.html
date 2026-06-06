@@ -393,6 +393,145 @@
       transform: translateY(0);
     }
 
+    @media (min-width: 1180px) {
+      .app {
+        width: min(calc(100vw - 390px), 1120px);
+        margin-left: 24px;
+        margin-right: 360px;
+      }
+    }
+
+    .alerts-panel {
+      position: fixed;
+      top: 76px;
+      right: 12px;
+      z-index: 25;
+      width: min(330px, calc(100vw - 24px));
+      max-height: calc(100vh - 96px);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(0, 0, 0, 0.26);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+      color: #111;
+      font: 12px/1.3 "Segoe UI", Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .alerts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 10px;
+      border-bottom: 1px solid #d4d4d4;
+      background: #f6f6f6;
+      font-weight: 700;
+    }
+
+    .alerts-counts {
+      color: #555;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .alerts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding: 9px;
+      overflow-y: auto;
+    }
+
+    .alert-empty {
+      padding: 10px 4px;
+      color: #555;
+      text-align: center;
+    }
+
+    .alert-item {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid #d0d0d0;
+      border-left-width: 4px;
+      border-radius: 5px;
+      background: #fff;
+    }
+
+    .alert-item.critical {
+      border-left-color: #b42318;
+    }
+
+    .alert-item.important {
+      border-left-color: #b7791f;
+    }
+
+    .alert-item.optional {
+      border-left-color: #3267b1;
+    }
+
+    .alert-icon {
+      display: inline-grid;
+      width: 20px;
+      height: 20px;
+      place-items: center;
+      border-radius: 50%;
+      background: #111;
+      color: #fff;
+      font: 700 13px/1 "Segoe UI", Arial, sans-serif;
+      cursor: help;
+      user-select: none;
+    }
+
+    .alert-item.critical .alert-icon {
+      background: #b42318;
+    }
+
+    .alert-item.important .alert-icon {
+      background: #b7791f;
+    }
+
+    .alert-item.optional .alert-icon {
+      background: #3267b1;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .alert-detail {
+      margin-top: 2px;
+      color: #555;
+      font-size: 11px;
+    }
+
+    .alert-choice-group {
+      display: grid;
+      gap: 5px;
+      margin-top: 7px;
+    }
+
+    .alert-choice {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr);
+      gap: 5px;
+      align-items: start;
+      cursor: pointer;
+    }
+
+    .alert-choice input {
+      margin: 2px 0 0;
+    }
+
+    .alert-choice-text {
+      overflow-wrap: anywhere;
+    }
+
     @media (max-width: 720px) {
       .app {
         width: 100vw;
@@ -409,6 +548,13 @@
         right: 8px;
         left: 8px;
       }
+
+      .alerts-panel {
+        position: static;
+        width: auto;
+        max-height: none;
+        margin: 54px 8px 8px;
+      }
     }
   </style>
 </head>
@@ -417,6 +563,13 @@
     <span class="download-release-text" id="downloadReleaseText">Buscando ultima version...</span>
     <a class="download-release-button" id="downloadReleaseButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" target="_blank" rel="noopener">Descargar</a>
   </div>
+  <aside class="alerts-panel" id="alertsPanel" aria-live="polite">
+    <div class="alerts-header">
+      <span>Alertas</span>
+      <span class="alerts-counts" id="alertsCounts">0</span>
+    </div>
+    <div class="alerts-list" id="alertsList"></div>
+  </aside>
   <main class="app" id="app"></main>
   <div class="loading" id="loading">Cargando planilla...</div>
   <div class="status" id="status">Guardado</div>
@@ -442,6 +595,8 @@
     const optionMenu = document.getElementById("optionMenu");
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
+    const alertsList = document.getElementById("alertsList");
+    const alertsCounts = document.getElementById("alertsCounts");
     const diceTray = document.getElementById("diceTray");
     const diceTitle = document.getElementById("diceTitle");
     const diceResult = document.getElementById("diceResult");
@@ -453,6 +608,7 @@
     let pdfjsLib = null;
     let preparedSpellsPanel = null;
     let diceTimer = null;
+    let sheetMeta = { choices: {} };
 
     async function loadPdfJs() {
       try {
@@ -517,6 +673,20 @@
       });
     }
 
+    function alignmentOptions() {
+      return [
+        ["Lawful Good", "Acts with compassion, honor, and respect for order."],
+        ["Neutral Good", "Does the best they can without strong bias toward law or chaos."],
+        ["Chaotic Good", "Follows conscience and freedom while trying to do good."],
+        ["Lawful Neutral", "Values order, tradition, or code over moral extremes."],
+        ["True Neutral", "Avoids strong commitment to law, chaos, good, or evil."],
+        ["Chaotic Neutral", "Values freedom and impulse without a strong moral allegiance."],
+        ["Lawful Evil", "Uses order, rules, or hierarchy for selfish or harmful ends."],
+        ["Neutral Evil", "Pursues self-interest without compassion or loyalty to order."],
+        ["Chaotic Evil", "Acts with destructive selfishness and contempt for order."]
+      ].map(([name, description]) => ({ name, description }));
+    }
+
     function getSpellLevel(pageNumber, rect) {
       if (pageNumber !== 3) return null;
       const x = rect[0];
@@ -541,6 +711,7 @@
       const normalizedKey = key.trim().toLowerCase();
       if (normalizedKey === "race") return fieldOptions.get("race");
       if (normalizedKey === "background") return fieldOptions.get("background");
+      if (normalizedKey === "alignment") return fieldOptions.get("alignment");
       if (normalizedKey === "classlevel" || normalizedKey.startsWith("spellcasting class")) return fieldOptions.get("class");
       if (normalizedKey === "characterlevel") return fieldOptions.get("level");
       if (normalizedKey.startsWith("spells ")) return { type: "spell", level: getSpellLevel(pageNumber, rect) };
@@ -618,6 +789,10 @@
       return getFieldValueByNormalizedKey("spellcasting class 2") || getFieldValueByNormalizedKey("classlevel");
     }
 
+    function getMainClassName() {
+      return getFieldValueByNormalizedKey("classlevel");
+    }
+
     function getSelectedRaceName() {
       return getFieldValueByNormalizedKey("race");
     }
@@ -670,18 +845,110 @@
       [4, 3, 3, 3, 3, 2, 2, 1, 1]
     ];
 
+    const ARTIFICER_SLOTS = [
+      [2],
+      [2],
+      [3],
+      [3],
+      [4, 2],
+      [4, 2],
+      [4, 3],
+      [4, 3],
+      [4, 3, 2],
+      [4, 3, 2],
+      [4, 3, 3],
+      [4, 3, 3],
+      [4, 3, 3, 1],
+      [4, 3, 3, 1],
+      [4, 3, 3, 2],
+      [4, 3, 3, 2],
+      [4, 3, 3, 3, 1],
+      [4, 3, 3, 3, 1],
+      [4, 3, 3, 3, 2],
+      [4, 3, 3, 3, 2]
+    ];
+
+    const HALF_CASTER_SLOTS = [
+      [],
+      [2],
+      [3],
+      [3],
+      [4, 2],
+      [4, 2],
+      [4, 3],
+      [4, 3],
+      [4, 3, 2],
+      [4, 3, 2],
+      [4, 3, 3],
+      [4, 3, 3],
+      [4, 3, 3, 1],
+      [4, 3, 3, 1],
+      [4, 3, 3, 2],
+      [4, 3, 3, 2],
+      [4, 3, 3, 3, 1],
+      [4, 3, 3, 3, 1],
+      [4, 3, 3, 3, 2],
+      [4, 3, 3, 3, 2]
+    ];
+
+    const CANTRIPS_KNOWN_BY_CLASS = {
+      artificer: [2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4],
+      bard: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      cleric: [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+      druid: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      sorcerer: [4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+      warlock: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      wizard: [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+      "spellcaster sidekick": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    };
+
+    const SPELLCASTING_ABILITY_BY_CLASS = {
+      artificer: "INT",
+      bard: "CHA",
+      cleric: "WIS",
+      druid: "WIS",
+      paladin: "CHA",
+      ranger: "WIS",
+      sorcerer: "CHA",
+      warlock: "CHA",
+      wizard: "INT"
+    };
+
+    const SPELLCASTING_ABILITY_LABELS = {
+      INT: "INT",
+      WIS: "WIS",
+      CHA: "CHA"
+    };
+
+    const ARMOR_AC_RULES = [
+      { name: "Half Plate Armor", aliases: ["half plate armor", "half plate"], base: 15, dexCap: 2 },
+      { name: "Studded Leather Armor", aliases: ["studded leather armor", "studded leather"], base: 12, dexCap: null },
+      { name: "Leather Armor", aliases: ["leather armor"], base: 11, dexCap: null },
+      { name: "Hide Armor", aliases: ["hide armor"], base: 12, dexCap: 2 },
+      { name: "Chain Shirt", aliases: ["chain shirt"], base: 13, dexCap: 2 },
+      { name: "Scale Mail", aliases: ["scale mail"], base: 14, dexCap: 2 },
+      { name: "Breastplate", aliases: ["breastplate"], base: 14, dexCap: 2 },
+      { name: "Ring Mail", aliases: ["ring mail"], base: 14, dexCap: 0 },
+      { name: "Chain Mail", aliases: ["chain mail"], base: 16, dexCap: 0 },
+      { name: "Splint Armor", aliases: ["splint armor", "splint"], base: 17, dexCap: 0 },
+      { name: "Plate Armor", aliases: ["plate armor", "plate"], base: 18, dexCap: 0 },
+      { name: "Padded Armor", aliases: ["padded armor", "padded"], base: 11, dexCap: null }
+    ];
+
     function spellSlotsForCharacter() {
       const level = Math.min(20, Math.max(1, getCharacterLevel()));
       const className = normalizeName(getSelectedClassName());
-      if (["bard", "cleric", "druid", "sorcerer", "wizard", "spellcaster sidekick"].includes(className)) {
+      if (["bard", "cleric", "druid", "sorcerer", "wizard"].includes(className)) {
         return FULL_CASTER_SLOTS[level] || [];
       }
       if (className === "artificer") {
-        return FULL_CASTER_SLOTS[Math.ceil(level / 2)] || [];
+        return ARTIFICER_SLOTS[level - 1] || [];
       }
       if (className === "paladin" || className === "ranger") {
-        if (level < 2) return [];
-        return FULL_CASTER_SLOTS[Math.ceil((level - 1) / 2)] || [];
+        return HALF_CASTER_SLOTS[level - 1] || [];
+      }
+      if (className === "spellcaster sidekick") {
+        return ARTIFICER_SLOTS[level - 1] || [];
       }
       if (className === "warlock") {
         const slotLevel = level < 3 ? 1 : level < 5 ? 2 : level < 7 ? 3 : level < 9 ? 4 : 5;
@@ -691,6 +958,13 @@
         return slots;
       }
       return [];
+    }
+
+    function cantripsKnownForCharacter() {
+      const level = Math.min(20, Math.max(1, getCharacterLevel()));
+      const className = normalizeName(getSelectedClassName());
+      const progression = CANTRIPS_KNOWN_BY_CLASS[className];
+      return progression ? progression[level - 1] || 0 : 0;
     }
 
     function maxSpellLevelForCharacter() {
@@ -707,7 +981,7 @@
     }
 
     function getSpellLevelLimit(level) {
-      if (level === 0) return Infinity;
+      if (level === 0) return cantripsKnownForCharacter();
       const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
       if (!totalKey) return Infinity;
       const value = getFieldValueByNormalizedKey(totalKey.toLowerCase());
@@ -740,6 +1014,8 @@
     }
 
     function getSpellOptions(level, field = null) {
+      const limit = getSpellLevelLimit(level);
+      if (!field?.value?.trim() && getSelectedSpellCount(level, field) >= limit) return [];
       return spells.filter((spell) => spellMatchesSelection(spell, level) && !isSpellAlreadySelected(spell.name, field));
     }
 
@@ -987,12 +1263,28 @@
       });
     }
 
+    function pruneOverLimitSpellSelections() {
+      const usedByLevel = new Map();
+      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => {
+        const level = Number(field.dataset.spellLevel);
+        if (!field.value.trim()) return;
+        const used = usedByLevel.get(level) || 0;
+        if (used >= getSpellLevelLimit(level)) {
+          field.value = "";
+          return;
+        }
+        usedByLevel.set(level, used + 1);
+      });
+    }
+
     function handleSpellAvailabilityChange(event) {
       const key = event.target?.dataset?.key?.trim().toLowerCase();
       if (!["characterlevel", "spellcasting class 2", "classlevel"].includes(key)) return;
+      updateSpellcastingFields({ syncClass: key === "classlevel" });
       updateSpellSlots();
       pruneUnavailableSpellSelections();
       pruneDuplicateSpellSelections();
+      pruneOverLimitSpellSelections();
       updatePreparedSpellsPanel();
       scheduleSave();
     }
@@ -1015,14 +1307,14 @@
         .replace(/\s+(Age|Alignment|Size|Speed|Flight|Source|Hit Die|Armor|Weapons|Ability Scores|Feat|Skill Proficiencies|Tool Proficiencies|Languages|Equipment):/g, "\n$1:")
         .split(/\n|(?<=[.!?])\s+(?=[A-Z])/)
         .map((line) => line.trim())
-        .filter(Boolean)
-        .slice(0, 12);
+        .filter(Boolean);
     }
 
     function setOptionDescription(option) {
       const name = optionName(option);
       const description = optionDescriptionText(option) || "No hay descripcion disponible.";
       optionDescription.textContent = "";
+      optionDescription.scrollTop = 0;
 
       const title = document.createElement("div");
       title.className = "option-description-title";
@@ -1068,7 +1360,7 @@
         const limit = getSpellLevelLimit(level);
         const used = getSelectedSpellCount(level, field);
         if (!field.value.trim() && used >= limit) {
-          showStatus(`Limite de spells nivel ${level} alcanzado`);
+          showStatus(level === 0 ? "Limite de cantrips alcanzado" : `Limite de spells nivel ${level} alcanzado`);
           return;
         }
       }
@@ -1094,6 +1386,15 @@
             showStatus("Esa magia ya esta seleccionada");
             closeOptionMenu();
             return;
+          }
+          if (field.dataset.optionType === "spell") {
+            const level = Number(field.dataset.spellLevel);
+            const limit = getSpellLevelLimit(level);
+            if (!field.value.trim() && getSelectedSpellCount(level, field) >= limit) {
+              showStatus(level === 0 ? "Limite de cantrips alcanzado" : `Limite de spells nivel ${level} alcanzado`);
+              closeOptionMenu();
+              return;
+            }
           }
           field.value = optionName(option);
           field.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1154,7 +1455,13 @@
         element.type = "text";
         element.readOnly = true;
         if (Array.isArray(selectOptions)) {
-          element.dataset.optionType = normalizedKey === "race" ? "race" : normalizedKey === "background" ? "background" : "class";
+          element.dataset.optionType = normalizedKey === "race"
+            ? "race"
+            : normalizedKey === "background"
+              ? "background"
+              : normalizedKey === "alignment"
+                ? "alignment"
+                : "class";
         } else {
           element.dataset.optionType = selectOptions.type;
           element.dataset.spellLevel = String(selectOptions.level);
@@ -1290,10 +1597,13 @@
         if (!key) return;
         data[key] = element.type === "checkbox" ? element.checked : element.value;
       });
+      data.__sheetMeta = sheetMeta;
       return data;
     }
 
     function applyData(data) {
+      sheetMeta = data?.__sheetMeta && typeof data.__sheetMeta === "object" ? data.__sheetMeta : { choices: {} };
+      if (!sheetMeta.choices || typeof sheetMeta.choices !== "object") sheetMeta.choices = {};
       document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
         if (!data || !(key in data)) return;
@@ -1350,6 +1660,205 @@
       const field = getFieldByKey(key);
       if (!field) return;
       field.value = value;
+    }
+
+    function fieldValue(key) {
+      return getFieldByKey(key)?.value?.trim() || "";
+    }
+
+    function addAlert(alerts, severity, title, detail, choice = null) {
+      alerts.push({ severity, title, detail, choice });
+    }
+
+    const ALERT_SEVERITY_LABELS = {
+      critical: "Critico",
+      important: "Importante",
+      optional: "Opcional"
+    };
+
+    const REQUIRED_CORE_FIELDS = [
+      ["CharacterName", "Nombre del personaje"],
+      ["ClassLevel", "Clase"],
+      ["CharacterLevel", "Nivel"],
+      ["Race ", "Raza"],
+      ["Background", "Background"],
+      ["Alignment", "Alignment"],
+      ["STR", "Strength"],
+      ["DEX", "Dexterity"],
+      ["CON", "Constitution"],
+      ["INT", "Intelligence"],
+      ["WIS", "Wisdom"],
+      ["CHA", "Charisma"]
+    ];
+
+    const PAGE_TWO_OPTIONAL_FIELDS = [
+      ["Age", "Edad"],
+      ["Height", "Altura"],
+      ["Weight", "Peso"],
+      ["Eyes", "Ojos"],
+      ["Skin", "Piel"],
+      ["Hair", "Pelo"],
+      ["Backstory", "Backstory"],
+      ["Allies", "Allies"],
+      ["Feat+Traits", "Features & Traits"],
+      ["Treasure", "Treasure"]
+    ];
+
+    function selectedChoice(key) {
+      return sheetMeta.choices?.[key] || "";
+    }
+
+    function setSelectedChoice(key, value) {
+      sheetMeta.choices[key] = value;
+      const backgroundChoice = findBackgroundEquipmentChoice();
+      if (backgroundChoice?.key === key) {
+        const option = backgroundChoice.options.find((item) => item.value === value);
+        if (option) {
+          setFieldValue("Equipment", option.label.replace(/^[AB]:\s*/, ""));
+          updateArmorClass();
+        }
+      }
+      scheduleSave();
+      renderAlertsPanel();
+      showStatus("Eleccion guardada");
+    }
+
+    function findBackgroundEquipmentChoice() {
+      const backgroundName = fieldValue("Background");
+      const description = selectedOptionDescription("background", backgroundName);
+      const match = description.match(/Equipment:\s*Choose A or B:\s*\(A\)\s*([\s\S]*?);\s*or\s*\(B\)\s*([\s\S]*?)(?=\s+(?:Feature|Suggested Characteristics|$))/i);
+      if (!match) return null;
+      const key = `background:${normalizeName(backgroundName)}:equipment`;
+      return {
+        key,
+        label: "Elegir equipo inicial del background",
+        options: [
+          { value: "A", label: `A: ${cleanExtractedProficiencyText(match[1])}` },
+          { value: "B", label: `B: ${cleanExtractedProficiencyText(match[2])}` }
+        ]
+      };
+    }
+
+    function selectedSpellCountForLevel(level) {
+      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+        .filter((field) => Number(field.dataset.spellLevel) === level && field.value.trim())
+        .length;
+    }
+
+    function hasChoiceLanguageOrToolText() {
+      return /of your choice|choose one|choose two|choose a|choose either/i.test(fieldValue("ProficienciesLang"));
+    }
+
+    function buildSheetAlerts() {
+      const alerts = [];
+      REQUIRED_CORE_FIELDS.forEach(([key, label]) => {
+        if (!fieldValue(key)) addAlert(alerts, "critical", `Completar ${label}`, `Falta llenar el campo ${label}.`);
+      });
+
+      if (!fieldValue("HPMax")) addAlert(alerts, "critical", "Completar HP max", "Falta el maximo de hit points.");
+      if (!fieldValue("HDTotal")) addAlert(alerts, "important", "Completar Hit Dice", "Falta el total de hit dice.");
+      if (!fieldValue("Equipment")) addAlert(alerts, "important", "Completar Equipment", "Agrega equipo o elige el paquete inicial.");
+      if (!fieldValue("ProficienciesLang")) addAlert(alerts, "important", "Revisar proficiencies/languages", "Faltan proficiencies o languages derivados de clase, raza y background.");
+      if (hasChoiceLanguageOrToolText()) {
+        addAlert(alerts, "important", "Elegir proficiencies/languages", "Hay opciones como 'of your choice' que requieren decision manual.");
+      }
+
+      const cantripLimit = cantripsKnownForCharacter();
+      if (cantripLimit > 0 && selectedSpellCountForLevel(0) < cantripLimit) {
+        addAlert(alerts, "important", "Elegir cantrips", `Tu clase permite ${cantripLimit} cantrip(s); seleccionaste ${selectedSpellCountForLevel(0)}.`);
+      }
+
+      const maxSpellLevel = maxSpellLevelForCharacter();
+      if (maxSpellLevel > 0 && selectedSpellCountForLevel(1) === 0) {
+        addAlert(alerts, "important", "Elegir spells", "Ya tienes spell slots, pero no seleccionaste spells de nivel 1+.");
+      }
+
+      const backgroundChoice = findBackgroundEquipmentChoice();
+      if (backgroundChoice && !selectedChoice(backgroundChoice.key)) {
+        addAlert(alerts, "important", backgroundChoice.label, "El background tiene paquete A/B pendiente.", backgroundChoice);
+      }
+
+      ["PersonalityTraits ", "Ideals", "Bonds", "Flaws"].forEach((key) => {
+        if (!fieldValue(key)) addAlert(alerts, "optional", `Completar ${key.trim()}`, "Ayuda a definir roleplay, pero no bloquea la ficha.");
+      });
+
+      PAGE_TWO_OPTIONAL_FIELDS.forEach(([key, label]) => {
+        if (!fieldValue(key)) addAlert(alerts, "optional", `Completar ${label}`, "Dato de pagina 2 opcional.");
+      });
+
+      return alerts.sort((a, b) => {
+        const order = { critical: 0, important: 1, optional: 2 };
+        return order[a.severity] - order[b.severity];
+      });
+    }
+
+    function renderAlertChoice(alert) {
+      if (!alert.choice) return null;
+      const group = document.createElement("div");
+      group.className = "alert-choice-group";
+      alert.choice.options.forEach((option) => {
+        const label = document.createElement("label");
+        label.className = "alert-choice";
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = alert.choice.key;
+        input.value = option.value;
+        input.checked = selectedChoice(alert.choice.key) === option.value;
+        input.addEventListener("change", () => setSelectedChoice(alert.choice.key, option.value));
+
+        const text = document.createElement("span");
+        text.className = "alert-choice-text";
+        text.textContent = option.label;
+        label.append(input, text);
+        group.appendChild(label);
+      });
+      return group;
+    }
+
+    function renderAlertsPanel() {
+      if (!alertsList || !alertsCounts) return;
+      const alerts = buildSheetAlerts();
+      const counts = alerts.reduce((acc, alert) => {
+        acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+        return acc;
+      }, {});
+      alertsCounts.textContent = `${counts.critical || 0} crit / ${counts.important || 0} imp / ${counts.optional || 0} opc`;
+      alertsList.textContent = "";
+
+      if (!alerts.length) {
+        const empty = document.createElement("div");
+        empty.className = "alert-empty";
+        empty.textContent = "No hay alertas pendientes.";
+        alertsList.appendChild(empty);
+        return;
+      }
+
+      alerts.forEach((alert) => {
+        const item = document.createElement("div");
+        item.className = `alert-item ${alert.severity}`;
+        item.title = alert.detail;
+
+        const icon = document.createElement("span");
+        icon.className = "alert-icon";
+        icon.textContent = "!";
+        icon.title = alert.detail;
+
+        const body = document.createElement("div");
+        const title = document.createElement("div");
+        title.className = "alert-title";
+        title.textContent = alert.title;
+
+        const detail = document.createElement("div");
+        detail.className = "alert-detail";
+        detail.textContent = `${ALERT_SEVERITY_LABELS[alert.severity]}: ${alert.detail}`;
+
+        body.append(title, detail);
+        const choice = renderAlertChoice(alert);
+        if (choice) body.appendChild(choice);
+        item.append(icon, body);
+        alertsList.appendChild(item);
+      });
     }
 
     const DERIVED_STAT_FIELDS = {
@@ -1419,10 +1928,245 @@
       return baseModifier + (isProficient(proficiencyKey) ? proficiencyBonus() : 0);
     }
 
+    function clampDexModifierForArmor(dexModifier, dexCap) {
+      if (dexCap == null) return dexModifier;
+      if (dexCap === 0) return 0;
+      return Math.min(dexModifier, dexCap);
+    }
+
+    function textIncludesPhrase(text, phrase) {
+      const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(`(^|[^a-z])${escaped}($|[^a-z])`, "i").test(text);
+    }
+
+    function equipmentText() {
+      return [...document.querySelectorAll(".field")]
+        .filter((field) => field.dataset.key?.trim().toLowerCase().includes("equipment"))
+        .map((field) => field.value || "")
+        .join(" ")
+        .toLowerCase();
+    }
+
+    function selectedRaceDescription() {
+      const raceName = normalizeName(getSelectedRaceName());
+      if (!raceName) return "";
+      const race = (fieldOptions.get("race") || []).find((option) => normalizeName(optionName(option)) === raceName);
+      return optionDescriptionText(race).toLowerCase();
+    }
+
+    function selectedOption(type, selectedName) {
+      const normalized = normalizeName(selectedName);
+      if (!normalized) return null;
+      return (fieldOptions.get(type) || []).find((option) => normalizeName(optionName(option)) === normalized) || null;
+    }
+
+    function selectedOptionDescription(type, selectedName) {
+      const option = selectedOption(type, selectedName);
+      return optionDescriptionText(option);
+    }
+
+    function cleanExtractedProficiencyText(value) {
+      const compact = String(value || "")
+        .replace(/\s+/g, " ")
+        .replace(/\s+([,.;:])/g, "$1")
+        .trim();
+      if (!compact) return "";
+
+      const words = compact.split(" ");
+      if (words.length % 2 === 0) {
+        const half = words.length / 2;
+        const left = words.slice(0, half).join(" ").toLowerCase();
+        const right = words.slice(half).join(" ").toLowerCase();
+        if (left === right) return words.slice(0, half).join(" ");
+      }
+      return compact;
+    }
+
+    function extractColonSection(description, labels, stopLabels) {
+      const labelPattern = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+      const stopPattern = stopLabels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+      const match = String(description || "").match(new RegExp(`(?:${labelPattern}):\\s*([\\s\\S]*?)(?=\\s+(?:${stopPattern}):|$)`, "i"));
+      return cleanExtractedProficiencyText(match?.[1] || "");
+    }
+
+    function extractRaceLanguageText(description) {
+      const match = String(description || "").match(/Languages?\s+([\s\S]*?)(?=\s+(?:Age|Alignment|Size|Speed|Flight|Source|Darkvision|Creature Type|Feat|Skill Proficiencies|Tool Proficiencies|Equipment)\b|$)/i);
+      const cleaned = cleanExtractedProficiencyText(match?.[1] || "");
+      return cleaned.split(/(?<=[.!?])\s+/)[0] || "";
+    }
+
+    function extractRaceProficiencyText(description) {
+      return String(description || "")
+        .split(/(?<=[.!?])\s+/)
+        .map((sentence) => sentence.trim())
+        .filter((sentence) => /\bproficien(?:cy|cies|t)\b/i.test(sentence) && !/proficiency bonus/i.test(sentence))
+        .map(cleanExtractedProficiencyText)
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    function calculateOtherProficienciesAndLanguages() {
+      const stopLabels = [
+        "Source",
+        "Hit Die",
+        "Armor",
+        "Weapons",
+        "Ability Scores",
+        "Feat",
+        "Skill Proficiencies",
+        "Skill Proficiency",
+        "Tool Proficiencies",
+        "Tool Proficiency",
+        "Languages and Tool Proficiencies",
+        "Languages",
+        "Equipment",
+        "Feature"
+      ];
+      const lines = [];
+
+      const classDescription = selectedOptionDescription("class", getMainClassName());
+      const classArmor = extractColonSection(classDescription, ["Armor"], stopLabels);
+      const classWeapons = extractColonSection(classDescription, ["Weapons"], stopLabels);
+      if (classArmor) lines.push(`Class Armor: ${classArmor}`);
+      if (classWeapons) lines.push(`Class Weapons: ${classWeapons}`);
+
+      const backgroundDescription = selectedOptionDescription("background", getFieldValueByNormalizedKey("background"));
+      const backgroundToolsAndLanguages = extractColonSection(backgroundDescription, ["Languages and Tool Proficiencies"], stopLabels);
+      const backgroundTools = extractColonSection(backgroundDescription, ["Tool Proficiencies", "Tool Proficiency"], stopLabels);
+      const backgroundLanguages = extractColonSection(backgroundDescription, ["Languages"], stopLabels);
+      if (backgroundToolsAndLanguages) lines.push(`Background Tools/Languages: ${backgroundToolsAndLanguages}`);
+      else {
+        if (backgroundTools) lines.push(`Background Tools: ${backgroundTools}`);
+        if (backgroundLanguages) lines.push(`Background Languages: ${backgroundLanguages}`);
+      }
+
+      const raceDescription = selectedOptionDescription("race", getSelectedRaceName());
+      const raceLanguages = extractRaceLanguageText(raceDescription);
+      const raceProficiencies = extractRaceProficiencyText(raceDescription);
+      if (raceLanguages) lines.push(`Race Languages: ${raceLanguages}`);
+      if (raceProficiencies) lines.push(`Race Proficiencies: ${raceProficiencies}`);
+
+      return lines.join("\n");
+    }
+
+    function updateOtherProficienciesAndLanguages() {
+      setFieldValue("ProficienciesLang", calculateOtherProficienciesAndLanguages());
+    }
+
+    function armorRuleFromEquipment(text) {
+      return ARMOR_AC_RULES.find((rule) => rule.aliases.some((alias) => textIncludesPhrase(text, alias))) || null;
+    }
+
+    function hasShieldEquipped(text) {
+      return textIncludesPhrase(text, "shield");
+    }
+
+    function naturalArmorCandidates(dexModifier, conModifier) {
+      const description = selectedRaceDescription();
+      const candidates = [];
+      if (!description) return candidates;
+
+      if (/base armor class is 13 \+ your dexterity modifier|base ac of 13 \+ your dexterity modifier|base armor class of 13 \+ your dexterity modifier/.test(description)) {
+        candidates.push(13 + dexModifier);
+      }
+      if (/ac is 12 \+ your dexterity modifier|base ac of 12 \+ your dexterity modifier/.test(description)) {
+        candidates.push(12 + dexModifier);
+      }
+      if (/base ac of 17|armor class of 17/.test(description)) {
+        candidates.push(17);
+      }
+      if (/ac is 12 \+ your constitution modifier|armor class is 12 \+ your constitution modifier/.test(description) && conModifier != null) {
+        candidates.push(12 + conModifier);
+      }
+      return candidates;
+    }
+
+    function armorClassBonusFromRace() {
+      const description = selectedRaceDescription();
+      return /gain a \+1 bonus to your armor class|gain a \+1 bonus to ac/.test(description) ? 1 : 0;
+    }
+
+    function calculateArmorClass() {
+      const dexModifier = abilityModifier(getFieldByKey("DEX")?.value || "");
+      if (dexModifier == null) return "";
+
+      const conModifier = abilityModifier(getFieldByKey("CON")?.value || "");
+      const wisModifier = abilityModifier(getFieldByKey("WIS")?.value || "");
+      const text = equipmentText();
+      const shieldBonus = hasShieldEquipped(text) ? 2 : 0;
+      const raceBonus = armorClassBonusFromRace();
+      const candidates = [{ ac: 10 + dexModifier, allowsShield: true }];
+
+      const armor = armorRuleFromEquipment(text);
+      if (armor) candidates.push({ ac: armor.base + clampDexModifierForArmor(dexModifier, armor.dexCap), allowsShield: true });
+
+      const className = normalizeName(getMainClassName());
+      if (!armor && className === "barbarian" && conModifier != null) candidates.push({ ac: 10 + dexModifier + conModifier, allowsShield: true });
+      if (!armor && className === "monk" && wisModifier != null) candidates.push({ ac: 10 + dexModifier + wisModifier, allowsShield: false });
+      if (!armor) {
+        naturalArmorCandidates(dexModifier, conModifier).forEach((ac) => {
+          candidates.push({ ac, allowsShield: true });
+        });
+      }
+
+      const best = Math.max(...candidates.map((candidate) => candidate.ac + (candidate.allowsShield ? shieldBonus : 0)));
+      return String(best + raceBonus);
+    }
+
+    function updateArmorClass() {
+      setFieldValue("AC", calculateArmorClass());
+    }
+
+    function extractRaceSpeed() {
+      const description = selectedRaceDescription();
+      if (!description) return "30";
+
+      const walkingMatch = description.match(/(?:base walking speed|walking speed|walk speed)\s+(?:is\s+)?(?:of\s+)?(\d+)\s*feet/i);
+      if (walkingMatch) return walkingMatch[1];
+
+      const speedMatch = description.match(/(?:your speed|speed)\s+(?:is\s+)?(?:of\s+)?(\d+)\s*feet/i);
+      if (speedMatch) return speedMatch[1];
+
+      const fallbackSpecialSpeed = description.match(/(?:flying|swimming|climbing|climb|fly|swim) speed\s+(?:is\s+)?(?:of\s+)?(\d+)\s*feet/i);
+      if (fallbackSpecialSpeed) return fallbackSpecialSpeed[1];
+
+      return "30";
+    }
+
+    function updateSpeed() {
+      setFieldValue("Speed", extractRaceSpeed());
+    }
+
     function updateProficiencyBonus() {
       const level = getFieldByKey("CharacterLevel")?.value || "";
       const bonus = proficiencyBonusForLevel(level);
       setFieldValue("ProfBonus", level ? formatModifier(bonus) : "");
+    }
+
+    function syncSpellcastingClassFromClassLevel() {
+      const className = getFieldValueByNormalizedKey("classlevel");
+      setFieldValue("Spellcasting Class 2", className);
+    }
+
+    function updateSpellcastingFields({ syncClass = false } = {}) {
+      if (syncClass) syncSpellcastingClassFromClassLevel();
+
+      const className = normalizeName(getSelectedClassName());
+      const ability = SPELLCASTING_ABILITY_BY_CLASS[className] || "";
+      const abilityLabel = SPELLCASTING_ABILITY_LABELS[ability] || "";
+      setFieldValue("SpellcastingAbility 2", abilityLabel);
+
+      const level = getFieldByKey("CharacterLevel")?.value || "";
+      const abilityModifierValue = ability ? abilityModifier(getFieldByKey(ability)?.value || "") : null;
+      if (!level || abilityModifierValue == null) {
+        setFieldValue("SpellSaveDC  2", "");
+        setFieldValue("SpellAtkBonus 2", "");
+        return;
+      }
+
+      const bonus = proficiencyBonusForLevel(level);
+      setFieldValue("SpellSaveDC  2", String(8 + bonus + abilityModifierValue));
+      setFieldValue("SpellAtkBonus 2", formatModifier(bonus + abilityModifierValue));
     }
 
     function updateDerivedStats() {
@@ -1437,6 +2181,10 @@
           setFieldValue(target.field, formatModifier(value));
         });
       });
+      updateSpellcastingFields();
+      updateArmorClass();
+      updateSpeed();
+      updateOtherProficienciesAndLanguages();
     }
 
     function updateSpellSlots() {
@@ -1458,7 +2206,11 @@
         .flatMap((config) => [...config.saves, ...config.skills])
         .some((target) => target.proficiency.toLowerCase() === key.toLowerCase());
       const isLevel = key.toLowerCase() === "characterlevel";
-      if (!isAbility && !isProficiencyCheckbox && !isLevel) return;
+      const normalizedKey = key.toLowerCase();
+      const affectsArmorClass = ["classlevel", "race"].includes(normalizedKey) || normalizedKey.includes("equipment");
+      const affectsSpeed = normalizedKey === "race";
+      const affectsOtherProficiencies = ["classlevel", "background", "race"].includes(normalizedKey);
+      if (!isAbility && !isProficiencyCheckbox && !isLevel && !affectsArmorClass && !affectsSpeed && !affectsOtherProficiencies) return;
       updateDerivedStats();
     }
 
@@ -1513,6 +2265,7 @@
         ["race", raceOptions],
         ["background", backgroundOptions],
         ["class", classOptions],
+        ["alignment", alignmentOptions()],
         ["level", levelOptions()]
       ]);
       spells = spellOptions;
@@ -1527,14 +2280,18 @@
       applyData(await loadData());
       pruneDuplicateSpellSelections();
       updateDerivedStats();
+      updateSpellcastingFields({ syncClass: true });
       updateSpellSlots();
       updatePreparedSpellsPanel();
+      renderAlertsPanel();
       app.addEventListener("input", handleDerivedStatInput);
       app.addEventListener("change", handleDerivedStatInput);
       app.addEventListener("input", scheduleSave);
       app.addEventListener("change", scheduleSave);
       app.addEventListener("input", updatePreparedSpellsPanel);
       app.addEventListener("change", updatePreparedSpellsPanel);
+      app.addEventListener("input", renderAlertsPanel);
+      app.addEventListener("change", renderAlertsPanel);
       app.addEventListener("change", handleSpellAvailabilityChange);
       document.addEventListener("pointerdown", (event) => {
         if (!activeSelectField) return;
