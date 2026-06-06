@@ -8,5 +8,8 @@ contextBridge.exposeInMainWorld("dndSheet", {
   loadRaces: () => ipcRenderer.invoke("races:load"),
   loadBackgrounds: () => ipcRenderer.invoke("backgrounds:load"),
   loadClasses: () => ipcRenderer.invoke("classes:load"),
-  loadSpells: () => ipcRenderer.invoke("spells:load")
+  loadSpells: () => ipcRenderer.invoke("spells:load"),
+  loadFeats: () => ipcRenderer.invoke("feats:load"),
+  loadItems: () => ipcRenderer.invoke("items:load"),
+  loadLanguages: () => ipcRenderer.invoke("languages:load")
 });

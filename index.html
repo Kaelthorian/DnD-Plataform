@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -67,6 +67,8 @@
 
     .field.textarea {
       padding: 4px 5px;
+      overflow-y: auto;
+      white-space: pre-wrap;
     }
 
     .field.select {
@@ -79,6 +81,388 @@
       text-align: center;
       padding-left: 1px;
       padding-right: 1px;
+    }
+
+    .field.equipment-storage {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .equipment-panel {
+      position: absolute;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border: 1px solid transparent;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.04);
+      color: #111;
+      font: 10px/1.2 "Segoe UI", Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .equipment-header,
+    .equipment-row {
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr) 42px 48px;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .equipment-header {
+      padding: 2px 3px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.24);
+      background: rgba(255, 255, 255, 0.78);
+      color: #333;
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .equipment-list {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: rgba(255, 255, 255, 0.34);
+    }
+
+    .equipment-row {
+      min-height: 20px;
+      padding: 2px 3px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    .equipment-qty,
+    .equipment-value {
+      white-space: nowrap;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .equipment-name {
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #111;
+      font: inherit;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .equipment-name:hover,
+    .equipment-name:focus {
+      text-decoration: underline;
+      outline: none;
+    }
+
+    .equipment-equip {
+      min-height: 16px;
+      padding: 1px 3px;
+      border: 1px solid rgba(0, 0, 0, 0.34);
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.82);
+      color: #111;
+      font: 9px/1 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .equipment-equip.equipped {
+      background: #111;
+      color: #fff;
+    }
+
+    .equipment-empty {
+      padding: 6px;
+      color: #555;
+      font-size: 10px;
+    }
+
+    .add-equipment-button {
+      position: absolute;
+      z-index: 8;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.42);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #111;
+      font: 700 14px/1 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .add-equipment-button:hover,
+    .add-equipment-button:focus {
+      background: #111;
+      color: #fff;
+      outline: none;
+    }
+
+    .item-picker-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.34);
+    }
+
+    .item-picker-backdrop.visible {
+      display: flex;
+    }
+
+    .item-picker {
+      width: min(560px, calc(100vw - 36px));
+      height: min(640px, calc(100vh - 36px));
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid rgba(0, 0, 0, 0.36);
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
+      font: 13px/1.35 "Segoe UI", Arial, sans-serif;
+    }
+
+    .item-picker-header,
+    .item-picker-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .item-picker-title {
+      font-weight: 700;
+    }
+
+    .item-picker-close,
+    .item-picker-add {
+      min-height: 28px;
+      border: 1px solid #b8b8b8;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .item-picker-add {
+      padding: 0 12px;
+      background: #111;
+      color: #fff;
+    }
+
+    .item-picker-add:disabled {
+      opacity: 0.42;
+      cursor: default;
+    }
+
+    .item-picker-search {
+      min-height: 30px;
+      width: 100%;
+      padding: 5px 8px;
+      border: 1px solid #b8b8b8;
+      border-radius: 4px;
+      font: inherit;
+    }
+
+    .item-picker-list {
+      overflow-y: auto;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+
+    .item-picker-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      padding: 7px 8px;
+      border: 0;
+      border-bottom: 1px solid #e0e0e0;
+      background: transparent;
+      color: #111;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .item-picker-row:hover,
+    .item-picker-row:focus,
+    .item-picker-row.selected {
+      background: #ececec;
+      outline: none;
+    }
+
+    .item-picker-row-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    .item-picker-row-meta {
+      color: #555;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .item-picker-quantity {
+      width: 82px;
+      min-height: 28px;
+      padding: 4px 6px;
+      border: 1px solid #b8b8b8;
+      border-radius: 4px;
+      font: inherit;
+    }
+
+    .item-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 40;
+      width: min(390px, calc(100vw - 28px));
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      background: #fff;
+      color: #111;
+      box-shadow: 16px 0 48px rgba(0, 0, 0, 0.28);
+      transform: translateX(-105%);
+      transition: transform 180ms ease;
+    }
+
+    .item-drawer.visible {
+      transform: translateX(0);
+    }
+
+    .item-drawer-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid #d0d0d0;
+      background: #f7f7f7;
+    }
+
+    .item-drawer-title {
+      font-weight: 700;
+    }
+
+    .item-drawer-meta {
+      margin-top: 3px;
+      color: #555;
+      font-size: 12px;
+    }
+
+    .item-drawer-close {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #b8b8b8;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .item-drawer-body {
+      padding: 14px;
+      overflow-y: auto;
+      font: 13px/1.45 "Segoe UI", Arial, sans-serif;
+    }
+
+    .item-sheet {
+      display: grid;
+      gap: 12px;
+    }
+
+    .item-sheet-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .item-sheet-subtitle {
+      color: #555;
+      font-size: 12px;
+    }
+
+    .item-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .item-stat {
+      padding: 7px;
+      border: 1px solid #d0d0d0;
+      border-radius: 5px;
+      background: #f8f8f8;
+    }
+
+    .item-stat-label {
+      color: #555;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .item-stat-value {
+      margin-top: 2px;
+      font-weight: 700;
+    }
+
+    .item-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .item-chip {
+      padding: 3px 6px;
+      border: 1px solid #c9c9c9;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 11px;
+    }
+
+    .item-section {
+      display: grid;
+      gap: 5px;
+    }
+
+    .item-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .item-section-body {
+      margin: 0;
+      color: #222;
+    }
+
+    .item-section-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #222;
+    }
+
+    .item-section-list li + li {
+      margin-top: 5px;
+    }
+
+    .item-source {
+      padding-top: 8px;
+      border-top: 1px solid #d0d0d0;
+      color: #555;
+      font-size: 11px;
     }
 
     .option-menu {
@@ -151,6 +535,36 @@
 
     .option-description-line {
       margin: 0 0 7px;
+    }
+
+    .option-choice-group {
+      display: grid;
+      gap: 7px;
+      margin: 10px 0 12px;
+      padding: 9px;
+      border: 1px solid #d0d0d0;
+      border-radius: 5px;
+      background: #f7f7f7;
+    }
+
+    .option-choice-title {
+      font-weight: 700;
+    }
+
+    .option-choice {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr);
+      gap: 6px;
+      align-items: start;
+      cursor: pointer;
+    }
+
+    .option-choice input {
+      margin: 2px 0 0;
+    }
+
+    .option-choice-text {
+      overflow-wrap: anywhere;
     }
 
     @media (max-width: 720px) {
@@ -306,14 +720,14 @@
 
     .prepared-spell-damage-type {
       display: inline-grid;
-      width: 18px;
+      width: 24px;
       height: 18px;
       place-items: center;
       border: 1px solid rgba(0, 0, 0, 0.3);
       border-radius: 50%;
       background: #fff;
       color: #111;
-      font: 700 11px/1 "Segoe UI Symbol", "Segoe UI", Arial, sans-serif;
+      font: 700 8px/1 "Segoe UI", Arial, sans-serif;
       cursor: default;
     }
 
@@ -335,6 +749,23 @@
       background: #111;
       color: #fff;
       outline: none;
+    }
+
+    .roll-hotspot {
+      position: absolute;
+      z-index: 4;
+      padding: 0;
+      border: 0;
+      border-radius: 2px;
+      background: transparent;
+      color: transparent;
+      cursor: pointer;
+    }
+
+    .roll-hotspot:hover,
+    .roll-hotspot:focus {
+      background: rgba(31, 94, 255, 0.12);
+      outline: 1px solid rgba(31, 94, 255, 0.42);
     }
 
     .dice-tray {
@@ -393,11 +824,19 @@
       transform: translateY(0);
     }
 
+    .damage-tooltip.feature-tooltip {
+      max-width: min(380px, calc(100vw - 24px));
+      max-height: min(260px, calc(100vh - 24px));
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
     @media (min-width: 1180px) {
       .app {
-        width: min(calc(100vw - 390px), 1120px);
-        margin-left: 24px;
-        margin-right: 360px;
+        width: min(100vw - 24px, 1120px);
+        margin-left: auto;
+        margin-right: auto;
       }
     }
 
@@ -406,17 +845,88 @@
       top: 76px;
       right: 12px;
       z-index: 25;
+      color: #111;
+      font: 12px/1.3 "Segoe UI", Arial, sans-serif;
+    }
+
+    .alerts-panel::after {
+      content: "";
+      position: absolute;
+      top: 34px;
+      right: 0;
       width: min(330px, calc(100vw - 24px));
-      max-height: calc(100vh - 96px);
+      height: 8px;
+    }
+
+    .alerts-trigger {
+      position: relative;
+      display: inline-grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.22);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+      cursor: help;
+      transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    .alerts-trigger:hover,
+    .alerts-trigger:focus-visible {
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .alerts-badge {
+      position: absolute;
+      right: -5px;
+      top: -5px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border: 2px solid #fff;
+      border-radius: 999px;
+      background: #333;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 14px;
+      text-align: center;
+    }
+
+    .alerts-panel.empty .alerts-badge {
+      background: #4d7a42;
+    }
+
+    .alerts-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: min(330px, calc(100vw - 24px));
+      max-height: calc(100vh - 126px);
       display: flex;
       flex-direction: column;
-      border: 1px solid rgba(0, 0, 0, 0.26);
+      border: 1px solid rgba(0, 0, 0, 0.22);
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.96);
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
       color: #111;
       font: 12px/1.3 "Segoe UI", Arial, sans-serif;
       overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+
+    .alerts-panel:hover .alerts-popover,
+    .alerts-panel:focus-within .alerts-popover {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
     }
 
     .alerts-header {
@@ -452,9 +962,6 @@
     }
 
     .alert-item {
-      display: grid;
-      grid-template-columns: 22px minmax(0, 1fr);
-      gap: 8px;
       padding: 8px;
       border: 1px solid #d0d0d0;
       border-left-width: 4px;
@@ -487,16 +994,26 @@
       user-select: none;
     }
 
-    .alert-item.critical .alert-icon {
+    .alerts-trigger .alert-icon {
+      width: 22px;
+      height: 22px;
+      font-size: 14px;
+    }
+
+    .alerts-panel.critical .alerts-trigger .alert-icon {
       background: #b42318;
     }
 
-    .alert-item.important .alert-icon {
+    .alerts-panel.important .alerts-trigger .alert-icon {
       background: #b7791f;
     }
 
-    .alert-item.optional .alert-icon {
+    .alerts-panel.optional .alerts-trigger .alert-icon {
       background: #3267b1;
+    }
+
+    .alerts-panel.empty .alerts-trigger .alert-icon {
+      background: #4d7a42;
     }
 
     .alert-title {
@@ -550,10 +1067,12 @@
       }
 
       .alerts-panel {
-        position: static;
-        width: auto;
-        max-height: none;
-        margin: 54px 8px 8px;
+        top: 56px;
+        right: 8px;
+      }
+
+      .alerts-popover {
+        max-height: calc(100vh - 108px);
       }
     }
   </style>
@@ -563,12 +1082,18 @@
     <span class="download-release-text" id="downloadReleaseText">Buscando ultima version...</span>
     <a class="download-release-button" id="downloadReleaseButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" target="_blank" rel="noopener">Descargar</a>
   </div>
-  <aside class="alerts-panel" id="alertsPanel" aria-live="polite">
-    <div class="alerts-header">
-      <span>Alertas</span>
-      <span class="alerts-counts" id="alertsCounts">0</span>
+  <aside class="alerts-panel empty" id="alertsPanel" aria-live="polite">
+    <div class="alerts-trigger" id="alertsTrigger" tabindex="0" role="button" aria-label="Ver alertas pendientes">
+      <span class="alert-icon" id="alertsIcon">!</span>
+      <span class="alerts-badge" id="alertsBadge">0</span>
     </div>
-    <div class="alerts-list" id="alertsList"></div>
+    <div class="alerts-popover" id="alertsPopover">
+      <div class="alerts-header">
+        <span>Alertas pendientes</span>
+        <span class="alerts-counts" id="alertsCounts">0</span>
+      </div>
+      <div class="alerts-list" id="alertsList"></div>
+    </div>
   </aside>
   <main class="app" id="app"></main>
   <div class="loading" id="loading">Cargando planilla...</div>
@@ -581,6 +1106,30 @@
     <div class="dice-title" id="diceTitle"></div>
     <div class="dice-result" id="diceResult"></div>
     <div class="dice-detail" id="diceDetail"></div>
+  </div>
+  <aside class="item-drawer" id="itemDrawer" aria-hidden="true">
+    <div class="item-drawer-header">
+      <div>
+        <div class="item-drawer-title" id="itemDrawerTitle">Item</div>
+        <div class="item-drawer-meta" id="itemDrawerMeta"></div>
+      </div>
+      <button class="item-drawer-close" id="itemDrawerClose" type="button" aria-label="Cerrar">X</button>
+    </div>
+    <div class="item-drawer-body" id="itemDrawerBody"></div>
+  </aside>
+  <div class="item-picker-backdrop" id="itemPickerBackdrop" aria-hidden="true">
+    <div class="item-picker" role="dialog" aria-modal="true" aria-labelledby="itemPickerTitle">
+      <div class="item-picker-header">
+        <div class="item-picker-title" id="itemPickerTitle">Agregar item</div>
+        <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Cerrar">X</button>
+      </div>
+      <input class="item-picker-search" id="itemPickerSearch" type="search" placeholder="Buscar item">
+      <div class="item-picker-list" id="itemPickerList"></div>
+      <div class="item-picker-actions">
+        <input class="item-picker-quantity" id="itemPickerQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad">
+        <button class="item-picker-add" id="itemPickerAdd" type="button" disabled>Agregar</button>
+      </div>
+    </div>
   </div>
   <div class="damage-tooltip" id="damageTooltip"></div>
 
@@ -595,19 +1144,42 @@
     const optionMenu = document.getElementById("optionMenu");
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
+    const alertsPanel = document.getElementById("alertsPanel");
+    const alertsTrigger = document.getElementById("alertsTrigger");
+    const alertsIcon = document.getElementById("alertsIcon");
+    const alertsBadge = document.getElementById("alertsBadge");
     const alertsList = document.getElementById("alertsList");
     const alertsCounts = document.getElementById("alertsCounts");
     const diceTray = document.getElementById("diceTray");
     const diceTitle = document.getElementById("diceTitle");
     const diceResult = document.getElementById("diceResult");
     const diceDetail = document.getElementById("diceDetail");
+    const itemDrawer = document.getElementById("itemDrawer");
+    const itemDrawerTitle = document.getElementById("itemDrawerTitle");
+    const itemDrawerMeta = document.getElementById("itemDrawerMeta");
+    const itemDrawerBody = document.getElementById("itemDrawerBody");
+    const itemDrawerClose = document.getElementById("itemDrawerClose");
+    const itemPickerBackdrop = document.getElementById("itemPickerBackdrop");
+    const itemPickerClose = document.getElementById("itemPickerClose");
+    const itemPickerSearch = document.getElementById("itemPickerSearch");
+    const itemPickerList = document.getElementById("itemPickerList");
+    const itemPickerQuantity = document.getElementById("itemPickerQuantity");
+    const itemPickerAdd = document.getElementById("itemPickerAdd");
     const damageTooltip = document.getElementById("damageTooltip");
     let fieldOptions = new Map();
     let spells = [];
+    let feats = [];
+    let items = [];
+    let itemProperties = [];
+    let itemTypes = [];
+    let itemMasteries = [];
+    let languages = [];
+    let equipmentPanel = null;
     let activeSelectField = null;
     let pdfjsLib = null;
     let preparedSpellsPanel = null;
     let diceTimer = null;
+    let selectedPickerItem = null;
     let sheetMeta = { choices: {} };
 
     async function loadPdfJs() {
@@ -659,6 +1231,30 @@
     async function loadSpellOptions() {
       if (desktopStore?.loadSpells) return desktopStore.loadSpells();
       const response = await fetch("./spells.json");
+      return response.json();
+    }
+
+    async function loadFeatOptions() {
+      if (desktopStore?.loadFeats) return desktopStore.loadFeats();
+      const response = await fetch("./5etools-src-main/data/feats.json");
+      return response.json();
+    }
+
+    async function loadItemOptions() {
+      if (desktopStore?.loadItems) return desktopStore.loadItems();
+      const [itemsResponse, baseItemsResponse] = await Promise.all([
+        fetch("./5etools-src-main/data/items.json"),
+        fetch("./5etools-src-main/data/items-base.json")
+      ]);
+      return {
+        items: await itemsResponse.json(),
+        baseItems: await baseItemsResponse.json()
+      };
+    }
+
+    async function loadLanguageOptions() {
+      if (desktopStore?.loadLanguages) return desktopStore.loadLanguages();
+      const response = await fetch("./5etools-src-main/data/languages.json");
       return response.json();
     }
 
@@ -1075,19 +1671,19 @@
     }
 
     const DAMAGE_TYPE_SYMBOLS = {
-      acid: "⌁",
-      bludgeoning: "●",
-      cold: "✣",
-      fire: "▲",
-      force: "◆",
-      lightning: "ϟ",
-      necrotic: "☾",
-      piercing: "↓",
-      poison: "☠",
-      psychic: "◌",
-      radiant: "✹",
-      slashing: "╱",
-      thunder: "◉"
+      acid: "ACD",
+      bludgeoning: "BLD",
+      cold: "CLD",
+      fire: "FIR",
+      force: "FRC",
+      lightning: "LGT",
+      necrotic: "NEC",
+      piercing: "PRC",
+      poison: "PSN",
+      psychic: "PSY",
+      radiant: "RAD",
+      slashing: "SLH",
+      thunder: "THN"
     };
 
     function damageTypeSymbol(type) {
@@ -1095,6 +1691,7 @@
     }
 
     function showDamageTooltip(anchor, type) {
+      damageTooltip.classList.remove("feature-tooltip");
       damageTooltip.textContent = type || "Sin tipo de danio detectado";
       const rect = anchor.getBoundingClientRect();
       const margin = 8;
@@ -1110,6 +1707,7 @@
 
     function hideDamageTooltip() {
       damageTooltip.classList.remove("visible");
+      damageTooltip.classList.remove("feature-tooltip");
     }
 
     function descriptionForSpell(spell) {
@@ -1145,6 +1743,12 @@
       const d20 = rollDie(20);
       const total = d20 + bonus;
       showDiceTray(`${attackName}: ataque`, String(total), `d20 ${d20} ${formatModifier(bonus)} ${label}`);
+    }
+
+    function rollD20Check(label, modifier) {
+      const d20 = rollDie(20);
+      const total = d20 + modifier;
+      showDiceTray(label, String(total), `d20 ${d20} ${formatModifier(modifier)}`);
     }
 
     function rollDamage(attackName, expression, damageType) {
@@ -1295,11 +1899,13 @@
     }
 
     function optionName(option) {
-      return typeof option === "string" ? option : option.name;
+      if (!option) return "";
+      return typeof option === "string" ? option : option.name || "";
     }
 
     function optionDescriptionText(option) {
-      return typeof option === "string" ? "" : option.description || "";
+      if (!option || typeof option === "string") return "";
+      return option.description || "";
     }
 
     function splitDescriptionLines(description) {
@@ -1327,6 +1933,10 @@
         body.textContent = line;
         optionDescription.appendChild(body);
       });
+
+      if (activeSelectField?.dataset.optionType === "background") {
+        renderBackgroundChoiceControls(option).forEach((control) => optionDescription.appendChild(control));
+      }
     }
 
     function positionOptionMenu(field) {
@@ -1372,7 +1982,7 @@
         emptyItem.className = "option-empty";
         emptyItem.textContent = "No hay opciones para el filtro actual.";
         optionList.appendChild(emptyItem);
-        setOptionDescription({ name: "Sin opciones", description: "Elegí una clase o raza compatible, o usá otra sección de nivel de spell." });
+        setOptionDescription({ name: "Sin opciones", description: "Elegi una clase o raza compatible, o usa otra seccion de nivel de spell." });
       }
       options.forEach((option, index) => {
         const item = document.createElement("button");
@@ -1399,6 +2009,10 @@
           field.value = optionName(option);
           field.dispatchEvent(new Event("input", { bubbles: true }));
           field.dispatchEvent(new Event("change", { bubbles: true }));
+          if (field.dataset.optionType === "background" && findBackgroundChoicesForOption(option).length) {
+            setOptionDescription(option);
+            return;
+          }
           closeOptionMenu();
         });
         optionList.appendChild(item);
@@ -1510,6 +2124,139 @@
       element.style.height = `${(height / viewport.height) * 100}%`;
     }
 
+    function fieldByLayerKey(layer, key) {
+      const normalized = key.trim().toLowerCase();
+      return [...layer.querySelectorAll(".field")]
+        .find((field) => field.dataset.key?.trim().toLowerCase() === normalized) || null;
+    }
+
+    function rollModifierFromField(fieldKey) {
+      if (fieldKey === "Initiative" && !fieldValue("Initiative")) return parseSignedNumber(fieldValue("DEXmod"));
+      return parseSignedNumber(fieldValue(fieldKey));
+    }
+
+    function createRollHotspot(layer, viewport, targetFieldKey, label, modifierFieldKey, rectFromField) {
+      const target = fieldByLayerKey(layer, targetFieldKey);
+      if (!target) return;
+      const x1 = Number(target.dataset.pdfX1);
+      const y1 = Number(target.dataset.pdfY1);
+      const x2 = Number(target.dataset.pdfX2);
+      const y2 = Number(target.dataset.pdfY2);
+      if (![x1, y1, x2, y2].every(Number.isFinite)) return;
+
+      const rect = rectFromField({ x1, y1, x2, y2 });
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "roll-hotspot";
+      button.setAttribute("aria-label", `Tirar ${label}`);
+      button.title = `Tirar ${label}`;
+      button.addEventListener("click", () => rollD20Check(label, rollModifierFromField(modifierFieldKey)));
+      placeFromPdfRect(button, viewport, rect);
+      layer.appendChild(button);
+    }
+
+    function createRollHotspots(layer, viewport) {
+      if (layer.dataset.rollHotspotsCreated === "true") return;
+      layer.dataset.rollHotspotsCreated = "true";
+
+      Object.entries(DERIVED_STAT_FIELDS).forEach(([ability, config]) => {
+        createRollHotspot(
+          layer,
+          viewport,
+          ability,
+          `${ability} check`,
+          config.modifier,
+          ({ x1, y1, x2, y2 }) => [x1 - 4, y1 - 22, x2 + 4, y1 - 4]
+        );
+
+        config.saves.forEach((save) => {
+          const saveLabel = save.field.replace(/^ST\s+/i, "");
+          createRollHotspot(
+            layer,
+            viewport,
+            save.field,
+            `${saveLabel} saving throw`,
+            save.field,
+            ({ x2, y1, y2 }) => [x2 + 4, y1 - 2, x2 + 112, y2 + 2]
+          );
+        });
+
+        config.skills.forEach((skill) => {
+          const skillLabel = skill.field === "Animal" ? "Animal Handling"
+            : skill.field === "SleightofHand" ? "Sleight of Hand"
+              : skill.field;
+          createRollHotspot(
+            layer,
+            viewport,
+            skill.field,
+            skillLabel,
+            skill.field,
+            ({ x2, y1, y2 }) => [x2 + 4, y1 - 2, x2 + 120, y2 + 2]
+          );
+        });
+      });
+
+      createRollHotspot(
+        layer,
+        viewport,
+        "Initiative",
+        "Initiative",
+        "Initiative",
+        ({ x1, y1, x2, y2 }) => [x1 - 8, y1 - 22, x2 + 8, y1 - 3]
+      );
+    }
+
+    function createAddEquipmentButton(layer, viewport) {
+      if (layer.dataset.addEquipmentButtonCreated === "true") return;
+      const ppField = fieldByLayerKey(layer, "PP");
+      if (!ppField) return;
+      layer.dataset.addEquipmentButtonCreated = "true";
+
+      const x1 = Number(ppField.dataset.pdfX1);
+      const y2 = Number(ppField.dataset.pdfY2);
+      const x2 = Number(ppField.dataset.pdfX2);
+      if (![x1, y2, x2].every(Number.isFinite)) return;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "add-equipment-button";
+      button.textContent = "+";
+      button.title = "Agregar item";
+      button.setAttribute("aria-label", "Agregar item");
+      button.addEventListener("click", openItemPicker);
+      placeFromPdfRect(button, viewport, [x1, y2 + 3, x2, y2 + 21]);
+      layer.appendChild(button);
+    }
+
+    function createEquipmentPanel(layer) {
+      const equipmentField = [...layer.querySelectorAll(".field")]
+        .find((field) => field.dataset.key?.trim().toLowerCase() === "equipment");
+      if (!equipmentField) return;
+      equipmentField.classList.add("equipment-storage");
+
+      const panel = document.createElement("div");
+      panel.className = "equipment-panel";
+      panel.style.left = equipmentField.style.left;
+      panel.style.top = equipmentField.style.top;
+      panel.style.width = equipmentField.style.width;
+      panel.style.height = equipmentField.style.height;
+
+      const header = document.createElement("div");
+      header.className = "equipment-header";
+      ["Cant", "Item", "Valor", ""].forEach((label) => {
+        const cell = document.createElement("div");
+        cell.textContent = label;
+        header.appendChild(cell);
+      });
+
+      const list = document.createElement("div");
+      list.className = "equipment-list";
+      panel.append(header, list);
+      layer.appendChild(panel);
+      equipmentPanel = panel;
+      updateEquipmentPanel();
+    }
+
     function createPreparedSpellsPanel(layer, viewport) {
       const panel = document.createElement("div");
       panel.className = "prepared-spells-panel";
@@ -1604,6 +2351,10 @@
     function applyData(data) {
       sheetMeta = data?.__sheetMeta && typeof data.__sheetMeta === "object" ? data.__sheetMeta : { choices: {} };
       if (!sheetMeta.choices || typeof sheetMeta.choices !== "object") sheetMeta.choices = {};
+      if (!sheetMeta.currencySources || typeof sheetMeta.currencySources !== "object") sheetMeta.currencySources = {};
+      if (typeof sheetMeta.generatedEquipmentText !== "string") sheetMeta.generatedEquipmentText = "";
+      if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
+      if (!sheetMeta.generatedSkillProficiencies || typeof sheetMeta.generatedSkillProficiencies !== "object") sheetMeta.generatedSkillProficiencies = {};
       document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
         if (!data || !(key in data)) return;
@@ -1662,6 +2413,39 @@
       field.value = value;
     }
 
+    function numericFieldValue(key) {
+      const value = Number.parseInt(fieldValue(key) || "0", 10);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function setFieldTitle(key, value) {
+      const field = getFieldByKey(key);
+      if (!field) return;
+      field.title = value || field.dataset.key || key;
+    }
+
+    function setGeneratedEquipmentValue(value) {
+      const field = getFieldByKey("Equipment");
+      if (!field) return;
+      const previous = sheetMeta.generatedEquipmentText || "";
+      const next = formatEquipmentList(value || "");
+      if (!field.value.trim() || field.value === previous) field.value = next;
+      sheetMeta.generatedEquipmentText = next;
+      updateEquipmentPanel();
+    }
+
+    function bindFeatureDrawer(field) {
+      if (!field || field.dataset.featureDrawerBound === "true") return;
+      field.dataset.featureDrawerBound = "true";
+      field.style.cursor = "pointer";
+      field.addEventListener("click", () => showFeatureDrawer(field));
+      field.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        showFeatureDrawer(field);
+      });
+    }
+
     function fieldValue(key) {
       return getFieldByKey(key)?.value?.trim() || "";
     }
@@ -1704,39 +2488,1157 @@
       ["Treasure", "Treasure"]
     ];
 
+    const CURRENCY_KEYS = ["CP", "SP", "EP", "GP", "PP"];
+
+    function ensureCurrencyDefaults() {
+      CURRENCY_KEYS.forEach((key) => {
+        const field = getFieldByKey(key);
+        if (field && !field.value.trim()) field.value = "0";
+      });
+    }
+
+    function parseCurrencyText(text) {
+      const totals = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
+      const pattern = /(?:^|[^\w])(\d+)\s*(cp|sp|ep|gp|pp)\b/gi;
+      for (const match of String(text || "").matchAll(pattern)) {
+        const amount = Number.parseInt(match[1], 10);
+        const coin = match[2].toLowerCase();
+        if (Number.isFinite(amount)) totals[coin] += amount;
+      }
+      return totals;
+    }
+
+    function removeCurrencyText(text) {
+      return String(text || "")
+        .replace(/(?:^|,\s*|\s+)(\d+)\s*(?:cp|sp|ep|gp|pp)\b/gi, "")
+        .replace(/\b(?:a\s+)?(?:belt\s+)?pouch containing\b/gi, "")
+        .replace(/\s*,\s*,\s*/g, ", ")
+        .replace(/^\s*,\s*|\s*,\s*$/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function splitEquipmentItems(text) {
+      const items = [];
+      let current = "";
+      let depth = 0;
+      for (const char of String(text || "")) {
+        if (char === "(") depth += 1;
+        if (char === ")") depth = Math.max(0, depth - 1);
+        if (char === "," && depth === 0) {
+          if (current.trim()) items.push(current.trim());
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+      if (current.trim()) items.push(current.trim());
+      return items
+        .map((item) => item.replace(/^and\s+/i, "").replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+    }
+
+    function formatEquipmentList(text) {
+      return splitEquipmentItems(text).join("\n");
+    }
+
+    function normalizeItemLookupName(value) {
+      return normalizeName(String(value || "")
+        .replace(/\([^)]*\)/g, "")
+        .replace(/^(?:a|an|one|set of|a set of)\s+/i, "")
+        .replace(/\b(?:same as above|any)\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim());
+    }
+
+    function parseEquipmentLine(line) {
+      const trimmed = String(line || "").trim();
+      const match = trimmed.match(/^(\d+)\s+(.+)$/);
+      const quantity = match ? Number.parseInt(match[1], 10) : 1;
+      const rawName = match ? match[2].trim() : trimmed;
+      return {
+        quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+        rawName,
+        displayName: rawName
+      };
+    }
+
+    function findItemData(name) {
+      const parenthetical = String(name || "").match(/\(([^)]+)\)/)?.[1] || "";
+      if (parenthetical && !/same as above|any/i.test(parenthetical)) {
+        const exactParenthetical = items.find((item) => normalizeItemLookupName(item.name) === normalizeItemLookupName(parenthetical) && item.source === "PHB")
+          || items.find((item) => normalizeItemLookupName(item.name) === normalizeItemLookupName(parenthetical))
+          || null;
+        if (exactParenthetical) return exactParenthetical;
+      }
+
+      const normalized = normalizeItemLookupName(name);
+      if (!normalized) return null;
+      const variants = new Set([
+        normalized,
+        normalized.replace(/s$/, ""),
+        normalized.replace(/^bolt$/, "crossbow bolt"),
+        normalized.replace(/^arrow$/, "arrow"),
+        normalized.replace(/^traveler s clothes$/, "traveler s clothes")
+      ]);
+      return items.find((item) => variants.has(normalizeItemLookupName(item.name)) && item.source === "XPHB")
+        || items.find((item) => variants.has(normalizeItemLookupName(item.name)) && item.source === "PHB")
+        || items.find((item) => variants.has(normalizeItemLookupName(item.name)))
+        || null;
+    }
+
+    function formatItemValue(value, quantity = 1) {
+      if (!Number.isFinite(value)) return "-";
+      const gp = (value * quantity) / 100;
+      return `${Number.isInteger(gp) ? gp : Number(gp.toFixed(2))} GP`;
+    }
+
+
+    const DAMAGE_TYPE_NAMES = {
+      A: "Acid",
+      B: "Bludgeoning",
+      C: "Cold",
+      F: "Fire",
+      O: "Force",
+      L: "Lightning",
+      N: "Necrotic",
+      P: "Piercing",
+      I: "Poison",
+      Y: "Psychic",
+      R: "Radiant",
+      S: "Slashing",
+      T: "Thunder"
+    };
+
+    function sourceLabel(source) {
+      if (source === "XPHB") return "PHB'24";
+      if (source === "XDMG") return "DMG'24";
+      return source || "";
+    }
+
+    function splitRef(ref) {
+      const [abbreviation, source] = String(ref || "").split("|");
+      return { abbreviation, source: source || null };
+    }
+
+    function itemTypeName(typeRef) {
+      const { abbreviation, source } = splitRef(typeRef);
+      const type = itemTypes.find((itemType) => itemType.abbreviation === abbreviation && itemType.source === source)
+        || itemTypes.find((itemType) => itemType.abbreviation === abbreviation && itemType.source === "XPHB")
+        || itemTypes.find((itemType) => itemType.abbreviation === abbreviation);
+      return type?.name || "";
+    }
+
+    function propertyData(ref) {
+      const { abbreviation, source } = splitRef(ref);
+      return itemProperties.find((property) => property.abbreviation === abbreviation && property.source === source)
+        || itemProperties.find((property) => property.abbreviation === abbreviation && property.source === "XPHB")
+        || itemProperties.find((property) => property.abbreviation === abbreviation)
+        || null;
+    }
+
+    function propertyName(ref, item) {
+      const property = propertyData(ref);
+      const name = property?.entries?.[0]?.name || property?.name || splitRef(ref).abbreviation;
+      if (splitRef(ref).abbreviation === "T" && item?.range) return `${name} (${item.range} ft.)`;
+      return name;
+    }
+
+    function propertyDescription(ref) {
+      const property = propertyData(ref);
+      return property ? flattenEntryText(property.entries) : "";
+    }
+
+    function masteryData(ref) {
+      const { abbreviation, source } = splitRef(ref);
+      return itemMasteries.find((mastery) => mastery.name === abbreviation && mastery.source === source)
+        || itemMasteries.find((mastery) => mastery.name === abbreviation && mastery.source === "XPHB")
+        || itemMasteries.find((mastery) => mastery.name === abbreviation)
+        || null;
+    }
+
+    function itemCategoryLine(item) {
+      const categories = [];
+      if (item.weapon) categories.push("Weapon");
+      else if (item.type) categories.push(itemTypeName(item.type) || String(item.type).split("|")[0]);
+      if (item.weaponCategory) categories.push(`${item.weaponCategory[0].toUpperCase()}${item.weaponCategory.slice(1)} Weapon`);
+      const typeName = itemTypeName(item.type);
+      if (typeName && !categories.includes(typeName)) categories.push(typeName);
+      if (item.rarity && item.rarity !== "none") categories.push(item.rarity);
+      return categories.join("\n");
+    }
+
+    function itemValueWeightLine(item, quantity = 1) {
+      const parts = [];
+      if (Number.isFinite(item.value)) parts.push(formatItemValue(item.value, quantity));
+      if (Number.isFinite(item.weight)) parts.push(`${item.weight * quantity} lb.`);
+      return parts.join(", ");
+    }
+
+    function itemDamageLine(item) {
+      if (!item.dmg1 || !item.dmgType) return "";
+      return `${item.dmg1} ${DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType}`;
+    }
+
+    function itemPropertiesLine(item) {
+      return (item.property || []).map((ref) => propertyName(ref, item)).join(", ");
+    }
+
+    function itemMasteryLine(item) {
+      return (item.mastery || []).map((ref) => `Mastery: ${splitRef(ref).abbreviation}`).join(", ");
+    }
+
+    function sourceLine(item) {
+      const parts = [];
+      if (item.source) parts.push(`Source: ${sourceLabel(item.source)}${item.page ? `, page ${item.page}` : ""}.`);
+      if (item.referenceSources?.length) parts.push(`Referenced in ${item.referenceSources.join("; ")}.`);
+      const availability = [];
+      if (item.srd || item.srd52) availability.push(item.srd52 ? "SRD 5.2.1" : "SRD");
+      if (item.basicRules || item.basicRules2024) availability.push(item.basicRules2024 ? "Basic Rules (5.5e/2024)" : "Basic Rules");
+      if (availability.length) parts.push(`Available in the ${availability.join(" and ")}.`);
+      return parts.join(" ");
+    }
+
+    function itemMetaText(item, quantity = 1) {
+      if (!item) return "Sin datos de item local.";
+      return [
+        itemTypeName(item.type) || String(item.type || "").split("|")[0],
+        itemValueWeightLine(item, quantity),
+        sourceLabel(item.source)
+      ].filter(Boolean).join(" - ");
+    }
+
+    function itemDescriptionText(item) {
+      if (!item) return "No encontre este item en los datos locales. El nombre puede ser generico o una variante del equipo inicial.";
+      const header = [
+        item.name,
+        sourceLabel(item.source),
+        item.page ? `p${item.page}` : "",
+        itemCategoryLine(item),
+        itemValueWeightLine(item),
+        itemDamageLine(item),
+        itemPropertiesLine(item),
+        itemMasteryLine(item)
+      ].filter(Boolean).join("\n");
+
+      const details = [];
+      if (item.entries) details.push(flattenEntryText(item.entries));
+      if (item.additionalEntries) details.push(flattenEntryText(item.additionalEntries));
+      (item.property || []).forEach((ref) => {
+        const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
+        const description = propertyDescription(ref);
+        if (description) details.push(`${name}. ${description.replace(new RegExp(`^${name}\\.\\s*`, "i"), "")}`);
+      });
+      (item.mastery || []).forEach((ref) => {
+        const mastery = masteryData(ref);
+        const name = mastery?.name || splitRef(ref).abbreviation;
+        const description = mastery ? flattenEntryText(mastery.entries) : "";
+        if (description) details.push(`Mastery: ${name}. ${description}`);
+      });
+
+      return [header, ...details.filter(Boolean), sourceLine(item)].filter(Boolean).join("\n\n");
+    }
+
+    function appendText(parent, className, text, tagName = "div") {
+      if (!text) return null;
+      const node = document.createElement(tagName);
+      node.className = className;
+      node.textContent = text;
+      parent.appendChild(node);
+      return node;
+    }
+
+    function appendItemStat(grid, label, value) {
+      if (!value) return;
+      const stat = document.createElement("div");
+      stat.className = "item-stat";
+      appendText(stat, "item-stat-label", label);
+      appendText(stat, "item-stat-value", value);
+      grid.appendChild(stat);
+    }
+
+    function appendItemSection(root, title, body) {
+      if (!body) return;
+      const section = document.createElement("section");
+      section.className = "item-section";
+      appendText(section, "item-section-title", title);
+      appendText(section, "item-section-body", body, "p");
+      root.appendChild(section);
+    }
+
+    function appendFeatureListSection(root, title, items) {
+      const values = (items || []).map(flattenEntryText).filter(Boolean);
+      if (!values.length) return;
+      const section = document.createElement("section");
+      section.className = "item-section";
+      appendText(section, "item-section-title", title);
+      const list = document.createElement("ul");
+      list.className = "item-section-list";
+      values.forEach((value) => {
+        const item = document.createElement("li");
+        item.textContent = value;
+        list.appendChild(item);
+      });
+      section.appendChild(list);
+      root.appendChild(section);
+    }
+
+    function appendEntryBlocks(root, entries, fallbackTitle = "Descripcion") {
+      const blocks = Array.isArray(entries) ? entries : [entries];
+      const pendingParagraphs = [];
+      const flushParagraphs = () => {
+        if (!pendingParagraphs.length) return;
+        appendItemSection(root, fallbackTitle, pendingParagraphs.splice(0).join("\n\n"));
+      };
+
+      blocks.forEach((entry) => {
+        if (!entry) return;
+        if (typeof entry === "string") {
+          pendingParagraphs.push(strip5eTags(entry));
+          return;
+        }
+        if (Array.isArray(entry)) {
+          pendingParagraphs.push(flattenEntryText(entry));
+          return;
+        }
+        if (entry.type === "list") {
+          flushParagraphs();
+          appendFeatureListSection(root, entry.name || "Beneficios", entry.items || []);
+          return;
+        }
+        if (entry.type === "entries" || entry.entries) {
+          flushParagraphs();
+          const text = flattenEntryText(entry.entries);
+          appendItemSection(root, strip5eTags(entry.name || fallbackTitle), text);
+          return;
+        }
+        pendingParagraphs.push(flattenEntryText(entry));
+      });
+      flushParagraphs();
+    }
+
+    function buildItemDrawerContent(item) {
+      const root = document.createElement("div");
+      root.className = "item-sheet";
+
+      if (!item) {
+        appendItemSection(root, "Item", "No encontre este item en los datos locales. El nombre puede ser generico o una variante del equipo inicial.");
+        return root;
+      }
+
+      appendText(root, "item-sheet-title", item.name, "h2");
+      appendText(root, "item-sheet-subtitle", [sourceLabel(item.source), item.page ? `p${item.page}` : ""].filter(Boolean).join(" - "));
+
+      const stats = document.createElement("div");
+      stats.className = "item-stat-grid";
+      appendItemStat(stats, "Tipo", itemCategoryLine(item).replace(/\n/g, ", "));
+      appendItemStat(stats, "Valor / peso", itemValueWeightLine(item));
+      appendItemStat(stats, "Daño", itemDamageLine(item));
+      appendItemStat(stats, "Rango", item.range ? `${item.range} ft.` : "");
+      root.appendChild(stats);
+
+      const properties = [...(item.property || []).map((ref) => propertyName(ref, item)), ...(item.mastery || []).map((ref) => `Mastery: ${splitRef(ref).abbreviation}`)];
+      if (properties.length) {
+        const chips = document.createElement("div");
+        chips.className = "item-chip-list";
+        properties.forEach((property) => appendText(chips, "item-chip", property, "span"));
+        root.appendChild(chips);
+      }
+
+      if (item.entries) appendItemSection(root, "Descripción", flattenEntryText(item.entries));
+      if (item.additionalEntries) appendItemSection(root, "Uso", flattenEntryText(item.additionalEntries));
+
+      (item.property || []).forEach((ref) => {
+        const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
+        const description = propertyDescription(ref);
+        if (description) appendItemSection(root, name, description.replace(new RegExp(`^${name}\\.\\s*`, "i"), ""));
+      });
+
+      (item.mastery || []).forEach((ref) => {
+        const mastery = masteryData(ref);
+        const name = mastery?.name || splitRef(ref).abbreviation;
+        const description = mastery ? flattenEntryText(mastery.entries) : "";
+        if (description) appendItemSection(root, `Mastery: ${name}`, description);
+      });
+
+      appendText(root, "item-source", sourceLine(item));
+      return root;
+    }
+
+    const ABILITY_LABELS = {
+      str: "STR",
+      dex: "DEX",
+      con: "CON",
+      int: "INT",
+      wis: "WIS",
+      cha: "CHA"
+    };
+
+    const FEAT_CATEGORY_LABELS = {
+      O: "Origin",
+      G: "General",
+      FS: "Fighting Style",
+      "FS:P": "Fighting Style: Paladin",
+      "FS:R": "Fighting Style: Ranger",
+      EB: "Epic Boon",
+      D: "Dragonmark"
+    };
+
+    function findFeatData(name) {
+      const normalized = normalizeName(String(name || "").replace(/^background feat:\s*/i, ""));
+      if (!normalized) return null;
+      return feats.find((feat) => normalizeName(feat.name) === normalized && feat.source === "XPHB")
+        || feats.find((feat) => normalizeName(feat.name) === normalized && feat.source === "PHB")
+        || feats.find((feat) => normalizeName(feat.name) === normalized)
+        || null;
+    }
+
+    function formatAbilityChoice(value) {
+      if (!value || typeof value !== "object") return "";
+      if (Array.isArray(value.choose)) return `Choose ${value.choose.map((ability) => ABILITY_LABELS[ability] || ability.toUpperCase()).join(", ")}`;
+      return Object.entries(value)
+        .filter(([, amount]) => Number.isFinite(amount))
+        .map(([ability, amount]) => `${ABILITY_LABELS[ability] || ability.toUpperCase()} ${formatModifier(amount)}`)
+        .join(", ");
+    }
+
+    function formatFeatAbility(feat) {
+      const values = Array.isArray(feat?.ability) ? feat.ability : [];
+      return values.map(formatAbilityChoice).filter(Boolean).join(" / ");
+    }
+
+    function formatPrerequisiteItem(item) {
+      if (!item || typeof item !== "object") return "";
+      const parts = [];
+      if (item.level) parts.push(`Level ${item.level}`);
+      if (item.spellcasting2020 || item.spellcasting) parts.push("Spellcasting");
+      if (item.pactMagic) parts.push("Pact Magic");
+      if (item.feature) parts.push(`Feature: ${Array.isArray(item.feature) ? item.feature.join(", ") : item.feature}`);
+      if (item.otherSummary?.entry) parts.push(strip5eTags(item.otherSummary.entry));
+      if (Array.isArray(item.ability)) parts.push(`Ability: ${item.ability.map(formatAbilityChoice).filter(Boolean).join(" / ")}`);
+      return parts.join("; ");
+    }
+
+    function formatFeatPrerequisites(feat) {
+      const values = Array.isArray(feat?.prerequisite) ? feat.prerequisite : [];
+      return values.map(formatPrerequisiteItem).filter(Boolean).join(" OR ");
+    }
+
+    function formatAdditionalSpells(feat) {
+      const spellGroups = Array.isArray(feat?.additionalSpells) ? feat.additionalSpells : [];
+      return spellGroups
+        .map((group) => {
+          const ability = typeof group.ability === "string"
+            ? ABILITY_LABELS[group.ability] || group.ability.toUpperCase()
+            : Array.isArray(group.ability?.choose)
+              ? `choose ${group.ability.choose.map((item) => ABILITY_LABELS[item] || item.toUpperCase()).join(", ")}`
+              : "";
+          return [group.name, ability ? `ability: ${ability}` : ""].filter(Boolean).join(" - ");
+        })
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    function formatStructuredValue(value) {
+      if (!value) return "";
+      if (typeof value === "string") return strip5eTags(value);
+      if (typeof value === "number" || typeof value === "boolean") return String(value);
+      if (Array.isArray(value)) return value.map(formatStructuredValue).filter(Boolean).join(", ");
+      if (typeof value === "object") {
+        return Object.entries(value)
+          .map(([key, item]) => `${key}: ${formatStructuredValue(item)}`)
+          .filter(Boolean)
+          .join("; ");
+      }
+      return "";
+    }
+
+    function buildFeatDrawerContent(feat, fallbackName = "Feat", backgroundFeature = "") {
+      const root = document.createElement("div");
+      root.className = "item-sheet";
+
+      if (!feat) {
+        appendItemSection(root, fallbackName, "No encontre este feat en los datos locales.");
+        return root;
+      }
+
+      appendText(root, "item-sheet-title", feat.name, "h2");
+      appendText(root, "item-sheet-subtitle", [sourceLabel(feat.source), feat.page ? `p${feat.page}` : ""].filter(Boolean).join(" - "));
+
+      const stats = document.createElement("div");
+      stats.className = "item-stat-grid";
+      appendItemStat(stats, "Tipo", "Feat");
+      appendItemStat(stats, "Categoria", FEAT_CATEGORY_LABELS[feat.category] || feat.category);
+      appendItemStat(stats, "Prerequisito", formatFeatPrerequisites(feat));
+      appendItemStat(stats, "Mejora", formatFeatAbility(feat));
+      appendItemStat(stats, "Repetible", feat.repeatable ? "Si" : "");
+      root.appendChild(stats);
+
+      const chips = document.createElement("div");
+      chips.className = "item-chip-list";
+      [FEAT_CATEGORY_LABELS[feat.category] || feat.category, feat.srd52 ? "SRD 5.2.1" : "", feat.basicRules2024 ? "Basic Rules 2024" : ""]
+        .filter(Boolean)
+        .forEach((value) => appendText(chips, "item-chip", value, "span"));
+      if (chips.childElementCount) root.appendChild(chips);
+
+      appendEntryBlocks(root, feat.entries, "Beneficios");
+      appendItemSection(root, "Spells adicionales", formatAdditionalSpells(feat));
+      appendItemSection(root, "Sentidos", formatStructuredValue(feat.senses));
+      appendItemSection(root, "Resistencias", formatStructuredValue(feat.resist));
+      appendItemSection(root, "Background Feature", backgroundFeature);
+      appendText(root, "item-source", sourceLine(feat));
+      return root;
+    }
+
+    function buildTextFeatureDrawerContent(title, description, meta = "") {
+      const root = document.createElement("div");
+      root.className = "item-sheet";
+      appendText(root, "item-sheet-title", title || "Feature", "h2");
+      appendText(root, "item-sheet-subtitle", meta);
+      String(description || "")
+        .split(/\n{2,}|(?<=[.!?])\s+(?=[A-Z])/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .forEach((paragraph, index) => appendItemSection(root, index === 0 ? "Descripcion" : "Detalle", paragraph));
+      return root;
+    }
+
+    function equippedItems() {
+      if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
+      return sheetMeta.equippedItems;
+    }
+
+    function equipmentItemKey(entry) {
+      return normalizeItemLookupName(entry.displayName);
+    }
+
+    function showDrawer(title, meta, body) {
+      itemDrawerTitle.textContent = title || "Detalle";
+      itemDrawerMeta.textContent = meta || "";
+      itemDrawerBody.textContent = "";
+      if (body instanceof Node) itemDrawerBody.appendChild(body);
+      else itemDrawerBody.textContent = body || "Sin descripcion disponible.";
+      itemDrawer.classList.add("visible");
+      itemDrawer.setAttribute("aria-hidden", "false");
+    }
+
+    function showItemDrawer(entry, item) {
+      showDrawer(
+        item?.name || entry.displayName,
+        `${entry.quantity}x - ${itemMetaText(item, entry.quantity)}`,
+        buildItemDrawerContent(item)
+      );
+    }
+
+    function closeItemDrawer() {
+      itemDrawer.classList.remove("visible");
+      itemDrawer.setAttribute("aria-hidden", "true");
+    }
+
+    function showFeatureDrawer(field) {
+      const featName = field.dataset.featureName || selectedBackgroundFeatName();
+      const featureText = field.dataset.backgroundFeature || selectedBackgroundFeatureText();
+      const feat = findFeatData(featName);
+      if (feat) {
+        showDrawer(feat.name, [FEAT_CATEGORY_LABELS[feat.category] || "Feat", sourceLabel(feat.source), feat.page ? `p${feat.page}` : ""].filter(Boolean).join(" - "), buildFeatDrawerContent(feat, featName, featureText));
+        return;
+      }
+
+      const body = field.dataset.featureDescription || featureText || field.title || "";
+      if (!body) return;
+      showDrawer(field.dataset.featureTitle || "Features & Traits", field.dataset.featureMeta || "Feature", buildTextFeatureDrawerContent(field.dataset.featureTitle || "Features & Traits", body, field.dataset.featureMeta || ""));
+    }
+
+    function itemPickerItems() {
+      const unique = new Map();
+      items.forEach((item) => {
+        if (!item?.name) return;
+        const key = normalizeName(item.name);
+        const previous = unique.get(key);
+        if (!previous || (item.source === "XPHB" && previous.source !== "XPHB") || (item.source === "PHB" && !["XPHB", "PHB"].includes(previous.source))) {
+          unique.set(key, item);
+        }
+      });
+      return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    function pickerQuantity() {
+      const value = Number.parseInt(itemPickerQuantity?.value || "1", 10);
+      return Number.isFinite(value) && value > 0 ? value : 1;
+    }
+
+    function renderItemPickerList() {
+      if (!itemPickerList) return;
+      const query = normalizeName(itemPickerSearch?.value || "");
+      const selectedKey = normalizeName(selectedPickerItem?.name || "");
+      itemPickerList.textContent = "";
+      itemPickerItems()
+        .filter((item) => {
+          if (!query) return true;
+          return normalizeName([item.name, itemTypeName(item.type), sourceLabel(item.source)].filter(Boolean).join(" ")).includes(query);
+        })
+        .forEach((item) => {
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = `item-picker-row ${normalizeName(item.name) === selectedKey ? "selected" : ""}`;
+
+          const name = document.createElement("span");
+          name.className = "item-picker-row-name";
+          name.textContent = item.name;
+
+          const meta = document.createElement("span");
+          meta.className = "item-picker-row-meta";
+          meta.textContent = [formatItemValue(item.value), sourceLabel(item.source)].filter(Boolean).join(" - ");
+
+          row.append(name, meta);
+          row.addEventListener("click", () => selectPickerItem(item));
+          itemPickerList.appendChild(row);
+        });
+    }
+
+    function selectPickerItem(item) {
+      selectedPickerItem = item;
+      if (itemPickerAdd) itemPickerAdd.disabled = !item;
+      renderItemPickerList();
+      if (item) showItemDrawer({ displayName: item.name, quantity: pickerQuantity() }, item);
+    }
+
+    function openItemPicker() {
+      selectedPickerItem = null;
+      if (itemPickerSearch) itemPickerSearch.value = "";
+      if (itemPickerQuantity) itemPickerQuantity.value = "1";
+      if (itemPickerAdd) itemPickerAdd.disabled = true;
+      renderItemPickerList();
+      itemPickerBackdrop?.classList.add("visible");
+      itemPickerBackdrop?.setAttribute("aria-hidden", "false");
+      itemPickerSearch?.focus();
+    }
+
+    function closeItemPicker() {
+      itemPickerBackdrop?.classList.remove("visible");
+      itemPickerBackdrop?.setAttribute("aria-hidden", "true");
+    }
+
+    function equipmentLines() {
+      const text = fieldValue("Equipment");
+      return (text.includes("\n") ? text.split(/\n+/) : splitEquipmentItems(text))
+        .map((line) => line.trim())
+        .filter(Boolean);
+    }
+
+    function formatEquipmentEntryLine(quantity, name) {
+      return `${quantity} ${name}`;
+    }
+
+    function addItemToEquipment(item, quantity) {
+      const field = getFieldByKey("Equipment");
+      if (!field || !item?.name) return;
+      const lines = equipmentLines();
+      const targetKey = normalizeItemLookupName(item.name);
+      let added = false;
+      const nextLines = lines.map((line) => {
+        const entry = parseEquipmentLine(line);
+        if (normalizeItemLookupName(entry.displayName) !== targetKey) return line;
+        added = true;
+        return formatEquipmentEntryLine(entry.quantity + quantity, entry.displayName);
+      });
+      if (!added) nextLines.push(formatEquipmentEntryLine(quantity, item.name));
+      field.value = nextLines.join("\n");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      updateEquipmentPanel();
+      updateArmorClass();
+      scheduleSave();
+      showStatus("Item agregado");
+    }
+
+    function addSelectedPickerItem() {
+      if (!selectedPickerItem) return;
+      addItemToEquipment(selectedPickerItem, pickerQuantity());
+      closeItemPicker();
+    }
+
+    function equipmentEntries() {
+      const text = fieldValue("Equipment");
+      const lines = text.includes("\n") ? text.split(/\n+/) : splitEquipmentItems(text);
+      return lines
+        .map(parseEquipmentLine)
+        .filter((entry) => entry.displayName);
+    }
+
+    function updateEquipmentPanel() {
+      if (!equipmentPanel) return;
+      const list = equipmentPanel.querySelector(".equipment-list");
+      if (!list) return;
+      list.textContent = "";
+      const entries = equipmentEntries();
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "equipment-empty";
+        empty.textContent = "Sin equipo.";
+        list.appendChild(empty);
+        return;
+      }
+
+      entries.forEach((entry) => {
+        const item = findItemData(entry.displayName);
+        const row = document.createElement("div");
+        row.className = "equipment-row";
+
+        const qty = document.createElement("div");
+        qty.className = "equipment-qty";
+        qty.textContent = `${entry.quantity}x`;
+
+        const name = document.createElement("button");
+        name.type = "button";
+        name.className = "equipment-name";
+        name.textContent = item?.name || entry.displayName;
+        name.title = "Ver informacion del item";
+        name.addEventListener("click", () => showItemDrawer(entry, item));
+
+        const value = document.createElement("div");
+        value.className = "equipment-value";
+        value.textContent = formatItemValue(item?.value, entry.quantity);
+
+        const equip = document.createElement("button");
+        equip.type = "button";
+        equip.className = "equipment-equip";
+        const key = equipmentItemKey(entry);
+        const equipped = Boolean(equippedItems()[key]);
+        equip.textContent = equipped ? "Equipado" : "Equipar";
+        equip.classList.toggle("equipped", equipped);
+        equip.addEventListener("click", () => {
+          equippedItems()[key] = !equippedItems()[key];
+          scheduleSave();
+          updateEquipmentPanel();
+        });
+
+        row.append(qty, name, value, equip);
+        list.appendChild(row);
+      });
+    }
+
+    function applyCurrencySource(sourceKey, nextTotals) {
+      if (!sheetMeta.currencySources || typeof sheetMeta.currencySources !== "object") sheetMeta.currencySources = {};
+      ensureCurrencyDefaults();
+      const previous = sheetMeta.currencySources[sourceKey] || {};
+      CURRENCY_KEYS.forEach((key) => {
+        const coin = key.toLowerCase();
+        const delta = (nextTotals?.[coin] || 0) - (previous?.[coin] || 0);
+        if (!delta) return;
+        setFieldValue(key, String(numericFieldValue(key) + delta));
+      });
+
+      if (nextTotals && CURRENCY_KEYS.some((key) => nextTotals[key.toLowerCase()])) {
+        sheetMeta.currencySources[sourceKey] = nextTotals;
+      } else {
+        delete sheetMeta.currencySources[sourceKey];
+      }
+    }
+
     function selectedChoice(key) {
       return sheetMeta.choices?.[key] || "";
     }
 
     function setSelectedChoice(key, value) {
       sheetMeta.choices[key] = value;
-      const backgroundChoice = findBackgroundEquipmentChoice();
-      if (backgroundChoice?.key === key) {
-        const option = backgroundChoice.options.find((item) => item.value === value);
-        if (option) {
-          setFieldValue("Equipment", option.label.replace(/^[AB]:\s*/, ""));
-          updateArmorClass();
-        }
-      }
+      updateDerivedStats();
       scheduleSave();
       renderAlertsPanel();
       showStatus("Eleccion guardada");
     }
 
-    function findBackgroundEquipmentChoice() {
-      const backgroundName = fieldValue("Background");
-      const description = selectedOptionDescription("background", backgroundName);
-      const match = description.match(/Equipment:\s*Choose A or B:\s*\(A\)\s*([\s\S]*?);\s*or\s*\(B\)\s*([\s\S]*?)(?=\s+(?:Feature|Suggested Characteristics|$))/i);
-      if (!match) return null;
-      const key = `background:${normalizeName(backgroundName)}:equipment`;
-      return {
-        key,
-        label: "Elegir equipo inicial del background",
-        options: [
-          { value: "A", label: `A: ${cleanExtractedProficiencyText(match[1])}` },
-          { value: "B", label: `B: ${cleanExtractedProficiencyText(match[2])}` }
-        ]
-      };
+    const BACKGROUND_CHOICE_LABELS = [
+      "Ability Scores",
+      "Feat",
+      "Skill Proficiencies",
+      "Skill Proficiency",
+      "Tool Proficiencies",
+      "Tool Proficiency",
+      "Languages and Tool Proficiencies",
+      "Languages",
+      "Equipment"
+    ];
+
+    const BACKGROUND_CHOICE_OPTION_SETS = {
+      "artisan's tools": [
+        "Alchemist's Supplies",
+        "Brewer's Supplies",
+        "Calligrapher's Supplies",
+        "Carpenter's Tools",
+        "Cartographer's Tools",
+        "Cobbler's Tools",
+        "Cook's Utensils",
+        "Glassblower's Tools",
+        "Jeweler's Tools",
+        "Leatherworker's Tools",
+        "Mason's Tools",
+        "Painter's Supplies",
+        "Potter's Tools",
+        "Smith's Tools",
+        "Tinker's Tools",
+        "Weaver's Tools",
+        "Woodcarver's Tools"
+      ],
+      "gaming set": [
+        "Dice Set",
+        "Dragonchess Set",
+        "Playing Card Set",
+        "Three-Dragon Ante Set"
+      ],
+      "musical instrument": [
+        "Bagpipes",
+        "Drum",
+        "Dulcimer",
+        "Flute",
+        "Lute",
+        "Lyre",
+        "Horn",
+        "Pan Flute",
+        "Shawm",
+        "Viol"
+      ]
+    };
+
+    function backgroundChoiceKey(backgroundName, label) {
+      return `background:${normalizeName(backgroundName)}:${normalizeName(label)}`;
+    }
+
+    function backgroundChoiceAlertTitle(label) {
+      if (/equipment/i.test(label)) return "Elegir equipo inicial del background";
+      return `Elegir ${label.toLowerCase()} del background`;
+    }
+
+    function countWordToNumber(value) {
+      return { one: 1, two: 2, three: 3 }[String(value || "").toLowerCase()] || 1;
+    }
+
+    function languageChoiceOptions() {
+      const officialLanguages = languages.filter((language) => language?.name && language.source === "XPHB");
+      const fallbackLanguages = languages.filter((language) => language?.name && language.source === "PHB");
+      const source = officialLanguages.length ? officialLanguages : fallbackLanguages;
+      const unique = new Map();
+      source.forEach((language) => {
+        const key = normalizeName(language.name);
+        if (!unique.has(key)) unique.set(key, language.name);
+      });
+      return [...unique.values()]
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, text: value, label: value }));
+    }
+
+    const SKILL_NAMES = [
+      "Acrobatics",
+      "Animal Handling",
+      "Arcana",
+      "Athletics",
+      "Deception",
+      "History",
+      "Insight",
+      "Intimidation",
+      "Investigation",
+      "Medicine",
+      "Nature",
+      "Perception",
+      "Performance",
+      "Persuasion",
+      "Religion",
+      "Sleight of Hand",
+      "Stealth",
+      "Survival"
+    ];
+
+    const SKILLS_BY_ABILITY = {
+      intelligence: ["Arcana", "History", "Investigation", "Nature", "Religion"],
+      wisdom: ["Animal Handling", "Insight", "Medicine", "Perception", "Survival"],
+      charisma: ["Deception", "Intimidation", "Performance", "Persuasion"]
+    };
+
+    function skillChoiceOptions(values = SKILL_NAMES) {
+      const unique = new Map();
+      values.forEach((value) => {
+        const key = normalizeName(value);
+        const canonical = SKILL_NAMES.find((skill) => normalizeName(skill) === key) || value;
+        if (canonical && !unique.has(normalizeName(canonical))) unique.set(normalizeName(canonical), canonical);
+      });
+      return [...unique.values()].map((value) => ({ value, text: value, label: value }));
+    }
+
+    function skillsFromText(value) {
+      const text = String(value || "");
+      return SKILL_NAMES.filter((skill) => textIncludesPhrase(text, skill));
+    }
+
+    function parseSkillListText(value) {
+      return String(value || "")
+        .replace(/\bor\b/gi, ",")
+        .replace(/\band\b/gi, ",")
+        .split(",")
+        .map((item) => item.trim())
+        .flatMap((item) => skillsFromText(item))
+        .filter(Boolean);
+    }
+
+    function selectedChoiceValues(choice) {
+      const selected = selectedChoice(choice.key);
+      if (!selected) return [];
+      return Array.isArray(selected) ? selected : [selected];
+    }
+
+    function backgroundChoiceSelectionCount(choice) {
+      return selectedChoiceValues(choice).filter(Boolean).length;
+    }
+
+    function isBackgroundChoiceComplete(choice) {
+      return backgroundChoiceSelectionCount(choice) >= (choice.count || 1);
+    }
+
+    function updateMultiChoiceSelection(choice, value, checked) {
+      const selectedValues = selectedChoiceValues(choice);
+      const next = new Set(selectedValues);
+      if (checked) {
+        if (!next.has(value) && next.size >= (choice.count || 1)) {
+          showStatus(`Maximo ${choice.count || 1} opciones`);
+          return false;
+        }
+        next.add(value);
+      } else {
+        next.delete(value);
+      }
+      setSelectedChoice(choice.key, [...next]);
+      return true;
+    }
+
+    function findBackgroundChoicesForOption(option) {
+      const backgroundName = optionName(option);
+      const description = optionDescriptionText(option);
+      if (!backgroundName || !description) return [];
+
+      const labelPattern = BACKGROUND_CHOICE_LABELS
+        .map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join("|");
+      const choicePattern = new RegExp(
+        `(${labelPattern}):\\s*Choose A or B:\\s*\\(A\\)\\s*([\\s\\S]*?);\\s*or\\s*\\(B\\)\\s*([\\s\\S]*?)(?=\\s+(?:${labelPattern}|Feature|Suggested Characteristics)\\b|$)`,
+        "gi"
+      );
+
+      const choices = [...description.matchAll(choicePattern)].map((match) => {
+        const label = cleanExtractedProficiencyText(match[1]);
+        const optionA = cleanExtractedProficiencyText(match[2]);
+        const optionB = cleanExtractedProficiencyText(match[3]);
+        return {
+          key: backgroundChoiceKey(backgroundName, label),
+          label: backgroundChoiceAlertTitle(label),
+          sectionLabel: label,
+          options: [
+            { value: "A", text: optionA, label: `A: ${optionA}` },
+            { value: "B", text: optionB, label: `B: ${optionB}` }
+          ]
+        };
+      });
+
+      const openChoicePattern = new RegExp(
+        `(${labelPattern}):\\s*Choose (one|two|three) kind(?:s)? of ([^.;]+?)(?=\\s+(?:${labelPattern}|Equipment|Feature|Suggested Characteristics)\\b|[.;]|$)`,
+        "gi"
+      );
+      [...description.matchAll(openChoicePattern)].forEach((match) => {
+        const label = cleanExtractedProficiencyText(match[1]);
+        const count = countWordToNumber(match[2]);
+        const category = cleanExtractedProficiencyText(match[3]).replace(/\.$/, "");
+        const normalizedCategory = normalizeName(category);
+        const options = BACKGROUND_CHOICE_OPTION_SETS[normalizedCategory];
+        if (!options?.length) return;
+        const key = backgroundChoiceKey(backgroundName, `${label}:${category}`);
+        if (choices.some((choice) => choice.key === key)) return;
+        choices.push({
+          key,
+          label: `${label}: elegir ${count === 1 ? "una opcion" : `${count} opciones`}`,
+          sectionLabel: label,
+          count,
+          category,
+          options: options.map((value) => ({ value, text: value, label: value }))
+        });
+      });
+
+      const skillSection = extractColonSection(description, ["Skill Proficiencies", "Skill Proficiency"], BACKGROUND_CHOICE_LABELS.filter((label) => !/^Skill Proficienc/i.test(label)));
+      if (skillSection) {
+        const skillChoiceSpecs = [];
+        const chooseFromMatch = skillSection.match(/Choose\s+(one|two|three)\s+from\s+among\s+([^.;]+?)(?=$|[.;])/i);
+        if (chooseFromMatch) {
+          skillChoiceSpecs.push({
+            count: countWordToNumber(chooseFromMatch[1]),
+            options: parseSkillListText(chooseFromMatch[2])
+          });
+        }
+
+        const oneFromMatch = skillSection.match(/(?:your choice of\s+)?one\s+from\s+among\s+([^.;]+?)(?=$|[.;])/i);
+        if (oneFromMatch && !chooseFromMatch) {
+          skillChoiceSpecs.push({ count: 1, options: parseSkillListText(oneFromMatch[1]) });
+        }
+
+        const allChoiceMatch = skillSection.match(/^(?:Choose\s+)?(?:Any\s+)?(one|two|three)\s+of your choice$/i);
+        if (allChoiceMatch) {
+          skillChoiceSpecs.push({ count: countWordToNumber(allChoiceMatch[1]), options: SKILL_NAMES });
+        }
+
+        const abilityChoiceMatch = skillSection.match(/one\s+([^.;]+?)\s+skill\s+of your choice/i);
+        if (abilityChoiceMatch) {
+          const abilityOptions = Object.entries(SKILLS_BY_ABILITY)
+            .filter(([ability]) => textIncludesPhrase(abilityChoiceMatch[1], ability))
+            .flatMap(([, abilitySkills]) => abilitySkills);
+          skillChoiceSpecs.push({ count: 1, options: abilityOptions.length ? abilityOptions : SKILL_NAMES });
+        }
+
+        if (/one skill of your choice/i.test(skillSection) && !abilityChoiceMatch && !allChoiceMatch) {
+          skillChoiceSpecs.push({ count: 1, options: SKILL_NAMES });
+        }
+
+        skillChoiceSpecs.forEach((spec, index) => {
+          const options = skillChoiceOptions(spec.options);
+          if (!options.length) return;
+          const key = backgroundChoiceKey(backgroundName, `Skill Proficiencies:${index}:${options.map((item) => item.value).join("|")}`);
+          if (choices.some((choice) => choice.key === key)) return;
+          choices.push({
+            key,
+            label: `Skill Proficiencies: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`,
+            sectionLabel: "Skill Proficiencies",
+            count: spec.count,
+            options
+          });
+        });
+      }
+
+      const languageChoicePattern = new RegExp(
+        `(${labelPattern}):\\s*(?:Any\\s+)?(One|Two|Three) of your choice(?:\\s*\\([^)]*\\))?(?=\\s+(?:${labelPattern}|Equipment|Feature|Suggested Characteristics)\\b|[.;]|$)`,
+        "gi"
+      );
+      [...description.matchAll(languageChoicePattern)].forEach((match) => {
+        const label = cleanExtractedProficiencyText(match[1]);
+        if (normalizeName(label) !== "languages") return;
+        const count = countWordToNumber(match[2]);
+        const options = languageChoiceOptions();
+        if (!options.length) return;
+        const key = backgroundChoiceKey(backgroundName, `${label}:choice`);
+        if (choices.some((choice) => choice.key === key)) return;
+        choices.push({
+          key,
+          label: `${label}: elegir ${count === 1 ? "una opcion" : `${count} opciones`}`,
+          sectionLabel: label,
+          count,
+          options
+        });
+      });
+
+      return choices;
+    }
+
+    function selectedBackgroundOption() {
+      return selectedOption("background", fieldValue("Background"));
+    }
+
+    function findSelectedBackgroundChoices() {
+      const option = selectedBackgroundOption();
+      return option ? findBackgroundChoicesForOption(option) : [];
+    }
+
+    function selectedBackgroundChoiceText(sectionLabel) {
+      const choice = findSelectedBackgroundChoices()
+        .find((item) => normalizeName(item.sectionLabel) === normalizeName(sectionLabel));
+      if (!choice) return null;
+      if (!isBackgroundChoiceComplete(choice)) return "";
+      return selectedChoiceValues(choice)
+        .map((value) => choice.options.find((option) => option.value === value)?.text || "")
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    function backgroundSameAsAboveText() {
+      return findSelectedBackgroundChoices()
+        .filter((choice) => normalizeName(choice.sectionLabel) !== "equipment")
+        .map((choice) => selectedBackgroundChoiceText(choice.sectionLabel))
+        .find(Boolean) || "";
+    }
+
+    function normalizeBackgroundEquipmentText(value) {
+      const sameAsAbove = backgroundSameAsAboveText();
+      if (!sameAsAbove) return value;
+      return String(value || "")
+        .replace(/([A-Za-z' -]+)\s+\(same as above\)/gi, (_match, label) => `${label.trim()} (${sameAsAbove})`)
+        .trim();
+    }
+
+    function applySelectedBackgroundChoices() {
+      const equipmentChoice = findSelectedBackgroundChoices()
+        .find((choice) => normalizeName(choice.sectionLabel) === "equipment");
+      if (!equipmentChoice) {
+        const backgroundDescription = selectedOptionDescription("background", fieldValue("Background"));
+        const fixedEquipment = extractColonSection(backgroundDescription, ["Equipment"], ["Feature", "Suggested Characteristics"]);
+        if (fixedEquipment) {
+          const equipmentText = normalizeBackgroundEquipmentText(fixedEquipment);
+          applyCurrencySource("background:equipment", parseCurrencyText(equipmentText));
+          setGeneratedEquipmentValue(removeCurrencyText(equipmentText));
+        } else {
+          applyCurrencySource("background:equipment", null);
+          setGeneratedEquipmentValue("");
+        }
+        return;
+      }
+      const selected = selectedChoice(equipmentChoice.key);
+      const option = equipmentChoice.options.find((item) => item.value === selected);
+      if (!option) {
+        applyCurrencySource("background:equipment", null);
+        return;
+      }
+
+      const equipmentTextWithCoins = normalizeBackgroundEquipmentText(option.text);
+      applyCurrencySource("background:equipment", parseCurrencyText(equipmentTextWithCoins));
+      setGeneratedEquipmentValue(removeCurrencyText(equipmentTextWithCoins));
+    }
+
+    function renderBackgroundChoiceControls(option) {
+      const choices = findBackgroundChoicesForOption(option);
+      if (!choices.length) return [];
+      return choices.map((choice) => {
+        const group = document.createElement("div");
+        group.className = "option-choice-group";
+
+        const title = document.createElement("div");
+        title.className = "option-choice-title";
+        title.textContent = choice.label;
+        group.appendChild(title);
+
+        choice.options.forEach((item) => {
+          const isMultiple = (choice.count || 1) > 1;
+          const label = document.createElement("label");
+          label.className = "option-choice";
+
+          const input = document.createElement("input");
+          input.type = isMultiple ? "checkbox" : "radio";
+          input.name = choice.key;
+          input.value = item.value;
+          input.checked = selectedChoiceValues(choice).includes(item.value);
+          input.addEventListener("change", () => {
+            if (activeSelectField?.dataset.optionType === "background") {
+              activeSelectField.value = optionName(option);
+              activeSelectField.dispatchEvent(new Event("input", { bubbles: true }));
+              activeSelectField.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            if (isMultiple) {
+              if (!updateMultiChoiceSelection(choice, item.value, input.checked)) input.checked = false;
+            } else {
+              setSelectedChoice(choice.key, item.value);
+            }
+            setOptionDescription(option);
+          });
+
+          const text = document.createElement("span");
+          text.className = "option-choice-text";
+          text.textContent = item.label;
+          label.append(input, text);
+          group.appendChild(label);
+        });
+        return group;
+      });
     }
 
     function selectedSpellCountForLevel(level) {
@@ -1773,10 +3675,11 @@
         addAlert(alerts, "important", "Elegir spells", "Ya tienes spell slots, pero no seleccionaste spells de nivel 1+.");
       }
 
-      const backgroundChoice = findBackgroundEquipmentChoice();
-      if (backgroundChoice && !selectedChoice(backgroundChoice.key)) {
-        addAlert(alerts, "important", backgroundChoice.label, "El background tiene paquete A/B pendiente.", backgroundChoice);
-      }
+      findSelectedBackgroundChoices()
+        .filter((choice) => !isBackgroundChoiceComplete(choice))
+        .forEach((choice) => {
+          addAlert(alerts, "important", choice.label, "El background tiene una opcion pendiente.", choice);
+        });
 
       ["PersonalityTraits ", "Ideals", "Bonds", "Flaws"].forEach((key) => {
         if (!fieldValue(key)) addAlert(alerts, "optional", `Completar ${key.trim()}`, "Ayuda a definir roleplay, pero no bloquea la ficha.");
@@ -1796,16 +3699,23 @@
       if (!alert.choice) return null;
       const group = document.createElement("div");
       group.className = "alert-choice-group";
+      const isMultiple = (alert.choice.count || 1) > 1;
       alert.choice.options.forEach((option) => {
         const label = document.createElement("label");
         label.className = "alert-choice";
 
         const input = document.createElement("input");
-        input.type = "radio";
+        input.type = isMultiple ? "checkbox" : "radio";
         input.name = alert.choice.key;
         input.value = option.value;
-        input.checked = selectedChoice(alert.choice.key) === option.value;
-        input.addEventListener("change", () => setSelectedChoice(alert.choice.key, option.value));
+        input.checked = selectedChoiceValues(alert.choice).includes(option.value);
+        input.addEventListener("change", () => {
+          if (isMultiple) {
+            if (!updateMultiChoiceSelection(alert.choice, option.value, input.checked)) input.checked = false;
+          } else {
+            setSelectedChoice(alert.choice.key, option.value);
+          }
+        });
 
         const text = document.createElement("span");
         text.className = "alert-choice-text";
@@ -1817,12 +3727,23 @@
     }
 
     function renderAlertsPanel() {
-      if (!alertsList || !alertsCounts) return;
+      if (!alertsList || !alertsCounts || !alertsPanel || !alertsTrigger || !alertsIcon || !alertsBadge) return;
       const alerts = buildSheetAlerts();
       const counts = alerts.reduce((acc, alert) => {
         acc[alert.severity] = (acc[alert.severity] || 0) + 1;
         return acc;
       }, {});
+      const total = alerts.length;
+      const topSeverity = alerts[0]?.severity || "empty";
+      const summary = total
+        ? `${total} alerta(s): ${counts.critical || 0} criticas, ${counts.important || 0} importantes, ${counts.optional || 0} opcionales`
+        : "No hay alertas pendientes";
+
+      alertsPanel.className = `alerts-panel ${topSeverity}`;
+      alertsTrigger.setAttribute("aria-label", summary);
+      alertsTrigger.title = summary;
+      alertsIcon.textContent = "!";
+      alertsBadge.textContent = String(total);
       alertsCounts.textContent = `${counts.critical || 0} crit / ${counts.important || 0} imp / ${counts.optional || 0} opc`;
       alertsList.textContent = "";
 
@@ -1839,11 +3760,6 @@
         item.className = `alert-item ${alert.severity}`;
         item.title = alert.detail;
 
-        const icon = document.createElement("span");
-        icon.className = "alert-icon";
-        icon.textContent = "!";
-        icon.title = alert.detail;
-
         const body = document.createElement("div");
         const title = document.createElement("div");
         title.className = "alert-title";
@@ -1856,7 +3772,7 @@
         body.append(title, detail);
         const choice = renderAlertChoice(alert);
         if (choice) body.appendChild(choice);
-        item.append(icon, body);
+        item.appendChild(body);
         alertsList.appendChild(item);
       });
     }
@@ -1914,6 +3830,75 @@
         ]
       }
     };
+
+    function skillCheckboxByName() {
+      const map = new Map();
+      Object.values(DERIVED_STAT_FIELDS).forEach((config) => {
+        config.skills.forEach((skill) => {
+          map.set(normalizeName(skill.field), skill.proficiency);
+          if (normalizeName(skill.field) === "animal") map.set("animal handling", skill.proficiency);
+          if (normalizeName(skill.field) === "sleightofhand") map.set("sleight of hand", skill.proficiency);
+        });
+      });
+      return map;
+    }
+
+    function selectedBackgroundSkillChoices() {
+      return findSelectedBackgroundChoices()
+        .filter((choice) => normalizeName(choice.sectionLabel) === "skill proficiencies" || normalizeName(choice.sectionLabel) === "skill proficiency")
+        .flatMap((choice) => isBackgroundChoiceComplete(choice) ? selectedChoiceValues(choice) : []);
+    }
+
+    function fixedBackgroundSkillProficiencies() {
+      const description = selectedOptionDescription("background", fieldValue("Background"));
+      const section = extractColonSection(description, ["Skill Proficiencies", "Skill Proficiency"], [
+        "Tool Proficiencies",
+        "Tool Proficiency",
+        "Languages and Tool Proficiencies",
+        "Languages",
+        "Equipment",
+        "Feature",
+        "Suggested Characteristics"
+      ]);
+      if (!section) return [];
+      const fixedText = section
+        .replace(/Choose\s+(?:one|two|three)\s+from\s+among\s+[^.;]+/gi, "")
+        .replace(/(?:,\s*|\s+and\s+)?(?:plus\s+)?(?:your choice of\s+)?one\s+from\s+among\s+[^.;]+/gi, "")
+        .replace(/(?:,\s*|\s+and\s+)?one\s+[^.;]+?\s+skill\s+of your choice/gi, "")
+        .replace(/(?:,\s*)?the skill associated with your faction[^.;]+/gi, "")
+        .replace(/^(?:Choose\s+)?(?:Any\s+)?(?:one|two|three)\s+of your choice$/i, "");
+      return skillsFromText(fixedText);
+    }
+
+    function applyGeneratedSkillProficiencies(sourceKey, skillNames) {
+      if (!sheetMeta.generatedSkillProficiencies || typeof sheetMeta.generatedSkillProficiencies !== "object") sheetMeta.generatedSkillProficiencies = {};
+      const checkboxMap = skillCheckboxByName();
+      const previous = sheetMeta.generatedSkillProficiencies[sourceKey] || [];
+      previous.forEach((checkboxKey) => {
+        const field = getFieldByKey(checkboxKey);
+        if (!field) return;
+        field.checked = false;
+        delete field.dataset.generatedSkillSource;
+      });
+
+      const next = [];
+      skillNames.forEach((skillName) => {
+        const checkboxKey = checkboxMap.get(normalizeName(skillName));
+        const field = checkboxKey ? getFieldByKey(checkboxKey) : null;
+        if (!field) return;
+        field.checked = true;
+        field.dataset.generatedSkillSource = sourceKey;
+        next.push(checkboxKey);
+      });
+
+      if (next.length) sheetMeta.generatedSkillProficiencies[sourceKey] = [...new Set(next)];
+      else delete sheetMeta.generatedSkillProficiencies[sourceKey];
+    }
+
+    function updateBackgroundSkillProficiencies() {
+      const skills = [...fixedBackgroundSkillProficiencies(), ...selectedBackgroundSkillChoices()];
+      applyGeneratedSkillProficiencies("background", [...new Set(skills.map((skill) => SKILL_NAMES.find((item) => normalizeName(item) === normalizeName(skill)) || skill))]);
+    }
 
     function proficiencyBonus() {
       const level = getFieldByKey("CharacterLevel")?.value || "";
@@ -2005,6 +3990,115 @@
         .join(" ");
     }
 
+    function strip5eTags(value) {
+      return String(value || "")
+        .replace(/{@(?:dice|damage|dc|chance)\s+([^}|]+)(?:\|[^}]*)?}/g, "$1")
+        .replace(/{@(?:feat|spell|item|filter|book|variantrule|condition|skill|creature|class|background|action|itemProperty|quickref|status|sense|hazard)\s+([^}|]+)(?:\|[^}]*)?}/g, "$1")
+        .replace(/{@b\s+([^}]+)}/g, "$1")
+        .replace(/{@i\s+([^}]+)}/g, "$1")
+        .replace(/{@[^}]+\s+([^}]+)}/g, "$1")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function flattenEntryText(entry) {
+      if (typeof entry === "string") return strip5eTags(entry);
+      if (Array.isArray(entry)) return entry.map(flattenEntryText).filter(Boolean).join(" ");
+      if (!entry || typeof entry !== "object") return "";
+      const parts = [];
+      if (entry.name) parts.push(`${entry.name}.`);
+      if (entry.entries) parts.push(flattenEntryText(entry.entries));
+      if (entry.items) parts.push(flattenEntryText(entry.items));
+      return parts.filter(Boolean).join(" ");
+    }
+
+    function featNameFromBackground(description) {
+      const stopLabels = [
+        "Skill Proficiencies",
+        "Skill Proficiency",
+        "Tool Proficiencies",
+        "Tool Proficiency",
+        "Languages and Tool Proficiencies",
+        "Languages",
+        "Equipment",
+        "Feature"
+      ];
+      return extractColonSection(description, ["Feat"], stopLabels);
+    }
+
+    function featureTextFromBackground(description) {
+      return extractColonSection(description, ["Feature"], ["Suggested Characteristics"]);
+    }
+
+    function backgroundFeatureTitle(featureText) {
+      const firstSentence = String(featureText || "").split(/(?<=[.!?])\s+/)[0] || "";
+      const titleMatch = firstSentence.match(/^(.+?)(?=\s+(?:As|You|Your|When|While|In addition|The)\b)/);
+      if (titleMatch?.[1]) return titleMatch[1].trim();
+      const words = firstSentence.split(/\s+/).filter(Boolean);
+      if (words.length <= 6) return firstSentence;
+      return words.slice(0, 6).join(" ");
+    }
+
+    function selectedBackgroundFeatName() {
+      return featNameFromBackground(selectedOptionDescription("background", fieldValue("Background")));
+    }
+
+    function selectedBackgroundFeatureText() {
+      return featureTextFromBackground(selectedOptionDescription("background", fieldValue("Background")));
+    }
+
+    function featDescription(featName) {
+      const normalized = normalizeName(featName);
+      if (!normalized) return "";
+      const feat = feats.find((item) => normalizeName(item.name) === normalized && item.source === "XPHB")
+        || feats.find((item) => normalizeName(item.name) === normalized)
+        || null;
+      if (!feat) return `${featName}: feat otorgado por el background seleccionado.`;
+      const body = flattenEntryText(feat.entries).split(/(?<=[.!?])\s+/).slice(0, 5).join(" ");
+      return `${feat.name}: ${body || "feat otorgado por el background seleccionado."}`;
+    }
+
+    function updateBackgroundFeatTraits() {
+      const featName = selectedBackgroundFeatName();
+      const featureText = selectedBackgroundFeatureText();
+      const featureTitle = backgroundFeatureTitle(featureText);
+      const field = getFieldByKey("Feat+Traits");
+      if (!field) return;
+      bindFeatureDrawer(field);
+      if (!featName && !featureText) {
+        if (field.dataset.generatedBackgroundFeat === "true") field.value = "";
+        field.dataset.generatedBackgroundFeat = "false";
+        field.dataset.featureName = "";
+        field.dataset.featureTitle = "";
+        field.dataset.featureMeta = "";
+        field.dataset.featureDescription = "";
+        field.dataset.backgroundFeature = "";
+        setFieldTitle("Feat+Traits", "Features & Traits");
+        return;
+      }
+
+      const description = featDescription(featName);
+      field.value = [
+        featName ? `Background Feat: ${featName}` : "",
+        featureTitle ? `Background Feature: ${featureTitle}` : ""
+      ].filter(Boolean).join("\n");
+      field.dataset.generatedBackgroundFeat = "true";
+      field.dataset.featureName = featName;
+      field.dataset.featureTitle = featName || featureTitle || "Background Feature";
+      field.dataset.featureMeta = featName ? "Background feat" : "Background feature";
+      field.dataset.featureDescription = description || featureText;
+      field.dataset.backgroundFeature = featureText;
+      setFieldTitle("Feat+Traits", [description, featureText].filter(Boolean).join("\n\n"));
+    }
+
+    function backgroundSectionText(backgroundDescription, labels, stopLabels) {
+      for (const label of labels) {
+        const selectedText = selectedBackgroundChoiceText(label);
+        if (selectedText !== null) return selectedText;
+      }
+      return extractColonSection(backgroundDescription, labels, stopLabels);
+    }
+
     function calculateOtherProficienciesAndLanguages() {
       const stopLabels = [
         "Source",
@@ -2031,9 +4125,9 @@
       if (classWeapons) lines.push(`Class Weapons: ${classWeapons}`);
 
       const backgroundDescription = selectedOptionDescription("background", getFieldValueByNormalizedKey("background"));
-      const backgroundToolsAndLanguages = extractColonSection(backgroundDescription, ["Languages and Tool Proficiencies"], stopLabels);
-      const backgroundTools = extractColonSection(backgroundDescription, ["Tool Proficiencies", "Tool Proficiency"], stopLabels);
-      const backgroundLanguages = extractColonSection(backgroundDescription, ["Languages"], stopLabels);
+      const backgroundToolsAndLanguages = backgroundSectionText(backgroundDescription, ["Languages and Tool Proficiencies"], stopLabels);
+      const backgroundTools = backgroundSectionText(backgroundDescription, ["Tool Proficiencies", "Tool Proficiency"], stopLabels);
+      const backgroundLanguages = backgroundSectionText(backgroundDescription, ["Languages"], stopLabels);
       if (backgroundToolsAndLanguages) lines.push(`Background Tools/Languages: ${backgroundToolsAndLanguages}`);
       else {
         if (backgroundTools) lines.push(`Background Tools: ${backgroundTools}`);
@@ -2170,6 +4264,9 @@
     }
 
     function updateDerivedStats() {
+      ensureCurrencyDefaults();
+      applySelectedBackgroundChoices();
+      updateBackgroundSkillProficiencies();
       updateProficiencyBonus();
       Object.entries(DERIVED_STAT_FIELDS).forEach(([ability, config]) => {
         const abilityField = getFieldByKey(ability);
@@ -2185,6 +4282,7 @@
       updateArmorClass();
       updateSpeed();
       updateOtherProficienciesAndLanguages();
+      updateBackgroundFeatTraits();
     }
 
     function updateSpellSlots() {
@@ -2248,18 +4346,24 @@
         const field = makeField(annotation, pageNumber, index, viewport);
         if (field) layer.appendChild(field);
       });
+      createEquipmentPanel(layer);
+      if (pageNumber === 1) createAddEquipmentButton(layer, viewport);
       if (pageNumber === 1) layer.appendChild(makeSyntheticLevelField(viewport));
       if (pageNumber === 1) createPreparedSpellsPanel(layer, viewport);
+      if (pageNumber === 1) createRollHotspots(layer, viewport);
       if (pageNumber === 3) linkPreparedSpellFields(layer);
     }
 
     async function init() {
       await loadPdfJs();
-      const [raceOptions, backgroundOptions, classOptions, spellOptions] = await Promise.all([
+      const [raceOptions, backgroundOptions, classOptions, spellOptions, featData, itemData, languageData] = await Promise.all([
         loadRaceOptions(),
         loadBackgroundOptions(),
         loadClassOptions(),
-        loadSpellOptions()
+        loadSpellOptions(),
+        loadFeatOptions(),
+        loadItemOptions(),
+        loadLanguageOptions()
       ]);
       fieldOptions = new Map([
         ["race", raceOptions],
@@ -2269,6 +4373,15 @@
         ["level", levelOptions()]
       ]);
       spells = spellOptions;
+      feats = Array.isArray(featData?.feat) ? featData.feat : [];
+      items = [
+        ...(Array.isArray(itemData?.baseItems?.baseitem) ? itemData.baseItems.baseitem : []),
+        ...(Array.isArray(itemData?.items?.item) ? itemData.items.item : [])
+      ];
+      itemProperties = Array.isArray(itemData?.baseItems?.itemProperty) ? itemData.baseItems.itemProperty : [];
+      itemTypes = Array.isArray(itemData?.baseItems?.itemType) ? itemData.baseItems.itemType : [];
+      itemMasteries = Array.isArray(itemData?.baseItems?.itemMastery) ? itemData.baseItems.itemMastery : [];
+      languages = Array.isArray(languageData?.language) ? languageData.language : [];
 
       const pdfBytes = await loadPdfBytes();
       const pdf = await pdfjsLib.getDocument({ data: pdfBytes, disableWorker: true }).promise;
@@ -2290,9 +4403,21 @@
       app.addEventListener("change", scheduleSave);
       app.addEventListener("input", updatePreparedSpellsPanel);
       app.addEventListener("change", updatePreparedSpellsPanel);
+      app.addEventListener("input", updateEquipmentPanel);
+      app.addEventListener("change", updateEquipmentPanel);
       app.addEventListener("input", renderAlertsPanel);
       app.addEventListener("change", renderAlertsPanel);
       app.addEventListener("change", handleSpellAvailabilityChange);
+      itemDrawerClose.addEventListener("click", closeItemDrawer);
+      itemPickerClose?.addEventListener("click", closeItemPicker);
+      itemPickerSearch?.addEventListener("input", renderItemPickerList);
+      itemPickerQuantity?.addEventListener("input", () => {
+        if (selectedPickerItem) showItemDrawer({ displayName: selectedPickerItem.name, quantity: pickerQuantity() }, selectedPickerItem);
+      });
+      itemPickerAdd?.addEventListener("click", addSelectedPickerItem);
+      itemPickerBackdrop?.addEventListener("click", (event) => {
+        if (event.target === itemPickerBackdrop) closeItemPicker();
+      });
       document.addEventListener("pointerdown", (event) => {
         if (!activeSelectField) return;
         if (event.target === activeSelectField || optionMenu.contains(event.target)) return;
@@ -2304,7 +4429,11 @@
         closeOptionMenu();
       }, true);
       document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeOptionMenu();
+        if (event.key === "Escape") {
+          closeOptionMenu();
+          closeItemPicker();
+          closeItemDrawer();
+        }
       });
       loading.style.display = "none";
     }

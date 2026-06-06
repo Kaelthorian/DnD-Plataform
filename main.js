@@ -26,6 +26,22 @@ function spellsFilePath() {
   return path.join(__dirname, "spells.json");
 }
 
+function featsFilePath() {
+  return path.join(__dirname, "5etools-src-main", "data", "feats.json");
+}
+
+function itemsFilePath() {
+  return path.join(__dirname, "5etools-src-main", "data", "items.json");
+}
+
+function baseItemsFilePath() {
+  return path.join(__dirname, "5etools-src-main", "data", "items-base.json");
+}
+
+function languagesFilePath() {
+  return path.join(__dirname, "5etools-src-main", "data", "languages.json");
+}
+
 async function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -123,5 +139,26 @@ ipcMain.handle("classes:load", async () => {
 
 ipcMain.handle("spells:load", async () => {
   const raw = await fs.readFile(spellsFilePath(), "utf8");
+  return JSON.parse(raw);
+});
+
+ipcMain.handle("feats:load", async () => {
+  const raw = await fs.readFile(featsFilePath(), "utf8");
+  return JSON.parse(raw);
+});
+
+ipcMain.handle("items:load", async () => {
+  const [itemsRaw, baseItemsRaw] = await Promise.all([
+    fs.readFile(itemsFilePath(), "utf8"),
+    fs.readFile(baseItemsFilePath(), "utf8")
+  ]);
+  return {
+    items: JSON.parse(itemsRaw),
+    baseItems: JSON.parse(baseItemsRaw)
+  };
+});
+
+ipcMain.handle("languages:load", async () => {
+  const raw = await fs.readFile(languagesFilePath(), "utf8");
   return JSON.parse(raw);
 });
