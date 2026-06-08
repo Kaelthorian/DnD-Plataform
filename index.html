@@ -103,7 +103,7 @@
     .equipment-header,
     .equipment-row {
       display: grid;
-      grid-template-columns: 26px minmax(0, 1fr) 42px 48px;
+      grid-template-columns: 24px minmax(0, 1fr) 36px 50px 18px;
       gap: 3px;
       align-items: center;
     }
@@ -168,6 +168,27 @@
       cursor: pointer;
     }
 
+    .equipment-remove {
+      width: 17px;
+      height: 17px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(0, 0, 0, 0.34);
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.82);
+      color: #111;
+      font: 700 10px/1 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .equipment-remove:hover,
+    .equipment-remove:focus {
+      background: #8b1e24;
+      color: #fff;
+      outline: none;
+    }
+
     .equipment-equip.equipped {
       background: #111;
       color: #fff;
@@ -218,7 +239,7 @@
       width: min(560px, calc(100vw - 36px));
       height: min(640px, calc(100vh - 36px));
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
       gap: 10px;
       padding: 14px;
       border: 1px solid rgba(0, 0, 0, 0.36);
@@ -268,6 +289,32 @@
       border: 1px solid #b8b8b8;
       border-radius: 4px;
       font: inherit;
+    }
+
+    .item-picker-filters {
+      display: flex;
+      min-width: 0;
+      overflow-x: auto;
+      border-bottom: 1px solid #d0d0d0;
+    }
+
+    .item-picker-filter {
+      flex: 0 0 auto;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+      background: #fff;
+      color: #111;
+      font: 700 11px/1 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .item-picker-filter.active {
+      border-bottom-color: #111;
+      background: #f0f0f0;
+      color: #111;
     }
 
     .item-picker-list {
@@ -456,6 +503,25 @@
 
     .item-section-list li + li {
       margin-top: 5px;
+    }
+
+    .feature-list-button {
+      width: 100%;
+      display: block;
+      padding: 8px 9px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      background: #fff;
+      color: #111;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .feature-list-button:hover,
+    .feature-list-button:focus {
+      background: #f0f0f0;
+      outline: none;
     }
 
     .item-source {
@@ -705,7 +771,7 @@
 
     .prepared-spell-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 20px 22px 34px;
+      grid-template-columns: minmax(0, 1fr) 20px 44px 34px;
       gap: 3px;
       align-items: center;
       min-height: 18px;
@@ -749,6 +815,16 @@
       background: #111;
       color: #fff;
       outline: none;
+    }
+
+    .dice-button.active {
+      background: #2f6f3e;
+      color: #fff;
+    }
+
+    .dice-button:disabled {
+      opacity: 0.45;
+      cursor: default;
     }
 
     .roll-hotspot {
@@ -1123,6 +1199,14 @@
         <div class="item-picker-title" id="itemPickerTitle">Agregar item</div>
         <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Cerrar">X</button>
       </div>
+      <div class="item-picker-filters" id="itemPickerFilters" aria-label="Filtros de items">
+        <button class="item-picker-filter active" type="button" data-filter="all">Todos</button>
+        <button class="item-picker-filter" type="button" data-filter="weapon">Armas</button>
+        <button class="item-picker-filter" type="button" data-filter="armor">Armaduras</button>
+        <button class="item-picker-filter" type="button" data-filter="accessory">Accesorios</button>
+        <button class="item-picker-filter" type="button" data-filter="consumable">Consumibles</button>
+        <button class="item-picker-filter" type="button" data-filter="gear">Equipo</button>
+      </div>
       <input class="item-picker-search" id="itemPickerSearch" type="search" placeholder="Buscar item">
       <div class="item-picker-list" id="itemPickerList"></div>
       <div class="item-picker-actions">
@@ -1162,6 +1246,7 @@
     const itemPickerBackdrop = document.getElementById("itemPickerBackdrop");
     const itemPickerClose = document.getElementById("itemPickerClose");
     const itemPickerSearch = document.getElementById("itemPickerSearch");
+    const itemPickerFilters = document.getElementById("itemPickerFilters");
     const itemPickerList = document.getElementById("itemPickerList");
     const itemPickerQuantity = document.getElementById("itemPickerQuantity");
     const itemPickerAdd = document.getElementById("itemPickerAdd");
@@ -1170,6 +1255,9 @@
     let spells = [];
     let feats = [];
     let items = [];
+    let raceDetails = [];
+    let classDetails = [];
+    let optionalFeatures = [];
     let itemProperties = [];
     let itemTypes = [];
     let itemMasteries = [];
@@ -1181,6 +1269,7 @@
     let diceTimer = null;
     let selectedPickerItem = null;
     let sheetMeta = { choices: {} };
+    let activeItemFilter = "all";
 
     async function loadPdfJs() {
       try {
@@ -1216,6 +1305,12 @@
       return response.json();
     }
 
+    async function loadRaceDetails() {
+      const response = await fetch("./5etools-src-main/data/races.json");
+      if (!response.ok) return {};
+      return response.json();
+    }
+
     async function loadBackgroundOptions() {
       if (desktopStore?.loadBackgrounds) return desktopStore.loadBackgrounds();
       const response = await fetch("./backgrounds.json");
@@ -1228,6 +1323,16 @@
       return response.json();
     }
 
+    async function loadClassDetails() {
+      const indexResponse = await fetch("./5etools-src-main/data/class/index.json");
+      if (!indexResponse.ok) return [];
+      const classIndex = await indexResponse.json();
+      const files = Object.values(classIndex).filter((file) => /^class-.*\.json$/i.test(file));
+      const responses = await Promise.all(files.map((file) => fetch(`./5etools-src-main/data/class/${file}`).catch(() => null)));
+      const loaded = await Promise.all(responses.map(async (response) => response?.ok ? response.json() : null));
+      return loaded.filter(Boolean);
+    }
+
     async function loadSpellOptions() {
       if (desktopStore?.loadSpells) return desktopStore.loadSpells();
       const response = await fetch("./spells.json");
@@ -1237,6 +1342,12 @@
     async function loadFeatOptions() {
       if (desktopStore?.loadFeats) return desktopStore.loadFeats();
       const response = await fetch("./5etools-src-main/data/feats.json");
+      return response.json();
+    }
+
+    async function loadOptionalFeatureOptions() {
+      const response = await fetch("./5etools-src-main/data/optionalfeatures.json");
+      if (!response.ok) return {};
       return response.json();
     }
 
@@ -1637,6 +1748,10 @@
       return parseSignedNumber(getFieldValueByNormalizedKey("strmod"));
     }
 
+    function getDexterityModifier() {
+      return parseSignedNumber(getFieldValueByNormalizedKey("dexmod"));
+    }
+
     function getUnarmedAttackBonus() {
       return getStrengthModifier() + parseSignedNumber(getFieldValueByNormalizedKey("profbonus"));
     }
@@ -1712,6 +1827,143 @@
 
     function descriptionForSpell(spell) {
       return spell?.description || "Sin descripcion disponible.";
+    }
+
+    function weaponAbilityModifier(item) {
+      const str = getStrengthModifier();
+      const dex = getDexterityModifier();
+      const ranged = itemTypeAbbreviation(item) === "R";
+      if (hasItemProperty(item, "F")) return Math.max(str, dex);
+      return ranged ? dex : str;
+    }
+
+    function equippedArmorWithoutProficiency() {
+      return equippedEntries()
+        .some(({ item, record }) => ["armor", "offHand"].includes(record.slot) && (isArmorItem(item) || isShieldItem(item)) && !hasEquipmentProficiency(item));
+    }
+
+    function weaponAttackSelection(entry, item, slot) {
+      const ability = weaponAbilityModifier(item);
+      const proficient = hasEquipmentProficiency(item);
+      const armorPenalty = equippedArmorWithoutProficiency();
+      const prof = proficient ? proficiencyBonus() : 0;
+      const damageBonus = slot === "offHand" ? 0 : ability;
+      const record = equippedRecord(equipmentItemKey(entry));
+      const damageDice = record?.twoHanded && item.dmg2 ? item.dmg2 : item.dmg1 || "1d4";
+      const damageExpression = `${damageDice}${damageBonus ? formatModifier(damageBonus) : ""}`;
+      return {
+        name: `${item.name || entry.displayName}${record?.twoHanded ? " (2M)" : slot === "offHand" ? " (Off)" : ""}`,
+        damage: damageExpression,
+        damageLabel: damageExpression,
+        damageType: (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase(),
+        description: itemDescriptionText(item),
+        attackBonus: ability + prof,
+        attackLabel: [
+          proficient ? "weapon attack" : "sin prof",
+          armorPenalty ? "desventaja por armadura/shield sin prof" : ""
+        ].filter(Boolean).join(", "),
+        level: 0
+      };
+    }
+
+    function equippedWeaponAttackSelections() {
+      return equippedEntries()
+        .filter(({ item, record }) => isWeaponItem(item) && ["mainHand", "offHand"].includes(record.slot))
+        .map(({ entry, item, record }) => weaponAttackSelection(entry, item, record.slot));
+    }
+
+    function featureGrantedAttackSelections() {
+      const rows = [];
+      const entries = generatedFeaturesAndTraitsEntries();
+      const seen = new Set();
+      entries.forEach((entry) => {
+        const description = String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "");
+        const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "";
+        const key = normalizeName(`${title}:${description.slice(0, 80)}`);
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        if (/\bspellcasting\b|\bpact magic\b/i.test(title) || /\byour spellcasting ability\b|\bcast spells\b/i.test(description)) {
+          rows.push({
+            name: title || "Spellcasting",
+            damage: "",
+            damageLabel: "--",
+            damageType: "",
+            description,
+            attackBonus: getSpellAttackBonus(),
+            attackLabel: "spell attack",
+            level: 0
+          });
+          return;
+        }
+
+        if (!/\battack\b/i.test(description)) return;
+        const damageMatch = description.match(/\b(\d+d\d+(?:\s*[+-]\s*\d+)?)\b[^.]{0,80}\b(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\b/i);
+        if (!damageMatch) return;
+        rows.push({
+          name: title,
+          damage: damageMatch[1].replace(/\s+/g, ""),
+          damageLabel: damageMatch[1].replace(/\s+/g, ""),
+          damageType: damageMatch[2].toLowerCase(),
+          description,
+          attackBonus: /\bspell attack\b/i.test(description) ? getSpellAttackBonus() : getUnarmedAttackBonus(),
+          attackLabel: /\bspell attack\b/i.test(description) ? "feature spell attack" : "feature attack",
+          level: 0
+        });
+      });
+      return rows;
+    }
+
+    function activeFeatureState() {
+      if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
+      return sheetMeta.activeFeatures;
+    }
+
+    function activationKeyForEntry(entry) {
+      const source = entry.feature || entry.optionalFeature || {};
+      return [
+        source.className || entry.meta || "feature",
+        source.source || "",
+        source.level || "",
+        source.name || entry.title
+      ].map((item) => normalizeName(String(item))).join("|");
+    }
+
+    function isActivatableFeature(entry) {
+      const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "";
+      const description = String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "");
+      const text = `${title}\n${description}`;
+      const hasAttackDamage = /\battack\b/i.test(text) && /\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i.test(text);
+      if (/\bspellcasting\b|\bpact magic\b|\bspell attack\b/i.test(text) || hasAttackDamage) return false;
+      return /\b(action|bonus action|reaction)\b|\bwhile active\b|\bactivate\b|\benter (?:it|your)\b|\buse this feature\b|\bexpend\b/i.test(text);
+    }
+
+    function featureActivationSelections() {
+      return generatedFeaturesAndTraitsEntries()
+        .filter(isActivatableFeature)
+        .map((entry) => {
+          const key = activationKeyForEntry(entry);
+          const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "Feature";
+          return {
+            kind: "activation",
+            key,
+            name: title.replace(/^Level \d+:\s*/i, ""),
+            damage: "",
+            damageLabel: "--",
+            damageType: "",
+            description: entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || ""),
+            active: Boolean(activeFeatureState()[key]),
+            level: 0
+          };
+        });
+    }
+
+    function toggleFeatureActivation(row) {
+      const state = activeFeatureState();
+      state[row.key] = !state[row.key];
+      showStatus(`${row.name}: ${state[row.key] ? "activo" : "inactivo"}`);
+      updatePreparedSpellsPanel();
+      scheduleSave();
     }
 
     function rollDie(sides) {
@@ -1801,7 +2053,10 @@
           };
         })
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-      return [unarmed, ...preparedSpells];
+      const attacks = mainHandUsesTwoHands()
+        ? []
+        : [unarmed];
+      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...featureActivationSelections(), ...preparedSpells];
     }
 
     function updatePreparedSpellsPanel() {
@@ -1830,16 +2085,24 @@
         const attackButton = document.createElement("button");
         attackButton.type = "button";
         attackButton.className = "dice-button";
-        attackButton.textContent = "d20";
-        attackButton.title = `Tirar ataque para ${spell.name}`;
-        attackButton.addEventListener("click", () => rollAttack(spell.name, spell.attackBonus, spell.attackLabel));
+        if (spell.kind === "activation") {
+          attackButton.textContent = spell.active ? "Activo" : "Activar";
+          attackButton.title = `${spell.active ? "Desactivar" : "Activar"} ${spell.name}`;
+          attackButton.classList.toggle("active", spell.active);
+          attackButton.addEventListener("click", () => toggleFeatureActivation(spell));
+        } else {
+          attackButton.textContent = "d20";
+          attackButton.title = `Tirar ataque para ${spell.name}`;
+          attackButton.addEventListener("click", () => rollAttack(spell.name, spell.attackBonus, spell.attackLabel));
+        }
 
         const damageButton = document.createElement("button");
         damageButton.type = "button";
         damageButton.className = "dice-button";
         damageButton.textContent = spell.damageLabel || "--";
         damageButton.title = spell.damageLabel ? `Tirar danio ${spell.damageLabel} ${spell.damageType}`.trim() : "Sin dados de danio detectados";
-        damageButton.addEventListener("click", () => rollDamage(spell.name, spell.damage || "", spell.damageType));
+        if (spell.kind === "activation") damageButton.disabled = true;
+        else damageButton.addEventListener("click", () => rollDamage(spell.name, spell.damage || "", spell.damageType));
 
         row.append(name, damageType, attackButton, damageButton);
         preparedSpellsPanel.appendChild(row);
@@ -1903,14 +2166,23 @@
       return typeof option === "string" ? option : option.name || "";
     }
 
-    function optionDescriptionText(option) {
+    function rawOptionDescriptionText(option) {
       if (!option || typeof option === "string") return "";
       return option.description || "";
     }
 
+    function optionDescriptionText(option) {
+      if (!option || typeof option === "string") return "";
+      const rawDescription = rawOptionDescriptionText(option);
+      if (activeSelectField?.dataset.optionType === "class") return classDescriptionText(optionName(option), rawDescription);
+      if (activeSelectField?.dataset.optionType === "race") return raceDescriptionText(optionName(option), rawDescription);
+      if (activeSelectField?.dataset.optionType === "level") return levelDescriptionText(Number(optionName(option)));
+      return rawDescription;
+    }
+
     function splitDescriptionLines(description) {
       return description
-        .replace(/\s+(Age|Alignment|Size|Speed|Flight|Source|Hit Die|Armor|Weapons|Ability Scores|Feat|Skill Proficiencies|Tool Proficiencies|Languages|Equipment):/g, "\n$1:")
+        .replace(/\s+(Age|Alignment|Size|Speed|Flight|Source|Hit Die|Armor|Weapons|Saving Throws|Skills|Equipment|Starting Equipment|Spellcasting|Cantrips|Prepared Spells|Spell Slots|Features|Level Summary|Ability Scores|Feat|Skill Proficiencies|Tool Proficiencies|Languages):/g, "\n$1:")
         .split(/\n|(?<=[.!?])\s+(?=[A-Z])/)
         .map((line) => line.trim())
         .filter(Boolean);
@@ -2177,7 +2449,7 @@
             save.field,
             `${saveLabel} saving throw`,
             save.field,
-            ({ x2, y1, y2 }) => [x2 + 4, y1 - 2, x2 + 112, y2 + 2]
+            ({ x2, y1, y2 }) => [x2 + 4, y1 - 2, x2 + 72, y2 + 2]
           );
         });
 
@@ -2191,7 +2463,7 @@
             skill.field,
             skillLabel,
             skill.field,
-            ({ x2, y1, y2 }) => [x2 + 4, y1 - 2, x2 + 120, y2 + 2]
+            ({ x2, y1, y2 }) => [x2 + 4, y1 - 2, x2 + 72, y2 + 2]
           );
         });
       });
@@ -2202,7 +2474,7 @@
         "Initiative",
         "Initiative",
         "Initiative",
-        ({ x1, y1, x2, y2 }) => [x1 - 8, y1 - 22, x2 + 8, y1 - 3]
+        ({ x1, y1, x2, y2 }) => [x1 - 4, y1 - 18, x2 + 4, y1 - 4]
       );
     }
 
@@ -2213,9 +2485,10 @@
       layer.dataset.addEquipmentButtonCreated = "true";
 
       const x1 = Number(ppField.dataset.pdfX1);
+      const y1 = Number(ppField.dataset.pdfY1);
       const y2 = Number(ppField.dataset.pdfY2);
       const x2 = Number(ppField.dataset.pdfX2);
-      if (![x1, y2, x2].every(Number.isFinite)) return;
+      if (![x1, y1, y2, x2].every(Number.isFinite)) return;
 
       const button = document.createElement("button");
       button.type = "button";
@@ -2224,7 +2497,7 @@
       button.title = "Agregar item";
       button.setAttribute("aria-label", "Agregar item");
       button.addEventListener("click", openItemPicker);
-      placeFromPdfRect(button, viewport, [x1, y2 + 3, x2, y2 + 21]);
+      placeFromPdfRect(button, viewport, [x1, y1 - 21, x2, y1 - 3]);
       layer.appendChild(button);
     }
 
@@ -2243,7 +2516,7 @@
 
       const header = document.createElement("div");
       header.className = "equipment-header";
-      ["Cant", "Item", "Valor", ""].forEach((label) => {
+      ["Cant", "Item", "Valor", "", ""].forEach((label) => {
         const cell = document.createElement("div");
         cell.textContent = label;
         header.appendChild(cell);
@@ -2354,6 +2627,8 @@
       if (!sheetMeta.currencySources || typeof sheetMeta.currencySources !== "object") sheetMeta.currencySources = {};
       if (typeof sheetMeta.generatedEquipmentText !== "string") sheetMeta.generatedEquipmentText = "";
       if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
+      if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
+      if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
       if (!sheetMeta.generatedSkillProficiencies || typeof sheetMeta.generatedSkillProficiencies !== "object") sheetMeta.generatedSkillProficiencies = {};
       document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
@@ -2424,6 +2699,24 @@
       field.title = value || field.dataset.key || key;
     }
 
+    function getFeaturesTraitsField() {
+      const exactKeys = [
+        "Features and Traits",
+        "Features & Traits",
+        "Features Traits",
+        "FeaturesTraits"
+      ];
+      for (const key of exactKeys) {
+        const field = getFieldByKey(key);
+        if (field && field.dataset.pageNumber === "1") return field;
+      }
+      return [...document.querySelectorAll(".field")]
+        .find((field) => {
+          const key = field.dataset.key?.trim().toLowerCase() || "";
+          return field.dataset.pageNumber === "1" && key.includes("feature") && key.includes("trait");
+        }) || null;
+    }
+
     function setGeneratedEquipmentValue(value) {
       const field = getFieldByKey("Equipment");
       if (!field) return;
@@ -2484,7 +2777,6 @@
       ["Hair", "Pelo"],
       ["Backstory", "Backstory"],
       ["Allies", "Allies"],
-      ["Feat+Traits", "Features & Traits"],
       ["Treasure", "Treasure"]
     ];
 
@@ -3003,6 +3295,294 @@
       return root;
     }
 
+    function featureChoiceKey(feature) {
+      return [feature?.className || "feature", feature?.source || "", feature?.level || "", feature?.name || ""]
+        .map((item) => normalizeName(String(item)))
+        .join("|");
+    }
+
+    function selectedFeatureChoices(key) {
+      const value = sheetMeta.featureChoices?.[key];
+      return Array.isArray(value) ? value : value ? [value] : [];
+    }
+
+    function setSelectedFeatureChoices(key, values) {
+      if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
+      const next = [...new Set(values.filter(Boolean))];
+      if (next.length) sheetMeta.featureChoices[key] = next;
+      else delete sheetMeta.featureChoices[key];
+      updateBackgroundFeatTraits();
+      updateArmorClass();
+      updatePreparedSpellsPanel();
+      renderAlertsPanel();
+      scheduleSave();
+    }
+
+    function optionalFeatureByName(name) {
+      const normalized = normalizeName(name);
+      return optionalFeatures.find((item) => normalizeName(item.name || "") === normalized && item.source === "XPHB")
+        || optionalFeatures.find((item) => normalizeName(item.name || "") === normalized && item.source === "PHB")
+        || optionalFeatures.find((item) => normalizeName(item.name || "") === normalized)
+        || null;
+    }
+
+    function featureChoiceOptionData(option) {
+      const name = option.optionalfeature || option.feat || option.name || "";
+      const cleanName = strip5eTags(String(name).split("|")[0]);
+      if (!cleanName) return null;
+      const optional = option.optionalfeature ? optionalFeatureByName(cleanName) : null;
+      const feat = option.feat ? findFeatData(cleanName) : null;
+      return {
+        value: cleanName,
+        label: cleanName,
+        type: option.optionalfeature ? "optionalfeature" : option.feat ? "feat" : "choice",
+        description: flattenEntryText(optional?.entries || feat?.entries || option.entries || option.entry || "")
+      };
+    }
+
+    function weaponMasteryOptionsForFeature(feature) {
+      const text = flattenEntryText(feature?.entries || "").toLowerCase();
+      const meleeOnly = /melee weapons|martial melee|melee weapon/.test(text) && !/simple weapon;martial weapon/.test(text);
+      const needsProficiency = /with which you have proficiency/i.test(text);
+      const seen = new Set();
+      return itemPickerItems()
+        .filter((item) => item.source === "XPHB" && item.weapon && item.mastery?.length)
+        .filter((item) => !meleeOnly || itemTypeAbbreviation(item) === "M")
+        .filter((item) => !needsProficiency || hasEquipmentProficiency(item))
+        .filter((item) => {
+          const key = normalizeName(item.name);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map((item) => {
+          const masteryName = splitRef(item.mastery[0]).abbreviation;
+          const mastery = masteryData(item.mastery[0]);
+          const description = flattenEntryText(mastery?.entries || "");
+          return {
+            value: `weapon-mastery:${item.name}`,
+            label: `${item.name} (${masteryName})`,
+            type: "weaponMastery",
+            weaponName: item.name,
+            masteryName,
+            description
+          };
+        });
+    }
+
+    function weaponMasteryCountForFeature(feature) {
+      const className = normalizeName(feature?.className || "");
+      const level = Math.max(1, Math.min(20, getCharacterLevel()));
+      if (className === "fighter") return level >= 16 ? 6 : level >= 9 ? 5 : level >= 4 ? 4 : 3;
+      if (["barbarian", "rogue", "paladin", "ranger"].includes(className)) return level >= 10 ? 4 : level >= 4 ? 3 : 2;
+      const text = flattenEntryText(feature?.entries || "");
+      const wordMatch = text.match(/of\s+(one|two|three|four|five|six)\s+kinds?/i);
+      if (wordMatch) return countWordToNumber(wordMatch[1]);
+      const numberMatch = text.match(/of\s+(\d+)\s+kinds?/i);
+      return numberMatch ? Number.parseInt(numberMatch[1], 10) : 1;
+    }
+
+    function collectStructuredChoiceSpecs(entries, specs = []) {
+      if (!entries) return specs;
+      const list = Array.isArray(entries) ? entries : [entries];
+      list.forEach((entry) => {
+        if (!entry || typeof entry !== "object") return;
+        if (entry.type === "options" && Array.isArray(entry.entries)) {
+          const options = entry.entries.map(featureChoiceOptionData).filter(Boolean);
+          if (options.length) specs.push({ label: entry.name || "Elegir opcion", count: entry.count || 1, options });
+        }
+        collectStructuredChoiceSpecs(entry.entries, specs);
+        collectStructuredChoiceSpecs(entry.items, specs);
+      });
+      return specs;
+    }
+
+    function featureChoiceSpecs(feature) {
+      const specs = collectStructuredChoiceSpecs(feature?.entries || []);
+      const text = flattenEntryText(feature?.entries || "").toLowerCase();
+      if (feature?.isRaceFeature && /origin feat/.test(text)) {
+        const options = feats
+          .filter((feat) => feat.category === "O")
+          .map((feat) => ({ value: feat.name, label: feat.name, type: "feat", description: flattenEntryText(feat.entries) }));
+        if (options.length) specs.push({ label: "Origin Feat", count: 1, options });
+      }
+      if (feature?.isRaceFeature && /proficiency in one skill of your choice|one skill of your choice/.test(text)) {
+        const options = SKILL_NAMES.map((skill) => ({ value: skill, label: skill, type: "skill", description: "" }));
+        specs.push({ label: "Skill", count: 1, options });
+      }
+      if (feature?.isRaceFeature && /choose (?:a )?(?:lineage|legacy)/.test(text)) {
+        const table = (feature.entries || []).find((entry) => entry?.type === "table" && Array.isArray(entry.rows));
+        const options = (table?.rows || [])
+          .map((row) => Array.isArray(row) ? row[0] : null)
+          .filter(Boolean)
+          .map((value) => ({ value: strip5eTags(value), label: strip5eTags(value), type: "raceChoice", description: "" }));
+        if (options.length) specs.push({ label: table?.caption || "Race Choice", count: 1, options });
+      }
+      if (feature?.isSubclassChoice) {
+        const options = subclassOptionsForFeature(feature);
+        if (options.length) specs.push({ label: "Subclass", count: 1, options });
+      }
+      if (/weapon mastery/.test(feature?.name || "") || /weapon mastery properties/.test(text)) {
+        const options = weaponMasteryOptionsForFeature(feature);
+        if (options.length) specs.push({ label: "Weapon Mastery", count: weaponMasteryCountForFeature(feature), options });
+      }
+      if (/fighting style feat/.test(text)) {
+        const options = feats
+          .filter((feat) => feat.category === "FS")
+          .filter((feat, index, list) => list.findIndex((item) => normalizeName(item.name) === normalizeName(feat.name)) === index)
+          .map((feat) => ({ value: feat.name, label: feat.name, type: "feat", description: flattenEntryText(feat.entries) }));
+        if (options.length) specs.push({ label: "Fighting Style", count: 1, options });
+      }
+      if (/epic boon feat/.test(text)) {
+        const options = feats
+          .filter((feat) => feat.category === "EB")
+          .map((feat) => ({ value: feat.name, label: feat.name, type: "feat", description: flattenEntryText(feat.entries) }));
+        if (options.length) specs.push({ label: "Epic Boon", count: 1, options });
+      }
+      if (/eldritch invocation/.test(text) && /choice|choose|invocation of your choice/.test(text)) {
+        const options = optionalFeatures
+          .filter((item) => (item.featureType || []).includes("EI"))
+          .map((item) => ({ value: item.name, label: item.name, type: "optionalfeature", description: flattenEntryText(item.entries) }));
+        if (options.length) specs.push({ label: "Eldritch Invocation", count: 1, options });
+      }
+      return specs;
+    }
+
+    function appendFeatureChoiceControls(root, feature) {
+      const specs = featureChoiceSpecs(feature);
+      if (!specs.length) return;
+      const key = featureChoiceKey(feature);
+      const selected = selectedFeatureChoices(key);
+      specs.forEach((spec, specIndex) => {
+        const section = document.createElement("div");
+        section.className = "option-choice-group";
+        appendText(section, "option-choice-title", `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`);
+        spec.options.forEach((option) => {
+          const label = document.createElement("label");
+          label.className = "option-choice";
+          const input = document.createElement("input");
+          input.type = spec.count > 1 ? "checkbox" : "radio";
+          input.name = `${key}:${specIndex}`;
+          input.value = option.value;
+          input.checked = selected.includes(option.value);
+          input.addEventListener("change", () => {
+            const current = selectedFeatureChoices(key).filter((value) => !spec.options.some((item) => item.value === value));
+            let picked = [...section.querySelectorAll("input:checked")].map((item) => item.value);
+            if (picked.length > spec.count) {
+              input.checked = false;
+              picked = picked.filter((value) => value !== option.value);
+              showStatus(`Maximo ${spec.count} opcion(es)`);
+            }
+            setSelectedFeatureChoices(key, [...current, ...picked]);
+          });
+          const text = document.createElement("span");
+          text.className = "option-choice-text";
+          text.textContent = option.description ? `${option.label}: ${option.description.split(/(?<=[.!?])\s+/)[0]}` : option.label;
+          label.append(input, text);
+          section.appendChild(label);
+        });
+        root.appendChild(section);
+      });
+    }
+
+    function buildClassFeatureDrawerContent(feature) {
+      const root = document.createElement("div");
+      root.className = "item-sheet";
+      appendText(root, "item-sheet-title", feature?.name || "Class Feature", "h2");
+      appendText(root, "item-sheet-subtitle", [
+        feature?.className ? `${feature.className} level ${feature.level}` : "",
+        sourceLabel(feature?.source),
+        feature?.page ? `p${feature.page}` : ""
+      ].filter(Boolean).join(" - "));
+      appendEntryBlocks(root, feature?.entries || feature?.entry || [], "Descripcion");
+      appendFeatureChoiceControls(root, feature);
+      appendText(root, "item-source", [
+        feature?.source ? `Source: ${sourceLabel(feature.source)}${feature.page ? `, page ${feature.page}` : ""}.` : "",
+        feature?.className ? `Class: ${feature.className}.` : ""
+      ].filter(Boolean).join(" "));
+      return root;
+    }
+
+    function appendFeatureBackButton(root, entries) {
+      if (!entries?.length) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "feature-list-button";
+      button.textContent = "Volver";
+      button.addEventListener("click", () => {
+        showDrawer("Features & Traits", "Generated", buildFeaturesAndTraitsDrawerContent(entries));
+      });
+      root.prepend(button);
+    }
+
+    function openFeatureEntry(entry, entries = []) {
+      if (!entry) return;
+      if (entry.type === "feat") {
+        const feat = findFeatData(entry.featName || entry.title);
+        const body = buildFeatDrawerContent(feat, entry.title, entry.backgroundFeature || "");
+        appendFeatureBackButton(body, entries);
+        showDrawer(
+          feat?.name || entry.title,
+          feat ? [FEAT_CATEGORY_LABELS[feat.category] || "Feat", sourceLabel(feat.source), feat.page ? `p${feat.page}` : ""].filter(Boolean).join(" - ") : entry.meta,
+          body
+        );
+        return;
+      }
+      if (entry.type === "classFeature") {
+        const body = buildClassFeatureDrawerContent(entry.feature);
+        appendFeatureBackButton(body, entries);
+        showDrawer(entry.feature?.name || entry.title, entry.meta, body);
+        return;
+      }
+      if (entry.type === "raceFeature") {
+        const body = buildClassFeatureDrawerContent(entry.feature);
+        appendFeatureBackButton(body, entries);
+        showDrawer(entry.feature?.name || entry.title, entry.meta, body);
+        return;
+      }
+      if (entry.type === "optionalfeature") {
+        const body = buildTextFeatureDrawerContent(entry.optionalFeature?.name || entry.title, flattenEntryText(entry.optionalFeature?.entries || entry.description || ""), entry.meta);
+        appendFeatureBackButton(body, entries);
+        showDrawer(entry.optionalFeature?.name || entry.title, entry.meta, body);
+        return;
+      }
+      if (entry.type === "weaponMastery") {
+        const body = buildTextFeatureDrawerContent(`${entry.weaponName} (${entry.masteryName})`, entry.description, "Weapon Mastery");
+        appendFeatureBackButton(body, entries);
+        showDrawer(`${entry.weaponName} (${entry.masteryName})`, "Weapon Mastery", body);
+        return;
+      }
+      if (entry.type === "subclass") {
+        const body = buildTextFeatureDrawerContent(entry.subclass?.name || entry.title, entry.description || "Subclass seleccionada.", entry.meta);
+        appendFeatureBackButton(body, entries);
+        showDrawer(entry.subclass?.name || entry.title, entry.meta, body);
+        return;
+      }
+      const body = buildTextFeatureDrawerContent(entry.title, entry.description, entry.meta);
+      appendFeatureBackButton(body, entries);
+      showDrawer(entry.title, entry.meta, body);
+    }
+
+    function buildFeaturesAndTraitsDrawerContent(entries) {
+      const root = document.createElement("div");
+      root.className = "item-sheet";
+      appendText(root, "item-sheet-title", "Features & Traits", "h2");
+      appendText(root, "item-sheet-subtitle", `${entries.length} entrada(s) generadas`);
+      if (!entries.length) {
+        appendItemSection(root, "Sin datos", "Elegí una clase/background y nivel para generar features.");
+        return root;
+      }
+      entries.forEach((entry) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "feature-list-button";
+        button.textContent = `${entry.title}${entry.meta ? ` - ${entry.meta}` : ""}`;
+        button.addEventListener("click", () => openFeatureEntry(entry, entries));
+        root.appendChild(button);
+      });
+      return root;
+    }
+
     function equippedItems() {
       if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
       return sheetMeta.equippedItems;
@@ -3010,6 +3590,253 @@
 
     function equipmentItemKey(entry) {
       return normalizeItemLookupName(entry.displayName);
+    }
+
+    function hasItemProperty(item, abbreviation) {
+      return (item?.property || []).some((ref) => splitRef(ref).abbreviation === abbreviation);
+    }
+
+    function itemTypeAbbreviation(item) {
+      return splitRef(item?.type).abbreviation;
+    }
+
+    function isArmorItem(item) {
+      return Boolean(item?.armor || ["LA", "MA", "HA"].includes(itemTypeAbbreviation(item)));
+    }
+
+    function isShieldItem(item) {
+      return itemTypeAbbreviation(item) === "S" || normalizeItemLookupName(item?.name || "") === "shield";
+    }
+
+    function isWeaponItem(item) {
+      return Boolean(item?.weapon || item?.weaponCategory || ["M", "R"].includes(itemTypeAbbreviation(item)));
+    }
+
+    function isConsumableItem(item) {
+      const typeName = itemTypeName(item?.type).toLowerCase();
+      return /\b(potion|scroll|ammunition|food|drink)\b/.test(typeName) || ["P", "SC", "A", "FD"].includes(itemTypeAbbreviation(item));
+    }
+
+    function isAccessoryItem(item) {
+      const typeName = itemTypeName(item?.type).toLowerCase();
+      return /\b(ring|rod|staff|wand|wondrous|tattoo|focus)\b/.test(typeName)
+        || ["RG", "RD", "ST", "WD", "W", "OTH"].includes(itemTypeAbbreviation(item)) && item?.rarity && item.rarity !== "none";
+    }
+
+    function itemFilterCategory(item) {
+      if (isWeaponItem(item)) return "weapon";
+      if (isArmorItem(item) || isShieldItem(item)) return "armor";
+      if (isAccessoryItem(item)) return "accessory";
+      if (isConsumableItem(item)) return "consumable";
+      return "gear";
+    }
+
+    function itemEquipKind(item) {
+      if (isWeaponItem(item)) return "weapon";
+      if (isShieldItem(item)) return "shield";
+      if (isArmorItem(item)) return "armor";
+      if (isAccessoryItem(item)) return "accessory";
+      return "";
+    }
+
+    function equippedRecord(key) {
+      const value = equippedItems()[key];
+      if (!value) return null;
+      if (value === true) return { slot: "legacy" };
+      return typeof value === "object" ? value : null;
+    }
+
+    function recordSlots(record) {
+      if (!record) return [];
+      if (Array.isArray(record.slots)) return record.slots.filter(Boolean);
+      return record.slot ? [record.slot] : [];
+    }
+
+    function slotLabel(slot, proficient = true) {
+      const labels = {
+        mainHand: "Main",
+        offHand: "Off",
+        armor: "Armadura",
+        accessory: "Acc."
+      };
+      return `${labels[slot] || "Equipado"}${proficient ? "" : " !"}`;
+    }
+
+    function recordLabel(record) {
+      const slots = recordSlots(record);
+      if (!slots.length) return "Equipado";
+      return slots.map((slot) => {
+        const label = slotLabel(slot, record.proficient !== false);
+        return slot === "mainHand" && record.twoHanded ? `${label} 2M` : label;
+      }).join("+");
+    }
+
+    function equippedEntries() {
+      return equipmentEntries()
+        .flatMap((entry) => {
+          const key = equipmentItemKey(entry);
+          const item = findItemData(entry.displayName);
+          const record = equippedRecord(key);
+          return recordSlots(record).map((slot) => ({ entry, key, item, record: { ...record, slot } }));
+        })
+        .filter(Boolean);
+    }
+
+    function equippedInSlot(slot) {
+      return equippedEntries().find((item) => item.record.slot === slot) || null;
+    }
+
+    function mainHandUsesTwoHands() {
+      const main = equippedInSlot("mainHand");
+      return Boolean(main?.item && (hasItemProperty(main.item, "2H") || main.record.twoHanded));
+    }
+
+    function pruneEquippedItems() {
+      const quantities = new Map(equipmentEntries().map((entry) => [equipmentItemKey(entry), entry.quantity]));
+      Object.keys(equippedItems()).forEach((key) => {
+        const quantity = quantities.get(key) || 0;
+        if (quantity <= 0) {
+          delete equippedItems()[key];
+          return;
+        }
+        const record = equippedRecord(key);
+        if (record?.slot === "legacy") return;
+        const slots = recordSlots(record).slice(0, quantity);
+        if (!slots.length) delete equippedItems()[key];
+        else equippedItems()[key] = { ...record, slots, slot: undefined, twoHanded: record.twoHanded && slots.includes("mainHand") };
+      });
+    }
+
+    function combinedProficiencyText() {
+      return [
+        selectedOptionDescription("class", getSelectedClassName()),
+        selectedOptionDescription("race", getSelectedRaceName()),
+        selectedOptionDescription("background", getFieldValueByNormalizedKey("background")),
+        fieldValue("ProficienciesLang")
+      ].join(" ").toLowerCase();
+    }
+
+    function hasEquipmentProficiency(item) {
+      const text = combinedProficiencyText();
+      if (!item) return false;
+      if (isShieldItem(item)) return /\bshield(s)?\b/.test(text);
+      if (isArmorItem(item)) {
+        const type = itemTypeAbbreviation(item);
+        if (type === "LA") return /\blight\b/.test(text);
+        if (type === "MA") return /\bmedium\b/.test(text);
+        if (type === "HA") return /\bheavy\b/.test(text);
+        return true;
+      }
+      if (isWeaponItem(item)) {
+        const category = normalizeName(item.weaponCategory || "");
+        const name = normalizeItemLookupName(item.name || "");
+        if (category && new RegExp(`\\b${category}\\b`).test(text)) return true;
+        if (text.includes(name)) return true;
+        return /\ball weapons\b|\bsimple, martial\b|\bmartial, simple\b/.test(text);
+      }
+      return true;
+    }
+
+    function armorRuleFromItem(item) {
+      if (!item) return null;
+      const namedRule = ARMOR_AC_RULES.find((rule) => normalizeItemLookupName(rule.name) === normalizeItemLookupName(item.name || ""));
+      if (namedRule) return namedRule;
+      if (!Number.isFinite(item.ac)) return null;
+      const type = itemTypeAbbreviation(item);
+      const dexCap = type === "HA" ? 0 : type === "MA" ? 2 : null;
+      return { name: item.name, base: item.ac, dexCap };
+    }
+
+    function canEquipToSlot(entry, item, slot) {
+      const kind = itemEquipKind(item);
+      const key = equipmentItemKey(entry);
+      if (!kind) return { ok: false, reason: "Ese item no tiene slot equipable." };
+      if (slot === "mainHand" && kind !== "weapon") return { ok: false, reason: "Solo armas pueden ir en main hand." };
+      if (slot === "offHand" && !["weapon", "shield"].includes(kind)) return { ok: false, reason: "Solo arma ligera o shield pueden ir en off hand." };
+      if (slot === "armor" && kind !== "armor") return { ok: false, reason: "Solo armaduras pueden ir en armadura." };
+      if (slot === "accessory" && kind !== "accessory") return { ok: false, reason: "Solo accesorios pueden ir como accesorio." };
+      if (slot === "offHand" && kind === "weapon" && !hasItemProperty(item, "L")) return { ok: false, reason: "El arma de off hand tiene que ser Light." };
+      if (slot === "mainHand" && hasItemProperty(item, "2H") && equippedInSlot("offHand")) return { ok: false, reason: "Un arma two-handed necesita la off hand libre." };
+      if (slot === "offHand" && mainHandUsesTwoHands()) return { ok: false, reason: "La main hand esta usando dos manos." };
+
+      const occupied = equippedInSlot(slot);
+      if (occupied && occupied.key !== key) return { ok: false, reason: `${slotLabel(slot)} ya esta ocupado.` };
+      return { ok: true };
+    }
+
+    function preferredEquipSlot(entry, item) {
+      const kind = itemEquipKind(item);
+      const key = equipmentItemKey(entry);
+      const current = equippedRecord(key);
+      if (current?.slot && current.slot !== "legacy") return "";
+      if (kind === "armor") return "armor";
+      if (kind === "shield") return "offHand";
+      if (kind === "accessory") return "accessory";
+      if (kind === "weapon") {
+        if (!equippedInSlot("mainHand")) return "mainHand";
+        if (hasItemProperty(item, "L") && !equippedInSlot("offHand")) return "offHand";
+        return "mainHand";
+      }
+      return "";
+    }
+
+    function setEquipped(entry, item, slot) {
+      const key = equipmentItemKey(entry);
+      if (!slot) {
+        delete equippedItems()[key];
+        return true;
+      }
+      const check = canEquipToSlot(entry, item, slot);
+      if (!check.ok) {
+        showStatus(check.reason);
+        return false;
+      }
+      const current = equippedRecord(key);
+      const slots = current && current.slot !== "legacy" ? recordSlots(current) : [];
+      if (!slots.includes(slot)) slots.push(slot);
+      equippedItems()[key] = { slots, proficient: hasEquipmentProficiency(item) };
+      return true;
+    }
+
+    function setVersatileTwoHanded(entry, item) {
+      const key = equipmentItemKey(entry);
+      const current = equippedRecord(key);
+      if (!hasItemProperty(item, "V") || !recordSlots(current).includes("mainHand")) return false;
+      if (equippedInSlot("offHand")) {
+        showStatus("Necesitas off hand libre para usarla en dos manos.");
+        return false;
+      }
+      equippedItems()[key] = { ...current, slots: ["mainHand"], twoHanded: true, proficient: hasEquipmentProficiency(item) };
+      return true;
+    }
+
+    function toggleEquipped(entry, item) {
+      const key = equipmentItemKey(entry);
+      const current = equippedRecord(key);
+      let nextSlot = "";
+      if (!current) {
+        nextSlot = preferredEquipSlot(entry, item);
+      } else if (isWeaponItem(item) && hasItemProperty(item, "V") && recordSlots(current).includes("mainHand") && !current.twoHanded) {
+        const changed = setVersatileTwoHanded(entry, item);
+        if (!changed) return;
+        scheduleSave();
+        updateEquipmentPanel();
+        updateArmorClass();
+        updatePreparedSpellsPanel();
+        renderAlertsPanel();
+        return;
+      } else if (isWeaponItem(item) && hasItemProperty(item, "L") && entry.quantity > recordSlots(current).length) {
+        const slots = recordSlots(current);
+        if (!slots.includes("mainHand") && !equippedInSlot("mainHand")) nextSlot = "mainHand";
+        else if (!slots.includes("offHand") && !equippedInSlot("offHand")) nextSlot = "offHand";
+      }
+      const changed = nextSlot ? setEquipped(entry, item, nextSlot) : setEquipped(entry, item, "");
+      if (!changed) return;
+      scheduleSave();
+      updateEquipmentPanel();
+      updateArmorClass();
+      updatePreparedSpellsPanel();
+      renderAlertsPanel();
     }
 
     function showDrawer(title, meta, body) {
@@ -3036,6 +3863,12 @@
     }
 
     function showFeatureDrawer(field) {
+      if (field?.dataset.generatedFeaturesAndTraits === "true") {
+        const entries = generatedFeaturesAndTraitsEntries();
+        showDrawer("Features & Traits", "Generated", buildFeaturesAndTraitsDrawerContent(entries));
+        return;
+      }
+
       const featName = field.dataset.featureName || selectedBackgroundFeatName();
       const featureText = field.dataset.backgroundFeature || selectedBackgroundFeatureText();
       const feat = findFeatData(featName);
@@ -3072,10 +3905,21 @@
       const query = normalizeName(itemPickerSearch?.value || "");
       const selectedKey = normalizeName(selectedPickerItem?.name || "");
       itemPickerList.textContent = "";
+      itemPickerFilters?.querySelectorAll(".item-picker-filter").forEach((button) => {
+        button.classList.toggle("active", button.dataset.filter === activeItemFilter);
+      });
       itemPickerItems()
         .filter((item) => {
+          const matchesFilter = activeItemFilter === "all" || itemFilterCategory(item) === activeItemFilter;
+          if (!matchesFilter) return false;
           if (!query) return true;
-          return normalizeName([item.name, itemTypeName(item.type), sourceLabel(item.source)].filter(Boolean).join(" ")).includes(query);
+          return normalizeName([
+            item.name,
+            itemTypeName(item.type),
+            item.weaponCategory,
+            itemFilterCategory(item),
+            sourceLabel(item.source)
+          ].filter(Boolean).join(" ")).includes(query);
         })
         .forEach((item) => {
           const row = document.createElement("button");
@@ -3152,6 +3996,33 @@
       showStatus("Item agregado");
     }
 
+    function removeItemFromEquipment(entry, quantity = 1) {
+      const field = getFieldByKey("Equipment");
+      if (!field) return;
+      const targetKey = equipmentItemKey(entry);
+      const nextLines = [];
+      equipmentLines().forEach((line) => {
+        const current = parseEquipmentLine(line);
+        if (equipmentItemKey(current) !== targetKey) {
+          nextLines.push(line);
+          return;
+        }
+        const nextQuantity = current.quantity - quantity;
+        if (nextQuantity > 0) nextLines.push(formatEquipmentEntryLine(nextQuantity, current.displayName));
+        else delete equippedItems()[targetKey];
+      });
+
+      field.value = nextLines.join("\n");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      scheduleSave();
+      updateEquipmentPanel();
+      updateArmorClass();
+      updatePreparedSpellsPanel();
+      renderAlertsPanel();
+      showStatus("Item removido");
+    }
+
     function addSelectedPickerItem() {
       if (!selectedPickerItem) return;
       addItemToEquipment(selectedPickerItem, pickerQuantity());
@@ -3168,6 +4039,7 @@
 
     function updateEquipmentPanel() {
       if (!equipmentPanel) return;
+      pruneEquippedItems();
       const list = equipmentPanel.querySelector(".equipment-list");
       if (!list) return;
       list.textContent = "";
@@ -3204,16 +4076,24 @@
         equip.type = "button";
         equip.className = "equipment-equip";
         const key = equipmentItemKey(entry);
-        const equipped = Boolean(equippedItems()[key]);
-        equip.textContent = equipped ? "Equipado" : "Equipar";
+        const record = equippedRecord(key);
+        if (record?.slot === "legacy") setEquipped(entry, item, preferredEquipSlot(entry, item));
+        const nextRecord = equippedRecord(key);
+        const equipped = Boolean(nextRecord);
+        equip.textContent = equipped ? recordLabel(nextRecord) : "Equipar";
         equip.classList.toggle("equipped", equipped);
-        equip.addEventListener("click", () => {
-          equippedItems()[key] = !equippedItems()[key];
-          scheduleSave();
-          updateEquipmentPanel();
-        });
+        equip.title = equipped ? "Desequipar item" : "Equipar item";
+        equip.addEventListener("click", () => toggleEquipped(entry, item));
 
-        row.append(qty, name, value, equip);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "equipment-remove";
+        remove.textContent = "X";
+        remove.title = "Sacar 1 item";
+        remove.setAttribute("aria-label", `Sacar ${entry.displayName}`);
+        remove.addEventListener("click", () => removeItemFromEquipment(entry, 1));
+
+        row.append(qty, name, value, equip, remove);
         list.appendChild(row);
       });
     }
@@ -3647,6 +4527,44 @@
         .length;
     }
 
+    function requiredSpellCountForLevel(level) {
+      if (level === 0) return cantripsKnownForCharacter();
+      const slots = spellSlotsForCharacter();
+      return slots[level - 1] || 0;
+    }
+
+    function addMissingSpellAlerts(alerts) {
+      const cantripRequired = requiredSpellCountForLevel(0);
+      const cantripSelected = selectedSpellCountForLevel(0);
+      if (cantripRequired > 0 && cantripSelected < cantripRequired) {
+        addAlert(alerts, "important", "Elegir cantrips", `Faltan ${cantripRequired - cantripSelected} cantrip(s). Tu clase permite ${cantripRequired}; seleccionaste ${cantripSelected}.`);
+      }
+
+      for (let level = 1; level <= maxSpellLevelForCharacter(); level += 1) {
+        const required = requiredSpellCountForLevel(level);
+        if (required <= 0) continue;
+        const selected = selectedSpellCountForLevel(level);
+        if (selected < required) {
+          addAlert(alerts, "important", `Elegir spells nivel ${level}`, `Faltan ${required - selected} spell(s) de nivel ${level}. Slots disponibles: ${required}; seleccionaste ${selected}.`);
+        }
+      }
+    }
+
+    function addMissingFeatureChoiceAlerts(alerts) {
+      choosableFeatureEntriesForCharacter().forEach((entry) => {
+        const specs = featureChoiceSpecs(entry.feature);
+        if (!specs.length) return;
+        const key = featureChoiceKey(entry.feature);
+        const selected = selectedFeatureChoices(key);
+        specs.forEach((spec) => {
+          const selectedForSpec = selected.filter((value) => spec.options.some((option) => option.value === value)).length;
+          if (selectedForSpec < spec.count) {
+            addAlert(alerts, "important", `Elegir ${entry.feature.name}`, `Faltan ${spec.count - selectedForSpec} opcion(es) en ${spec.label}. Abrí Features & Traits para elegir.`);
+          }
+        });
+      });
+    }
+
     function hasChoiceLanguageOrToolText() {
       return /of your choice|choose one|choose two|choose a|choose either/i.test(fieldValue("ProficienciesLang"));
     }
@@ -3665,15 +4583,14 @@
         addAlert(alerts, "important", "Elegir proficiencies/languages", "Hay opciones como 'of your choice' que requieren decision manual.");
       }
 
-      const cantripLimit = cantripsKnownForCharacter();
-      if (cantripLimit > 0 && selectedSpellCountForLevel(0) < cantripLimit) {
-        addAlert(alerts, "important", "Elegir cantrips", `Tu clase permite ${cantripLimit} cantrip(s); seleccionaste ${selectedSpellCountForLevel(0)}.`);
-      }
+      addMissingSpellAlerts(alerts);
+      addMissingFeatureChoiceAlerts(alerts);
 
-      const maxSpellLevel = maxSpellLevelForCharacter();
-      if (maxSpellLevel > 0 && selectedSpellCountForLevel(1) === 0) {
-        addAlert(alerts, "important", "Elegir spells", "Ya tienes spell slots, pero no seleccionaste spells de nivel 1+.");
-      }
+      equippedEntries()
+        .filter(({ item }) => item && !hasEquipmentProficiency(item))
+        .forEach(({ item, record }) => {
+          addAlert(alerts, "important", `${item.name}: sin proficiency`, `Equipado en ${slotLabel(record.slot)} con penalizacion.`);
+        });
 
       findSelectedBackgroundChoices()
         .filter((choice) => !isBackgroundChoiceComplete(choice))
@@ -3936,7 +4853,7 @@
       const raceName = normalizeName(getSelectedRaceName());
       if (!raceName) return "";
       const race = (fieldOptions.get("race") || []).find((option) => normalizeName(optionName(option)) === raceName);
-      return optionDescriptionText(race).toLowerCase();
+      return rawOptionDescriptionText(race).toLowerCase();
     }
 
     function selectedOption(type, selectedName) {
@@ -3947,7 +4864,7 @@
 
     function selectedOptionDescription(type, selectedName) {
       const option = selectedOption(type, selectedName);
-      return optionDescriptionText(option);
+      return rawOptionDescriptionText(option);
     }
 
     function cleanExtractedProficiencyText(value) {
@@ -4012,6 +4929,291 @@
       return parts.filter(Boolean).join(" ");
     }
 
+    function titleCaseWords(values = []) {
+      return values.map((value) => String(value || "")
+        .split(/\s+/)
+        .map((word) => word ? `${word[0].toUpperCase()}${word.slice(1)}` : "")
+        .join(" "));
+    }
+
+    function preferredClassSource(classes = []) {
+      return classes.find((item) => item.source === "XPHB")
+        || classes.find((item) => item.source === "PHB")
+        || classes[0]
+        || null;
+    }
+
+    function preferredRaceSource(races = []) {
+      return races.find((item) => item.source === "XPHB")
+        || races.find((item) => item.source === "MPMM")
+        || races.find((item) => item.source === "PHB")
+        || races[0]
+        || null;
+    }
+
+    function raceDetailByName(raceName) {
+      const normalized = normalizeName(raceName);
+      if (!normalized) return null;
+      const matches = raceDetails.filter((race) => normalizeName(race.name || "") === normalized);
+      return preferredRaceSource(matches);
+    }
+
+    function formatRaceSize(race) {
+      const values = Array.isArray(race?.size) ? race.size : [];
+      const labels = { T: "Tiny", S: "Small", M: "Medium", L: "Large" };
+      return values.length ? `Size: ${values.map((value) => labels[value] || value).join(" or ")}.` : "";
+    }
+
+    function formatRaceSpeed(race) {
+      if (Number.isFinite(race?.speed)) return `Speed: ${race.speed} ft.`;
+      if (typeof race?.speed === "object" && race.speed) {
+        return `Speed: ${Object.entries(race.speed).map(([key, value]) => `${key} ${value} ft.`).join(", ")}.`;
+      }
+      return "";
+    }
+
+    function formatRaceAbility(race) {
+      const ability = Array.isArray(race?.ability) ? race.ability[0] : null;
+      if (!ability || typeof ability !== "object") return "";
+      const parts = Object.entries(ability)
+        .filter(([, value]) => Number.isFinite(value))
+        .map(([key, value]) => `${key.toUpperCase()} ${formatModifier(value)}`);
+      return parts.length ? `Ability: ${parts.join(", ")}.` : "";
+    }
+
+    function raceDescriptionText(raceName, fallbackDescription = "") {
+      const race = raceDetailByName(raceName);
+      if (!race) return fallbackDescription;
+      const lines = [
+        `Source: ${sourceLabel(race.source)}${race.page ? `, page ${race.page}` : ""}.`,
+        formatRaceSize(race),
+        formatRaceSpeed(race),
+        formatRaceAbility(race)
+      ].filter(Boolean);
+      if (fallbackDescription) lines.push(`Summary: ${fallbackDescription}`);
+      if (race.entries?.length) {
+        lines.push("Traits:");
+        race.entries.forEach((entry) => {
+          const name = entry.name || "Trait";
+          const body = flattenEntryText(entry.entries || entry).split(/(?<=[.!?])\s+/).slice(0, 2).join(" ");
+          lines.push(`${name}: ${body}`);
+        });
+      }
+      return lines.join("\n");
+    }
+
+    function classDetailByName(className) {
+      const normalized = normalizeName(className);
+      if (!normalized) return null;
+      const matching = classDetails
+        .flatMap((file) => (file.class || []).map((classItem) => ({ file, classItem })))
+        .filter(({ classItem }) => normalizeName(classItem.name || "") === normalized);
+      if (!matching.length) return null;
+      const selected = preferredClassSource(matching.map(({ classItem }) => classItem));
+      const file = matching.find(({ classItem }) => classItem === selected)?.file || matching[0].file;
+      return { file, classItem: selected };
+    }
+
+    function formatStartingProficiencies(proficiencies = {}) {
+      const lines = [];
+      if (proficiencies.armor?.length) lines.push(`Armor: ${titleCaseWords(proficiencies.armor).join(", ")}.`);
+      if (proficiencies.weapons?.length) lines.push(`Weapons: ${titleCaseWords(proficiencies.weapons).join(", ")}.`);
+      if (proficiencies.tools?.length) lines.push(`Tools: ${titleCaseWords(proficiencies.tools).join(", ")}.`);
+      const skillParts = (proficiencies.skills || []).map((skill) => {
+        if (typeof skill === "string") return titleCaseWords([skill])[0];
+        if (skill?.choose?.from) return `Choose ${skill.choose.count || 1}: ${titleCaseWords(skill.choose.from).join(", ")}`;
+        return "";
+      }).filter(Boolean);
+      if (skillParts.length) lines.push(`Skills: ${skillParts.join("; ")}.`);
+      return lines;
+    }
+
+    function formatHitDie(classItem) {
+      return classItem?.hd?.faces ? `Hit Die: d${classItem.hd.faces}.` : "";
+    }
+
+    function formatSavingThrows(classItem) {
+      return classItem?.proficiency?.length ? `Saving Throws: ${classItem.proficiency.map((item) => item.toUpperCase()).join(", ")}.` : "";
+    }
+
+    function formatStartingEquipment(classItem) {
+      const equipment = classItem?.startingEquipment;
+      if (!equipment) return [];
+      const lines = [];
+      if (equipment.default?.length) lines.push(`Starting Equipment: ${equipment.default.map(strip5eTags).join(" ")}`);
+      if (equipment.goldAlternative) lines.push(`Gold Alternative: ${strip5eTags(equipment.goldAlternative)}.`);
+      return lines;
+    }
+
+    function classFeaturesFor(detail, level = null) {
+      if (!detail) return [];
+      const { file, classItem } = detail;
+      return (file.classFeature || [])
+        .filter((feature) => feature.className === classItem.name)
+        .filter((feature) => feature.classSource === classItem.source || feature.source === classItem.source)
+        .filter((feature) => level == null || Number(feature.level) === Number(level))
+        .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+    }
+
+    function classSubclassChoiceFeature(detail) {
+      if (!detail?.classItem?.classFeatures) return null;
+      const ref = detail.classItem.classFeatures.find((item) => typeof item === "object" && item.gainSubclassFeature)
+        || detail.classItem.classFeatures.find((item) => /subclass/i.test(typeof item === "string" ? item : item.classFeature || ""));
+      if (!ref) return null;
+      const raw = typeof ref === "string" ? ref : ref.classFeature || "";
+      const parts = raw.split("|");
+      const level = Number.parseInt(parts[3] || "", 10) || Number.parseInt(String(raw).match(/\|(\d+)$/)?.[1] || "", 10) || 3;
+      return {
+        name: `${detail.classItem.name} Subclass`,
+        source: detail.classItem.source,
+        page: detail.classItem.page,
+        className: detail.classItem.name,
+        classSource: detail.classItem.source,
+        level,
+        isSubclassChoice: true,
+        entries: [`Choose your ${detail.classItem.name} subclass.`]
+      };
+    }
+
+    function subclassOptionsForFeature(feature) {
+      const detail = classDetailByName(feature?.className || getMainClassName());
+      if (!detail) return [];
+      const seen = new Set();
+      return (detail.file.subclass || [])
+        .filter((subclass) => subclass.className === detail.classItem.name)
+        .filter((subclass) => subclass.classSource === detail.classItem.source || subclass.source === detail.classItem.source)
+        .filter((subclass) => {
+          const key = normalizeName(subclass.shortName || subclass.name || "");
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+        .map((subclass) => ({
+          value: subclass.shortName || subclass.name,
+          label: subclass.name || subclass.shortName,
+          type: "subclass",
+          subclass,
+          description: flattenEntryText(subclass.entries || subclass.fluff?.entries || "")
+        }));
+    }
+
+    function selectedSubclassForCharacter() {
+      const detail = classDetailByName(getMainClassName() || getSelectedClassName());
+      const choiceFeature = classSubclassChoiceFeature(detail);
+      const selected = selectedFeatureChoices(featureChoiceKey(choiceFeature))[0];
+      if (!detail || !selected) return null;
+      return (detail.file.subclass || []).find((subclass) => subclass.className === detail.classItem.name
+        && normalizeName(subclass.shortName || subclass.name || "") === normalizeName(selected)
+        && (subclass.classSource === detail.classItem.source || subclass.source === detail.classItem.source)) || null;
+    }
+
+    function subclassFeaturesForCharacter() {
+      const detail = classDetailByName(getMainClassName() || getSelectedClassName());
+      const subclass = selectedSubclassForCharacter();
+      const level = Math.max(1, Math.min(20, getCharacterLevel()));
+      if (!detail || !subclass) return [];
+      return (detail.file.subclassFeature || [])
+        .filter((feature) => feature.className === detail.classItem.name)
+        .filter((feature) => normalizeName(feature.subclassShortName || "") === normalizeName(subclass.shortName || subclass.name || ""))
+        .filter((feature) => feature.subclassSource === subclass.source || feature.source === subclass.source)
+        .filter((feature) => Number(feature.level) <= level)
+        .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+    }
+
+    function featureSummary(feature, long = false) {
+      const body = flattenEntryText(feature.entries || feature.entry || "");
+      const sentences = body.split(/(?<=[.!?])\s+/).filter(Boolean);
+      const summary = long ? sentences.slice(0, 3).join(" ") : sentences[0] || "";
+      return `${feature.name}: ${summary}`.trim();
+    }
+
+    function classTableLinesForLevel(classItem, level) {
+      if (!classItem?.classTableGroups || !level) return [];
+      const lines = [];
+      classItem.classTableGroups.forEach((group) => {
+        if (group.rowsSpellProgression?.[level - 1]) {
+          const slots = group.rowsSpellProgression[level - 1]
+            .map((count, index) => count ? `L${index + 1}: ${count}` : "")
+            .filter(Boolean)
+            .join(", ");
+          if (slots) lines.push(`${group.title || "Spell Slots"}: ${slots}.`);
+        }
+
+        const row = group.rows?.[level - 1];
+        if (!row || !group.colLabels?.length) return;
+        const parts = group.colLabels.map((label, index) => {
+          const value = row[index];
+          if (value == null || value === 0 || value === "") return "";
+          return `${strip5eTags(label)} ${value}`;
+        }).filter(Boolean);
+        if (parts.length) lines.push(parts.join(", ") + ".");
+      });
+      return lines;
+    }
+
+    function classSpellcastingLines(classItem) {
+      const lines = [];
+      if (classItem?.spellcastingAbility) lines.push(`Spellcasting: ${String(classItem.spellcastingAbility).toUpperCase()} (${classItem.casterProgression || "progression"}).`);
+      if (Array.isArray(classItem?.cantripProgression) && classItem.cantripProgression.length) lines.push(`Cantrips: ${classItem.cantripProgression.join(" / ")}.`);
+      if (Array.isArray(classItem?.preparedSpellsProgression) && classItem.preparedSpellsProgression.length) lines.push(`Prepared Spells: ${classItem.preparedSpellsProgression.join(" / ")}.`);
+      return lines;
+    }
+
+    function classDescriptionText(className, fallbackDescription = "") {
+      const detail = classDetailByName(className);
+      if (!detail) return fallbackDescription;
+      const { classItem } = detail;
+      const lines = [
+        `Source: ${sourceLabel(classItem.source)}${classItem.page ? `, page ${classItem.page}` : ""}.`,
+        formatHitDie(classItem),
+        formatSavingThrows(classItem),
+        ...formatStartingProficiencies(classItem.startingProficiencies),
+        ...formatStartingEquipment(classItem),
+        ...classSpellcastingLines(classItem)
+      ].filter(Boolean);
+
+      if (fallbackDescription) lines.push(`Summary: ${fallbackDescription}`);
+
+      const grouped = new Map();
+      classFeaturesFor(detail).forEach((feature) => {
+        if (!grouped.has(feature.level)) grouped.set(feature.level, []);
+        grouped.get(feature.level).push(featureSummary(feature));
+      });
+      if (grouped.size) {
+        lines.push("Features:");
+        grouped.forEach((features, level) => {
+          lines.push(`Level ${level}: ${features.join(" ")}`);
+        });
+      }
+      return lines.join("\n");
+    }
+
+    function levelDescriptionText(level) {
+      const className = getSelectedClassName() || getMainClassName();
+      const detail = classDetailByName(className);
+      const classItem = detail?.classItem || null;
+      const lines = [
+        `Level Summary: ${className || "Character"} level ${level}.`,
+        `Proficiency bonus: ${formatModifier(proficiencyBonusForLevel(level))}.`
+      ];
+
+      const tableLines = classTableLinesForLevel(classItem, level);
+      if (tableLines.length) lines.push(...tableLines);
+      else {
+        const slots = spellSlotsForCharacter();
+        const slotText = slots.map((count, index) => count ? `L${index + 1}: ${count}` : "").filter(Boolean).join(", ");
+        if (slotText) lines.push(`Spell Slots: ${slotText}.`);
+      }
+
+      const gained = classFeaturesFor(detail, level).map((feature) => featureSummary(feature, true));
+      if (gained.length) lines.push(`Features gained: ${gained.join(" ")}`);
+      else if (className) lines.push("Features gained: no class feature found for this level in local class data.");
+      else lines.push("Choose a class to see class features for this level.");
+
+      return lines.join("\n");
+    }
+
     function featNameFromBackground(description) {
       const stopLabels = [
         "Skill Proficiencies",
@@ -4058,37 +5260,208 @@
       return `${feat.name}: ${body || "feat otorgado por el background seleccionado."}`;
     }
 
-    function updateBackgroundFeatTraits() {
+    function backgroundFeatureEntries() {
       const featName = selectedBackgroundFeatName();
       const featureText = selectedBackgroundFeatureText();
       const featureTitle = backgroundFeatureTitle(featureText);
-      const field = getFieldByKey("Feat+Traits");
+      const entries = [];
+      if (featName) {
+        entries.push({
+          type: "feat",
+          title: `Background Feat: ${featName}`,
+          meta: "Background feat",
+          featName,
+          description: featDescription(featName),
+          backgroundFeature: featureText
+        });
+      }
+      if (featureText) {
+        entries.push({
+          type: "backgroundFeature",
+          title: `Background Feature: ${featureTitle || "Feature"}`,
+          meta: "Background feature",
+          description: featureText
+        });
+      }
+      return entries;
+    }
+
+    function classFeatureEntriesForCharacter() {
+      const className = getMainClassName() || getSelectedClassName();
+      const level = Math.max(1, Math.min(20, getCharacterLevel()));
+      const detail = classDetailByName(className);
+      if (!detail) return [];
+      const seen = new Set();
+      const classEntries = classFeaturesFor(detail)
+        .filter((feature) => Number(feature.level) <= level)
+        .filter((feature) => {
+          const key = `${feature.level}:${normalizeName(feature.name)}:${feature.source}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map((feature) => ({
+          type: "classFeature",
+          title: `Level ${feature.level}: ${feature.name}`,
+          meta: `${detail.classItem.name} feature`,
+          description: flattenEntryText(feature.entries || feature.entry || ""),
+          feature
+        }));
+      const subclassChoice = classSubclassChoiceFeature(detail);
+      if (subclassChoice && Number(subclassChoice.level) <= level) {
+        classEntries.push({
+          type: "classFeature",
+          title: `Level ${subclassChoice.level}: ${subclassChoice.name}`,
+          meta: `${detail.classItem.name} choice`,
+          description: flattenEntryText(subclassChoice.entries || ""),
+          feature: subclassChoice
+        });
+      }
+      subclassFeaturesForCharacter().forEach((feature) => {
+        classEntries.push({
+          type: "classFeature",
+          title: `Level ${feature.level}: ${feature.name}`,
+          meta: `${feature.subclassShortName || "Subclass"} feature`,
+          description: flattenEntryText(feature.entries || feature.entry || ""),
+          feature
+        });
+      });
+      return classEntries.sort((a, b) => {
+        const levelA = Number(a.feature?.level) || 0;
+        const levelB = Number(b.feature?.level) || 0;
+        return levelA - levelB || a.title.localeCompare(b.title);
+      });
+    }
+
+    function selectedFeatureChoiceEntries() {
+      return choosableFeatureEntriesForCharacter().flatMap((entry) => {
+        const key = featureChoiceKey(entry.feature);
+        return selectedFeatureChoices(key).map((choiceName) => {
+          if (entry.feature?.isRaceFeature && !choiceName.startsWith("weapon-mastery:")) {
+            const feat = findFeatData(choiceName);
+            return {
+              type: feat ? "feat" : "text",
+              title: `${entry.feature.name}: ${choiceName}`,
+              meta: feat ? "Race feat" : "Race choice",
+              featName: feat?.name,
+              description: flattenEntryText(feat?.entries || ""),
+              parentFeature: entry.feature
+            };
+          }
+          if (entry.feature?.isSubclassChoice) {
+            const subclass = subclassOptionsForFeature(entry.feature).find((option) => option.value === choiceName)?.subclass || null;
+            return {
+              type: "subclass",
+              title: `${entry.feature.name}: ${choiceName}`,
+              meta: "Subclass",
+              description: flattenEntryText(subclass?.entries || subclass?.fluff?.entries || ""),
+              subclass
+            };
+          }
+          if (choiceName.startsWith("weapon-mastery:")) {
+            const weaponName = choiceName.replace(/^weapon-mastery:/, "");
+            const item = findItemData(weaponName);
+            const masteryRef = item?.mastery?.[0] || "";
+            const masteryName = splitRef(masteryRef).abbreviation || "Mastery";
+            const mastery = masteryData(masteryRef);
+            return {
+              type: "weaponMastery",
+              title: `${entry.feature.name}: ${weaponName} (${masteryName})`,
+              meta: "Weapon Mastery",
+              description: flattenEntryText(mastery?.entries || ""),
+              weaponName,
+              masteryName,
+              mastery
+            };
+          }
+          const feat = findFeatData(choiceName);
+          const optional = optionalFeatureByName(choiceName);
+          return {
+            type: feat ? "feat" : optional ? "optionalfeature" : "text",
+            title: `${entry.feature.name}: ${choiceName}`,
+            meta: feat ? "Selected feat" : optional ? "Selected feature option" : "Selected choice",
+            featName: feat?.name,
+            optionalFeature: optional,
+            description: flattenEntryText(feat?.entries || optional?.entries || ""),
+            parentFeature: entry.feature
+          };
+        });
+      });
+    }
+
+    function raceFeatureEntriesForCharacter() {
+      const race = raceDetailByName(getSelectedRaceName());
+      if (!race?.entries?.length) return [];
+      return race.entries
+        .filter((entry) => entry && typeof entry === "object")
+        .map((entry) => {
+          const feature = {
+            name: entry.name || "Race Trait",
+            source: race.source,
+            page: race.page,
+            raceName: race.name,
+            level: 1,
+            isRaceFeature: true,
+            entries: entry.entries || [entry]
+          };
+          return {
+            type: "raceFeature",
+            title: `Race: ${feature.name}`,
+            meta: `${race.name} trait`,
+            description: flattenEntryText(feature.entries),
+            feature
+          };
+        });
+    }
+
+    function choosableFeatureEntriesForCharacter() {
+      return [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()];
+    }
+
+    function generatedFeaturesAndTraitsEntries() {
+      return [...backgroundFeatureEntries(), ...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter(), ...selectedFeatureChoiceEntries()];
+    }
+
+    function clearLegacyAdditionalFeaturesField(primaryField) {
+      const legacy = getFieldByKey("Feat+Traits");
+      if (!legacy || legacy === primaryField || legacy.dataset.pageNumber === "1") return;
+      const lines = legacy.value.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+      const looksGenerated = lines.length > 0 && lines.every((line) => /^(Background Feat|Background Feature|Level \d+):/i.test(line));
+      if (legacy.dataset.generatedFeaturesAndTraits === "true" || legacy.dataset.generatedBackgroundFeat === "true" || looksGenerated) {
+        legacy.value = "";
+        legacy.title = legacy.dataset.key || "Feat+Traits";
+        legacy.dataset.generatedFeaturesAndTraits = "false";
+        legacy.dataset.generatedBackgroundFeat = "false";
+      }
+    }
+
+    function updateBackgroundFeatTraits() {
+      const entries = generatedFeaturesAndTraitsEntries();
+      const field = getFeaturesTraitsField();
       if (!field) return;
+      clearLegacyAdditionalFeaturesField(field);
       bindFeatureDrawer(field);
-      if (!featName && !featureText) {
-        if (field.dataset.generatedBackgroundFeat === "true") field.value = "";
-        field.dataset.generatedBackgroundFeat = "false";
+      if (!entries.length) {
+        if (field.dataset.generatedFeaturesAndTraits === "true") field.value = "";
+        field.dataset.generatedFeaturesAndTraits = "false";
         field.dataset.featureName = "";
         field.dataset.featureTitle = "";
         field.dataset.featureMeta = "";
         field.dataset.featureDescription = "";
         field.dataset.backgroundFeature = "";
-        setFieldTitle("Feat+Traits", "Features & Traits");
+        field.removeAttribute("title");
         return;
       }
 
-      const description = featDescription(featName);
-      field.value = [
-        featName ? `Background Feat: ${featName}` : "",
-        featureTitle ? `Background Feature: ${featureTitle}` : ""
-      ].filter(Boolean).join("\n");
-      field.dataset.generatedBackgroundFeat = "true";
-      field.dataset.featureName = featName;
-      field.dataset.featureTitle = featName || featureTitle || "Background Feature";
-      field.dataset.featureMeta = featName ? "Background feat" : "Background feature";
-      field.dataset.featureDescription = description || featureText;
-      field.dataset.backgroundFeature = featureText;
-      setFieldTitle("Feat+Traits", [description, featureText].filter(Boolean).join("\n\n"));
+      field.value = entries.map((entry) => entry.title).join("\n");
+      field.dataset.generatedFeaturesAndTraits = "true";
+      field.dataset.generatedBackgroundFeat = "false";
+      field.dataset.featureName = "";
+      field.dataset.featureTitle = "Features & Traits";
+      field.dataset.featureMeta = "Generated";
+      field.dataset.featureDescription = entries.map((entry) => `${entry.title}\n${entry.description || ""}`).join("\n\n");
+      field.dataset.backgroundFeature = "";
+      field.removeAttribute("title");
     }
 
     function backgroundSectionText(backgroundDescription, labels, stopLabels) {
@@ -4151,8 +5524,8 @@
       return ARMOR_AC_RULES.find((rule) => rule.aliases.some((alias) => textIncludesPhrase(text, alias))) || null;
     }
 
-    function hasShieldEquipped(text) {
-      return textIncludesPhrase(text, "shield");
+    function hasShieldEquipped() {
+      return Boolean(equippedInSlot("offHand")?.item && isShieldItem(equippedInSlot("offHand").item));
     }
 
     function naturalArmorCandidates(dexModifier, conModifier) {
@@ -4180,18 +5553,49 @@
       return /gain a \+1 bonus to your armor class|gain a \+1 bonus to ac/.test(description) ? 1 : 0;
     }
 
+    function featureEffectEntries() {
+      return generatedFeaturesAndTraitsEntries()
+        .filter((entry) => entry.type !== "classFeature" || selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0)
+        .map((entry) => ({
+          title: entry.feature?.name || entry.optionalFeature?.name || entry.title || "",
+          description: String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "")
+        }));
+    }
+
+    function armorClassBonusFromFeatures(equippedArmor) {
+      let bonus = 0;
+      const hasArmor = Boolean(equippedArmor && isArmorItem(equippedArmor));
+      const hasShield = hasShieldEquipped();
+      featureEffectEntries().forEach(({ title, description }) => {
+        const text = `${title}\n${description}`;
+        const match = text.match(/(?:gain|gains|have|has|grants?)[^.]{0,80}\+(\d+)\s+bonus\s+to\s+(?:your\s+)?(?:armor class|ac)\b/i)
+          || text.match(/\+(\d+)\s+(?:to|bonus to)\s+(?:your\s+)?(?:armor class|ac)\b/i);
+        if (!match) return;
+
+        const lower = text.toLowerCase();
+        if (/wearing (?:light, medium, or heavy )?armor|wearing armor|while you(?:'re| are) wearing/i.test(text) && !hasArmor) return;
+        if (/wielding .*shield|holding .*shield|while you have a shield/i.test(text) && !hasShield) return;
+        if (/not wearing armor|aren't wearing armor|are not wearing armor/i.test(text) && hasArmor) return;
+
+        if (lower.includes("defense") && !hasArmor) return;
+        bonus += Number.parseInt(match[1], 10) || 0;
+      });
+      return bonus;
+    }
+
     function calculateArmorClass() {
       const dexModifier = abilityModifier(getFieldByKey("DEX")?.value || "");
       if (dexModifier == null) return "";
 
       const conModifier = abilityModifier(getFieldByKey("CON")?.value || "");
       const wisModifier = abilityModifier(getFieldByKey("WIS")?.value || "");
-      const text = equipmentText();
-      const shieldBonus = hasShieldEquipped(text) ? 2 : 0;
+      const equippedArmor = equippedInSlot("armor")?.item || null;
+      const shieldBonus = hasShieldEquipped() ? 2 : 0;
       const raceBonus = armorClassBonusFromRace();
+      const featureBonus = armorClassBonusFromFeatures(equippedArmor);
       const candidates = [{ ac: 10 + dexModifier, allowsShield: true }];
 
-      const armor = armorRuleFromEquipment(text);
+      const armor = armorRuleFromItem(equippedArmor);
       if (armor) candidates.push({ ac: armor.base + clampDexModifierForArmor(dexModifier, armor.dexCap), allowsShield: true });
 
       const className = normalizeName(getMainClassName());
@@ -4204,7 +5608,7 @@
       }
 
       const best = Math.max(...candidates.map((candidate) => candidate.ac + (candidate.allowsShield ? shieldBonus : 0)));
-      return String(best + raceBonus);
+      return String(best + raceBonus + featureBonus);
     }
 
     function updateArmorClass() {
@@ -4283,6 +5687,8 @@
       updateSpeed();
       updateOtherProficienciesAndLanguages();
       updateBackgroundFeatTraits();
+      updateEquipmentPanel();
+      updatePreparedSpellsPanel();
     }
 
     function updateSpellSlots() {
@@ -4356,15 +5762,19 @@
 
     async function init() {
       await loadPdfJs();
-      const [raceOptions, backgroundOptions, classOptions, spellOptions, featData, itemData, languageData] = await Promise.all([
+      const [raceOptions, raceDetailData, backgroundOptions, classOptions, classDetailData, spellOptions, featData, optionalFeatureData, itemData, languageData] = await Promise.all([
         loadRaceOptions(),
+        loadRaceDetails(),
         loadBackgroundOptions(),
         loadClassOptions(),
+        loadClassDetails(),
         loadSpellOptions(),
         loadFeatOptions(),
+        loadOptionalFeatureOptions(),
         loadItemOptions(),
         loadLanguageOptions()
       ]);
+      raceDetails = Array.isArray(raceDetailData?.race) ? raceDetailData.race : [];
       fieldOptions = new Map([
         ["race", raceOptions],
         ["background", backgroundOptions],
@@ -4373,7 +5783,9 @@
         ["level", levelOptions()]
       ]);
       spells = spellOptions;
+      classDetails = classDetailData;
       feats = Array.isArray(featData?.feat) ? featData.feat : [];
+      optionalFeatures = Array.isArray(optionalFeatureData?.optionalfeature) ? optionalFeatureData.optionalfeature : [];
       items = [
         ...(Array.isArray(itemData?.baseItems?.baseitem) ? itemData.baseItems.baseitem : []),
         ...(Array.isArray(itemData?.items?.item) ? itemData.items.item : [])
@@ -4411,6 +5823,14 @@
       itemDrawerClose.addEventListener("click", closeItemDrawer);
       itemPickerClose?.addEventListener("click", closeItemPicker);
       itemPickerSearch?.addEventListener("input", renderItemPickerList);
+      itemPickerFilters?.addEventListener("click", (event) => {
+        const button = event.target.closest(".item-picker-filter");
+        if (!button) return;
+        activeItemFilter = button.dataset.filter || "all";
+        selectedPickerItem = null;
+        if (itemPickerAdd) itemPickerAdd.disabled = true;
+        renderItemPickerList();
+      });
       itemPickerQuantity?.addEventListener("input", () => {
         if (selectedPickerItem) showItemDrawer({ displayName: selectedPickerItem.name, quantity: pickerQuantity() }, selectedPickerItem);
       });
