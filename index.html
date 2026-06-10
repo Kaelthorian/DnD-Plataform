@@ -510,6 +510,67 @@
       color: #222;
     }
 
+    .spell-picker {
+      display: grid;
+      gap: 10px;
+    }
+
+    .spell-picker-current,
+    .spell-picker-row {
+      display: grid;
+      gap: 6px;
+      padding: 8px;
+      border: 1px solid #d0d0d0;
+      border-radius: 5px;
+      background: #fff;
+    }
+
+    .spell-picker-row.active {
+      border-color: #5c3a21;
+      background: #f7f0e8;
+    }
+
+    .spell-picker-name {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: #1f1f1f;
+      font: 700 13px/1.25 "Segoe UI", Arial, sans-serif;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .spell-picker-meta {
+      color: #666;
+      font-size: 11px;
+    }
+
+    .spell-picker-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .spell-picker-button {
+      border: 1px solid #5c3a21;
+      border-radius: 4px;
+      background: #5c3a21;
+      color: #fff;
+      padding: 4px 8px;
+      font: 700 11px/1 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .spell-picker-button.secondary {
+      background: #fff;
+      color: #5c3a21;
+    }
+
+    .spell-picker-detail {
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+
     .item-section-list li + li {
       margin-top: 5px;
     }
@@ -809,6 +870,14 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+
+    .prepared-spell-name:hover,
+    .prepared-spell-name:focus {
+      background: rgba(92, 58, 33, 0.12);
+      outline: none;
     }
 
     .prepared-spell-damage-type {
@@ -1656,6 +1725,10 @@
       wizard: "INT"
     };
 
+    const ALWAYS_PREPARED_SPELLS_BY_CLASS = {
+      ranger: ["Hunter's Mark"]
+    };
+
     const SPELLCASTING_ABILITY_LABELS = {
       INT: "INT",
       WIS: "WIS",
@@ -1719,16 +1792,138 @@
 
     function canUseSpellLevel(level) {
       if (level === 0) return true;
-      return level <= maxSpellLevelForCharacter();
+      return level <= maxSpellLevelForCharacter() || featGrantedSpellChoiceLimit(level) > 0;
+    }
+
+    function spellChooseMeta(value) {
+      const text = String(value || "");
+      const levelMatch = text.match(/\blevel=(\d+)/i);
+      const classMatch = text.match(/\bclass=([^|;]+)/i);
+      return {
+        level: levelMatch ? Number.parseInt(levelMatch[1], 10) : null,
+        className: classMatch?.[1] ? titleCaseWords([classMatch[1]])[0] : ""
+      };
+    }
+
+    function additionalSpellGroupMeta(group) {
+      const grants = [];
+      collectAdditionalSpellItems(group?.known?._, false).forEach((grant) => grants.push(grant));
+      collectAdditionalSpellItems(group?.prepared?._, true).forEach((grant) => grants.push(grant));
+      collectAdditionalSpellItems(group?.innate?._, true).forEach((grant) => grants.push(grant));
+      return grants;
+    }
+
+    function spellNameFromAdditionalSpellRef(value) {
+      return strip5eTags(String(value || ""))
+        .replace(/#c\b/i, "")
+        .split("|")[0]
+        .trim();
+    }
+
+    function additionalSpellGrantFromItem(item, prepared) {
+      if (!item) return null;
+      if (typeof item === "string") {
+        const spellName = spellNameFromAdditionalSpellRef(item);
+        const spell = findSpellByName(spellName);
+        const forcedCantrip = /#c\b/i.test(item);
+        return {
+          spellName: spell?.name || titleCaseWords([spellName])[0],
+          level: forcedCantrip ? 0 : spell?.level,
+          className: "",
+          count: 1,
+          prepared
+        };
+      }
+      const meta = spellChooseMeta(item.choose || item);
+      if (meta.level == null) return null;
+      return {
+        level: meta.level,
+        className: meta.className,
+        count: item.count || 1,
+        prepared
+      };
+    }
+
+    function collectAdditionalSpellItems(value, prepared) {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map((item) => additionalSpellGrantFromItem(item, prepared)).filter(Boolean);
+      if (typeof value === "string") return [additionalSpellGrantFromItem(value, prepared)].filter(Boolean);
+      if (typeof value !== "object") return [];
+
+      const grants = [];
+      ["will", "daily", "rest"].forEach((key) => {
+        const bucket = value[key];
+        if (!bucket) return;
+        if (Array.isArray(bucket)) bucket.forEach((item) => grants.push(additionalSpellGrantFromItem(item, prepared)));
+        else if (typeof bucket === "object") Object.values(bucket).flat().forEach((item) => grants.push(additionalSpellGrantFromItem(item, prepared)));
+      });
+      return grants.filter(Boolean);
+    }
+
+    function featSpellListChoiceValue(group) {
+      return `feat-spell-list:${group?.name || ""}`;
+    }
+
+    function featVariantFromName(value) {
+      const match = String(value || "").match(/\(([^)]+)\)\s*$/);
+      return match?.[1] || "";
+    }
+
+    function selectedAdditionalSpellGroupsForFeat(entry) {
+      const feat = entry.feat || findFeatData(entry.featName || entry.title);
+      const groups = Array.isArray(feat?.additionalSpells) ? feat.additionalSpells : [];
+      if (!groups.length) return [];
+      if (groups.length === 1) return groups;
+
+      const variant = normalizeName(featVariantFromName(entry.title || entry.feature?.name || ""));
+      if (variant) {
+        const matched = groups.filter((group) => normalizeName(group.name || "").includes(variant));
+        if (matched.length) return matched;
+      }
+
+      const feature = entry.feature || {
+        name: feat.name,
+        source: feat.source,
+        level: 1,
+        isFeatFeature: true,
+        feat,
+        entries: feat.entries || []
+      };
+      const selected = selectedFeatureChoices(featureChoiceKey(feature));
+      return groups.filter((group) => selected.includes(featSpellListChoiceValue(group)));
+    }
+
+    function activeFeatSpellGrants() {
+      return activeFeatEntriesForEffects()
+        .flatMap((entry) => selectedAdditionalSpellGroupsForFeat(entry)
+          .flatMap((group) => additionalSpellGroupMeta(group)));
+    }
+
+    function featGrantedSpellChoiceLimit(level) {
+      return activeFeatSpellGrants()
+        .filter((grant) => grant.level === level && !grant.spellName)
+        .reduce((total, grant) => total + (grant.count || 1), 0);
+    }
+
+    function featGrantsSpell(spell, level) {
+      if (spell.level !== level) return false;
+      return activeFeatSpellGrants().some((grant) => {
+        if (grant.level !== level) return false;
+        if (grant.spellName) return normalizeName(grant.spellName) === normalizeName(spell.name);
+        if (!grant.className) return true;
+        return spell.classes?.some((name) => normalizeName(name) === normalizeName(grant.className));
+      });
     }
 
     function getSpellLevelLimit(level) {
-      if (level === 0) return cantripsKnownForCharacter() + autoCantripNames().length;
+      if (level === 0) return cantripsKnownForCharacter() + autoCantripNames().length + featGrantedSpellChoiceLimit(0);
       const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
       if (!totalKey) return Infinity;
       const value = getFieldValueByNormalizedKey(totalKey.toLowerCase());
       const parsed = Number.parseInt(value, 10);
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : Infinity;
+      const slotLimit = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+      const featLimit = featGrantedSpellChoiceLimit(level);
+      return slotLimit || featLimit ? slotLimit + featLimit : Infinity;
     }
 
     function getSelectedSpellCount(level, exceptField) {
@@ -1751,7 +1946,8 @@
       const raceName = getSelectedRaceName();
       const classMatches = className && spell.classes?.some((name) => name.toLowerCase() === className.toLowerCase());
       const raceMatches = raceName && spell.races?.some((name) => name.toLowerCase() === raceName.toLowerCase());
-      if (className || raceName) return Boolean(classMatches || raceMatches);
+      const featMatches = featGrantsSpell(spell, level);
+      if (className || raceName || activeFeatSpellGrants().length) return Boolean(classMatches || raceMatches || featMatches);
       return true;
     }
 
@@ -1769,6 +1965,11 @@
     function autoGrantedSpellNames() {
       const known = new Set(spells.map((spell) => normalizeName(spell.name)));
       const names = [];
+      const className = normalizeName(getSelectedClassName());
+      (ALWAYS_PREPARED_SPELLS_BY_CLASS[className] || []).forEach((name) => names.push(name));
+      activeFeatSpellGrants()
+        .filter((grant) => grant.spellName)
+        .forEach((grant) => names.push(grant.spellName));
       const texts = [
         selectedOptionDescription("race", getSelectedRaceName()),
         selectedOptionDescription("background", getFieldValueByNormalizedKey("background")),
@@ -1810,6 +2011,34 @@
         .filter((name) => known.has(normalizeName(name)));
     }
 
+    function autoAlwaysPreparedSpellNames() {
+      const known = new Set(spells.map((spell) => normalizeName(spell.name)));
+      const names = [];
+      const className = normalizeName(getSelectedClassName());
+      (ALWAYS_PREPARED_SPELLS_BY_CLASS[className] || []).forEach((name) => names.push(name));
+      activeFeatSpellGrants()
+        .filter((grant) => grant.prepared && grant.spellName)
+        .forEach((grant) => names.push(grant.spellName));
+      const texts = [
+        selectedOptionDescription("race", getSelectedRaceName()),
+        selectedOptionDescription("background", getFieldValueByNormalizedKey("background")),
+        ...generatedFeaturesAndTraitsEntries().map((entry) => entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || ""))
+      ];
+
+      texts.forEach((text) => {
+        sentenceList(text).forEach((sentence) => {
+          const levelGate = sentence.match(/\bStarting at (\d+)(?:st|nd|rd|th) level\b/i);
+          if (levelGate && getCharacterLevel() < (Number.parseInt(levelGate[1], 10) || 1)) return;
+          const preparedMatch = sentence.match(/\byou (?:also )?(?:always have|have) the ([A-Za-z' -]+?) spell prepared\b/i);
+          if (preparedMatch) names.push(preparedMatch[1]);
+        });
+      });
+
+      return uniqueReadableValues(names)
+        .map((name) => spells.find((spell) => normalizeName(spell.name) === normalizeName(name))?.name || titleCaseWords([name])[0])
+        .filter((name) => known.has(normalizeName(name)));
+    }
+
     function autoCantripNames() {
       const cantrips = new Set(spells.filter((spell) => spell.level === 0).map((spell) => normalizeName(spell.name)));
       return autoGrantedSpellNames().filter((name) => cantrips.has(normalizeName(name)));
@@ -1819,20 +2048,72 @@
       return field?.dataset?.autoGrantedSpell === "true";
     }
 
+    function isAutoPreparedSpellField(field) {
+      return field?.dataset?.autoPreparedSpell === "true";
+    }
+
+    function syncAutoPreparedSpellCheckbox(field, preparedSet) {
+      const checkbox = getFieldByKey(field?.dataset?.preparedKey || "");
+      if (!checkbox || checkbox.type !== "checkbox") return;
+      const isPrepared = Boolean(preparedSet?.has(normalizeName(field.value || "")));
+      if (isPrepared) {
+        field.dataset.autoPreparedSpell = "true";
+        checkbox.checked = true;
+        return;
+      }
+      if (isAutoPreparedSpellField(field)) checkbox.checked = false;
+      delete field.dataset.autoPreparedSpell;
+    }
+
+    function syncAutoPreparedSpellCheckboxes(preparedSet) {
+      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => syncAutoPreparedSpellCheckbox(field, preparedSet));
+    }
+
+    function featPreparedSpellMatches(field) {
+      const spell = findSpellByName(field?.value || "");
+      if (!spell) return false;
+      const level = Number(field.dataset.spellLevel);
+      return activeFeatSpellGrants().some((grant) => {
+        if (!grant.prepared || grant.level !== level) return false;
+        if (!grant.className) return true;
+        return spell.classes?.some((name) => normalizeName(name) === normalizeName(grant.className));
+      });
+    }
+
+    function syncFeatPreparedSpellCheckbox(field) {
+      const checkbox = getFieldByKey(field?.dataset?.preparedKey || "");
+      if (!checkbox || checkbox.type !== "checkbox") return;
+      if (field.value.trim() && featPreparedSpellMatches(field)) {
+        checkbox.checked = true;
+        field.dataset.autoPreparedSpellFromFeat = "true";
+        return;
+      }
+      if (field.dataset.autoPreparedSpellFromFeat === "true") checkbox.checked = false;
+      delete field.dataset.autoPreparedSpellFromFeat;
+    }
+
+    function syncFeatPreparedSpellCheckboxes() {
+      document.querySelectorAll(".field.select[data-option-type='spell']").forEach(syncFeatPreparedSpellCheckbox);
+    }
+
     function syncAutoCantrips() {
       const fields = [...document.querySelectorAll(".field.select[data-option-type='spell']")];
       if (!fields.length) return;
       const autoNames = autoGrantedSpellNames();
       const nextSet = new Set(autoNames.map(normalizeName));
+      const autoPreparedNames = autoAlwaysPreparedSpellNames();
+      const preparedSet = new Set(autoPreparedNames.map(normalizeName));
 
       fields.forEach((field) => {
         if (nextSet.has(normalizeName(field.value))) field.dataset.autoGrantedSpell = "true";
+        syncAutoPreparedSpellCheckbox(field, preparedSet);
       });
 
       fields.forEach((field) => {
         if (!isAutoGrantedSpellField(field)) return;
         if (!nextSet.has(normalizeName(field.value))) {
           field.value = "";
+          syncAutoPreparedSpellCheckbox(field, preparedSet);
           delete field.dataset.autoGrantedSpell;
         }
       });
@@ -1844,14 +2125,19 @@
         if (!reusable) return;
         reusable.value = name;
         reusable.dataset.autoGrantedSpell = "true";
+        syncAutoPreparedSpellCheckbox(reusable, preparedSet);
       });
 
       fields.forEach((field) => {
         if (isAutoGrantedSpellField(field) && !autoNames.some((name) => normalizeName(name) === normalizeName(field.value))) {
+          syncAutoPreparedSpellCheckbox(field, preparedSet);
           delete field.dataset.autoGrantedSpell;
         }
       });
+      syncAutoPreparedSpellCheckboxes(preparedSet);
+      syncFeatPreparedSpellCheckboxes();
       sheetMeta.autoGrantedSpells = autoNames;
+      sheetMeta.autoPreparedSpells = autoPreparedNames;
       sheetMeta.autoCantrips = autoCantripNames();
     }
 
@@ -1956,6 +2242,42 @@
 
     function descriptionForSpell(spell) {
       return spell?.description || "Sin descripcion disponible.";
+    }
+
+    const SPELL_SCHOOL_LABELS = {
+      A: "Abjuration",
+      C: "Conjuration",
+      D: "Divination",
+      E: "Enchantment",
+      I: "Illusion",
+      N: "Necromancy",
+      T: "Transmutation",
+      V: "Evocation"
+    };
+
+    function spellSourceLabel(spell) {
+      const match = spell?.description?.match(/\bSource:\s*([A-Za-z0-9' .&-]+)/i);
+      return match?.[1]?.replace(/\.$/, "").trim() || "";
+    }
+
+    function spellSchoolLabel(spell) {
+      const match = spell?.description?.match(/\bSchool:\s*([A-Z][A-Za-z]*)\b/i);
+      const code = match?.[1]?.toUpperCase() || "";
+      return SPELL_SCHOOL_LABELS[code] || match?.[1] || "";
+    }
+
+    function spellLevelLabel(level) {
+      if (level === 0) return "Cantrip";
+      const suffix = level === 1 ? "st" : level === 2 ? "nd" : level === 3 ? "rd" : "th";
+      return `${level}${suffix} level`;
+    }
+
+    function cleanSpellDescription(spell) {
+      return String(spell?.description || "")
+        .replace(/\bSource:\s*[A-Za-z0-9' .&-]+\.\s*/i, "")
+        .replace(/\bLevel:\s*(?:Cantrip|\d+)\.\s*/i, "")
+        .replace(/\bSchool:\s*[A-Z][A-Za-z]*\.\s*/i, "")
+        .trim();
     }
 
     function weaponAbilityModifier(item) {
@@ -2252,6 +2574,14 @@
         name.className = "prepared-spell-name";
         name.textContent = spell.name;
         name.title = spell.description;
+        name.tabIndex = 0;
+        name.setAttribute("role", "button");
+        name.addEventListener("click", () => showSpellDrawer(spell.name));
+        name.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          showSpellDrawer(spell.name);
+        });
 
         const damageType = document.createElement("div");
         damageType.className = "prepared-spell-damage-type";
@@ -2296,6 +2626,7 @@
         if (isAutoGrantedSpellField(field)) return;
         if (!field.value.trim() || canUseSpellLevel(level)) return;
         field.value = "";
+        syncFeatPreparedSpellCheckbox(field);
       });
     }
 
@@ -2306,6 +2637,7 @@
         const level = Number(field.dataset.spellLevel);
         if (spell && spellMatchesSelection(spell, level)) return;
         field.value = "";
+        syncFeatPreparedSpellCheckbox(field);
       });
     }
 
@@ -2334,6 +2666,7 @@
         const used = usedByLevel.get(level) || 0;
         if (used >= getSpellLevelLimit(level)) {
           field.value = "";
+          syncFeatPreparedSpellCheckbox(field);
           return;
         }
         usedByLevel.set(level, used + 1);
@@ -2490,6 +2823,7 @@
             }
           }
           field.value = optionName(option);
+          if (field.dataset.optionType === "spell") syncFeatPreparedSpellCheckbox(field);
           field.dispatchEvent(new Event("input", { bubbles: true }));
           field.dispatchEvent(new Event("change", { bubbles: true }));
           if (
@@ -2570,11 +2904,21 @@
         }
         element.addEventListener("pointerdown", (event) => {
           event.preventDefault();
+          if (element.dataset.optionType === "spell") {
+            closeOptionMenu();
+            showSpellSelectionDrawer(element);
+            return;
+          }
           openOptionMenu(element);
         });
         element.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
             event.preventDefault();
+            if (element.dataset.optionType === "spell") {
+              closeOptionMenu();
+              showSpellSelectionDrawer(element);
+              return;
+            }
             openOptionMenu(element);
           } else if (event.key === "Escape") {
             closeOptionMenu();
@@ -2585,6 +2929,7 @@
               return;
             }
             element.value = "";
+            syncFeatPreparedSpellCheckbox(element);
             element.dispatchEvent(new Event("input", { bubbles: true }));
             element.dispatchEvent(new Event("change", { bubbles: true }));
             closeOptionMenu();
@@ -3332,6 +3677,194 @@
       flushParagraphs();
     }
 
+    function buildSpellDrawerContent(spell) {
+      const root = document.createElement("div");
+      root.className = "item-sheet";
+
+      if (!spell) {
+        appendItemSection(root, "Spell", "No encontre esta magia en los datos locales.");
+        return root;
+      }
+
+      appendText(root, "item-sheet-title", spell.name, "h2");
+      appendText(root, "item-sheet-subtitle", [spellSourceLabel(spell), spellLevelLabel(spell.level), spellSchoolLabel(spell)].filter(Boolean).join(" - "));
+
+      const stats = document.createElement("div");
+      stats.className = "item-stat-grid";
+      appendItemStat(stats, "Nivel", spellLevelLabel(spell.level));
+      appendItemStat(stats, "Escuela", spellSchoolLabel(spell));
+      appendItemStat(stats, "Clases", (spell.classes || []).join(", "));
+      appendItemStat(stats, "Razas", (spell.races || []).join(", "));
+      appendItemStat(stats, "Daño detectado", damageDiceForSpell(spell));
+      appendItemStat(stats, "Tipo de daño", damageTypeForSpell(spell));
+      root.appendChild(stats);
+
+      const chips = document.createElement("div");
+      chips.className = "item-chip-list";
+      [spellSourceLabel(spell), spell.level === 0 ? "Cantrip" : `Level ${spell.level}`, spellSchoolLabel(spell)]
+        .filter(Boolean)
+        .forEach((value) => appendText(chips, "item-chip", value, "span"));
+      if (chips.childElementCount) root.appendChild(chips);
+
+      const description = cleanSpellDescription(spell);
+      splitDescriptionLines(description).forEach((line, index) => {
+        appendItemSection(root, index === 0 ? "Descripcion" : "Detalle", line);
+      });
+      appendText(root, "item-source", spellSourceLabel(spell) ? `Source: ${spellSourceLabel(spell)}.` : "");
+      return root;
+    }
+
+    function showSpellDrawer(spellOrName) {
+      const spell = typeof spellOrName === "string" ? findSpellByName(spellOrName) : spellOrName;
+      showDrawer(
+        spell?.name || String(spellOrName || "Spell"),
+        spell ? [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell)].filter(Boolean).join(" - ") : "Spell",
+        buildSpellDrawerContent(spell)
+      );
+    }
+
+    function commitSpellSelection(field, spellName) {
+      if (!field || !spellName) return;
+      if (isAutoGrantedSpellField(field)) {
+        showStatus("Esta magia la otorga tu personaje y no se puede reemplazar.");
+        return;
+      }
+      if (isSpellAlreadySelected(spellName, field)) {
+        showStatus("Esa magia ya esta seleccionada");
+        return;
+      }
+      const level = Number(field.dataset.spellLevel);
+      if (!field.value.trim() && getSelectedSpellCount(level, field) >= getSpellLevelLimit(level)) {
+        showStatus(level === 0 ? "Limite de cantrips alcanzado" : `Limite de spells nivel ${level} alcanzado`);
+        return;
+      }
+      field.value = spellName;
+      syncFeatPreparedSpellCheckbox(field);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      scheduleSave();
+      updatePreparedSpellsPanel();
+      showStatus(`${spellName} seleccionada`);
+      showSpellSelectionDrawer(field, findSpellByName(spellName));
+    }
+
+    function clearSpellSelection(field) {
+      if (!field || isAutoGrantedSpellField(field)) return;
+      field.value = "";
+      syncFeatPreparedSpellCheckbox(field);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      scheduleSave();
+      updatePreparedSpellsPanel();
+      showStatus("Magia quitada");
+      showSpellSelectionDrawer(field);
+    }
+
+    function spellPickerRow(field, spell, detailTarget, selectedSpell) {
+      const row = document.createElement("div");
+      row.className = `spell-picker-row ${normalizeName(field.value || "") === normalizeName(spell.name) ? "active" : ""}`;
+
+      const nameButton = document.createElement("button");
+      nameButton.type = "button";
+      nameButton.className = "spell-picker-name";
+      nameButton.textContent = spell.name;
+      nameButton.addEventListener("click", () => {
+        detailTarget.textContent = "";
+        detailTarget.appendChild(buildSpellDrawerContent(spell));
+      });
+
+      const meta = document.createElement("div");
+      meta.className = "spell-picker-meta";
+      meta.textContent = [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell)].filter(Boolean).join(" - ");
+
+      const actions = document.createElement("div");
+      actions.className = "spell-picker-actions";
+
+      const chooseButton = document.createElement("button");
+      chooseButton.type = "button";
+      chooseButton.className = "spell-picker-button";
+      chooseButton.textContent = normalizeName(field.value || "") === normalizeName(spell.name) ? "Elegida" : "Elegir";
+      chooseButton.disabled = isAutoGrantedSpellField(field) || normalizeName(field.value || "") === normalizeName(spell.name);
+      chooseButton.addEventListener("click", () => commitSpellSelection(field, spell.name));
+
+      const inspectButton = document.createElement("button");
+      inspectButton.type = "button";
+      inspectButton.className = "spell-picker-button secondary";
+      inspectButton.textContent = "Examinar";
+      inspectButton.addEventListener("click", () => {
+        detailTarget.textContent = "";
+        detailTarget.appendChild(buildSpellDrawerContent(spell));
+      });
+
+      actions.append(chooseButton, inspectButton);
+      row.append(nameButton, meta, actions);
+      return row;
+    }
+
+    function buildSpellSelectionDrawerContent(field, selectedSpell = null) {
+      const root = document.createElement("div");
+      root.className = "spell-picker";
+      const level = Number(field.dataset.spellLevel);
+      const currentSpell = selectedSpell || findSpellByName(field.value || "");
+      const options = getSpellOptions(level, field);
+
+      const current = document.createElement("section");
+      current.className = "spell-picker-current";
+      appendText(current, "item-section-title", "Magia actual");
+      appendText(current, "item-section-body", field.value.trim() || "Ninguna seleccionada", "p");
+      const currentActions = document.createElement("div");
+      currentActions.className = "spell-picker-actions";
+      if (currentSpell) {
+        const inspectCurrent = document.createElement("button");
+        inspectCurrent.type = "button";
+        inspectCurrent.className = "spell-picker-button secondary";
+        inspectCurrent.textContent = "Examinar actual";
+        inspectCurrent.addEventListener("click", () => {
+          detail.textContent = "";
+          detail.appendChild(buildSpellDrawerContent(currentSpell));
+        });
+        currentActions.appendChild(inspectCurrent);
+      }
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "spell-picker-button secondary";
+      removeButton.textContent = "Quitar";
+      removeButton.disabled = !field.value.trim() || isAutoGrantedSpellField(field);
+      removeButton.addEventListener("click", () => clearSpellSelection(field));
+      currentActions.appendChild(removeButton);
+      current.appendChild(currentActions);
+      root.appendChild(current);
+
+      const listTitle = document.createElement("div");
+      listTitle.className = "item-section-title";
+      listTitle.textContent = `Opciones (${options.length})`;
+      root.appendChild(listTitle);
+
+      const detail = document.createElement("section");
+      detail.className = "spell-picker-detail";
+
+      if (!options.length) {
+        appendItemSection(root, "Sin opciones", "No hay magias disponibles para este campo con tu clase, raza, feats y nivel actual.");
+      } else {
+        options
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .forEach((spell) => root.appendChild(spellPickerRow(field, spell, detail, currentSpell)));
+      }
+
+      detail.appendChild(buildSpellDrawerContent(currentSpell || options[0] || null));
+      root.appendChild(detail);
+      return root;
+    }
+
+    function showSpellSelectionDrawer(field, selectedSpell = null) {
+      const level = Number(field.dataset.spellLevel);
+      showDrawer(
+        level === 0 ? "Cantrips" : `Magias nivel ${level}`,
+        field.value.trim() ? `Actual: ${field.value.trim()}` : "Sin magia seleccionada",
+        buildSpellSelectionDrawerContent(field, selectedSpell)
+      );
+    }
+
     function buildItemDrawerContent(item) {
       const root = document.createElement("div");
       root.className = "item-sheet";
@@ -3402,7 +3935,11 @@
     };
 
     function findFeatData(name) {
-      const normalized = normalizeName(String(name || "").replace(/^background feat:\s*/i, ""));
+      const normalized = normalizeName(String(name || "")
+        .replace(/^background feat:\s*/i, "")
+        .replace(/\([^)]*\)\s*$/g, "")
+        .split(";")[0]
+        .split("|")[0]);
       if (!normalized) return null;
       return feats.find((feat) => normalizeName(feat.name) === normalized && feat.source === "XPHB")
         || feats.find((feat) => normalizeName(feat.name) === normalized && feat.source === "PHB")
@@ -3422,6 +3959,26 @@
     function formatFeatAbility(feat) {
       const values = Array.isArray(feat?.ability) ? feat.ability : [];
       return values.map(formatAbilityChoice).filter(Boolean).join(" / ");
+    }
+
+    function activeFeatEntriesForEffects() {
+      return [
+        ...backgroundFeatureEntries().filter((entry) => entry.type === "feat"),
+        ...selectedFeatureChoiceEntries().filter((entry) => entry.type === "feat")
+      ];
+    }
+
+    function activeFeatData() {
+      const seen = new Set();
+      return activeFeatEntriesForEffects()
+        .map((entry) => entry.feat || findFeatData(entry.featName || entry.title))
+        .filter(Boolean)
+        .filter((feat) => {
+          const key = `${normalizeName(feat.name)}|${normalizeName(feat.source || "")}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
     }
 
     function formatPrerequisiteItem(item) {
@@ -3499,6 +4056,15 @@
       if (chips.childElementCount) root.appendChild(chips);
 
       appendEntryBlocks(root, feat.entries, "Beneficios");
+      appendFeatureChoiceControls(root, {
+        name: feat.name,
+        source: feat.source,
+        page: feat.page,
+        level: 1,
+        isFeatFeature: true,
+        feat,
+        entries: feat.entries || []
+      });
       appendItemSection(root, "Spells adicionales", formatAdditionalSpells(feat));
       appendItemSection(root, "Sentidos", formatStructuredValue(feat.senses));
       appendItemSection(root, "Resistencias", formatStructuredValue(feat.resist));
@@ -3541,7 +4107,7 @@
       }
       if (next.length) sheetMeta.featureChoices[key] = next;
       else delete sheetMeta.featureChoices[key];
-      updateBackgroundFeatTraits();
+      updateDerivedStats();
       updateArmorClass();
       updatePreparedSpellsPanel();
       renderAlertsPanel();
@@ -3667,6 +4233,27 @@
       return options;
     }
 
+    function featAbilityChoiceOptions(feat) {
+      return (Array.isArray(feat?.ability) ? feat.ability : [])
+        .flatMap((item) => Array.isArray(item?.choose)
+          ? item.choose.map((ability) => {
+            const key = ABILITY_LABELS[ability] || String(ability || "").toUpperCase();
+            return ABILITY_KEYS.includes(key)
+              ? { value: `feat-ability:${key}+1`, label: `${key} +1`, type: "abilityScoreIncrease", description: `${feat.name}: increase ${key} by 1.` }
+              : null;
+          }).filter(Boolean)
+          : [])
+        .filter((option, index, list) => list.findIndex((item) => item.value === option.value) === index);
+    }
+
+    function toolChoiceOptionsFromFeat(feat) {
+      return (Array.isArray(feat?.toolProficiencies) ? feat.toolProficiencies : [])
+        .flatMap((group) => group?.choose?.from || [])
+        .map((tool) => titleCaseWords([String(tool).split("|")[0]])[0])
+        .filter(Boolean)
+        .map((tool) => ({ value: `tool:${tool}`, label: tool, type: "tool", description: `${feat.name}: tool proficiency.` }));
+    }
+
     function collectStructuredChoiceSpecs(entries, specs = []) {
       if (!entries) return specs;
       const list = Array.isArray(entries) ? entries : [entries];
@@ -3719,6 +4306,56 @@
           .filter((feat) => feat.category === "O")
           .map((feat) => ({ value: feat.name, label: feat.name, type: "feat", description: flattenEntryText(feat.entries) }));
         if (options.length) specs.push({ label: "Origin Feat", count: 1, options });
+      }
+      if (feature?.isFeatFeature) {
+        const feat = feature.feat || findFeatData(feature.name);
+        const additionalSpellGroups = Array.isArray(feat?.additionalSpells) ? feat.additionalSpells : [];
+        const fixedSpellVariant = normalizeName(featVariantFromName(feature.name || ""));
+        if (additionalSpellGroups.length > 1 && !fixedSpellVariant) {
+          specs.push({
+            label: "Spell List",
+            count: 1,
+            options: additionalSpellGroups.map((group) => ({
+              value: featSpellListChoiceValue(group),
+              label: group.name || "Spell list",
+              type: "spellList",
+              description: `${feat?.name || feature.name}: use this spell list for granted spells.`
+            }))
+          });
+        }
+        const abilityOptions = featAbilityChoiceOptions(feat);
+        if (abilityOptions.length) specs.push({ label: "Feat Ability", count: 1, options: abilityOptions });
+        const skillAndToolMatch = /any combination of three .*skills?.*tools?/i.test(text);
+        if (skillAndToolMatch) {
+          const options = [
+            ...SKILL_NAMES.map((skill) => ({ value: `skill:${skill}`, label: skill, type: "skill", description: `${feat?.name || feature.name}: skill proficiency.` })),
+            ...toolChoiceOptionsFromFeat(feat)
+          ];
+          if (options.length) specs.push({ label: "Skill/Tool", count: 3, options });
+        } else if (/proficiency in one skill of your choice|one skill of your choice/.test(text)) {
+          const options = SKILL_NAMES.map((skill) => ({ value: `skill:${skill}`, label: skill, type: "skill", description: `${feat?.name || feature.name}: skill proficiency.` }));
+          specs.push({ label: "Skill", count: 1, options });
+        }
+        const toolOptions = skillAndToolMatch ? [] : toolChoiceOptionsFromFeat(feat);
+        if (toolOptions.length) {
+          const count = Math.max(1, ...((Array.isArray(feat?.toolProficiencies) ? feat.toolProficiencies : []).map((group) => group?.choose?.count || 1)));
+          specs.push({ label: "Tool", count, options: toolOptions });
+        }
+      }
+      if (feature?.isBackgroundFeatChoice) {
+        const options = (feature.featRefs || [])
+          .map((ref) => {
+            const feat = findFeatData(ref.name);
+            const label = featDisplayName({ ...ref, name: feat?.name || ref.name });
+            return {
+              value: feat?.name || ref.name,
+              label,
+              type: "feat",
+              description: flattenEntryText(feat?.entries || "")
+            };
+          })
+          .filter((option) => option.value);
+        if (options.length) specs.push({ label: "Background Feat", count: 1, options });
       }
       if (feature?.isRaceFeature && /proficiency in one skill of your choice|one skill of your choice/.test(text)) {
         const options = SKILL_NAMES.map((skill) => ({ value: skill, label: skill, type: "skill", description: "" }));
@@ -3855,6 +4492,12 @@
         return;
       }
       if (entry.type === "raceFeature") {
+        const body = buildClassFeatureDrawerContent(entry.feature);
+        appendFeatureBackButton(body, entries);
+        showDrawer(entry.feature?.name || entry.title, entry.meta, body);
+        return;
+      }
+      if (entry.type === "backgroundFeatChoice") {
         const body = buildClassFeatureDrawerContent(entry.feature);
         appendFeatureBackButton(body, entries);
         showDrawer(entry.feature?.name || entry.title, entry.meta, body);
@@ -5575,6 +6218,47 @@
       applyGeneratedSkillProficiencies("race", [...new Set(skills.map((skill) => SKILL_NAMES.find((item) => normalizeName(item) === normalizeName(skill)) || skill))]);
     }
 
+    function selectedFeatSkillChoices() {
+      const choiceSources = [
+        ...choosableFeatureEntriesForCharacter().map((entry) => entry.feature),
+        ...activeFeatData().map((feat) => ({
+          name: feat.name,
+          source: feat.source,
+          level: 1,
+          isFeatFeature: true,
+          feat,
+          entries: feat.entries || []
+        }))
+      ].filter((feature, index, list) => list.findIndex((item) => featureChoiceKey(item) === featureChoiceKey(feature)) === index);
+      return choiceSources
+        .flatMap((feature) => selectedFeatureChoices(featureChoiceKey(feature)))
+        .filter((value) => String(value).startsWith("skill:"))
+        .map((value) => String(value).replace(/^skill:/, ""));
+    }
+
+    function selectedFeatToolChoices() {
+      const choiceSources = [
+        ...choosableFeatureEntriesForCharacter().map((entry) => entry.feature),
+        ...activeFeatData().map((feat) => ({
+          name: feat.name,
+          source: feat.source,
+          level: 1,
+          isFeatFeature: true,
+          feat,
+          entries: feat.entries || []
+        }))
+      ].filter((feature, index, list) => list.findIndex((item) => featureChoiceKey(item) === featureChoiceKey(feature)) === index);
+      return choiceSources
+        .flatMap((feature) => selectedFeatureChoices(featureChoiceKey(feature)))
+        .filter((value) => String(value).startsWith("tool:"))
+        .map((value) => String(value).replace(/^tool:/, ""));
+    }
+
+    function updateFeatSkillProficiencies() {
+      const skills = selectedFeatSkillChoices();
+      applyGeneratedSkillProficiencies("feat", [...new Set(skills.map((skill) => SKILL_NAMES.find((item) => normalizeName(item) === normalizeName(skill)) || skill))]);
+    }
+
     function selectedAbilityScoreImprovementBonuses() {
       const bonuses = Object.fromEntries(ABILITY_KEYS.map((ability) => [ability, 0]));
       choosableFeatureEntriesForCharacter().forEach((entry) => {
@@ -5590,6 +6274,36 @@
               if (!match || !ABILITY_KEYS.includes(match[1])) return;
               bonuses[match[1]] += Number.parseInt(match[2], 10) || 0;
             });
+          });
+      });
+      activeFeatData().forEach((feat) => {
+        (Array.isArray(feat.ability) ? feat.ability : []).forEach((item) => {
+          if (!item || typeof item !== "object" || Array.isArray(item.choose)) return;
+          Object.entries(item).forEach(([ability, amount]) => {
+            const key = ABILITY_LABELS[ability] || String(ability || "").toUpperCase();
+            if (!ABILITY_KEYS.includes(key) || !Number.isFinite(amount)) return;
+            bonuses[key] += amount;
+          });
+        });
+      });
+      const featChoiceSources = [
+        ...choosableFeatureEntriesForCharacter().map((entry) => entry.feature),
+        ...activeFeatData().map((feat) => ({
+          name: feat.name,
+          source: feat.source,
+          level: 1,
+          isFeatFeature: true,
+          feat,
+          entries: feat.entries || []
+        }))
+      ].filter((feature, index, list) => list.findIndex((item) => featureChoiceKey(item) === featureChoiceKey(feature)) === index);
+      featChoiceSources.forEach((feature) => {
+        selectedFeatureChoices(featureChoiceKey(feature))
+          .filter((value) => String(value).startsWith("feat-ability:"))
+          .forEach((value) => {
+            const match = String(value).replace(/^feat-ability:/, "").match(/^([A-Z]{3})\+(\d)$/);
+            if (!match || !ABILITY_KEYS.includes(match[1])) return;
+            bonuses[match[1]] += Number.parseInt(match[2], 10) || 0;
           });
       });
       return bonuses;
@@ -6224,7 +6938,64 @@
       return lines.join("\n");
     }
 
-    function featNameFromBackground(description) {
+    function featRefFromString(value) {
+      const raw = strip5eTags(String(value || ""))
+        .replace(/\|[^|)]+$/g, "")
+        .trim();
+      if (!raw) return null;
+      const sourceMatch = String(value || "").match(/\|([^}|)]+)(?:\}|$)/);
+      const parenMatch = raw.match(/\(([^)]+)\)\s*$/);
+      const semicolonParts = raw.split(";").map((part) => part.trim()).filter(Boolean);
+      const name = (semicolonParts[0] || raw)
+        .replace(/\([^)]*\)\s*$/g, "")
+        .replace(/\bfeat\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const variant = semicolonParts[1] || parenMatch?.[1] || "";
+      if (!name || !/[A-Za-z0-9]/.test(name)) return null;
+      return { name, source: sourceMatch?.[1] || "", variant };
+    }
+
+    function backgroundFeatRefsFromDetail(detail) {
+      return (Array.isArray(detail?.feats) ? detail.feats : [])
+        .flatMap((group) => Object.entries(group || {})
+          .filter(([, enabled]) => enabled)
+          .map(([ref]) => featRefFromString(ref)))
+        .filter(Boolean);
+    }
+
+    function splitFeatChoiceList(value) {
+      return String(value || "")
+        .replace(/\bor\b/gi, ",")
+        .replace(/\band\b/gi, ",")
+        .split(",")
+        .map((item) => featRefFromString(item))
+        .filter(Boolean);
+    }
+
+    function backgroundFeatChoiceRefsFromText(description) {
+      const refs = [];
+      [...String(description || "").matchAll(/\b(?:you gain|gain)\s+(?:the\s+)?(.+?)\s+feat\s+\(your choice\)/gi)]
+        .forEach((match) => splitFeatChoiceList(match[1]).forEach((ref) => refs.push(ref)));
+      return refs;
+    }
+
+    function selectedBackgroundFeatChoiceRefs() {
+      const detail = selectedBackgroundDetail();
+      const structured = Array.isArray(detail?.feats) && detail.feats.length > 1
+        ? backgroundFeatRefsFromDetail(detail)
+        : [];
+      const fallback = backgroundFeatChoiceRefsFromText(selectedOptionDescription("background", fieldValue("Background")));
+      const seen = new Set();
+      return [...structured, ...fallback].filter((ref) => {
+        const key = `${normalizeName(ref.name)}|${normalizeName(ref.source)}|${normalizeName(ref.variant)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function featRefsFromBackgroundText(description) {
       const stopLabels = [
         "Skill Proficiencies",
         "Skill Proficiency",
@@ -6235,7 +7006,45 @@
         "Equipment",
         "Feature"
       ];
-      return extractColonSection(description, ["Feat"], stopLabels);
+      const refs = [];
+      const section = extractColonSection(description, ["Feat"], stopLabels);
+      if (section) refs.push(featRefFromString(section));
+      sentenceList(description).forEach((sentence) => {
+        if (/\byour choice\b/i.test(sentence)) return;
+        const match = sentence.match(/\b(?:you gain|gain)\s+(?:the\s+)?(.+?)\s+feat\b/i);
+        if (!match) return;
+        const ref = featRefFromString(match[1]);
+        if (!ref) return;
+        const variantMatch = sentence.match(/\bmust choose\s+([A-Za-z' -]+?)\s+(?:for the feat|within it)\b/i);
+        if (variantMatch?.[1] && !ref.variant) ref.variant = variantMatch[1].trim();
+        refs.push(ref);
+        });
+      return refs.filter(Boolean);
+    }
+
+    function selectedBackgroundFeatRefs() {
+      const detail = selectedBackgroundDetail();
+      const hasStructuredChoice = Array.isArray(detail?.feats) && detail.feats.length > 1;
+      const structured = hasStructuredChoice ? [] : backgroundFeatRefsFromDetail(detail);
+      const fallback = featRefsFromBackgroundText(selectedOptionDescription("background", fieldValue("Background")))
+        .filter((ref) => findFeatData(ref.name));
+      const choiceNames = new Set(selectedBackgroundFeatChoiceRefs().map((ref) => normalizeName(ref.name)));
+      const seen = new Set();
+      return [...structured, ...fallback].filter((ref) => {
+        if (choiceNames.has(normalizeName(ref.name))) return false;
+        const key = `${normalizeName(ref.name)}|${normalizeName(ref.source)}|${normalizeName(ref.variant)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function featDisplayName(ref) {
+      return [ref?.name, ref?.variant ? `(${titleCaseWords([ref.variant])[0]})` : ""].filter(Boolean).join(" ");
+    }
+
+    function featNameFromBackground(description) {
+      return featRefsFromBackgroundText(description)[0]?.name || "";
     }
 
     function featureTextFromBackground(description) {
@@ -6289,19 +7098,33 @@
     }
 
     function backgroundFeatureEntries() {
-      const featName = selectedBackgroundFeatName();
+      const featRefs = selectedBackgroundFeatRefs();
       const featureEntries = selectedBackgroundFeatureEntries();
       const entries = [];
-      if (featName) {
+      featRefs.forEach((ref) => {
+        const feat = findFeatData(ref.name);
+        const featName = feat?.name || ref.name;
+        const displayName = featDisplayName({ ...ref, name: featName });
+        const feature = feat ? {
+          name: displayName,
+          source: feat.source,
+          page: feat.page,
+          level: 1,
+          isFeatFeature: true,
+          feat,
+          entries: feat.entries || []
+        } : null;
         entries.push({
           type: "feat",
-          title: `Background Feat: ${featName}`,
+          title: `Background Feat: ${displayName}`,
           meta: "Background feat",
           featName,
-          description: featDescription(featName),
+          feat,
+          feature,
+          description: feat ? flattenEntryText(feat.entries) || featDescription(featName) : featDescription(featName),
           backgroundFeature: featureEntries.map((entry) => `${entry.title}: ${entry.description}`).join("\n\n")
         });
-      }
+      });
       featureEntries.forEach((feature) => {
         entries.push({
           type: "backgroundFeature",
@@ -6311,6 +7134,29 @@
         });
       });
       return entries;
+    }
+
+    function backgroundFeatChoiceEntries(includeSelected = false) {
+      const featRefs = selectedBackgroundFeatChoiceRefs();
+      if (!featRefs.length) return [];
+      const backgroundName = getFieldValueByNormalizedKey("background") || "Background";
+      const feature = {
+        name: `${backgroundName} Feat`,
+        source: selectedBackgroundDetail()?.source || "",
+        level: 1,
+        isBackgroundFeatChoice: true,
+        featRefs,
+        entries: [`Choose the feat granted by ${backgroundName}.`]
+      };
+      const selected = selectedFeatureChoices(featureChoiceKey(feature));
+      if (selected.length && !includeSelected) return [];
+      return [{
+        type: "backgroundFeatChoice",
+        title: `Background Feat Choice: ${backgroundName}`,
+        meta: "Pending background feat",
+        description: feature.entries.join(" "),
+        feature
+      }];
     }
 
     function classFeatureEntriesForCharacter() {
@@ -6428,9 +7274,10 @@
           }
           const feat = findFeatData(choiceName);
           const optional = optionalFeatureByName(choiceName);
+          const cleanedChoiceName = String(choiceName).replace(/^(?:skill|tool|feat-ability):/i, "");
           return {
             type: feat ? "feat" : optional ? "optionalfeature" : "text",
-            title: `${entry.feature.name}: ${choiceName}`,
+            title: `${entry.feature.name}: ${cleanedChoiceName}`,
             meta: feat ? "Selected feat" : optional ? "Selected feature option" : "Selected choice",
             featName: feat?.name,
             optionalFeature: optional,
@@ -6597,14 +7444,19 @@
     }
 
     function choosableFeatureEntriesForCharacter() {
-      return [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()];
+      return [
+        ...backgroundFeatChoiceEntries(true),
+        ...backgroundFeatureEntries().filter((entry) => entry.feature && featureChoiceSpecs(entry.feature).length),
+        ...raceFeatureEntriesForCharacter(),
+        ...classFeatureEntriesForCharacter()
+      ];
     }
 
     function generatedFeaturesAndTraitsEntries() {
       const selectedEntries = selectedFeatureChoiceEntries();
       const baseEntries = [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()]
         .filter((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0);
-      return [...backgroundFeatureEntries(), ...raceChoiceControlEntries(), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
+      return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...raceChoiceControlEntries(), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
     }
 
     function clearLegacyAdditionalFeaturesField(primaryField) {
@@ -6837,6 +7689,19 @@
       if (raceProficiencies) raceItems.push(`Proficiencies: ${raceProficiencies}`);
       appendReadableSection(sections, "Race", raceItems);
 
+      const featItems = [];
+      activeFeatData().forEach((feat) => {
+        const tools = backgroundProficiencyText(feat.toolProficiencies, (value) => titleCaseWords([String(value).split("|")[0]])[0]);
+        const languages = backgroundProficiencyText(feat.languageProficiencies, languageLabelFromKey);
+        const skills = backgroundProficiencyText(feat.skillProficiencies, (value) => SKILL_NAMES.find((skill) => normalizeName(skill) === normalizeName(value)) || titleCaseWords([value])[0]);
+        if (skills) featItems.push(`${feat.name} Skills: ${skills}`);
+        if (tools) featItems.push(`${feat.name} Tools: ${tools}`);
+        if (languages) featItems.push(`${feat.name} Languages: ${languages}`);
+      });
+      const selectedTools = selectedFeatToolChoices();
+      if (selectedTools.length) featItems.push(`Selected feat tools: ${uniqueReadableValues(selectedTools).join(", ")}`);
+      appendReadableSection(sections, "Feats", featItems);
+
       const defenses = selectedDefenseSources();
       appendReadableSection(sections, "Defenses", defenses.passive);
 
@@ -7042,12 +7907,67 @@
       setFieldValue("SpellAtkBonus 2", formatModifier(bonus + abilityModifierValue));
     }
 
+    function hasActiveFeat(name) {
+      const normalized = normalizeName(name);
+      return activeFeatData().some((feat) => normalizeName(feat.name) === normalized);
+    }
+
+    function updateInitiativeFromFeats() {
+      const field = getFieldByKey("Initiative");
+      if (!field) return;
+      const previous = sheetMeta.generatedInitiativeFromFeats || "";
+      if (!hasActiveFeat("Alert")) {
+        if (field.value === previous) field.value = "";
+        sheetMeta.generatedInitiativeFromFeats = "";
+        return;
+      }
+      const dex = parseSignedNumber(fieldValue("DEXmod"));
+      const bonus = proficiencyBonus();
+      const next = formatModifier(dex + bonus);
+      if (!field.value.trim() || field.value === previous) {
+        field.value = next;
+        field.title = `${field.dataset.key || "Initiative"}: DEX ${formatModifier(dex)}, Alert ${formatModifier(bonus)}`;
+        sheetMeta.generatedInitiativeFromFeats = next;
+      }
+    }
+
+    function updateHitPointMaximumFromFeats() {
+      const field = getFieldByKey("HPMax");
+      if (!field) return;
+      if (!sheetMeta.generatedHitPointMaximumFromFeats || typeof sheetMeta.generatedHitPointMaximumFromFeats !== "object") {
+        sheetMeta.generatedHitPointMaximumFromFeats = {};
+      }
+      const state = sheetMeta.generatedHitPointMaximumFromFeats;
+      const previousBonus = Number.parseInt(String(state.bonus || "0"), 10) || 0;
+      const previousValue = state.value || "";
+      const currentValue = Number.parseInt(String(field.value || "").trim(), 10);
+      const hasTough = hasActiveFeat("Tough");
+      if (!hasTough) {
+        if (previousBonus && field.value === previousValue && Number.isFinite(Number.parseInt(String(state.base || ""), 10))) {
+          field.value = String(state.base);
+        }
+        sheetMeta.generatedHitPointMaximumFromFeats = {};
+        return;
+      }
+      if (!Number.isFinite(currentValue)) return;
+      const storedBase = Number.parseInt(String(state.base || ""), 10);
+      const base = Number.isFinite(storedBase) && field.value === previousValue
+        ? storedBase
+        : currentValue - previousBonus;
+      const bonus = getCharacterLevel() * 2;
+      const next = base + bonus;
+      field.value = String(next);
+      field.title = `${field.dataset.key || "HPMax"}: base ${base}, Tough ${formatModifier(bonus)}`;
+      sheetMeta.generatedHitPointMaximumFromFeats = { base, bonus, value: String(next) };
+    }
+
     function updateDerivedStats() {
       ensureCurrencyDefaults();
       applySelectedBackgroundChoices();
       applyRaceAbilityAdjustments();
       updateBackgroundSkillProficiencies();
       updateRaceSkillProficiencies();
+      updateFeatSkillProficiencies();
       updateSavingThrowProficiencies();
       updateProficiencyBonus();
       Object.entries(DERIVED_STAT_FIELDS).forEach(([ability, config]) => {
@@ -7060,6 +7980,8 @@
           setFieldValue(target.field, formatModifier(value));
         });
       });
+      updateInitiativeFromFeats();
+      updateHitPointMaximumFromFeats();
       updatePassiveWisdomPerception();
       updateSpellcastingFields();
       updateArmorClass();
