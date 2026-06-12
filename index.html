@@ -203,6 +203,11 @@
       color: #fff;
     }
 
+    .equipment-equip:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
     .equipment-empty {
       padding: 6px;
       color: #555;
@@ -394,6 +399,10 @@
       transition: transform 180ms ease;
     }
 
+    .item-drawer.spell-picker-drawer {
+      width: min(920px, calc(100vw - 28px));
+    }
+
     .item-drawer.visible {
       transform: translateX(0);
     }
@@ -512,7 +521,21 @@
 
     .spell-picker {
       display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(280px, 0.95fr);
       gap: 10px;
+      align-items: start;
+    }
+
+    .spell-picker-main {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .spell-picker-list {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
     }
 
     .spell-picker-current,
@@ -567,8 +590,56 @@
     }
 
     .spell-picker-detail {
-      border-top: 1px solid #ddd;
-      padding-top: 10px;
+      position: sticky;
+      top: 0;
+      max-height: calc(100vh - 118px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border: 1px solid #d0d0d0;
+      border-radius: 5px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .spell-picker-detail.hidden {
+      display: none;
+    }
+
+    .spell-picker-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-bottom: 1px solid #d0d0d0;
+      background: #f7f7f7;
+      font-weight: 700;
+    }
+
+    .spell-picker-detail-close {
+      width: 26px;
+      height: 26px;
+      border: 1px solid #b8b8b8;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .spell-picker-detail-body {
+      min-height: 0;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 760px) {
+      .spell-picker {
+        grid-template-columns: 1fr;
+      }
+
+      .spell-picker-detail {
+        position: static;
+        max-height: none;
+      }
     }
 
     .item-section-list li + li {
@@ -703,6 +774,13 @@
       gap: 6px;
       align-items: start;
       cursor: pointer;
+    }
+
+    .option-choice.disabled,
+    .alert-choice.disabled {
+      color: #777;
+      cursor: not-allowed;
+      opacity: 0.72;
     }
 
     .option-choice input {
@@ -1422,9 +1500,10 @@
     }
 
     async function loadClassOptions() {
-      if (desktopStore?.loadClasses) return desktopStore.loadClasses();
+      const withoutSidekicks = (options) => (options || []).filter((option) => !/sidekick/i.test(optionName(option)));
+      if (desktopStore?.loadClasses) return withoutSidekicks(await desktopStore.loadClasses());
       const response = await fetch("./classes.json");
-      return response.json();
+      return withoutSidekicks(await response.json());
     }
 
     async function loadClassDetails() {
@@ -1916,7 +1995,7 @@
     }
 
     function getSpellLevelLimit(level) {
-      if (level === 0) return cantripsKnownForCharacter() + autoCantripNames().length + featGrantedSpellChoiceLimit(0);
+      if (level === 0) return cantripsKnownForCharacter() + featGrantedSpellChoiceLimit(0);
       const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
       if (!totalKey) return Infinity;
       const value = getFieldValueByNormalizedKey(totalKey.toLowerCase());
@@ -1929,6 +2008,7 @@
     function getSelectedSpellCount(level, exceptField) {
       return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
         .filter((field) => field !== exceptField && Number(field.dataset.spellLevel) === level && field.value.trim())
+        .filter((field) => !isAutoGrantedSpellField(field))
         .length;
     }
 
@@ -1939,22 +2019,70 @@
         .some((field) => field !== exceptField && normalizeName(field.value || "") === normalized);
     }
 
+    function isWizardCharacter() {
+      return normalizeName(getMainClassName() || getSelectedClassName()) === "wizard";
+    }
+
+    function wizardSpellbookNames() {
+      if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
+      return sheetMeta.wizardSpellbook.filter(Boolean);
+    }
+
+    function wizardSpellbookSet() {
+      return new Set(wizardSpellbookNames().map(normalizeName));
+    }
+
+    function addWizardSpellbookSpell(spellName) {
+      if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
+      if (wizardSpellbookSet().has(normalizeName(spellName))) return;
+      sheetMeta.wizardSpellbook.push(spellName);
+      scheduleSave();
+    }
+
+    function removeWizardSpellbookSpell(spellName) {
+      if (!Array.isArray(sheetMeta.wizardSpellbook)) return;
+      const normalized = normalizeName(spellName);
+      sheetMeta.wizardSpellbook = sheetMeta.wizardSpellbook.filter((name) => normalizeName(name) !== normalized);
+      scheduleSave();
+    }
+
+    function syncPreparedWizardSpellsToSpellbook() {
+      if (!isWizardCharacter()) return;
+      [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+        .map((field) => field.value.trim())
+        .filter(Boolean)
+        .map(findSpellByName)
+        .filter((spell) => spell?.level > 0 && spell.classes?.some((name) => normalizeName(name) === "wizard"))
+        .forEach((spell) => addWizardSpellbookSpell(spell.name));
+    }
+
     function spellMatchesSelection(spell, level) {
       if (spell.level !== level) return false;
       if (!canUseSpellLevel(level)) return false;
-      const className = getSelectedClassName();
-      const raceName = getSelectedRaceName();
-      const classMatches = className && spell.classes?.some((name) => name.toLowerCase() === className.toLowerCase());
-      const raceMatches = raceName && spell.races?.some((name) => name.toLowerCase() === raceName.toLowerCase());
+      const className = normalizeName(getSelectedClassName());
+      const raceName = normalizeName(getSelectedRaceName());
+      const classMatches = className && spell.classes?.some((name) => normalizeName(name) === className);
+      const raceMatches = raceName && spell.races?.some((name) => normalizeName(name) === raceName);
       const featMatches = featGrantsSpell(spell, level);
       if (className || raceName || activeFeatSpellGrants().length) return Boolean(classMatches || raceMatches || featMatches);
       return true;
     }
 
     function getSpellOptions(level, field = null) {
-      const limit = getSpellLevelLimit(level);
-      if (!field?.value?.trim() && getSelectedSpellCount(level, field) >= limit) return [];
-      return spells.filter((spell) => spellMatchesSelection(spell, level) && !isSpellAlreadySelected(spell.name, field));
+      const autoPrepared = new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
+      return spells.filter((spell) => spellMatchesSelection(spell, level)
+        && !autoPrepared.has(normalizeName(spell.name))
+        && (!isWizardCharacter() || level === 0 || wizardSpellbookSet().has(normalizeName(spell.name)) || normalizeName(field?.value || "") === normalizeName(spell.name))
+        && !isSpellAlreadySelected(spell.name, field));
+    }
+
+    function getWizardAccessibleSpellOptions(level) {
+      const autoPrepared = new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
+      return spells.filter((spell) => spell.level === level
+        && level > 0
+        && canUseSpellLevel(level)
+        && spell.classes?.some((name) => normalizeName(name) === "wizard")
+        && !autoPrepared.has(normalizeName(spell.name)));
     }
 
     function selectedSpellFieldsForLevel(level) {
@@ -1970,6 +2098,10 @@
       activeFeatSpellGrants()
         .filter((grant) => grant.spellName)
         .forEach((grant) => names.push(grant.spellName));
+      choosableFeatureEntriesForCharacter()
+        .flatMap((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)))
+        .filter((value) => String(value).startsWith("spell:"))
+        .forEach((value) => names.push(String(value).replace(/^spell:/, "")));
       const texts = [
         selectedOptionDescription("race", getSelectedRaceName()),
         selectedOptionDescription("background", getFieldValueByNormalizedKey("background")),
@@ -2099,10 +2231,20 @@
     function syncAutoCantrips() {
       const fields = [...document.querySelectorAll(".field.select[data-option-type='spell']")];
       if (!fields.length) return;
-      const autoNames = autoGrantedSpellNames();
+      const autoNames = autoCantripNames();
       const nextSet = new Set(autoNames.map(normalizeName));
       const autoPreparedNames = autoAlwaysPreparedSpellNames();
       const preparedSet = new Set(autoPreparedNames.map(normalizeName));
+
+      fields.forEach((field) => {
+        if (!field.value.trim()) return;
+        const spell = findSpellByName(field.value);
+        if (spell?.level === 0 || !preparedSet.has(normalizeName(field.value))) return;
+        field.value = "";
+        delete field.dataset.autoGrantedSpell;
+        syncAutoPreparedSpellCheckbox(field, preparedSet);
+        syncFeatPreparedSpellCheckbox(field);
+      });
 
       fields.forEach((field) => {
         if (nextSet.has(normalizeName(field.value))) field.dataset.autoGrantedSpell = "true";
@@ -2183,12 +2325,23 @@
       return `${Number(match[1]) * multiplier}d${match[2]}${match[3] || ""}`;
     }
 
+    function trueStrikeExtraDiceCount() {
+      const level = getCharacterLevel();
+      return level >= 17 ? 3 : level >= 11 ? 2 : level >= 5 ? 1 : 0;
+    }
+
     function damageDiceForSpell(spell) {
       if (!spell?.description) return null;
+      const spellName = normalizeName(spell.name || "");
+      if (spellName === "true strike") {
+        const diceCount = trueStrikeExtraDiceCount();
+        return diceCount ? `${diceCount}d6` : null;
+      }
       const hitMatch = spell.description.match(/on a hit[^.]*?takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
       const damageMatch = spell.description.match(/takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
       const expression = hitMatch?.[1] || damageMatch?.[1] || spell.description.match(/\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i)?.[0] || null;
       if (!expression) return null;
+      if (spellName === "eldritch blast") return expression.replace(/\s+/g, "");
       return spell.level === 0 ? scaledCantripDice(expression.replace(/\s+/g, "")) : expression.replace(/\s+/g, "");
     }
 
@@ -2198,6 +2351,70 @@
       if (typedAfterDice?.[1]) return typedAfterDice[1].toLowerCase();
       const typedDamage = spell.description.match(/\b(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\s+damage\b/i);
       return typedDamage?.[1]?.toLowerCase() || "";
+    }
+
+    function selectedOptionalFeatureNames(featureType = "") {
+      const targetType = String(featureType || "").toUpperCase();
+      return selectedFeatureChoiceEntries()
+        .filter((entry) => entry.type === "optionalfeature")
+        .filter((entry) => !targetType || (entry.optionalFeature?.featureType || []).includes(targetType))
+        .map((entry) => entry.optionalFeature?.name || entry.title || "")
+        .filter(Boolean);
+    }
+
+    function hasSelectedInvocation(name) {
+      const target = normalizeName(name);
+      return selectedOptionalFeatureNames("EI").some((item) => normalizeName(item) === target);
+    }
+
+    function eldritchBlastBeamCount() {
+      const level = getCharacterLevel();
+      return level >= 17 ? 4 : level >= 11 ? 3 : level >= 5 ? 2 : 1;
+    }
+
+    function eldritchBlastDamageExpression() {
+      const charismaModifier = parseSignedNumber(getFieldValueByNormalizedKey("chamod"));
+      const agonizingBonus = hasSelectedInvocation("Agonizing Blast") && charismaModifier ? formatModifier(charismaModifier) : "";
+      return `1d10${agonizingBonus}`;
+    }
+
+    function eldritchBlastInvocationLabels() {
+      const labels = [];
+      if (hasSelectedInvocation("Agonizing Blast")) labels.push("Agonizing: CHA al danio");
+      if (hasSelectedInvocation("Repelling Blast")) labels.push("Repelling: empuja 10 ft");
+      if (hasSelectedInvocation("Grasp of Hadar")) labels.push("Grasp: acerca 10 ft 1/turno");
+      if (hasSelectedInvocation("Lance of Lethargy")) labels.push("Lance: -10 ft speed 1/turno");
+      if (hasSelectedInvocation("Eldritch Spear")) labels.push("Eldritch Spear: 300 ft");
+      return labels;
+    }
+
+    function spellAttackSelections(spellName, levelOverride = null) {
+      const spell = findSpellByName(spellName);
+      const level = levelOverride ?? spell?.level ?? 1;
+      const base = {
+        damageType: damageTypeForSpell(spell),
+        description: descriptionForSpell(spell),
+        attackBonus: getSpellAttackBonus(),
+        attackLabel: "spell attack",
+        level
+      };
+      if (normalizeName(spellName) !== "eldritch blast") {
+        const damage = damageDiceForSpell(spell);
+        const trueStrikeDice = normalizeName(spellName) === "true strike" ? trueStrikeExtraDiceCount() : null;
+        const damageLabel = trueStrikeDice == null ? damage : trueStrikeDice ? `+${trueStrikeDice}d6` : "+0";
+        return [{ name: spellName, damage, damageLabel, ...base }];
+      }
+      const beams = eldritchBlastBeamCount();
+      const invocationLabels = eldritchBlastInvocationLabels();
+      const damage = eldritchBlastDamageExpression();
+      return Array.from({ length: beams }, (_, index) => ({
+        name: beams > 1 ? `${spellName} ${index + 1}/${beams}` : spellName,
+        sourceName: spellName,
+        damage,
+        damageLabel: damage,
+        ...base,
+        attackLabel: ["spell attack", "tirada separada", ...invocationLabels].join(", ")
+      }));
     }
 
     const DAMAGE_TYPE_SYMBOLS = {
@@ -2288,9 +2505,49 @@
       return ranged ? dex : str;
     }
 
+    function selectedFightingStyleNames() {
+      return selectedFeatureChoiceEntries()
+        .filter((entry) => entry.type === "feat")
+        .map((entry) => entry.featName || entry.title || "")
+        .filter((name) => {
+          const feat = findFeatData(name);
+          return feat?.category === "FS" || /^fighting style/i.test(name);
+        })
+        .map((name) => String(name).replace(/^Fighting Style:\s*/i, ""))
+        .map(normalizeName);
+    }
+
+    function hasFightingStyle(name) {
+      const target = normalizeName(name);
+      return selectedFightingStyleNames().some((style) => style === target || style.endsWith(` ${target}`));
+    }
+
+    function fightingStyleAttackBonus(item) {
+      if (hasFightingStyle("archery") && itemTypeAbbreviation(item) === "R") return 2;
+      return 0;
+    }
+
+    function fightingStyleDamageBonus(item, slot) {
+      let bonus = 0;
+      if (hasFightingStyle("dueling")
+        && slot === "mainHand"
+        && itemTypeAbbreviation(item) !== "R"
+        && !hasItemProperty(item, "2H")
+        && !isWeaponItem(equippedInSlot("offHand")?.item)) {
+        bonus += 2;
+      }
+      if (hasFightingStyle("thrown weapon fighting") && hasItemProperty(item, "T")) bonus += 2;
+      return bonus;
+    }
+
     function equippedArmorWithoutProficiency() {
       return equippedEntries()
         .some(({ item, record }) => ["armor", "offHand"].includes(record.slot) && (isArmorItem(item) || isShieldItem(item)) && !hasEquipmentProficiency(item));
+    }
+
+    function armorProficiencyPenaltyText() {
+      if (!equippedArmorWithoutProficiency()) return "";
+      return "Armor/shield sin proficiency: tenes desventaja en D20 Tests que usen STR o DEX, y no podes castear spells.";
     }
 
     function weaponAttackSelection(entry, item, slot) {
@@ -2298,7 +2555,8 @@
       const proficient = hasEquipmentProficiency(item);
       const armorPenalty = equippedArmorWithoutProficiency();
       const prof = proficient ? proficiencyBonus() : 0;
-      const damageBonus = slot === "offHand" ? 0 : ability;
+      const offHandAbilityBonus = slot === "offHand" && hasFightingStyle("two-weapon fighting") ? ability : 0;
+      const damageBonus = (slot === "offHand" ? offHandAbilityBonus : ability) + fightingStyleDamageBonus(item, slot);
       const record = equippedRecord(equipmentItemKey(entry));
       const damageDice = record?.twoHanded && item.dmg2 ? item.dmg2 : item.dmg1 || "1d4";
       const damageExpression = `${damageDice}${damageBonus ? formatModifier(damageBonus) : ""}`;
@@ -2308,9 +2566,11 @@
         damageLabel: damageExpression,
         damageType: (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase(),
         description: itemDescriptionText(item),
-        attackBonus: ability + prof,
+        attackBonus: ability + prof + fightingStyleAttackBonus(item),
         attackLabel: [
           proficient ? "weapon attack" : "sin prof",
+          fightingStyleAttackBonus(item) ? "Archery" : "",
+          fightingStyleDamageBonus(item, slot) ? "Dueling" : "",
           armorPenalty ? "desventaja por armadura/shield sin prof" : ""
         ].filter(Boolean).join(", "),
         level: 0
@@ -2541,25 +2801,26 @@
           const checkbox = getFieldByKey(field.dataset.preparedKey);
           return checkbox?.checked;
         })
-        .map((field) => {
+        .flatMap((field) => {
           const spellName = field.value.trim();
+          return spellAttackSelections(spellName, Number(field.dataset.spellLevel));
+        });
+      const preparedSpellNames = new Set([...document.querySelectorAll(".field.select[data-option-type='spell']")]
+        .map((field) => field.value.trim())
+        .filter(Boolean)
+        .map(normalizeName));
+      const autoPreparedSpells = autoAlwaysPreparedSpellNames()
+        .filter((spellName) => !preparedSpellNames.has(normalizeName(spellName)))
+        .flatMap((spellName) => {
           const spell = findSpellByName(spellName);
-          return {
-            name: spellName,
-            damage: damageDiceForSpell(spell),
-            damageLabel: damageDiceForSpell(spell),
-            damageType: damageTypeForSpell(spell),
-            description: descriptionForSpell(spell),
-            attackBonus: getSpellAttackBonus(),
-            attackLabel: "spell attack",
-            level: Number(field.dataset.spellLevel)
-          };
-        })
+          return spellAttackSelections(spellName, spell?.level ?? 1);
+        });
+      const allPreparedSpells = [...preparedSpells, ...autoPreparedSpells]
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
       const attacks = mainHandUsesTwoHands()
         ? []
         : [unarmed];
-      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...featureActivationSelections(), ...preparedSpells];
+      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...featureActivationSelections(), ...allPreparedSpells];
     }
 
     function updatePreparedSpellsPanel() {
@@ -2576,11 +2837,11 @@
         name.title = spell.description;
         name.tabIndex = 0;
         name.setAttribute("role", "button");
-        name.addEventListener("click", () => showSpellDrawer(spell.name));
+        name.addEventListener("click", () => showSpellDrawer(spell.sourceName || spell.name));
         name.addEventListener("keydown", (event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
-          showSpellDrawer(spell.name);
+          showSpellDrawer(spell.sourceName || spell.name);
         });
 
         const damageType = document.createElement("div");
@@ -2613,6 +2874,7 @@
         damageButton.textContent = spell.damageLabel || "--";
         damageButton.title = spell.damageLabel ? `Tirar danio ${spell.damageLabel} ${spell.damageType}`.trim() : "Sin dados de danio detectados";
         if (spell.kind === "activation") damageButton.disabled = true;
+        else if (!spell.damage) damageButton.disabled = true;
         else damageButton.addEventListener("click", () => rollDamage(spell.name, spell.damage || "", spell.damageType));
 
         row.append(name, damageType, attackButton, damageButton);
@@ -3194,9 +3456,15 @@
       if (!sheetMeta.choices || typeof sheetMeta.choices !== "object") sheetMeta.choices = {};
       if (!sheetMeta.currencySources || typeof sheetMeta.currencySources !== "object") sheetMeta.currencySources = {};
       if (typeof sheetMeta.generatedEquipmentText !== "string") sheetMeta.generatedEquipmentText = "";
+      if (!sheetMeta.generatedEquipmentSources || typeof sheetMeta.generatedEquipmentSources !== "object") {
+        sheetMeta.generatedEquipmentSources = sheetMeta.generatedEquipmentText
+          ? { "background:equipment": sheetMeta.generatedEquipmentText }
+          : {};
+      }
       if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
       if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
+      if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
       if (!sheetMeta.generatedSkillProficiencies || typeof sheetMeta.generatedSkillProficiencies !== "object") sheetMeta.generatedSkillProficiencies = {};
       document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
@@ -3285,13 +3553,27 @@
         }) || null;
     }
 
-    function setGeneratedEquipmentValue(value) {
+    function generatedEquipmentText() {
+      const sources = sheetMeta.generatedEquipmentSources || {};
+      return ["class:equipment", "background:equipment"]
+        .map((key) => sources[key] || "")
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    function setGeneratedEquipmentValue(sourceKey, value) {
       const field = getFieldByKey("Equipment");
       if (!field) return;
-      const previous = sheetMeta.generatedEquipmentText || "";
+      if (!sheetMeta.generatedEquipmentSources || typeof sheetMeta.generatedEquipmentSources !== "object") {
+        sheetMeta.generatedEquipmentSources = {};
+      }
+      const previous = generatedEquipmentText() || sheetMeta.generatedEquipmentText || "";
       const next = formatEquipmentList(value || "");
-      if (!field.value.trim() || field.value === previous) field.value = next;
-      sheetMeta.generatedEquipmentText = next;
+      if (next) sheetMeta.generatedEquipmentSources[sourceKey] = next;
+      else delete sheetMeta.generatedEquipmentSources[sourceKey];
+      const combined = generatedEquipmentText();
+      if (!field.value.trim() || field.value === previous) field.value = combined;
+      sheetMeta.generatedEquipmentText = combined;
       updateEquipmentPanel();
     }
 
@@ -3414,8 +3696,9 @@
     function parseEquipmentLine(line) {
       const trimmed = String(line || "").trim();
       const match = trimmed.match(/^(\d+)\s+(.+)$/);
-      const quantity = match ? Number.parseInt(match[1], 10) : 1;
       const rawName = match ? match[2].trim() : trimmed;
+      const parentheticalQuantity = rawName.match(/\((\d+)\)\s*$/)?.[1];
+      const quantity = match ? Number.parseInt(match[1], 10) : Number.parseInt(parentheticalQuantity || "1", 10);
       return {
         quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
         rawName,
@@ -3479,6 +3762,19 @@
     function splitRef(ref) {
       const [abbreviation, source] = String(ref || "").split("|");
       return { abbreviation, source: source || null };
+    }
+
+    function itemNameFromRef(ref) {
+      return (splitRef(ref).abbreviation || String(ref || "").split("|")[0] || "").replace(/\s*\(\d+\)\s*$/, "");
+    }
+
+    function itemQuantityFromRef(ref) {
+      const match = String(ref || "").match(/\((\d+)\)/);
+      return match ? Number.parseInt(match[1], 10) : 1;
+    }
+
+    function equipmentQuantityPrefix(quantity) {
+      return Number.isFinite(quantity) && quantity > 1 ? `${quantity} ` : "";
     }
 
     function itemTypeName(typeRef) {
@@ -3738,6 +4034,7 @@
         showStatus(level === 0 ? "Limite de cantrips alcanzado" : `Limite de spells nivel ${level} alcanzado`);
         return;
       }
+      if (isWizardCharacter() && level > 0) addWizardSpellbookSpell(spellName);
       field.value = spellName;
       syncFeatPreparedSpellCheckbox(field);
       field.dispatchEvent(new Event("input", { bubbles: true }));
@@ -3760,7 +4057,15 @@
       showSpellSelectionDrawer(field);
     }
 
-    function spellPickerRow(field, spell, detailTarget, selectedSpell) {
+    function showSpellPickerDetail(detailBody, spell) {
+      const detail = detailBody?.closest(".spell-picker-detail");
+      if (!detailBody || !detail) return;
+      detailBody.textContent = "";
+      detailBody.appendChild(buildSpellDrawerContent(spell));
+      detail.classList.remove("hidden");
+    }
+
+    function spellPickerRow(field, spell, detailBody, selectedSpell) {
       const row = document.createElement("div");
       row.className = `spell-picker-row ${normalizeName(field.value || "") === normalizeName(spell.name) ? "active" : ""}`;
 
@@ -3768,10 +4073,7 @@
       nameButton.type = "button";
       nameButton.className = "spell-picker-name";
       nameButton.textContent = spell.name;
-      nameButton.addEventListener("click", () => {
-        detailTarget.textContent = "";
-        detailTarget.appendChild(buildSpellDrawerContent(spell));
-      });
+      nameButton.addEventListener("click", () => showSpellPickerDetail(detailBody, spell));
 
       const meta = document.createElement("div");
       meta.className = "spell-picker-meta";
@@ -3791,12 +4093,50 @@
       inspectButton.type = "button";
       inspectButton.className = "spell-picker-button secondary";
       inspectButton.textContent = "Examinar";
-      inspectButton.addEventListener("click", () => {
-        detailTarget.textContent = "";
-        detailTarget.appendChild(buildSpellDrawerContent(spell));
-      });
+      inspectButton.addEventListener("click", () => showSpellPickerDetail(detailBody, spell));
 
       actions.append(chooseButton, inspectButton);
+      row.append(nameButton, meta, actions);
+      return row;
+    }
+
+    function wizardSpellListRow(field, spell, detailBody) {
+      const known = wizardSpellbookSet().has(normalizeName(spell.name));
+      const row = document.createElement("div");
+      row.className = `spell-picker-row ${known ? "active" : ""}`;
+
+      const nameButton = document.createElement("button");
+      nameButton.type = "button";
+      nameButton.className = "spell-picker-name";
+      nameButton.textContent = spell.name;
+      nameButton.addEventListener("click", () => showSpellPickerDetail(detailBody, spell));
+
+      const meta = document.createElement("div");
+      meta.className = "spell-picker-meta";
+      meta.textContent = [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell), known ? "En spellbook" : ""].filter(Boolean).join(" - ");
+
+      const actions = document.createElement("div");
+      actions.className = "spell-picker-actions";
+
+      const bookButton = document.createElement("button");
+      bookButton.type = "button";
+      bookButton.className = "spell-picker-button";
+      bookButton.textContent = known ? "Quitar del libro" : "Agregar al libro";
+      bookButton.disabled = normalizeName(field.value || "") === normalizeName(spell.name);
+      bookButton.addEventListener("click", () => {
+        if (known) removeWizardSpellbookSpell(spell.name);
+        else addWizardSpellbookSpell(spell.name);
+        showStatus(known ? `${spell.name} quitada del spellbook` : `${spell.name} agregada al spellbook`);
+        showSpellSelectionDrawer(field, spell);
+      });
+
+      const inspectButton = document.createElement("button");
+      inspectButton.type = "button";
+      inspectButton.className = "spell-picker-button secondary";
+      inspectButton.textContent = "Examinar";
+      inspectButton.addEventListener("click", () => showSpellPickerDetail(detailBody, spell));
+
+      actions.append(bookButton, inspectButton);
       row.append(nameButton, meta, actions);
       return row;
     }
@@ -3805,8 +4145,13 @@
       const root = document.createElement("div");
       root.className = "spell-picker";
       const level = Number(field.dataset.spellLevel);
+      syncPreparedWizardSpellsToSpellbook();
       const currentSpell = selectedSpell || findSpellByName(field.value || "");
       const options = getSpellOptions(level, field);
+      const wizardAccessibleOptions = isWizardCharacter() && level > 0 ? getWizardAccessibleSpellOptions(level) : [];
+
+      const main = document.createElement("div");
+      main.className = "spell-picker-main";
 
       const current = document.createElement("section");
       current.className = "spell-picker-current";
@@ -3819,10 +4164,7 @@
         inspectCurrent.type = "button";
         inspectCurrent.className = "spell-picker-button secondary";
         inspectCurrent.textContent = "Examinar actual";
-        inspectCurrent.addEventListener("click", () => {
-          detail.textContent = "";
-          detail.appendChild(buildSpellDrawerContent(currentSpell));
-        });
+        inspectCurrent.addEventListener("click", () => showSpellPickerDetail(detailBody, currentSpell));
         currentActions.appendChild(inspectCurrent);
       }
       const removeButton = document.createElement("button");
@@ -3833,26 +4175,58 @@
       removeButton.addEventListener("click", () => clearSpellSelection(field));
       currentActions.appendChild(removeButton);
       current.appendChild(currentActions);
-      root.appendChild(current);
+      main.appendChild(current);
 
       const listTitle = document.createElement("div");
       listTitle.className = "item-section-title";
-      listTitle.textContent = `Opciones (${options.length})`;
-      root.appendChild(listTitle);
+      listTitle.textContent = isWizardCharacter() && level > 0 ? `Spellbook (${options.length})` : `Opciones (${options.length})`;
+      main.appendChild(listTitle);
 
       const detail = document.createElement("section");
       detail.className = "spell-picker-detail";
+      const detailHeader = document.createElement("div");
+      detailHeader.className = "spell-picker-detail-header";
+      const detailTitle = document.createElement("div");
+      detailTitle.textContent = "Detalle";
+      const detailClose = document.createElement("button");
+      detailClose.type = "button";
+      detailClose.className = "spell-picker-detail-close";
+      detailClose.textContent = "X";
+      detailClose.setAttribute("aria-label", "Cerrar detalle");
+      detailClose.addEventListener("click", () => detail.classList.add("hidden"));
+      detailHeader.append(detailTitle, detailClose);
+      const detailBody = document.createElement("div");
+      detailBody.className = "spell-picker-detail-body";
+      detail.append(detailHeader, detailBody);
 
       if (!options.length) {
-        appendItemSection(root, "Sin opciones", "No hay magias disponibles para este campo con tu clase, raza, feats y nivel actual.");
+        appendItemSection(main, "Sin opciones", isWizardCharacter() && level > 0
+          ? "No hay magias de este nivel en tu spellbook. Agrega magias desde la lista de Wizard."
+          : "No hay magias disponibles para este campo con tu clase, raza, feats y nivel actual.");
       } else {
+        const list = document.createElement("div");
+        list.className = "spell-picker-list";
         options
           .sort((a, b) => a.name.localeCompare(b.name))
-          .forEach((spell) => root.appendChild(spellPickerRow(field, spell, detail, currentSpell)));
+          .forEach((spell) => list.appendChild(spellPickerRow(field, spell, detailBody, currentSpell)));
+        main.appendChild(list);
       }
 
-      detail.appendChild(buildSpellDrawerContent(currentSpell || options[0] || null));
-      root.appendChild(detail);
+      if (wizardAccessibleOptions.length) {
+        const wizardTitle = document.createElement("div");
+        wizardTitle.className = "item-section-title";
+        wizardTitle.textContent = `Lista Wizard (${wizardAccessibleOptions.length})`;
+        main.appendChild(wizardTitle);
+        const wizardList = document.createElement("div");
+        wizardList.className = "spell-picker-list";
+        wizardAccessibleOptions
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .forEach((spell) => wizardList.appendChild(wizardSpellListRow(field, spell, detailBody)));
+        main.appendChild(wizardList);
+      }
+
+      showSpellPickerDetail(detailBody, currentSpell || options[0] || wizardAccessibleOptions[0] || null);
+      root.append(main, detail);
       return root;
     }
 
@@ -3863,6 +4237,7 @@
         field.value.trim() ? `Actual: ${field.value.trim()}` : "Sin magia seleccionada",
         buildSpellSelectionDrawerContent(field, selectedSpell)
       );
+      itemDrawer.classList.add("spell-picker-drawer");
     }
 
     function buildItemDrawerContent(item) {
@@ -4178,6 +4553,63 @@
       return numberMatch ? Number.parseInt(numberMatch[1], 10) : 1;
     }
 
+    function classTableValueForFeature(feature, labelPattern) {
+      const className = feature?.className || getMainClassName() || getSelectedClassName();
+      const detail = classDetailByName(className);
+      const classItem = detail?.classItem;
+      const level = Math.max(1, Math.min(20, getCharacterLevel()));
+      if (!classItem?.classTableGroups?.length) return null;
+      for (const group of classItem.classTableGroups) {
+        const labels = group.colLabels || [];
+        const index = labels.findIndex((label) => labelPattern.test(strip5eTags(label)));
+        if (index < 0) continue;
+        const row = group.rows?.[level - 1];
+        const value = Array.isArray(row) ? row[index] : null;
+        const number = Number.parseInt(strip5eTags(value), 10);
+        if (Number.isFinite(number)) return number;
+      }
+      return null;
+    }
+
+    function optionalFeatureOptionsByType(featureType) {
+      const type = String(featureType || "").toUpperCase();
+      const seen = new Set();
+      return optionalFeatures
+        .filter((item) => (item.featureType || []).includes(type))
+        .filter((item) => {
+          const key = normalizeName(item.name || "");
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((item) => ({ value: item.name, label: item.name, type: "optionalfeature", description: flattenEntryText(item.entries) }));
+    }
+
+    function eldritchInvocationCountForFeature(feature) {
+      const tableValue = classTableValueForFeature(feature, /^invocations?(?: known)?$/i);
+      if (tableValue != null) return Math.max(1, tableValue);
+      const text = flattenEntryText(feature?.entries || "");
+      const match = text.match(/\b(one|two|three|four|five|six|seven|eight|nine|\d+)\s+eldritch invocations?\b/i);
+      return match ? countWordToNumber(match[1]) || Number.parseInt(match[1], 10) || 1 : 1;
+    }
+
+    function artificerInfusionKnownCountForFeature(feature) {
+      const tableValue = classTableValueForFeature(feature, /^(?:infusions known|plans known)$/i);
+      if (tableValue != null) return Math.max(1, tableValue);
+      const text = flattenEntryText(feature?.entries || "");
+      const match = text.match(/\b(?:learn|known|pick|choose)\s+(one|two|three|four|five|six|seven|eight|nine|\d+)\s+(?:artificer\s+)?infusions?\b/i);
+      return match ? countWordToNumber(match[1]) || Number.parseInt(match[1], 10) || 4 : 4;
+    }
+
+    function artificerInfusedItemCountForFeature(feature) {
+      const tableValue = classTableValueForFeature(feature, /^(?:infused items|magic items)$/i);
+      if (tableValue != null) return Math.max(1, tableValue);
+      const text = flattenEntryText(feature?.entries || "");
+      const match = text.match(/\b(one|two|three|four|five|six|seven|eight|nine|\d+)\s+(?:items?|objects?)\b/i);
+      return match ? countWordToNumber(match[1]) || Number.parseInt(match[1], 10) || 2 : 2;
+    }
+
     function isAbilityScoreImprovementFeature(feature) {
       const name = normalizeName(feature?.name || "");
       const text = normalizeName(flattenEntryText(feature?.entries || feature?.entry || ""));
@@ -4209,6 +4641,30 @@
           });
         });
       return options;
+    }
+
+    function spellChoiceOptionsForFeatureText(text, fallbackClassName = "") {
+      const normalizedText = String(text || "");
+      const lower = normalizedText.toLowerCase();
+      if (!/\bcantrips?\b/.test(lower) || !/\b(?:choice|choose|of your choice)\b/.test(lower)) return null;
+      const countMatch = lower.match(/\b(one|two|three|four|\d+)\s+(?:other\s+|additional\s+)?cantrips?\b/);
+      const count = countMatch ? countWordToNumber(countMatch[1]) || Number.parseInt(countMatch[1], 10) || 1 : 1;
+      const classMatch = normalizedText.match(/\b(?:from|of)\s+the\s+\{@filter\s+([A-Za-z]+)[^}]*class=([A-Za-z]+)[^}]*\}/i)
+        || normalizedText.match(/\bfrom the\s+([A-Za-z]+)\s+spell list/i)
+        || normalizedText.match(/\b([A-Za-z]+)\s+cantrip of your choice/i);
+      const className = classMatch?.[2] || classMatch?.[1] || fallbackClassName;
+      const classKey = normalizeName(className);
+      const options = spells
+        .filter((spell) => spell.level === 0)
+        .filter((spell) => !classKey || spell.classes?.some((name) => normalizeName(name) === classKey))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((spell) => ({
+          value: `spell:${spell.name}`,
+          label: spell.name,
+          type: "spell",
+          description: cleanSpellDescription(spell)
+        }));
+      return options.length ? { label: "Cantrip", count, options } : null;
     }
 
     function abilityScoreIncreaseOptions() {
@@ -4295,6 +4751,26 @@
     function featureChoiceSpecs(feature) {
       const specs = collectStructuredChoiceSpecs(feature?.entries || []);
       const text = flattenEntryText(feature?.entries || "").toLowerCase();
+      const featureSearchText = `${normalizeName(feature?.name || "")} ${text}`;
+      if (normalizeName(feature?.name || "") === "eldritch invocation options") return [];
+      const cantripSpec = spellChoiceOptionsForFeatureText(flattenEntryText(feature?.entries || ""), feature?.className || getMainClassName());
+      if (cantripSpec) specs.push(cantripSpec);
+      const hasOptionalSpecByType = (featureType) => specs.some((spec) => (spec.options || []).some((option) => {
+        const optional = option.type === "optionalfeature" ? optionalFeatureByName(option.value) : null;
+        return (optional?.featureType || []).includes(featureType);
+      }));
+      specs.forEach((spec) => {
+        const hasEldritchOptions = /eldritch invocation/.test(featureSearchText) && (spec.options || []).some((option) => {
+          const optional = option.type === "optionalfeature" ? optionalFeatureByName(option.value) : null;
+          return (optional?.featureType || []).includes("EI");
+        });
+        if (hasEldritchOptions) spec.count = eldritchInvocationCountForFeature(feature);
+        const hasArtificerInfusionOptions = /(?:infusions known|artificer infusions|infuse item)/.test(featureSearchText) && (spec.options || []).some((option) => {
+          const optional = option.type === "optionalfeature" ? optionalFeatureByName(option.value) : null;
+          return (optional?.featureType || []).includes("AI");
+        });
+        if (hasArtificerInfusionOptions) spec.count = artificerInfusionKnownCountForFeature(feature);
+      });
       if (isAbilityScoreImprovementFeature(feature)) {
         specs.push({ label: "Feat or Ability Score Improvement", count: 1, options: featChoiceOptionsForAbilityScoreImprovement() });
         if (selectedFeatureChoices(featureChoiceKey(feature)).includes(ASI_CHOICE_VALUE)) {
@@ -4380,7 +4856,7 @@
       }
       if (/fighting style feat/.test(text)) {
         const options = feats
-          .filter((feat) => feat.category === "FS")
+          .filter((feat) => String(feat.category || "").startsWith("FS"))
           .filter((feat, index, list) => list.findIndex((item) => normalizeName(item.name) === normalizeName(feat.name)) === index)
           .map((feat) => ({ value: feat.name, label: feat.name, type: "feat", description: flattenEntryText(feat.entries) }));
         if (options.length) specs.push({ label: "Fighting Style", count: 1, options });
@@ -4391,11 +4867,17 @@
           .map((feat) => ({ value: feat.name, label: feat.name, type: "feat", description: flattenEntryText(feat.entries) }));
         if (options.length) specs.push({ label: "Epic Boon", count: 1, options });
       }
-      if (/eldritch invocation/.test(text) && /choice|choose|invocation of your choice/.test(text)) {
-        const options = optionalFeatures
-          .filter((item) => (item.featureType || []).includes("EI"))
-          .map((item) => ({ value: item.name, label: item.name, type: "optionalfeature", description: flattenEntryText(item.entries) }));
-        if (options.length) specs.push({ label: "Eldritch Invocation", count: 1, options });
+      if (!hasOptionalSpecByType("AI") && /(?:infusions known|artificer infusions)/.test(featureSearchText)) {
+        const options = optionalFeatureOptionsByType("AI");
+        if (options.length) specs.push({ label: "Artificer Infusion Known", count: artificerInfusionKnownCountForFeature(feature), options });
+      }
+      if (!hasOptionalSpecByType("AI") && /(?:infuse item|infused items)/.test(featureSearchText)) {
+        const options = optionalFeatureOptionsByType("AI");
+        if (options.length) specs.push({ label: "Infused Item Active", count: artificerInfusedItemCountForFeature(feature), options });
+      }
+      if (!hasOptionalSpecByType("EI") && /eldritch invocation/.test(text) && /choice|choose|invocation of your choice/.test(text)) {
+        const options = optionalFeatureOptionsByType("EI");
+        if (options.length) specs.push({ label: "Eldritch Invocation", count: eldritchInvocationCountForFeature(feature), options });
       }
       return specs;
     }
@@ -4410,13 +4892,16 @@
         section.className = "option-choice-group";
         appendText(section, "option-choice-title", `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`);
         spec.options.forEach((option) => {
+          const disabled = isSkillOptionAlreadyProficient(option, selected);
           const label = document.createElement("label");
           label.className = "option-choice";
+          label.classList.toggle("disabled", disabled);
           const input = document.createElement("input");
           input.type = spec.count > 1 ? "checkbox" : "radio";
           input.name = `${key}:${specIndex}`;
           input.value = option.value;
           input.checked = selected.includes(option.value);
+          input.disabled = disabled;
           input.addEventListener("change", () => {
             const current = selectedFeatureChoices(key).filter((value) => !spec.options.some((item) => item.value === value));
             let picked = [...section.querySelectorAll("input:checked")].map((item) => item.value);
@@ -4434,9 +4919,36 @@
           });
           const text = document.createElement("span");
           text.className = "option-choice-text";
-          text.textContent = option.description ? `${option.label}: ${option.description.split(/(?<=[.!?])\s+/)[0]}` : option.label;
+          const optionLabel = skillOptionLabel(option, disabled);
+          text.textContent = option.description ? `${optionLabel}: ${option.description.split(/(?<=[.!?])\s+/)[0]}` : optionLabel;
           label.append(input, text);
           section.appendChild(label);
+          if (option.type === "feat") {
+            const inspect = document.createElement("button");
+            inspect.type = "button";
+            inspect.className = "spell-picker-button secondary";
+            inspect.textContent = "Examinar feat";
+            inspect.addEventListener("click", () => {
+              const feat = findFeatData(option.value);
+              const body = buildFeatDrawerContent(feat, option.label || option.value);
+              appendFeatureBackButton(body, generatedFeaturesAndTraitsEntries());
+              showDrawer(feat?.name || option.label || "Feat", "Feat", body);
+            });
+            section.appendChild(inspect);
+          }
+          if (option.type === "optionalfeature") {
+            const inspect = document.createElement("button");
+            inspect.type = "button";
+            inspect.className = "spell-picker-button secondary";
+            inspect.textContent = "Examinar opcion";
+            inspect.addEventListener("click", () => {
+              const optional = optionalFeatureByName(option.value);
+              const body = buildTextFeatureDrawerContent(optional?.name || option.label || option.value, flattenEntryText(optional?.entries || option.description || ""), "Feature option");
+              appendFeatureBackButton(body, generatedFeaturesAndTraitsEntries());
+              showDrawer(optional?.name || option.label || "Feature option", "Feature option", body);
+            });
+            section.appendChild(inspect);
+          }
         });
         root.appendChild(section);
       });
@@ -4588,8 +5100,8 @@
 
     function isAccessoryItem(item) {
       const typeName = itemTypeName(item?.type).toLowerCase();
-      return /\b(ring|rod|staff|wand|wondrous|tattoo|focus)\b/.test(typeName)
-        || ["RG", "RD", "ST", "WD", "W", "OTH"].includes(itemTypeAbbreviation(item)) && item?.rarity && item.rarity !== "none";
+      return (/\b(ring|wondrous|tattoo)\b/.test(typeName) || ["RG", "W"].includes(itemTypeAbbreviation(item)))
+        && item?.rarity && item.rarity !== "none";
     }
 
     function itemFilterCategory(item) {
@@ -4664,7 +5176,13 @@
       const quantities = new Map(equipmentEntries().map((entry) => [equipmentItemKey(entry), entry.quantity]));
       Object.keys(equippedItems()).forEach((key) => {
         const quantity = quantities.get(key) || 0;
+        const entry = equipmentEntries().find((item) => equipmentItemKey(item) === key);
+        const item = entry ? findItemData(entry.displayName) : null;
         if (quantity <= 0) {
+          delete equippedItems()[key];
+          return;
+        }
+        if (!itemEquipKind(item)) {
           delete equippedItems()[key];
           return;
         }
@@ -4809,6 +5327,7 @@
     }
 
     function showDrawer(title, meta, body) {
+      itemDrawer.classList.remove("spell-picker-drawer");
       itemDrawerTitle.textContent = title || "Detalle";
       itemDrawerMeta.textContent = meta || "";
       itemDrawerBody.textContent = "";
@@ -5045,14 +5564,16 @@
         equip.type = "button";
         equip.className = "equipment-equip";
         const key = equipmentItemKey(entry);
+        const equipKind = itemEquipKind(item);
         const record = equippedRecord(key);
         if (record?.slot === "legacy") setEquipped(entry, item, preferredEquipSlot(entry, item));
         const nextRecord = equippedRecord(key);
         const equipped = Boolean(nextRecord);
-        equip.textContent = equipped ? recordLabel(nextRecord) : "Equipar";
+        equip.textContent = !equipKind ? "-" : equipped ? recordLabel(nextRecord) : "Equipar";
         equip.classList.toggle("equipped", equipped);
-        equip.title = equipped ? "Desequipar item" : "Equipar item";
-        equip.addEventListener("click", () => toggleEquipped(entry, item));
+        equip.disabled = !equipKind;
+        equip.title = !equipKind ? "Este item no se equipa" : equipped ? "Desequipar item" : "Equipar item";
+        if (equipKind) equip.addEventListener("click", () => toggleEquipped(entry, item));
 
         const remove = document.createElement("button");
         remove.type = "button";
@@ -5163,7 +5684,10 @@
     }
 
     function countWordToNumber(value) {
-      return { one: 1, two: 2, three: 3 }[String(value || "").toLowerCase()] || 1;
+      const text = String(value || "").toLowerCase();
+      const parsed = Number.parseInt(text, 10);
+      if (Number.isFinite(parsed)) return parsed;
+      return { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 }[text] || 1;
     }
 
     function languageChoiceOptions() {
@@ -5360,6 +5884,47 @@
         .filter(Boolean);
     }
 
+    function backgroundSkillChoiceSpecs(background) {
+      const groups = Array.isArray(background?.skillProficiencies) ? background.skillProficiencies : [];
+      const choices = [];
+      groups.forEach((group, index) => {
+        const choose = group?.choose;
+        if (choose?.from?.length) {
+          const options = skillChoiceOptions(choose.from);
+          if (!options.length) return;
+          const count = choose.count || 1;
+          choices.push({
+            key: backgroundChoiceKey(background.name, `skillProficiencies:${index}:${options.map((item) => item.value).join("|")}`),
+            label: `Skill Proficiencies: elegir ${count === 1 ? "una opcion" : `${count} opciones`}`,
+            sectionLabel: "Skill Proficiencies",
+            count,
+            options
+          });
+          return;
+        }
+        if (Number.isFinite(group?.any)) {
+          const count = group.any;
+          const options = skillChoiceOptions();
+          if (!options.length) return;
+          choices.push({
+            key: backgroundChoiceKey(background.name, `skillProficiencies:${index}:any`),
+            label: `Skill Proficiencies: elegir ${count === 1 ? "una opcion" : `${count} opciones`}`,
+            sectionLabel: "Skill Proficiencies",
+            count,
+            options
+          });
+        }
+      });
+      return choices;
+    }
+
+    function fixedBackgroundSkillProficienciesFromData(background) {
+      const groups = Array.isArray(background?.skillProficiencies) ? background.skillProficiencies : [];
+      return groups.flatMap((group) => Object.entries(group || {})
+        .filter(([key, value]) => key !== "choose" && key !== "any" && value === true)
+        .map(([key]) => SKILL_NAMES.find((skill) => normalizeName(skill) === normalizeName(key)) || titleCaseWords([key])[0]));
+    }
+
     function selectedChoiceValues(choice) {
       const selected = selectedChoice(choice.key);
       if (!selected) return [];
@@ -5393,7 +5958,10 @@
     function findBackgroundChoicesForOption(option) {
       const backgroundName = optionName(option);
       const description = optionDescriptionText(option);
-      if (!backgroundName || !description) return [];
+      if (!backgroundName) return [];
+      const backgroundDetail = selectedBackgroundDetail(backgroundName);
+      const structuredSkillChoices = backgroundSkillChoiceSpecs(backgroundDetail);
+      if (!description) return structuredSkillChoices;
 
       const labelPattern = BACKGROUND_CHOICE_LABELS
         .map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
@@ -5416,6 +5984,10 @@
             { value: "B", text: optionB, label: `B: ${optionB}` }
           ]
         };
+      });
+
+      structuredSkillChoices.forEach((choice) => {
+        if (!choices.some((existing) => existing.key === choice.key)) choices.push(choice);
       });
 
       const openChoicePattern = new RegExp(
@@ -5442,7 +6014,7 @@
       });
 
       const skillSection = extractColonSection(description, ["Skill Proficiencies", "Skill Proficiency"], BACKGROUND_CHOICE_LABELS.filter((label) => !/^Skill Proficienc/i.test(label)));
-      if (skillSection) {
+      if (skillSection && !structuredSkillChoices.length) {
         const skillChoiceSpecs = [];
         const chooseFromMatch = skillSection.match(/Choose\s+(one|two|three)\s+from\s+among\s+([^.;]+?)(?=$|[.;])/i);
         if (chooseFromMatch) {
@@ -5758,10 +6330,10 @@
         if (fixedEquipment) {
           const equipmentText = normalizeBackgroundEquipmentText(fixedEquipment);
           applyCurrencySource("background:equipment", parseCurrencyText(equipmentText));
-          setGeneratedEquipmentValue(removeCurrencyText(equipmentText));
+          setGeneratedEquipmentValue("background:equipment", removeCurrencyText(equipmentText));
         } else {
           applyCurrencySource("background:equipment", null);
-          setGeneratedEquipmentValue("");
+          setGeneratedEquipmentValue("background:equipment", "");
         }
         return;
       }
@@ -5774,7 +6346,7 @@
 
       const equipmentTextWithCoins = normalizeBackgroundEquipmentText(option.text);
       applyCurrencySource("background:equipment", parseCurrencyText(equipmentTextWithCoins));
-      setGeneratedEquipmentValue(removeCurrencyText(equipmentTextWithCoins));
+      setGeneratedEquipmentValue("background:equipment", removeCurrencyText(equipmentTextWithCoins));
     }
 
     function renderBackgroundChoiceControls(option) {
@@ -5791,14 +6363,18 @@
 
         choice.options.forEach((item) => {
           const isMultiple = (choice.count || 1) > 1;
+          const selectedValues = selectedChoiceValues(choice);
+          const disabled = isSkillOptionAlreadyProficient(item, selectedValues);
           const label = document.createElement("label");
           label.className = "option-choice";
+          label.classList.toggle("disabled", disabled);
 
           const input = document.createElement("input");
           input.type = isMultiple ? "checkbox" : "radio";
           input.name = choice.key;
           input.value = item.value;
-          input.checked = selectedChoiceValues(choice).includes(item.value);
+          input.checked = selectedValues.includes(item.value);
+          input.disabled = disabled;
           input.addEventListener("change", () => {
             if (activeSelectField?.dataset.optionType === "background") {
               activeSelectField.value = optionName(option);
@@ -5815,7 +6391,7 @@
 
           const text = document.createElement("span");
           text.className = "option-choice-text";
-          text.textContent = item.label;
+          text.textContent = skillOptionLabel(item, disabled);
           label.append(input, text);
           group.appendChild(label);
         });
@@ -5826,6 +6402,7 @@
     function selectedSpellCountForLevel(level) {
       return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
         .filter((field) => Number(field.dataset.spellLevel) === level && field.value.trim())
+        .filter((field) => !isAutoGrantedSpellField(field))
         .length;
     }
 
@@ -5904,6 +6481,8 @@
         .forEach(({ item, record }) => {
           addAlert(alerts, "important", `${item.name}: sin proficiency`, `Equipado en ${slotLabel(record.slot)} con penalizacion.`);
         });
+      const armorPenalty = armorProficiencyPenaltyText();
+      if (armorPenalty) addAlert(alerts, "important", "Penalizacion por armadura", armorPenalty);
 
       findSelectedBackgroundChoices()
         .filter((choice) => !isBackgroundChoiceComplete(choice))
@@ -5930,15 +6509,19 @@
       const group = document.createElement("div");
       group.className = "alert-choice-group";
       const isMultiple = (alert.choice.count || 1) > 1;
+      const selectedValues = selectedChoiceValues(alert.choice);
       alert.choice.options.forEach((option) => {
+        const disabled = isSkillOptionAlreadyProficient(option, selectedValues);
         const label = document.createElement("label");
         label.className = "alert-choice";
+        label.classList.toggle("disabled", disabled);
 
         const input = document.createElement("input");
         input.type = isMultiple ? "checkbox" : "radio";
         input.name = alert.choice.key;
         input.value = option.value;
-        input.checked = selectedChoiceValues(alert.choice).includes(option.value);
+        input.checked = selectedValues.includes(option.value);
+        input.disabled = disabled;
         input.addEventListener("change", () => {
           if (isMultiple) {
             if (!updateMultiChoiceSelection(alert.choice, option.value, input.checked)) input.checked = false;
@@ -5949,7 +6532,7 @@
 
         const text = document.createElement("span");
         text.className = "alert-choice-text";
-        text.textContent = option.label;
+        text.textContent = skillOptionLabel(option, disabled);
         label.append(input, text);
         group.appendChild(label);
       });
@@ -6073,6 +6656,35 @@
       return map;
     }
 
+    function canonicalSkillName(value) {
+      const normalized = normalizeName(String(value || "").replace(/^skill:/i, ""));
+      return SKILL_NAMES.find((skill) => normalizeName(skill) === normalized) || "";
+    }
+
+    function optionSkillName(option) {
+      if (!option) return "";
+      if (option.type === "skill") return canonicalSkillName(option.value || option.label || option.text);
+      return canonicalSkillName(option.value || option.label || option.text);
+    }
+
+    function selectedSkillNamesFromValues(values = []) {
+      return new Set(values.map(canonicalSkillName).filter(Boolean).map(normalizeName));
+    }
+
+    function isSkillOptionAlreadyProficient(option, selectedValues = []) {
+      const skillName = optionSkillName(option);
+      if (!skillName) return false;
+      if (selectedSkillNamesFromValues(selectedValues).has(normalizeName(skillName))) return false;
+      const checkboxKey = skillCheckboxByName().get(normalizeName(skillName));
+      const field = checkboxKey ? getFieldByKey(checkboxKey) : null;
+      return Boolean(field?.checked);
+    }
+
+    function skillOptionLabel(option, disabled) {
+      const label = option.label || option.text || option.value || "";
+      return disabled && optionSkillName(option) ? `${label} (ya proficient)` : label;
+    }
+
     function savingThrowCheckboxByAbility() {
       const map = new Map();
       Object.entries(DERIVED_STAT_FIELDS).forEach(([ability, config]) => {
@@ -6092,6 +6704,9 @@
     }
 
     function fixedBackgroundSkillProficiencies() {
+      const background = selectedBackgroundDetail();
+      const structured = fixedBackgroundSkillProficienciesFromData(background);
+      if (structured.length || Array.isArray(background?.skillProficiencies)) return structured;
       const description = selectedOptionDescription("background", fieldValue("Background"));
       const section = extractColonSection(description, ["Skill Proficiencies", "Skill Proficiency"], [
         "Tool Proficiencies",
@@ -6402,8 +7017,13 @@
       return Boolean(getFieldByKey(checkboxKey)?.checked);
     }
 
-    function derivedFieldValue(baseModifier, proficiencyKey) {
-      return baseModifier + (isProficient(proficiencyKey) ? proficiencyBonus() : 0);
+    function hasJackOfAllTrades() {
+      return normalizeName(getMainClassName()) === "bard" && getCharacterLevel() >= 2;
+    }
+
+    function derivedFieldValue(baseModifier, proficiencyKey, applyJack = false) {
+      if (isProficient(proficiencyKey)) return baseModifier + proficiencyBonus();
+      return baseModifier + (applyJack && hasJackOfAllTrades() ? Math.floor(proficiencyBonus() / 2) : 0);
     }
 
     function clampDexModifierForArmor(dexModifier, dexCap) {
@@ -6534,14 +7154,114 @@
     }
 
     function equipmentItemText(item) {
-      if (typeof item === "string") return titleCaseWords([splitRef(item).name || item.split("|")[0]])[0];
+      if (typeof item === "string") {
+        const quantity = itemQuantityFromRef(item);
+        return `${equipmentQuantityPrefix(quantity)}${titleCaseWords([itemNameFromRef(item)])[0]}`;
+      }
       if (!item || typeof item !== "object") return "";
       if (item.displayName) return item.displayName;
       if (item.special) return `${item.quantity ? `${item.quantity} ` : ""}${item.special}`;
-      if (item.item) return titleCaseWords([splitRef(item.item).name || item.item.split("|")[0]])[0];
+      if (item.item) {
+        const quantity = item.quantity || itemQuantityFromRef(item.item);
+        return `${equipmentQuantityPrefix(quantity)}${titleCaseWords([itemNameFromRef(item.item)])[0]}`;
+      }
       if (Number.isFinite(item.value)) return `${Math.round(item.value / 100)} gp`;
       if (Number.isFinite(item.containsValue)) return `pouch containing ${Math.round(item.containsValue / 100)} gp`;
       return "";
+    }
+
+    function classEquipmentTypeLabel(type) {
+      const labels = {
+        focusSpellcastingArcane: "Arcane Focus",
+        focusSpellcastingDruidic: "Druidic Focus",
+        focusSpellcastingHoly: "Holy Symbol",
+        instrumentMusical: "Musical Instrument",
+        toolArtisan: "Artisan's Tools",
+        weaponMartial: "Martial Weapon",
+        weaponMartialMelee: "Martial Melee Weapon",
+        weaponSimple: "Simple Weapon",
+        weaponSimpleMelee: "Simple Melee Weapon"
+      };
+      return labels[type] || titleCaseWords([String(type || "").replace(/([a-z])([A-Z])/g, "$1 $2")])[0];
+    }
+
+    function classEquipmentItemText(item) {
+      if (Number.isFinite(item?.value) || Number.isFinite(item?.containsValue)) return "";
+      if (typeof item === "string") {
+        const quantity = itemQuantityFromRef(item);
+        return `${equipmentQuantityPrefix(quantity)}${titleCaseWords([itemNameFromRef(item)])[0]}`;
+      }
+      if (!item || typeof item !== "object") return "";
+      if (item.displayName) return item.displayName;
+      if (item.special) return `${item.quantity ? `${item.quantity} ` : ""}${item.special}`;
+      if (item.item) {
+        const quantity = item.quantity || itemQuantityFromRef(item.item);
+        const name = titleCaseWords([itemNameFromRef(item.item)])[0];
+        return `${equipmentQuantityPrefix(quantity)}${name}`;
+      }
+      if (item.equipmentType) return `${item.quantity ? `${item.quantity} ` : ""}${classEquipmentTypeLabel(item.equipmentType)} (choose)`;
+      if (Array.isArray(item.equipmentTypes) && item.equipmentTypes.length) {
+        return `${item.quantity ? `${item.quantity} ` : ""}${item.equipmentTypes.map(classEquipmentTypeLabel).join(" or ")} (choose)`;
+      }
+      return "";
+    }
+
+    function equipmentItemHasObject(item) {
+      if (typeof item === "string") return true;
+      if (!item || typeof item !== "object") return false;
+      return Boolean(item.displayName || item.special || item.item || item.equipmentType || item.equipmentTypes);
+    }
+
+    function classEquipmentCurrencyTotals(items = []) {
+      const totals = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
+      items.forEach((item) => {
+        if (!item || typeof item !== "object") return;
+        const value = Number.isFinite(item.value) ? item.value : Number.isFinite(item.containsValue) ? item.containsValue : null;
+        if (value == null) return;
+        totals.cp += value;
+      });
+      totals.gp += Math.trunc(totals.cp / 100);
+      totals.cp %= 100;
+      return totals;
+    }
+
+    function selectedClassEquipmentGroupItems(group) {
+      if (!group || typeof group !== "object") return [];
+      if (Array.isArray(group)) return group;
+      if (Array.isArray(group._)) return group._;
+      const entries = Object.entries(group)
+        .filter(([key, value]) => !key.startsWith("_") && Array.isArray(value));
+      const preferred = entries.find(([key, value]) => key.toLowerCase() === "a" && value.some(equipmentItemHasObject))
+        || entries.find(([, value]) => value.some(equipmentItemHasObject))
+        || entries[0];
+      return preferred?.[1] || [];
+    }
+
+    function selectedClassStartingEquipmentItems(classItem) {
+      const equipment = classItem?.startingEquipment;
+      if (!equipment) return [];
+      if (Array.isArray(equipment.defaultData) && equipment.defaultData.length) {
+        return equipment.defaultData.flatMap(selectedClassEquipmentGroupItems);
+      }
+      return (equipment.default || [])
+        .flatMap((entry) => splitEquipmentItems(strip5eTags(entry)))
+        .map((displayName) => ({ displayName }));
+    }
+
+    function applySelectedClassEquipment() {
+      const detail = classDetailByName(getMainClassName() || getSelectedClassName());
+      const selectedItems = selectedClassStartingEquipmentItems(detail?.classItem);
+      if (!selectedItems.length) {
+        applyCurrencySource("class:equipment", null);
+        setGeneratedEquipmentValue("class:equipment", "");
+        return;
+      }
+      const equipmentText = selectedItems
+        .map(classEquipmentItemText)
+        .filter(Boolean)
+        .join(", ");
+      applyCurrencySource("class:equipment", classEquipmentCurrencyTotals(selectedItems));
+      setGeneratedEquipmentValue("class:equipment", equipmentText);
     }
 
     function backgroundEquipmentText(startingEquipment = []) {
@@ -7274,7 +7994,7 @@
           }
           const feat = findFeatData(choiceName);
           const optional = optionalFeatureByName(choiceName);
-          const cleanedChoiceName = String(choiceName).replace(/^(?:skill|tool|feat-ability):/i, "");
+          const cleanedChoiceName = String(choiceName).replace(/^(?:skill|tool|feat-ability|spell):/i, "");
           return {
             type: feat ? "feat" : optional ? "optionalfeature" : "text",
             title: `${entry.feature.name}: ${cleanedChoiceName}`,
@@ -7293,15 +8013,19 @@
       group.className = "option-choice-group";
       appendText(group, "option-choice-title", choice.label);
       const isMultiple = (choice.count || 1) > 1;
+      const selectedValues = selectedChoiceValues(choice);
       choice.options.forEach((item) => {
+        const disabled = isSkillOptionAlreadyProficient(item, selectedValues);
         const label = document.createElement("label");
         label.className = "option-choice";
+        label.classList.toggle("disabled", disabled);
 
         const input = document.createElement("input");
         input.type = isMultiple ? "checkbox" : "radio";
         input.name = choice.key;
         input.value = item.value;
-        input.checked = selectedChoiceValues(choice).includes(item.value);
+        input.checked = selectedValues.includes(item.value);
+        input.disabled = disabled;
         input.addEventListener("change", () => {
           if (isMultiple) {
             if (!updateMultiChoiceSelection(choice, item.value, input.checked)) input.checked = false;
@@ -7313,7 +8037,7 @@
 
         const text = document.createElement("span");
         text.className = "option-choice-text";
-        text.textContent = item.label;
+        text.textContent = skillOptionLabel(item, disabled);
         label.append(input, text);
         group.appendChild(label);
       });
@@ -7455,7 +8179,7 @@
     function generatedFeaturesAndTraitsEntries() {
       const selectedEntries = selectedFeatureChoiceEntries();
       const baseEntries = [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()]
-        .filter((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0);
+        .filter((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0 || featureChoiceSpecs(entry.feature).length > 0);
       return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...raceChoiceControlEntries(), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
     }
 
@@ -7703,6 +8427,8 @@
       appendReadableSection(sections, "Feats", featItems);
 
       const defenses = selectedDefenseSources();
+      const armorPenalty = armorProficiencyPenaltyText();
+      if (armorPenalty) defenses.conditional.push(armorPenalty);
       appendReadableSection(sections, "Defenses", defenses.passive);
 
       appendReadableSection(sections, "Conditional Effects", defenses.conditional);
@@ -7883,7 +8609,15 @@
 
     function syncSpellcastingClassFromClassLevel() {
       const className = getFieldValueByNormalizedKey("classlevel");
-      setFieldValue("Spellcasting Class 2", className);
+      const detail = classDetailByName(className);
+      const classItem = detail?.classItem || null;
+      const hasSpellcasting = Boolean(
+        classItem?.spellcastingAbility
+        || classItem?.casterProgression
+        || classItem?.cantripProgression?.length
+        || classItem?.preparedSpellsProgression?.length
+      );
+      setFieldValue("Spellcasting Class 2", hasSpellcasting ? className : "");
     }
 
     function updateSpellcastingFields({ syncClass = false } = {}) {
@@ -7964,6 +8698,7 @@
     function updateDerivedStats() {
       ensureCurrencyDefaults();
       applySelectedBackgroundChoices();
+      applySelectedClassEquipment();
       applyRaceAbilityAdjustments();
       updateBackgroundSkillProficiencies();
       updateRaceSkillProficiencies();
@@ -7975,8 +8710,12 @@
         const modifier = abilityModifier(abilityField?.value || "");
         const formatted = formatModifier(modifier);
         setFieldValue(config.modifier, formatted);
-        [...config.saves, ...config.skills].forEach((target) => {
-          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency);
+        config.saves.forEach((target) => {
+          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, false);
+          setFieldValue(target.field, formatModifier(value));
+        });
+        config.skills.forEach((target) => {
+          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, true);
           setFieldValue(target.field, formatModifier(value));
         });
       });
