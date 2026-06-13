@@ -403,6 +403,10 @@
       width: min(920px, calc(100vw - 28px));
     }
 
+    .item-drawer.feat-readable-drawer {
+      width: min(760px, calc(100vw - 28px));
+    }
+
     .item-drawer.visible {
       transform: translateX(0);
     }
@@ -440,6 +444,12 @@
       padding: 14px;
       overflow-y: auto;
       font: 13px/1.45 "Segoe UI", Arial, sans-serif;
+    }
+
+    .item-drawer.feat-readable-drawer .item-drawer-body {
+      padding: 18px 20px;
+      font-size: 14px;
+      line-height: 1.6;
     }
 
     .item-sheet {
@@ -513,6 +523,10 @@
       color: #222;
     }
 
+    .item-drawer.feat-readable-drawer .item-section-body {
+      white-space: pre-line;
+    }
+
     .item-section-list {
       margin: 0;
       padding-left: 18px;
@@ -574,6 +588,18 @@
       gap: 6px;
     }
 
+    .spell-translation-tools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid #d0d0d0;
+      border-radius: 5px;
+      background: #f8f8f8;
+    }
+
     .spell-picker-button {
       border: 1px solid #5c3a21;
       border-radius: 4px;
@@ -587,6 +613,11 @@
     .spell-picker-button.secondary {
       background: #fff;
       color: #5c3a21;
+    }
+
+    .spell-translation-status {
+      color: #555;
+      font-size: 11px;
     }
 
     .spell-picker-detail {
@@ -792,6 +823,12 @@
     }
 
     @media (max-width: 720px) {
+      .item-drawer,
+      .item-drawer.feat-readable-drawer,
+      .item-drawer.spell-picker-drawer {
+        width: 100vw;
+      }
+
       .option-menu {
         flex-direction: column;
       }
@@ -1945,7 +1982,9 @@
 
     function featVariantFromName(value) {
       const match = String(value || "").match(/\(([^)]+)\)\s*$/);
-      return match?.[1] || "";
+      if (match?.[1]) return match[1];
+      const magicInitiateMatch = String(value || "").match(/\bMagic Initiate\s*[:;]\s*([A-Za-z' -]+)\s*$/i);
+      return magicInitiateMatch?.[1] || "";
     }
 
     function selectedAdditionalSpellGroupsForFeat(entry) {
@@ -1954,7 +1993,7 @@
       if (!groups.length) return [];
       if (groups.length === 1) return groups;
 
-      const variant = normalizeName(featVariantFromName(entry.title || entry.feature?.name || ""));
+      const variant = normalizeName(entry.featVariant || entry.feature?.featVariant || featVariantFromName(entry.title || entry.feature?.name || ""));
       if (variant) {
         const matched = groups.filter((group) => normalizeName(group.name || "").includes(variant));
         if (matched.length) return matched;
@@ -1980,7 +2019,7 @@
 
     function featGrantedSpellChoiceLimit(level) {
       return activeFeatSpellGrants()
-        .filter((grant) => grant.level === level && !grant.spellName)
+        .filter((grant) => grant.level === level && !grant.spellName && (level === 0 || grant.prepared))
         .reduce((total, grant) => total + (grant.count || 1), 0);
     }
 
@@ -2495,6 +2534,61 @@
         .replace(/\bLevel:\s*(?:Cantrip|\d+)\.\s*/i, "")
         .replace(/\bSchool:\s*[A-Z][A-Za-z]*\.\s*/i, "")
         .trim();
+    }
+
+    function spellTranslationKey(spell) {
+      return [spell?.name || "", spellSourceLabel(spell), spell?.level ?? ""]
+        .map((item) => normalizeName(String(item)))
+        .join("|");
+    }
+
+    function ensureSpellTranslationCache() {
+      if (!sheetMeta.spellDescriptionTranslations || typeof sheetMeta.spellDescriptionTranslations !== "object") {
+        sheetMeta.spellDescriptionTranslations = {};
+      }
+      return sheetMeta.spellDescriptionTranslations;
+    }
+
+    function decodeTranslationEntities(text) {
+      const textarea = document.createElement("textarea");
+      textarea.innerHTML = text;
+      return textarea.value;
+    }
+
+    async function translateTextToSpanish(text) {
+      if (desktopStore?.translateText) return desktopStore.translateText(text, "en", "es");
+      const params = new URLSearchParams({ q: text, langpair: "en|es" });
+      const response = await fetch(`https://api.mymemory.translated.net/get?${params.toString()}`);
+      if (!response.ok) throw new Error(`Translation request failed (${response.status})`);
+      const data = await response.json();
+      return data?.responseData?.translatedText || "";
+    }
+
+    async function translateSpellDescription(spell, description) {
+      const cache = ensureSpellTranslationCache();
+      const key = spellTranslationKey(spell);
+      if (cache[key]) return cache[key];
+      const translated = decodeTranslationEntities(await translateTextToSpanish(description)).trim();
+      if (!translated) throw new Error("No se recibio traduccion");
+      cache[key] = translated;
+      scheduleSave();
+      return translated;
+    }
+
+    function spellDescriptionsInSpanish() {
+      return sheetMeta.spellDescriptionsLanguage === "es";
+    }
+
+    function setSpellDescriptionsInSpanish(enabled) {
+      sheetMeta.spellDescriptionsLanguage = enabled ? "es" : "en";
+      scheduleSave();
+    }
+
+    function renderSpellDescriptionSections(container, description) {
+      container.textContent = "";
+      splitDescriptionLines(description).forEach((line, index) => {
+        appendItemSection(container, index === 0 ? "Descripcion" : "Detalle", line);
+      });
     }
 
     function weaponAbilityModifier(item) {
@@ -3465,6 +3559,8 @@
       if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
       if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
+      if (!sheetMeta.spellDescriptionTranslations || typeof sheetMeta.spellDescriptionTranslations !== "object") sheetMeta.spellDescriptionTranslations = {};
+      if (!["en", "es"].includes(sheetMeta.spellDescriptionsLanguage)) sheetMeta.spellDescriptionsLanguage = "en";
       if (!sheetMeta.generatedSkillProficiencies || typeof sheetMeta.generatedSkillProficiencies !== "object") sheetMeta.generatedSkillProficiencies = {};
       document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
@@ -4003,9 +4099,11 @@
       if (chips.childElementCount) root.appendChild(chips);
 
       const description = cleanSpellDescription(spell);
-      splitDescriptionLines(description).forEach((line, index) => {
-        appendItemSection(root, index === 0 ? "Descripcion" : "Detalle", line);
-      });
+      const descriptionContainer = document.createElement("div");
+      descriptionContainer.className = "spell-description-blocks";
+      const translated = spellDescriptionsInSpanish() ? ensureSpellTranslationCache()[spellTranslationKey(spell)] : "";
+      renderSpellDescriptionSections(descriptionContainer, translated || description);
+      root.appendChild(descriptionContainer);
       appendText(root, "item-source", spellSourceLabel(spell) ? `Source: ${spellSourceLabel(spell)}.` : "");
       return root;
     }
@@ -4017,6 +4115,17 @@
         spell ? [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell)].filter(Boolean).join(" - ") : "Spell",
         buildSpellDrawerContent(spell)
       );
+      if (spellDescriptionsInSpanish() && spell) {
+        const description = cleanSpellDescription(spell);
+        if (!ensureSpellTranslationCache()[spellTranslationKey(spell)]) {
+          translateSpellDescription(spell, description)
+            .then(() => showSpellDrawer(spell))
+            .catch((error) => {
+              console.error(error);
+              showStatus("No se pudo traducir la descripcion de la spell.");
+            });
+        }
+      }
     }
 
     function commitSpellSelection(field, spellName) {
@@ -4057,12 +4166,49 @@
       showSpellSelectionDrawer(field);
     }
 
-    function showSpellPickerDetail(detailBody, spell) {
+    function showSpellPickerDetail(detailBody, spell, translateIfNeeded = true) {
       const detail = detailBody?.closest(".spell-picker-detail");
       if (!detailBody || !detail) return;
+      detailBody.dataset.currentSpellName = spell?.name || "";
       detailBody.textContent = "";
       detailBody.appendChild(buildSpellDrawerContent(spell));
       detail.classList.remove("hidden");
+      if (!translateIfNeeded || !spellDescriptionsInSpanish() || !spell) return;
+      const description = cleanSpellDescription(spell);
+      if (ensureSpellTranslationCache()[spellTranslationKey(spell)]) return;
+      showStatus("Traduciendo descripcion de la spell...");
+      translateSpellDescription(spell, description)
+        .then(() => showSpellPickerDetail(detailBody, spell, false))
+        .then(() => showStatus("Descripcion traducida"))
+        .catch((error) => {
+          console.error(error);
+          showStatus("No se pudo traducir la descripcion de la spell.");
+        });
+    }
+
+    function buildSpellTranslationToolbar(detailBody, currentSpell) {
+      const toolbar = document.createElement("div");
+      toolbar.className = "spell-translation-tools";
+      const label = document.createElement("span");
+      label.className = "spell-translation-status";
+      label.textContent = spellDescriptionsInSpanish()
+        ? "Las descripciones de spells se muestran en espanol cuando hay traduccion disponible."
+        : "Las descripciones de spells se muestran en ingles.";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "spell-picker-button secondary";
+      button.textContent = spellDescriptionsInSpanish() ? "Ver spells en ingles" : "Traducir spells al espanol";
+      button.addEventListener("click", () => {
+        const enabled = !spellDescriptionsInSpanish();
+        setSpellDescriptionsInSpanish(enabled);
+        showStatus(enabled ? "Traduccion de spells activada" : "Traduccion de spells desactivada");
+        const visibleSpell = findSpellByName(detailBody?.dataset?.currentSpellName || "") || currentSpell;
+        if (visibleSpell) showSpellPickerDetail(detailBody, visibleSpell, enabled);
+        const nextToolbar = buildSpellTranslationToolbar(detailBody, currentSpell);
+        toolbar.replaceWith(nextToolbar);
+      });
+      toolbar.append(label, button);
+      return toolbar;
     }
 
     function spellPickerRow(field, spell, detailBody, selectedSpell) {
@@ -4198,6 +4344,7 @@
       const detailBody = document.createElement("div");
       detailBody.className = "spell-picker-detail-body";
       detail.append(detailHeader, detailBody);
+      main.prepend(buildSpellTranslationToolbar(detailBody, currentSpell));
 
       if (!options.length) {
         appendItemSection(main, "Sin opciones", isWizardCharacter() && level > 0
@@ -4309,14 +4456,28 @@
       D: "Dragonmark"
     };
 
-    function findFeatData(name) {
-      const normalized = normalizeName(String(name || "")
+    function findFeatData(refOrName) {
+      const ref = refOrName && typeof refOrName === "object" ? refOrName : null;
+      const rawName = ref ? ref.name : refOrName;
+      const normalizedSource = normalizeName(ref?.source || "");
+      const normalizedVariant = normalizeName(ref?.variant || "");
+      const normalizedFull = normalizeName(String(rawName || "")
+        .replace(/^background feat:\s*/i, "")
+        .replace(/\([^)]*\)\s*$/g, "")
+        .split("|")[0]);
+      const exactVariantName = normalizedVariant ? normalizeName(`${rawName}; ${ref.variant}`) : "";
+      const normalized = normalizeName(String(rawName || "")
         .replace(/^background feat:\s*/i, "")
         .replace(/\([^)]*\)\s*$/g, "")
         .split(";")[0]
         .split("|")[0]);
       if (!normalized) return null;
-      return feats.find((feat) => normalizeName(feat.name) === normalized && feat.source === "XPHB")
+      return feats.find((feat) => normalizedFull && normalizeName(feat.name) === normalizedFull && (!normalizedSource || normalizeName(feat.source) === normalizedSource))
+        || feats.find((feat) => normalizedFull && normalizeName(feat.name) === normalizedFull)
+        || feats.find((feat) => exactVariantName && normalizeName(feat.name) === exactVariantName && (!normalizedSource || normalizeName(feat.source) === normalizedSource))
+        || feats.find((feat) => exactVariantName && normalizeName(feat.name) === exactVariantName)
+        || feats.find((feat) => normalizeName(feat.name) === normalized && (!normalizedSource || normalizeName(feat.source) === normalizedSource))
+        || feats.find((feat) => normalizeName(feat.name) === normalized && feat.source === "XPHB")
         || feats.find((feat) => normalizeName(feat.name) === normalized && feat.source === "PHB")
         || feats.find((feat) => normalizeName(feat.name) === normalized)
         || null;
@@ -4667,6 +4828,20 @@
       return options.length ? { label: "Cantrip", count, options } : null;
     }
 
+    function languageChoiceSpecForFeatureText(text) {
+      const source = String(text || "");
+      const match = source.match(/\b(one|two|three|four|\d+)\s+(?:other\s+|extra\s+|additional\s+)?languages?\s+of your choice\b/i);
+      if (!match) return null;
+      const count = countWordToNumber(match[1]) || Number.parseInt(match[1], 10) || 1;
+      const options = languageChoiceOptions().map((option) => ({
+        value: `language:${option.value}`,
+        label: option.label || option.text || option.value,
+        type: "language",
+        description: "Language proficiency."
+      }));
+      return options.length ? { label: "Language", count, options } : null;
+    }
+
     function abilityScoreIncreaseOptions() {
       const options = ABILITY_KEYS.map((ability) => ({
         value: `asi:${ability}+2`,
@@ -4748,6 +4923,35 @@
       return options;
     }
 
+    function expertiseSkillCountForFeature(feature, text) {
+      const level = Number(feature?.level) || 0;
+      const normalizedText = String(text || "");
+      const match = normalizedText.match(/\b(one|two|three|\d+)\s+(?:more\s+)?(?:of\s+your\s+)?skill proficiencies\b/i)
+        || normalizedText.match(/\bchoose\s+(one|two|three|\d+)\s+(?:of\s+your\s+)?skill proficiencies\b/i)
+        || normalizedText.match(/\bExpertise\b[^.]*\bin\s+(one|two|three|\d+)\b/i);
+      const parsed = match ? countWordToNumber(match[1]) || Number.parseInt(match[1], 10) : null;
+      if (Number.isFinite(parsed)) return parsed;
+      if (/choose one of your skill proficiencies/i.test(normalizedText)) return 1;
+      if (normalizeName(feature?.className || "") === "ranger" && level >= 9) return 2;
+      return 2;
+    }
+
+    function expertiseSkillOptionsForFeature(text) {
+      const source = String(text || "");
+      const restrictedMatch = source.match(/following skills(?: of your choice)?:\s*([^.;]+)/i)
+        || source.match(/following skills in which you have proficiency:\s*([^.;]+)/i);
+      const mentioned = restrictedMatch
+        ? SKILL_NAMES.filter((skill) => textIncludesPhrase(restrictedMatch[1], skill))
+        : [];
+      return expertiseSkillChoiceOptions(mentioned.length ? mentioned : SKILL_NAMES);
+    }
+
+    function isExpertiseSkillFeature(feature, text) {
+      const name = normalizeName(feature?.name || "");
+      if (name.includes("tool expertise") || name.includes("infiltration expertise")) return false;
+      return /\bexpertise\b/i.test(`${feature?.name || ""} ${text || ""}`) && /\bskills?|skill proficiencies\b/i.test(text || "");
+    }
+
     function featureChoiceSpecs(feature) {
       const specs = collectStructuredChoiceSpecs(feature?.entries || []);
       const text = flattenEntryText(feature?.entries || "").toLowerCase();
@@ -4755,6 +4959,8 @@
       if (normalizeName(feature?.name || "") === "eldritch invocation options") return [];
       const cantripSpec = spellChoiceOptionsForFeatureText(flattenEntryText(feature?.entries || ""), feature?.className || getMainClassName());
       if (cantripSpec) specs.push(cantripSpec);
+      const languageSpec = languageChoiceSpecForFeatureText(flattenEntryText(feature?.entries || ""));
+      if (languageSpec) specs.push(languageSpec);
       const hasOptionalSpecByType = (featureType) => specs.some((spec) => (spec.options || []).some((option) => {
         const optional = option.type === "optionalfeature" ? optionalFeatureByName(option.value) : null;
         return (optional?.featureType || []).includes(featureType);
@@ -4786,7 +4992,7 @@
       if (feature?.isFeatFeature) {
         const feat = feature.feat || findFeatData(feature.name);
         const additionalSpellGroups = Array.isArray(feat?.additionalSpells) ? feat.additionalSpells : [];
-        const fixedSpellVariant = normalizeName(featVariantFromName(feature.name || ""));
+        const fixedSpellVariant = normalizeName(feature.featVariant || featVariantFromName(feature.name || ""));
         if (additionalSpellGroups.length > 1 && !fixedSpellVariant) {
           specs.push({
             label: "Spell List",
@@ -4879,6 +5085,10 @@
         const options = optionalFeatureOptionsByType("EI");
         if (options.length) specs.push({ label: "Eldritch Invocation", count: eldritchInvocationCountForFeature(feature), options });
       }
+      if (isExpertiseSkillFeature(feature, text)) {
+        const options = expertiseSkillOptionsForFeature(flattenEntryText(feature?.entries || ""));
+        if (options.length) specs.push({ label: "Expertise", count: expertiseSkillCountForFeature(feature, text), options });
+      }
       return specs;
     }
 
@@ -4932,7 +5142,7 @@
               const feat = findFeatData(option.value);
               const body = buildFeatDrawerContent(feat, option.label || option.value);
               appendFeatureBackButton(body, generatedFeaturesAndTraitsEntries());
-              showDrawer(feat?.name || option.label || "Feat", "Feat", body);
+              showDrawer(feat?.name || option.label || "Feat", "Feat", body, "feat-readable-drawer");
             });
             section.appendChild(inspect);
           }
@@ -4993,7 +5203,8 @@
         showDrawer(
           feat?.name || entry.title,
           feat ? [FEAT_CATEGORY_LABELS[feat.category] || "Feat", sourceLabel(feat.source), feat.page ? `p${feat.page}` : ""].filter(Boolean).join(" - ") : entry.meta,
-          body
+          body,
+          "feat-readable-drawer"
         );
         return;
       }
@@ -5326,8 +5537,9 @@
       renderAlertsPanel();
     }
 
-    function showDrawer(title, meta, body) {
-      itemDrawer.classList.remove("spell-picker-drawer");
+    function showDrawer(title, meta, body, drawerClass = "") {
+      itemDrawer.classList.remove("spell-picker-drawer", "feat-readable-drawer");
+      if (drawerClass) itemDrawer.classList.add(drawerClass);
       itemDrawerTitle.textContent = title || "Detalle";
       itemDrawerMeta.textContent = meta || "";
       itemDrawerBody.textContent = "";
@@ -5361,7 +5573,7 @@
       const featureText = field.dataset.backgroundFeature || selectedBackgroundFeatureText();
       const feat = findFeatData(featName);
       if (feat) {
-        showDrawer(feat.name, [FEAT_CATEGORY_LABELS[feat.category] || "Feat", sourceLabel(feat.source), feat.page ? `p${feat.page}` : ""].filter(Boolean).join(" - "), buildFeatDrawerContent(feat, featName, featureText));
+        showDrawer(feat.name, [FEAT_CATEGORY_LABELS[feat.category] || "Feat", sourceLabel(feat.source), feat.page ? `p${feat.page}` : ""].filter(Boolean).join(" - "), buildFeatDrawerContent(feat, featName, featureText), "feat-readable-drawer");
         return;
       }
 
@@ -5739,6 +5951,16 @@
         if (canonical && !unique.has(normalizeName(canonical))) unique.set(normalizeName(canonical), canonical);
       });
       return [...unique.values()].map((value) => ({ value, text: value, label: value }));
+    }
+
+    function expertiseSkillChoiceOptions(values = SKILL_NAMES) {
+      return skillChoiceOptions(values).map((option) => ({
+        ...option,
+        value: `expertise:${option.value}`,
+        type: "expertiseSkill",
+        skillName: option.value,
+        description: `${option.value}: double proficiency bonus.`
+      }));
     }
 
     function languageLabelFromKey(key) {
@@ -6657,7 +6879,7 @@
     }
 
     function canonicalSkillName(value) {
-      const normalized = normalizeName(String(value || "").replace(/^skill:/i, ""));
+      const normalized = normalizeName(String(value || "").replace(/^(?:skill|expertise):/i, ""));
       return SKILL_NAMES.find((skill) => normalizeName(skill) === normalized) || "";
     }
 
@@ -6671,7 +6893,36 @@
       return new Set(values.map(canonicalSkillName).filter(Boolean).map(normalizeName));
     }
 
+    function selectedExpertiseSkillNames(values = []) {
+      return new Set(values
+        .filter((value) => String(value).startsWith("expertise:"))
+        .map((value) => canonicalSkillName(String(value).replace(/^expertise:/, "")))
+        .filter(Boolean)
+        .map(normalizeName));
+    }
+
+    function allSelectedExpertiseSkillNames() {
+      return new Set(Object.values(sheetMeta.featureChoices || {})
+        .flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
+        .filter((value) => String(value).startsWith("expertise:"))
+        .map((value) => canonicalSkillName(String(value).replace(/^expertise:/, "")))
+        .filter(Boolean)
+        .map(normalizeName));
+    }
+
+    function isExpertiseSkillOptionUnavailable(option, selectedValues = []) {
+      if (option?.type !== "expertiseSkill") return false;
+      const skillName = canonicalSkillName(option.skillName || String(option.value || "").replace(/^expertise:/, ""));
+      if (!skillName) return false;
+      if (selectedExpertiseSkillNames(selectedValues).has(normalizeName(skillName))) return false;
+      const checkboxKey = skillCheckboxByName().get(normalizeName(skillName));
+      const field = checkboxKey ? getFieldByKey(checkboxKey) : null;
+      if (!field?.checked) return true;
+      return allSelectedExpertiseSkillNames().has(normalizeName(skillName));
+    }
+
     function isSkillOptionAlreadyProficient(option, selectedValues = []) {
+      if (isExpertiseSkillOptionUnavailable(option, selectedValues)) return true;
       const skillName = optionSkillName(option);
       if (!skillName) return false;
       if (selectedSkillNamesFromValues(selectedValues).has(normalizeName(skillName))) return false;
@@ -6682,6 +6933,12 @@
 
     function skillOptionLabel(option, disabled) {
       const label = option.label || option.text || option.value || "";
+      if (option?.type === "expertiseSkill" && disabled) {
+        const skillName = canonicalSkillName(option.skillName || String(option.value || "").replace(/^expertise:/, ""));
+        const checkboxKey = skillCheckboxByName().get(normalizeName(skillName));
+        const field = checkboxKey ? getFieldByKey(checkboxKey) : null;
+        return `${label} (${field?.checked ? "ya tiene Expertise" : "requiere proficiency"})`;
+      }
       return disabled && optionSkillName(option) ? `${label} (ya proficient)` : label;
     }
 
@@ -6869,6 +7126,24 @@
         .map((value) => String(value).replace(/^tool:/, ""));
     }
 
+    function selectedFeatureLanguageChoices() {
+      const choiceSources = [
+        ...choosableFeatureEntriesForCharacter().map((entry) => entry.feature),
+        ...activeFeatData().map((feat) => ({
+          name: feat.name,
+          source: feat.source,
+          level: 1,
+          isFeatFeature: true,
+          feat,
+          entries: feat.entries || []
+        }))
+      ].filter((feature, index, list) => list.findIndex((item) => featureChoiceKey(item) === featureChoiceKey(feature)) === index);
+      return choiceSources
+        .flatMap((feature) => selectedFeatureChoices(featureChoiceKey(feature)))
+        .filter((value) => String(value).startsWith("language:"))
+        .map((value) => String(value).replace(/^language:/, ""));
+    }
+
     function updateFeatSkillProficiencies() {
       const skills = selectedFeatSkillChoices();
       applyGeneratedSkillProficiencies("feat", [...new Set(skills.map((skill) => SKILL_NAMES.find((item) => normalizeName(item) === normalizeName(skill)) || skill))]);
@@ -7017,12 +7292,17 @@
       return Boolean(getFieldByKey(checkboxKey)?.checked);
     }
 
+    function hasExpertiseSkill(skillName) {
+      const normalized = normalizeName(canonicalSkillName(skillName) || skillName);
+      return normalized ? allSelectedExpertiseSkillNames().has(normalized) : false;
+    }
+
     function hasJackOfAllTrades() {
       return normalizeName(getMainClassName()) === "bard" && getCharacterLevel() >= 2;
     }
 
-    function derivedFieldValue(baseModifier, proficiencyKey, applyJack = false) {
-      if (isProficient(proficiencyKey)) return baseModifier + proficiencyBonus();
+    function derivedFieldValue(baseModifier, proficiencyKey, applyJack = false, skillName = "") {
+      if (isProficient(proficiencyKey)) return baseModifier + proficiencyBonus() * (skillName && hasExpertiseSkill(skillName) ? 2 : 1);
       return baseModifier + (applyJack && hasJackOfAllTrades() ? Math.floor(proficiencyBonus() / 2) : 0);
     }
 
@@ -7747,7 +8027,7 @@
       const hasStructuredChoice = Array.isArray(detail?.feats) && detail.feats.length > 1;
       const structured = hasStructuredChoice ? [] : backgroundFeatRefsFromDetail(detail);
       const fallback = featRefsFromBackgroundText(selectedOptionDescription("background", fieldValue("Background")))
-        .filter((ref) => findFeatData(ref.name));
+        .filter((ref) => findFeatData(ref));
       const choiceNames = new Set(selectedBackgroundFeatChoiceRefs().map((ref) => normalizeName(ref.name)));
       const seen = new Set();
       return [...structured, ...fallback].filter((ref) => {
@@ -7760,7 +8040,9 @@
     }
 
     function featDisplayName(ref) {
-      return [ref?.name, ref?.variant ? `(${titleCaseWords([ref.variant])[0]})` : ""].filter(Boolean).join(" ");
+      const name = String(ref?.name || "");
+      const hasVariantInName = ref?.variant && normalizeName(name).includes(normalizeName(ref.variant));
+      return [name.replace(/\s*;\s*/g, ": "), ref?.variant && !hasVariantInName ? `(${titleCaseWords([ref.variant])[0]})` : ""].filter(Boolean).join(" ");
     }
 
     function featNameFromBackground(description) {
@@ -7822,7 +8104,7 @@
       const featureEntries = selectedBackgroundFeatureEntries();
       const entries = [];
       featRefs.forEach((ref) => {
-        const feat = findFeatData(ref.name);
+        const feat = findFeatData(ref);
         const featName = feat?.name || ref.name;
         const displayName = featDisplayName({ ...ref, name: featName });
         const feature = feat ? {
@@ -7831,6 +8113,7 @@
           page: feat.page,
           level: 1,
           isFeatFeature: true,
+          featVariant: ref.variant,
           feat,
           entries: feat.entries || []
         } : null;
@@ -7839,6 +8122,7 @@
           title: `Background Feat: ${displayName}`,
           meta: "Background feat",
           featName,
+          featVariant: ref.variant,
           feat,
           feature,
           description: feat ? flattenEntryText(feat.entries) || featDescription(featName) : featDescription(featName),
@@ -7994,11 +8278,11 @@
           }
           const feat = findFeatData(choiceName);
           const optional = optionalFeatureByName(choiceName);
-          const cleanedChoiceName = String(choiceName).replace(/^(?:skill|tool|feat-ability|spell):/i, "");
+          const cleanedChoiceName = String(choiceName).replace(/^(?:skill|tool|feat-ability|spell|expertise|language):/i, "");
           return {
             type: feat ? "feat" : optional ? "optionalfeature" : "text",
-            title: `${entry.feature.name}: ${cleanedChoiceName}`,
-            meta: feat ? "Selected feat" : optional ? "Selected feature option" : "Selected choice",
+            title: `${entry.feature.name}: ${selectedOption?.type === "expertiseSkill" ? `Expertise in ${cleanedChoiceName}` : cleanedChoiceName}`,
+            meta: feat ? "Selected feat" : optional ? "Selected feature option" : selectedOption?.type === "expertiseSkill" ? "Expertise" : "Selected choice",
             featName: feat?.name,
             optionalFeature: optional,
             description: flattenEntryText(feat?.entries || optional?.entries || selectedOption?.description || ""),
@@ -8370,6 +8654,13 @@
       const classWeapons = extractColonSection(classDescription, ["Weapons"], stopLabels);
       if (classArmor) classItems.push(`Armor: ${classArmor}`);
       if (classWeapons) classItems.push(`Weapons: ${classWeapons}`);
+      const classFeatureLanguages = [
+        ...classFeatureEntriesForCharacter()
+          .filter((entry) => /\byou know thieves'? cant\b/i.test(flattenEntryText(entry.feature?.entries || entry.description || "")))
+          .map(() => "Thieves' Cant"),
+        ...selectedFeatureLanguageChoices()
+      ];
+      if (classFeatureLanguages.length) classItems.push(`Languages: ${uniqueReadableValues(classFeatureLanguages).join(", ")}`);
       appendReadableSection(sections, "Class", classItems);
 
       const backgroundDescription = selectedOptionDescription("background", getFieldValueByNormalizedKey("background"));
@@ -8646,22 +8937,27 @@
       return activeFeatData().some((feat) => normalizeName(feat.name) === normalized);
     }
 
-    function updateInitiativeFromFeats() {
+    function updateInitiative() {
       const field = getFieldByKey("Initiative");
       if (!field) return;
-      const previous = sheetMeta.generatedInitiativeFromFeats || "";
-      if (!hasActiveFeat("Alert")) {
+      const previous = sheetMeta.generatedInitiative || sheetMeta.generatedInitiativeFromFeats || "";
+      const dex = abilityModifier(getFieldByKey("DEX")?.value || "");
+      if (dex == null) {
         if (field.value === previous) field.value = "";
+        field.title = field.dataset.key || "Initiative";
+        sheetMeta.generatedInitiative = "";
         sheetMeta.generatedInitiativeFromFeats = "";
         return;
       }
-      const dex = parseSignedNumber(fieldValue("DEXmod"));
-      const bonus = proficiencyBonus();
+      const bonus = hasActiveFeat("Alert") ? proficiencyBonus() : 0;
       const next = formatModifier(dex + bonus);
       if (!field.value.trim() || field.value === previous) {
         field.value = next;
-        field.title = `${field.dataset.key || "Initiative"}: DEX ${formatModifier(dex)}, Alert ${formatModifier(bonus)}`;
-        sheetMeta.generatedInitiativeFromFeats = next;
+        field.title = bonus
+          ? `${field.dataset.key || "Initiative"}: DEX ${formatModifier(dex)}, Alert ${formatModifier(bonus)}`
+          : `${field.dataset.key || "Initiative"}: DEX ${formatModifier(dex)}`;
+        sheetMeta.generatedInitiative = next;
+        sheetMeta.generatedInitiativeFromFeats = "";
       }
     }
 
@@ -8715,11 +9011,11 @@
           setFieldValue(target.field, formatModifier(value));
         });
         config.skills.forEach((target) => {
-          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, true);
+          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, true, target.field);
           setFieldValue(target.field, formatModifier(value));
         });
       });
-      updateInitiativeFromFeats();
+      updateInitiative();
       updateHitPointMaximumFromFeats();
       updatePassiveWisdomPerception();
       updateSpellcastingFields();

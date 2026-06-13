@@ -11,5 +11,6 @@ contextBridge.exposeInMainWorld("dndSheet", {
   loadSpells: () => ipcRenderer.invoke("spells:load"),
   loadFeats: () => ipcRenderer.invoke("feats:load"),
   loadItems: () => ipcRenderer.invoke("items:load"),
-  loadLanguages: () => ipcRenderer.invoke("languages:load")
+  loadLanguages: () => ipcRenderer.invoke("languages:load"),
+  translateText: (text, from = "en", to = "es") => ipcRenderer.invoke("translate:text", { text, from, to })
 });

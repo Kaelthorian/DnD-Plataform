@@ -9,3 +9,4 @@ installer-pdf-fields/
 *.log
 npm-debug.log*
 character-sheet.json
+build/*.pfx

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const fs = require("fs/promises");
+const https = require("https");
 const path = require("path");
 
 function dataFilePath() {
@@ -40,6 +41,70 @@ function baseItemsFilePath() {
 
 function languagesFilePath() {
   return path.join(__dirname, "5etools-src-main", "data", "languages.json");
+}
+
+function splitTextForTranslation(text, maxLength = 450) {
+  const sentences = String(text || "")
+    .split(/(?<=[.!?])\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const chunks = [];
+  let current = "";
+  sentences.forEach((sentence) => {
+    if (sentence.length > maxLength) {
+      if (current) {
+        chunks.push(current);
+        current = "";
+      }
+      for (let index = 0; index < sentence.length; index += maxLength) {
+        chunks.push(sentence.slice(index, index + maxLength));
+      }
+      return;
+    }
+    const next = current ? `${current} ${sentence}` : sentence;
+    if (next.length > maxLength) {
+      chunks.push(current);
+      current = sentence;
+    } else {
+      current = next;
+    }
+  });
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+async function translateChunk(text, from, to) {
+  const params = new URLSearchParams({
+    q: text,
+    langpair: `${from}|${to}`
+  });
+  const data = await getJson(`https://api.mymemory.translated.net/get?${params.toString()}`);
+  const translated = data?.responseData?.translatedText;
+  if (!translated) throw new Error("Translation response was empty");
+  return translated;
+}
+
+function getJson(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => {
+        body += chunk;
+      });
+      response.on("end", () => {
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(new Error(`Translation request failed (${response.statusCode})`));
+          return;
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }).on("error", reject);
+  });
 }
 
 async function createWindow() {
@@ -161,4 +226,15 @@ ipcMain.handle("items:load", async () => {
 ipcMain.handle("languages:load", async () => {
   const raw = await fs.readFile(languagesFilePath(), "utf8");
   return JSON.parse(raw);
+});
+
+ipcMain.handle("translate:text", async (_event, { text, from = "en", to = "es" } = {}) => {
+  const source = String(text || "").trim();
+  if (!source) return "";
+  const chunks = splitTextForTranslation(source);
+  const translated = [];
+  for (const chunk of chunks) {
+    translated.push(await translateChunk(chunk, from, to));
+  }
+  return translated.join("\n\n");
 });
