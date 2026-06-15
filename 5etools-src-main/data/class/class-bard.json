@@ -1892,6 +1892,34 @@
 				"Eventide's Splendor|Bard|XPHB|Moon|FRHoF|14|FRHoF"
 			],
 			"hasFluffImages": true
+		},
+		{
+			"name": "College of Mercantile",
+			"shortName": "Mercantile",
+			"source": "GriffonsSaddlebag2",
+			"className": "Bard",
+			"classSource": "PHB",
+			"page": 210,
+			"edition": "classic",
+			"subclassFeatures": [
+				"College of Mercantile|Bard||Mercantile|GriffonsSaddlebag2|3",
+				"Money Talks|Bard||Mercantile|GriffonsSaddlebag2|6",
+				"Shrewd Consumer|Bard||Mercantile|GriffonsSaddlebag2|14"
+			]
+		},
+		{
+			"name": "College of Mercantile",
+			"shortName": "Mercantile",
+			"source": "GriffonsSaddlebag2",
+			"className": "Bard",
+			"classSource": "XPHB",
+			"page": 210,
+			"edition": "classic",
+			"subclassFeatures": [
+				"College of Mercantile|Bard|XPHB|Mercantile|GriffonsSaddlebag2|3",
+				"Money Talks|Bard|XPHB|Mercantile|GriffonsSaddlebag2|6",
+				"Shrewd Consumer|Bard|XPHB|Mercantile|GriffonsSaddlebag2|14"
+			]
 		}
 	],
 	"classFeature": [
@@ -2638,6 +2666,94 @@
 		}
 	],
 	"subclassFeature": [
+		{
+			"name": "College of Mercantile",
+			"source": "GriffonsSaddlebag2",
+			"page": 210,
+			"className": "Bard",
+			"classSource": "PHB",
+			"subclassShortName": "Mercantile",
+			"subclassSource": "GriffonsSaddlebag2",
+			"level": 3,
+			"entries": [
+				"Bards of the College of Mercantile use wit, risk, and coin to turn negotiations and battles in their favor.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Coin Flip|Bard||Mercantile|GriffonsSaddlebag2|3"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Magic Coin|Bard||Mercantile|GriffonsSaddlebag2|3"
+				}
+			]
+		},
+		{
+			"name": "Coin Flip",
+			"source": "GriffonsSaddlebag2",
+			"page": 210,
+			"className": "Bard",
+			"classSource": "PHB",
+			"subclassShortName": "Mercantile",
+			"subclassSource": "GriffonsSaddlebag2",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"{@i 3rd-level College of Mercantile feature}",
+				"When a creature uses one of your Bardic Inspiration dice, it can flip a coin instead of rolling the die. On heads, it treats the die as if it rolled its maximum value. On tails, the die is not added to the roll, and the DM stores that Bardic Inspiration die.",
+				"The DM can later add one stored die to another creature's ability check, attack roll, or saving throw. The DM can store multiple dice this way, but can add only one stored die to a single roll. Unused stored dice are lost when you finish a long rest."
+			]
+		},
+		{
+			"name": "Magic Coin",
+			"source": "GriffonsSaddlebag2",
+			"page": 210,
+			"className": "Bard",
+			"classSource": "PHB",
+			"subclassShortName": "Mercantile",
+			"subclassSource": "GriffonsSaddlebag2",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"{@i 3rd-level College of Mercantile feature}",
+				"You can use any coin worth at least 1 cp as a spellcasting focus for your bard spells.",
+				"As an action, you can magically fling a coin at a target within 60 feet of you. Make a ranged spell attack using your bard spell attack bonus. On a hit, the target takes 1 bludgeoning damage plus thunder damage: {@dice 1d12} at Bard levels 3-5, {@dice 2d12} at Bard levels 6-13, and {@dice 3d12} at Bard level 14 or higher. The coin then returns to your hand.",
+				"If you roll a 20 on the attack roll against a hostile creature using a nonmagical copper, silver, electrum, or gold piece, the coin is magically duplicated when it returns."
+			]
+		},
+		{
+			"name": "Money Talks",
+			"source": "GriffonsSaddlebag2",
+			"page": 211,
+			"className": "Bard",
+			"classSource": "PHB",
+			"subclassShortName": "Mercantile",
+			"subclassSource": "GriffonsSaddlebag2",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"{@i 6th-level College of Mercantile feature}",
+				"As an action, you can magically enchant a mundane copper, silver, electrum, gold, or platinum piece you are holding for 10 minutes. A creature holding the coin that knows at least one language can understand what you say, and when it speaks, you understand what it says.",
+				"You have advantage on the first Charisma ({@skill Persuasion}) check you make to negotiate the value of a good or service with a creature holding or carrying the enchanted coin.",
+				"Alternatively, as an action, you can see and hear from the coin's location until the start of your next turn. During this time, you are {@condition blinded} and {@condition deafened} to your own surroundings.",
+				"You can use this feature a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a long rest."
+			]
+		},
+		{
+			"name": "Shrewd Consumer",
+			"source": "GriffonsSaddlebag2",
+			"page": 211,
+			"className": "Bard",
+			"classSource": "PHB",
+			"subclassShortName": "Mercantile",
+			"subclassSource": "GriffonsSaddlebag2",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"{@i 14th-level College of Mercantile feature}",
+				"When you cast a spell that consumes a material component, drink a potion, or use a spell scroll worth no more than 500 gp, there is a 50 percent chance the component, potion, or scroll is not consumed.",
+				"In addition, you can use a bonus action to take the {@action Use an Object} action or drink a potion."
+			]
+		},
 		{
 			"name": "College of Lore",
 			"source": "PHB",
