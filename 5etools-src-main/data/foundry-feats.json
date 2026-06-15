@@ -1255,17 +1255,27 @@
 			},
 			"activities": [
 				{
-					"type": "utility",
+					"name": "Luck",
+					"type": "attack",
 					"activation": {
 						"type": "none",
 						"value": 0
+					},
+					"consumption": {
+						"targets": [
+							{
+								"type": "itemUses",
+								"value": "1"
+							}
+						]
 					},
 					"roll": {
 						"formula": "1d20"
 					}
 				}
 			],
-			"migrationVersion": 3
+			"migrationVersion": 3,
+			"hasToken": true
 		},
 		{
 			"name": "Lucky",
@@ -1282,7 +1292,7 @@
 			"activities": [
 				{
 					"name": "Advantage",
-					"type": "utility",
+					"type": "attack",
 					"img": "systems/dnd5e/icons/svg/dice/d20.svg",
 					"activation": {
 						"type": "",
@@ -1304,7 +1314,7 @@
 				},
 				{
 					"name": "Disadvantage",
-					"type": "utility",
+					"type": "attack",
 					"img": "systems/dnd5e/icons/svg/dice/d20.svg",
 					"activation": {
 						"type": "",
@@ -1326,7 +1336,8 @@
 					}
 				}
 			],
-			"migrationVersion": 3
+			"migrationVersion": 3,
+			"hasToken": true
 		},
 		{
 			"name": "Mage Slayer",
