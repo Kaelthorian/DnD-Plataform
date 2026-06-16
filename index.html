@@ -756,6 +756,28 @@
       outline: none;
     }
 
+    .feature-list-button.choice-complete {
+      border-color: #237a3b;
+      background: #edf8ef;
+      color: #0f3d20;
+    }
+
+    .feature-list-button.choice-complete:hover,
+    .feature-list-button.choice-complete:focus {
+      background: #dff2e3;
+    }
+
+    .feature-list-button.choice-pending {
+      border-color: #b42318;
+      background: #fff1f0;
+      color: #5f1611;
+    }
+
+    .feature-list-button.choice-pending:hover,
+    .feature-list-button.choice-pending:focus {
+      background: #ffe1df;
+    }
+
     .item-source {
       padding-top: 8px;
       border-top: 1px solid #d0d0d0;
@@ -2105,13 +2127,14 @@
     function spellSlotsForCharacter() {
       const level = Math.min(20, Math.max(1, getCharacterLevel()));
       const className = normalizeName(getSelectedClassName());
-      if (["bard", "cleric", "druid", "sorcerer", "wizard"].includes(className)) {
+      const progression = normalizeName(classDetailByName(getSelectedClassName())?.classItem?.casterProgression || "");
+      if (progression === "full" || ["bard", "cleric", "druid", "sorcerer", "wizard"].includes(className)) {
         return FULL_CASTER_SLOTS[level] || [];
       }
-      if (className === "artificer") {
+      if (progression === "artificer" || className === "artificer") {
         return ARTIFICER_SLOTS[level - 1] || [];
       }
-      if (className === "paladin" || className === "ranger") {
+      if (progression === "1/2" || className === "paladin" || className === "ranger") {
         return HALF_CASTER_SLOTS[level - 1] || [];
       }
       if (className === "spellcaster sidekick") {
@@ -2223,6 +2246,145 @@
       return magicInitiateMatch?.[1] || "";
     }
 
+    function isMagicInitiateFeat(featOrFeature) {
+      return normalizeName(featOrFeature?.name || "") === "magic initiate";
+    }
+
+    function magicInitiateClassNameFromGroup(group) {
+      return String(group?.name || "").replace(/\s+spells?$/i, "").trim();
+    }
+
+    function magicInitiateAbilityForClass(className) {
+      const normalized = normalizeName(className);
+      if (normalized === "wizard") return "INT";
+      if (normalized === "cleric" || normalized === "druid") return "WIS";
+      return "";
+    }
+
+    function magicInitiateAbilityLabel(className) {
+      const key = magicInitiateAbilityForClass(className);
+      return { INT: "Intelligence", WIS: "Wisdom", CHA: "Charisma" }[key] || "";
+    }
+
+    function magicInitiateSpellValue(spell) {
+      return `spell:${spell?.name || ""}`;
+    }
+
+    function magicInitiateSpellListOptions(feature, groups) {
+      const key = featureChoiceKey(feature);
+      const selected = selectedFeatureChoices(key);
+      const currentValue = selected.find((value) => String(value).startsWith("feat-spell-list:")) || "";
+      const usedByOtherMagicInitiates = new Set(Object.entries(sheetMeta.featureChoices || {})
+        .filter(([choiceKey]) => choiceKey !== key && normalizeName(choiceKey).includes("magic initiate"))
+        .flatMap(([, values]) => Array.isArray(values) ? values : values ? [values] : [])
+        .filter((value) => String(value).startsWith("feat-spell-list:")));
+      return groups.map((group) => {
+        const value = featSpellListChoiceValue(group);
+        const className = magicInitiateClassNameFromGroup(group);
+        const disabled = usedByOtherMagicInitiates.has(value) && value !== currentValue;
+        return {
+          value,
+          label: className || group.name || "Spell list",
+          type: "spellList",
+          disabled,
+          description: disabled
+            ? "Ya elegiste esta lista en otro Magic Initiate."
+            : `Usa la lista ${className}; habilidad: ${magicInitiateAbilityLabel(className) || "segun la lista"}.`
+        };
+      });
+    }
+
+    function selectedMagicInitiateGroup(feature, groups) {
+      const selected = selectedFeatureChoices(featureChoiceKey(feature));
+      const selectedList = selected.find((value) => String(value).startsWith("feat-spell-list:"));
+      if (selectedList) return groups.find((group) => featSpellListChoiceValue(group) === selectedList) || null;
+      return groups.length === 1 ? groups[0] : null;
+    }
+
+    function magicInitiateSpellOptions(className, level) {
+      const classKey = normalizeName(className);
+      return spells
+        .filter((spell) => spell.level === level)
+        .filter((spell) => spell.classes?.some((name) => normalizeName(name) === classKey))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((spell) => ({
+          value: magicInitiateSpellValue(spell),
+          label: spell.name,
+          type: "spell",
+          description: cleanSpellDescription(spell)
+        }));
+    }
+
+    function magicInitiateChoiceSpecs(feature, feat, groups) {
+      const specs = [];
+      if (groups.length > 1) {
+        specs.push({ label: "Spell List", count: 1, options: magicInitiateSpellListOptions(feature, groups) });
+      }
+
+      const group = selectedMagicInitiateGroup(feature, groups);
+      const className = magicInitiateClassNameFromGroup(group);
+      if (!className) return specs;
+
+      const cantripOptions = magicInitiateSpellOptions(className, 0);
+      if (cantripOptions.length) specs.push({ label: `${className} Cantrips`, count: 2, options: cantripOptions });
+
+      const firstLevelOptions = magicInitiateSpellOptions(className, 1);
+      if (firstLevelOptions.length) specs.push({ label: `${className} Level 1 Spell`, count: 1, options: firstLevelOptions });
+
+      return specs;
+    }
+
+    function featChoiceContextFromEntry(entry) {
+      if (entry?.feature?.choiceContext) return entry.feature.choiceContext;
+      if (entry?.parentFeature) return featureChoiceKey(entry.parentFeature);
+      return [entry?.meta || "", entry?.title || ""].filter(Boolean).join(":");
+    }
+
+    function featFeatureFromEntry(entry) {
+      const feat = entry?.feat || findFeatData(entry?.featName || entry?.title);
+      if (entry?.feature) return entry.feature;
+      return {
+        name: feat?.name || entry?.featName || entry?.title || "Feat",
+        source: feat?.source || "",
+        page: feat?.page,
+        level: 1,
+        isFeatFeature: true,
+        choiceContext: featChoiceContextFromEntry(entry),
+        feat,
+        entries: feat?.entries || []
+      };
+    }
+
+    function magicInitiateSpellGrantsForFeature(feature) {
+      const feat = feature?.feat || findFeatData(feature?.name);
+      const groups = Array.isArray(feat?.additionalSpells) ? feat.additionalSpells : [];
+      const group = selectedMagicInitiateGroup(feature, groups);
+      const className = magicInitiateClassNameFromGroup(group);
+      if (!className) return [];
+
+      const classKey = normalizeName(className);
+      const ability = magicInitiateAbilityForClass(className);
+      const selected = selectedFeatureChoices(featureChoiceKey(feature));
+      const featureKey = featureChoiceKey(feature);
+      return selected
+        .filter((value) => String(value).startsWith("spell:"))
+        .map((value) => String(value).replace(/^spell:/, ""))
+        .map(findSpellByName)
+        .filter(Boolean)
+        .filter((spell) => spell.level === 0 || spell.level === 1)
+        .filter((spell) => spell.classes?.some((name) => normalizeName(name) === classKey))
+        .map((spell) => ({
+          spellName: spell.name,
+          level: spell.level,
+          className,
+          count: 1,
+          prepared: spell.level === 1,
+          fromMagicInitiate: true,
+          ability,
+          key: ["magic-initiate", featureKey, spell.name].map((item) => normalizeName(String(item))).join("|")
+        }));
+    }
+
     function selectedAdditionalSpellGroupsForFeat(entry) {
       const feat = entry.feat || findFeatData(entry.featName || entry.title);
       const groups = Array.isArray(feat?.additionalSpells) ? feat.additionalSpells : [];
@@ -2249,8 +2411,12 @@
 
     function activeFeatSpellGrants() {
       return activeFeatEntriesForEffects()
-        .flatMap((entry) => selectedAdditionalSpellGroupsForFeat(entry)
-          .flatMap((group) => additionalSpellGroupMeta(group)));
+        .flatMap((entry) => {
+          const feat = entry.feat || findFeatData(entry.featName || entry.title);
+          if (isMagicInitiateFeat(feat)) return magicInitiateSpellGrantsForFeature(featFeatureFromEntry(entry));
+          return selectedAdditionalSpellGroupsForFeat(entry)
+            .flatMap((group) => additionalSpellGroupMeta(group));
+        });
     }
 
     function featGrantedSpellChoiceLimit(level) {
@@ -2868,6 +3034,7 @@
       const level = Number(field.dataset.spellLevel);
       return activeFeatSpellGrants().some((grant) => {
         if (!grant.prepared || grant.level !== level) return false;
+        if (grant.spellName) return normalizeName(grant.spellName) === normalizeName(spell.name);
         if (!grant.className) return true;
         return spell.classes?.some((name) => normalizeName(name) === normalizeName(grant.className));
       });
@@ -2974,6 +3141,21 @@
       return getStrengthModifier() + parseSignedNumber(getFieldValueByNormalizedKey("profbonus"));
     }
 
+    function abilityModifierByKey(key) {
+      const field = getFieldByKey(String(key || "").toUpperCase());
+      return abilityModifier(field?.value || "") ?? 0;
+    }
+
+    function spellAttackBonusForAbilityKey(key) {
+      return parseSignedNumber(getFieldValueByNormalizedKey("profbonus")) + abilityModifierByKey(key);
+    }
+
+    function magicInitiateGrantForSpell(spellName) {
+      const normalized = normalizeName(spellName || "");
+      if (!normalized) return null;
+      return activeFeatSpellGrants().find((grant) => grant.fromMagicInitiate && normalizeName(grant.spellName || "") === normalized) || null;
+    }
+
     function getCharacterLevel() {
       return Number.parseInt(getFieldValueByNormalizedKey("characterlevel"), 10) || 1;
     }
@@ -3052,12 +3234,18 @@
     function spellAttackSelections(spellName, levelOverride = null) {
       const spell = findSpellByName(spellName);
       const level = levelOverride ?? spell?.level ?? 1;
+      const magicInitiateGrant = magicInitiateGrantForSpell(spellName);
+      const magicInitiateAbility = magicInitiateGrant?.ability || "";
+      const attackBonus = magicInitiateAbility ? spellAttackBonusForAbilityKey(magicInitiateAbility) : getSpellAttackBonus();
+      const abilityNote = magicInitiateAbility
+        ? `\n\nMagic Initiate: usa ${magicInitiateAbility} como spellcasting ability. Spell save DC ${8 + parseSignedNumber(getFieldValueByNormalizedKey("profbonus")) + abilityModifierByKey(magicInitiateAbility)}, spell attack ${formatModifier(attackBonus)}.`
+        : "";
       const base = {
         kind: "spell",
         damageType: damageTypeForSpell(spell),
-        description: descriptionForSpell(spell),
-        attackBonus: getSpellAttackBonus(),
-        attackLabel: "spell attack",
+        description: `${descriptionForSpell(spell)}${abilityNote}`,
+        attackBonus,
+        attackLabel: magicInitiateAbility ? `Magic Initiate spell attack (${magicInitiateAbility})` : "spell attack",
         level
       };
       if (normalizeName(spellName) !== "eldritch blast") {
@@ -3494,6 +3682,25 @@
       return { max, spent, remaining: max - spent };
     }
 
+    function magicInitiateFreeUseInfo(spellName) {
+      const grant = magicInitiateGrantForSpell(spellName);
+      if (!grant?.prepared || grant.level !== 1 || !grant.key) return null;
+      const state = featureUseState();
+      const spent = Math.max(0, Math.min(1, Number.parseInt(state[grant.key] || "0", 10) || 0));
+      return { key: grant.key, max: 1, spent, remaining: 1 - spent, grant };
+    }
+
+    function spendMagicInitiateFreeUse(spellName) {
+      const info = magicInitiateFreeUseInfo(spellName);
+      if (!info || info.remaining <= 0) return false;
+      const state = featureUseState();
+      state[info.key] = info.spent + 1;
+      showStatus(`${spellName}: casteada por Magic Initiate. Uso gratis: 0/1`);
+      updatePreparedSpellsPanel();
+      scheduleSave();
+      return true;
+    }
+
     function activationKeyForEntry(entry) {
       const source = entry.feature || entry.optionalFeature || {};
       return [
@@ -3540,6 +3747,7 @@
     function featResourceSelections() {
       return activeFeatData()
         .map((feat) => {
+          if (isMagicInitiateFeat(feat)) return null;
           const description = flattenEntryText(feat.entries || "");
           const usesMax = featureUseMaximum(feat.name, description);
           if (!usesMax) return null;
@@ -3589,6 +3797,8 @@
         showStatus(`${spell.name}: cantrip, no gasta spell slot`);
         return;
       }
+      const sourceName = spell.sourceName || spell.name;
+      if (magicInitiateFreeUseInfo(sourceName)?.remaining > 0 && spendMagicInitiateFreeUse(sourceName)) return;
       if (!spendSpellSlot(spell.level)) {
         showStatus(`Sin slots nivel ${spell.level}`);
         return;
@@ -3802,11 +4012,18 @@
         castButton.type = "button";
         castButton.className = "dice-button";
         if (spell.kind === "spell") {
-          castButton.textContent = spell.level > 0 ? "Cast" : "Libre";
+          const sourceName = spell.sourceName || spell.name;
+          const magicInitiateUse = spell.level > 0 ? magicInitiateFreeUseInfo(sourceName) : null;
+          const hasFreeUse = Boolean(magicInitiateUse && magicInitiateUse.remaining > 0);
+          castButton.textContent = spell.level > 0
+            ? hasFreeUse ? `Gratis ${magicInitiateUse.remaining}/${magicInitiateUse.max}` : "Cast"
+            : "Libre";
           castButton.title = spell.level > 0
-            ? `Castear ${spell.name} y gastar 1 slot nivel ${spell.level}`
+            ? hasFreeUse
+              ? `Castear ${spell.name} con el uso gratis de Magic Initiate`
+              : `Castear ${spell.name} y gastar 1 slot nivel ${spell.level}`
             : `${spell.name} es cantrip y no gasta slots`;
-          castButton.disabled = spell.level > 0 && spellSlotRemaining(spell.level) <= 0;
+          castButton.disabled = spell.level > 0 && !hasFreeUse && spellSlotRemaining(spell.level) <= 0;
           castButton.addEventListener("click", () => castPreparedSpell(spell));
         } else if ((spell.kind === "activation" || spell.kind === "feature") && featureUseInfo(spell)) {
           const uses = featureUseInfo(spell);
@@ -6079,7 +6296,7 @@
       return "";
     }
 
-    function buildFeatDrawerContent(feat, fallbackName = "Feat", backgroundFeature = "") {
+    function buildFeatDrawerContent(feat, fallbackName = "Feat", backgroundFeature = "", featureOverride = null) {
       const root = document.createElement("div");
       root.className = "item-sheet";
 
@@ -6108,7 +6325,7 @@
       if (chips.childElementCount) root.appendChild(chips);
 
       appendEntryBlocks(root, feat.entries, "Beneficios");
-      appendFeatureChoiceControls(root, {
+      appendFeatureChoiceControls(root, featureOverride || {
         name: feat.name,
         source: feat.source,
         page: feat.page,
@@ -6139,7 +6356,7 @@
     }
 
     function featureChoiceKey(feature) {
-      return [feature?.className || "feature", feature?.source || "", feature?.level || "", feature?.name || ""]
+      return [feature?.className || "feature", feature?.source || "", feature?.level || "", feature?.name || "", feature?.choiceContext || ""]
         .map((item) => normalizeName(String(item)))
         .join("|");
     }
@@ -6169,7 +6386,6 @@
     function optionalFeatureByName(name) {
       const normalized = normalizeName(name);
       return optionalFeatures.find((item) => normalizeName(item.name || "") === normalized && item.source === "XPHB")
-        || optionalFeatures.find((item) => normalizeName(item.name || "") === normalized && item.source === "PHB")
         || optionalFeatures.find((item) => normalizeName(item.name || "") === normalized)
         || null;
     }
@@ -6473,7 +6689,9 @@
       const text = flattenEntryText(feature?.entries || "").toLowerCase();
       const featureSearchText = `${normalizeName(feature?.name || "")} ${text}`;
       if (normalizeName(feature?.name || "") === "eldritch invocation options") return [];
-      const cantripSpec = spellChoiceOptionsForFeatureText(flattenEntryText(feature?.entries || ""), feature?.className || getMainClassName());
+      const cantripSpec = isMagicInitiateFeat(feature?.feat || feature)
+        ? null
+        : spellChoiceOptionsForFeatureText(flattenEntryText(feature?.entries || ""), feature?.className || getMainClassName());
       if (cantripSpec) specs.push(cantripSpec);
       const languageSpec = languageChoiceSpecForFeatureText(flattenEntryText(feature?.entries || ""));
       if (languageSpec) specs.push(languageSpec);
@@ -6509,7 +6727,9 @@
         const feat = feature.feat || findFeatData(feature.name);
         const additionalSpellGroups = Array.isArray(feat?.additionalSpells) ? feat.additionalSpells : [];
         const fixedSpellVariant = normalizeName(feature.featVariant || featVariantFromName(feature.name || ""));
-        if (additionalSpellGroups.length > 1 && !fixedSpellVariant) {
+        if (isMagicInitiateFeat(feat)) {
+          specs.push(...magicInitiateChoiceSpecs(feature, feat, additionalSpellGroups));
+        } else if (additionalSpellGroups.length > 1 && !fixedSpellVariant) {
           specs.push({
             label: "Spell List",
             count: 1,
@@ -6612,6 +6832,79 @@
       return specs;
     }
 
+    function selectedFeatureChoiceCountForSpec(selected, spec) {
+      const options = Array.isArray(spec?.options) ? spec.options : [];
+      return selected.filter((value) => options.some((option) => option.value === value)).length;
+    }
+
+    function shouldSkipFeatureChoiceSpec(feature, spec) {
+      if (feature?.isRaceFeature && normalizeName(spec.label) === "skill" && findSelectedRaceChoices().some((choice) => normalizeName(choice.sectionLabel) === "skill proficiencies")) return true;
+      if (feature?.isRaceFeature && findSelectedRaceChoices().some((choice) => normalizeName(choice.sectionLabel) === normalizeName(feature.name || ""))) return true;
+      return false;
+    }
+
+    function missingFeatureChoiceSpecs(feature) {
+      if (!feature) return [];
+      const selected = selectedFeatureChoices(featureChoiceKey(feature));
+      return featureChoiceSpecs(feature)
+        .filter((spec) => !shouldSkipFeatureChoiceSpec(feature, spec))
+        .map((spec) => {
+          const required = Math.max(1, Number.parseInt(spec.count || 1, 10) || 1);
+          const selectedCount = selectedFeatureChoiceCountForSpec(selected, spec);
+          return { spec, missing: Math.max(0, required - selectedCount) };
+        })
+        .filter((item) => item.missing > 0);
+    }
+
+    function featureChoiceStateForEntry(entry) {
+      if (entry?.type === "raceChoiceControl" && entry.choice) {
+        const required = Math.max(1, Number.parseInt(entry.choice.count || 1, 10) || 1);
+        const selectedCount = backgroundChoiceSelectionCount(entry.choice);
+        const missing = Math.max(0, required - selectedCount);
+        return {
+          complete: missing === 0,
+          label: missing === 0 ? "Completo" : `Pendiente: faltan ${missing} opcion(es)`
+        };
+      }
+      const feature = entry?.type === "feat"
+        ? featFeatureFromEntry(entry)
+        : entry?.feature || entry?.parentFeature || null;
+      const missingSpecs = missingFeatureChoiceSpecs(feature);
+      if (!missingSpecs.length) return { complete: true, label: "Completo" };
+      const detail = missingSpecs
+        .slice(0, 2)
+        .map(({ spec, missing }) => `${spec.label}: faltan ${missing}`)
+        .join("; ");
+      return { complete: false, label: detail ? `Pendiente: ${detail}` : "Pendiente" };
+    }
+
+    function applyFeatureListButtonState(button, entry) {
+      const state = featureChoiceStateForEntry(entry);
+      button.classList.toggle("choice-complete", state.complete);
+      button.classList.toggle("choice-pending", !state.complete);
+      button.title = state.label;
+      button.setAttribute("aria-label", `${button.textContent}. ${state.label}`);
+    }
+
+    function rerenderFeatureChoiceDrawer(feature) {
+      const entries = generatedFeaturesAndTraitsEntries();
+      if (feature?.isFeatFeature) {
+        const feat = feature.feat || findFeatData(feature.name);
+        const body = buildFeatDrawerContent(feat, feature.name || "Feat", "", feature);
+        appendFeatureBackButton(body, entries);
+        showDrawer(
+          feat?.name || feature.name || "Feat",
+          feat ? [FEAT_CATEGORY_LABELS[feat.category] || "Feat", sourceLabel(feat.source), feat.page ? `p${feat.page}` : ""].filter(Boolean).join(" - ") : "Feat",
+          body,
+          "feat-readable-drawer"
+        );
+        return;
+      }
+      const body = buildClassFeatureDrawerContent(feature);
+      appendFeatureBackButton(body, entries);
+      showDrawer(feature?.name || "Feature", "Feature choice", body);
+    }
+
     function appendFeatureChoiceControls(root, feature) {
       const specs = featureChoiceSpecs(feature);
       if (!specs.length) return;
@@ -6622,7 +6915,7 @@
         section.className = "option-choice-group";
         appendText(section, "option-choice-title", `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`);
         spec.options.forEach((option) => {
-          const disabled = isSkillOptionAlreadyProficient(option, selected);
+          const disabled = Boolean(option.disabled) || isSkillOptionAlreadyProficient(option, selected);
           const label = document.createElement("label");
           label.className = "option-choice";
           label.classList.toggle("disabled", disabled);
@@ -6633,7 +6926,10 @@
           input.checked = selected.includes(option.value);
           input.disabled = disabled;
           input.addEventListener("change", () => {
-            const current = selectedFeatureChoices(key).filter((value) => !spec.options.some((item) => item.value === value));
+            let current = selectedFeatureChoices(key).filter((value) => !spec.options.some((item) => item.value === value));
+            if (option.type === "spellList" && isMagicInitiateFeat(feature?.feat || feature)) {
+              current = current.filter((value) => !String(value).startsWith("spell:"));
+            }
             let picked = [...section.querySelectorAll("input:checked")].map((item) => item.value);
             if (picked.length > spec.count) {
               input.checked = false;
@@ -6645,6 +6941,8 @@
               const body = buildClassFeatureDrawerContent(feature);
               appendFeatureBackButton(body, generatedFeaturesAndTraitsEntries());
               showDrawer(feature?.name || "Class Feature", "Feature choice", body);
+            } else if (isMagicInitiateFeat(feature?.feat || feature)) {
+              rerenderFeatureChoiceDrawer(feature);
             }
           });
           const text = document.createElement("span");
@@ -6709,7 +7007,8 @@
       button.className = "feature-list-button";
       button.textContent = "Volver";
       button.addEventListener("click", () => {
-        showDrawer("Features & Traits", "Generated", buildFeaturesAndTraitsDrawerContent(entries));
+        const refreshedEntries = generatedFeaturesAndTraitsEntries();
+        showDrawer("Features & Traits", "Generated", buildFeaturesAndTraitsDrawerContent(refreshedEntries.length ? refreshedEntries : entries));
       });
       root.prepend(button);
     }
@@ -6718,7 +7017,8 @@
       if (!entry) return;
       if (entry.type === "feat") {
         const feat = findFeatData(entry.featName || entry.title);
-        const body = buildFeatDrawerContent(feat, entry.title, entry.backgroundFeature || "");
+        const feature = featFeatureFromEntry({ ...entry, feat });
+        const body = buildFeatDrawerContent(feat, entry.title, entry.backgroundFeature || "", feature);
         appendFeatureBackButton(body, entries);
         showDrawer(
           feat?.name || entry.title,
@@ -6728,7 +7028,7 @@
         );
         return;
       }
-      if (entry.type === "classFeature") {
+      if (entry.type === "classFeature" || entry.type === "classSkillChoice") {
         const body = buildClassFeatureDrawerContent(entry.feature);
         appendFeatureBackButton(body, entries);
         showDrawer(entry.feature?.name || entry.title, entry.meta, body);
@@ -6789,6 +7089,7 @@
         button.type = "button";
         button.className = "feature-list-button";
         button.textContent = `${entry.title}${entry.meta ? ` - ${entry.meta}` : ""}`;
+        applyFeatureListButtonState(button, entry);
         button.addEventListener("click", () => openFeatureEntry(entry, entries));
         return button;
       });
@@ -7425,10 +7726,8 @@
 
     function languageChoiceOptions() {
       const officialLanguages = languages.filter((language) => language?.name && language.source === "XPHB");
-      const fallbackLanguages = languages.filter((language) => language?.name && language.source === "PHB");
-      const source = officialLanguages.length ? officialLanguages : fallbackLanguages;
       const unique = new Map();
-      source.forEach((language) => {
+      officialLanguages.forEach((language) => {
         const key = normalizeName(language.name);
         if (!unique.has(key)) unique.set(key, language.name);
       });
@@ -8301,17 +8600,8 @@
 
     function addMissingFeatureChoiceAlerts(alerts) {
       choosableFeatureEntriesForCharacter().forEach((entry) => {
-        const specs = featureChoiceSpecs(entry.feature);
-        if (!specs.length) return;
-        const key = featureChoiceKey(entry.feature);
-        const selected = selectedFeatureChoices(key);
-        specs.forEach((spec) => {
-          if (entry.feature?.isRaceFeature && normalizeName(spec.label) === "skill" && findSelectedRaceChoices().some((choice) => normalizeName(choice.sectionLabel) === "skill proficiencies")) return;
-          if (entry.feature?.isRaceFeature && findSelectedRaceChoices().some((choice) => normalizeName(choice.sectionLabel) === normalizeName(entry.feature.name || ""))) return;
-          const selectedForSpec = selected.filter((value) => spec.options.some((option) => option.value === value)).length;
-          if (selectedForSpec < spec.count) {
-            addAlert(alerts, "important", `Elegir ${entry.feature.name}`, `Faltan ${spec.count - selectedForSpec} opcion(es) en ${spec.label}. Abrí Features & Traits para elegir.`);
-          }
+        missingFeatureChoiceSpecs(entry.feature).forEach(({ spec, missing }) => {
+          addAlert(alerts, "important", `Elegir ${entry.feature.name}`, `Faltan ${missing} opcion(es) en ${spec.label}. Abrí Features & Traits para elegir.`);
         });
       });
     }
@@ -9063,7 +9353,6 @@
       const matches = (fieldOptions.get(type) || []).filter((option) => normalizeName(optionName(option)) === normalized);
       if (type === "background" && matches.length > 1) {
         return matches.find((option) => normalizeName(rawOptionDescriptionText(option)).includes("source xphb"))
-          || matches.find((option) => normalizeName(rawOptionDescriptionText(option)).includes("source phb"))
           || matches[0]
           || null;
       }
@@ -9080,7 +9369,6 @@
         || matches[0]
         || null;
       return matches.find((background) => normalizeName(background.source || "") === "xphb")
-        || matches.find((background) => normalizeName(background.source || "") === "phb")
         || matches[0]
         || null;
     }
@@ -9401,7 +9689,6 @@
 
     function preferredClassSource(classes = []) {
       return classes.find((item) => item.source === "XPHB")
-        || classes.find((item) => item.source === "PHB")
         || classes[0]
         || null;
     }
@@ -9409,7 +9696,6 @@
     function preferredRaceSource(races = []) {
       return races.find((item) => item.source === "XPHB")
         || races.find((item) => item.source === "MPMM")
-        || races.find((item) => item.source === "PHB")
         || races[0]
         || null;
     }
@@ -9877,6 +10163,7 @@
           page: feat.page,
           level: 1,
           isFeatFeature: true,
+          choiceContext: `background:${normalizeName(getFieldValueByNormalizedKey("background") || "")}:${normalizeName(displayName)}`,
           featVariant: ref.variant,
           feat,
           entries: feat.entries || []

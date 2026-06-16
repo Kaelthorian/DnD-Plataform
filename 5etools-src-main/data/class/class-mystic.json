@@ -40,33 +40,33 @@
 			"startingEquipment": {
 				"additionalFromBackground": true,
 				"default": [
-					"(a) a {@item spear|phb} or (b) a {@item mace|phb}",
-					"(a) {@item leather armor|phb} or (b) {@item studded leather armor|phb}",
-					"(a) a {@item light crossbow|phb} and {@item crossbow bolts (20)|phb|20 bolts} or (b) any {@filter simple weapon|items|source=phb|category=basic|type=simple weapon}",
-					"(a) a {@item scholar's pack|phb} or (b) an {@item explorer's pack|phb}"
+					"(a) a {@item spear|XPHB} or (b) a {@item mace|XPHB}",
+					"(a) {@item leather armor|XPHB} or (b) {@item studded leather armor|XPHB}",
+					"(a) a {@item light crossbow|XPHB} and {@item crossbow bolts (20)|XPHB|20 bolts} or (b) any {@filter simple weapon|items|source=xphb|category=basic|type=simple weapon}",
+					"(a) a {@item scholar's pack|XPHB} or (b) an {@item explorer's pack|XPHB}"
 				],
 				"goldAlternative": "{@dice 5d4 × 10|5d4 × 10|Starting Gold}",
 				"defaultData": [
 					{
 						"a": [
-							"spear|phb"
+							"spear|XPHB"
 						],
 						"b": [
-							"mace|phb"
+							"mace|XPHB"
 						]
 					},
 					{
 						"a": [
-							"leather armor|phb"
+							"leather armor|XPHB"
 						],
 						"b": [
-							"studded leather armor|phb"
+							"studded leather armor|XPHB"
 						]
 					},
 					{
 						"a": [
-							"light crossbow|phb",
-							"crossbow bolts (20)|phb"
+							"light crossbow|XPHB",
+							"crossbow bolts (20)|XPHB"
 						],
 						"b": [
 							{
@@ -76,10 +76,10 @@
 					},
 					{
 						"a": [
-							"scholar's pack|phb"
+							"scholar's pack|XPHB"
 						],
 						"b": [
-							"explorer's pack|phb"
+							"explorer's pack|XPHB"
 						]
 					}
 				]
@@ -495,7 +495,7 @@
 							"name": "Concentration",
 							"entries": [
 								"Some options require {@status concentration} to maintain their effects. This requirement is noted with \"conc.\" after the option's psi point cost. The \"conc.\" notation is followed by the maximum duration of the {@status concentration}. For example, if an option says \"conc., 1 min.,\" you can concentrate on its effect for up to 1 minute.",
-								"Concentrating on a discipline follows the same rules as {@status concentration||concentrating} on a spell. This rule means you can't concentrate on a spell and a discipline at the same time, nor can you concentrate on two disciplines at the same time. See {@book chapter 10|PHB|10}, \"Spellcasting,\" in the Player's Handbook for how {@status concentration} works."
+								"Concentrating on a discipline follows the same rules as {@status concentration||concentrating} on a spell. This rule means you can't concentrate on a spell and a discipline at the same time, nor can you concentrate on two disciplines at the same time. See {@book chapter 10|XPHB|10}, \"Spellcasting,\" in the Player's Handbook for how {@status concentration} works."
 							]
 						}
 					]
@@ -504,7 +504,7 @@
 					"type": "entries",
 					"name": "Targets and Areas of Effect",
 					"entries": [
-						"Psionic disciplines use the same rules as spells for determining targets and areas of effect, as presented in {@book chapter 10|PHB|10}, \"Spellcasting,\" of the Player's Handbook."
+						"Psionic disciplines use the same rules as spells for determining targets and areas of effect, as presented in {@book chapter 10|XPHB|10}, \"Spellcasting,\" of the Player's Handbook."
 					]
 				},
 				{
@@ -519,7 +519,7 @@
 					"type": "entries",
 					"name": "Combining Psionic Effects",
 					"entries": [
-						"The effects of different psionic disciplines add together while the durations of the disciplines overlap. Likewise, different options from a psionic discipline combine if they are active at the same time. However, a specific option from a psionic discipline doesn't combine with itself if the option is used multiple times. Instead, the most potent effect\u2014usually dependent on how many psi points were used to create the effect\u2014applies while the durations of the effects overlap.",
+						"The effects of different psionic disciplines add together while the durations of the disciplines overlap. Likewise, different options from a psionic discipline combine if they are active at the same time. However, a specific option from a psionic discipline doesn't combine with itself if the option is used multiple times. Instead, the most potent effect—usually dependent on how many psi points were used to create the effect—applies while the durations of the effects overlap.",
 						"Psionics and spells are separate effects, and therefore their benefits and drawbacks overlap. A psionic effect that reproduces a spell is an exception to this rule."
 					]
 				}
