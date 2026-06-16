@@ -8,21 +8,61 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: TCE. Level: Cantrip. School: V. You brandish the weapon used in the spell's casting and make a melee attack with it against one creature within 5 feet of you. On a hit, the target suffers the weapon attack's normal effects and then becomes sheathed in booming energy until the start of your next turn. If the target willingly moves 5 feet or more before then, the target takes 1d8 thunder damage, and the spell ends. This spell's damage increases when you reach certain levels. At 5th level, the melee attack deals an extra 1d8 thunder damage to the target on a hit, and the damage the target takes for moving increases to 2d8. Both damage rolls increase by 1d8 at 11th level (2d8 and 3d8) and again at 17th level (3d8 and 4d8)."
   },
   {
     "name": "Control Flames",
     "level": 0,
-    "classes": [],
-    "races": [],
-    "description": "Source: XGE. Level: Cantrip. School: T. You choose nonmagical flame that you can see within range and that fits within a 5-foot cube. You affect it in one of the following ways: You instantaneously expand the flame 5 feet in one direction, provided that wood or other fuel is present in the new location. You instantaneously extinguish the flames within the cube. You double or halve the area of bright light and dim light cast by the flame, change its color, or both. The change lasts for 1 hour. You cause simple shapes—such as the vague form of a creature, an inanimate object, or a location—to appear within the flames and animate as you like. The shapes last for 1 hour. If you cast this spell multiple times, you can have up to three non-instantaneous effects created by it active at a time, and you can dismiss such an effect as an action."
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XGE. Level: Cantrip. School: T. You choose nonmagical flame that you can see within range and that fits within a 5-foot cube. You affect it in one of the following ways: You instantaneously expand the flame 5 feet in one direction, provided that wood or other fuel is present in the new location. You instantaneously extinguish the flames within the cube. You double or halve the area of bright light and dim light cast by the flame, change its color, or both. The change lasts for 1 hour. You cause simple shapes-such as the vague form of a creature, an inanimate object, or a location-to appear within the flames and animate as you like. The shapes last for 1 hour. If you cast this spell multiple times, you can have up to three non-instantaneous effects created by it active at a time, and you can dismiss such an effect as an action."
   },
   {
     "name": "Create Bonfire",
     "level": 0,
-    "classes": [],
-    "races": [],
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Artificer"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: XGE. Level: Cantrip. School: C. You create a bonfire on ground that you can see within range. Until the spell ends, the magic bonfire fills a 5-foot cube. Any creature in the bonfire's space when you cast the spell must succeed on a Dexterity saving throw or take 1d8 fire damage. A creature must also make the saving throw when it moves into the bonfire's space for the first time on a turn or ends its turn there. The bonfire ignites flammable objects in its area that aren't being worn or carried. The spell's damage increases by 1d8 when you reach 5th level (2d8), 11th level (3d8), and 17th level (4d8)."
   },
   {
@@ -33,9 +73,15 @@
     ],
     "races": [
       "Elf",
-      "Fairy"
+      "Fairy",
+      "Faerie",
+      "Elf (Kaladesh; Vahadar)",
+      "Halfling (Lotusden)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
     ],
-    "description": "Source: XPHB. Level: Cantrip. School: T. Whispering to the spirits of nature, you create one of the following effects within range. Weather Sensor You create a Tiny, harmless sensory effect that predicts what the weather will be at your location for the next 24 hours. The effect might manifest as a golden orb for clear skies, a cloud for rain, falling snowflakes for snow, and so on. This effect persists for 1 round. Bloom You instantly make a flower blossom, a seed pod open, or a leaf bud bloom. Sensory Effect You create a harmless sensory effect, such as falling leaves, spectral dancing fairies, a gentle breeze, the sound of an animal, or the faint odor of skunk. The effect must fit in a 5-foot Cube [Area of Effect]. Fire Play You light or snuff out a candle, a torch, or a campfire."
+    "description": "Source: XPHB. Level: Cantrip. School: T. Whispering to the spirits of nature, you create one of the following effects within range. Weather Sensor. You create a Tiny, harmless sensory effect that predicts what the weather will be at your location for the next 24 hours. The effect might manifest as a golden orb for clear skies, a cloud for rain, falling snowflakes for snow, and so on. This effect persists for 1 round. Bloom. You instantly make a flower blossom, a seed pod open, or a leaf bud bloom. Sensory Effect. You create a harmless sensory effect, such as falling leaves, spectral dancing fairies, a gentle breeze, the sound of an animal, or the faint odor of skunk. The effect must fit in a 5-foot Cube. Fire Play. You light or snuff out a candle, a torch, or a campfire."
   },
   {
     "name": "Elementalism",
@@ -46,8 +92,19 @@
       "Sorcerer",
       "Wizard"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: Cantrip. School: T. You exert control over the elements, creating one of the following effects within range. Beckon Air You create a breeze strong enough to ripple cloth, stir dust, rustle leaves, and close open doors and shutters, all in a 5-foot Cube [Area of Effect]. Doors and shutters being held open by someone or something aren't affected. Beckon Earth You create a thin shroud of dust or sand that covers surfaces in a 5-foot-square area, or you cause a single word to appear in your handwriting in a patch of dirt or sand. Beckon Fire You create a thin cloud of harmless embers and colored, scented smoke in a 5-foot Cube [Area of Effect]. You choose the color and scent, and the embers can light candles, torches, or lamps in that area. The smoke's scent lingers for 1 minute. Beckon Water You create a spray of cool mist that lightly dampens creatures and objects in a 5-foot Cube [Area of Effect]. Alternatively, you create 1 cup of clean water either in an open container or on a surface, and the water evaporates in 1 minute. Sculpt Element You cause dirt, sand, fire, smoke, mist, or water that can fit in a 1-foot Cube [Area of Effect] to assume a crude shape (such as that of a creature) for 1 hour."
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: T. You exert control over the elements, creating one of the following effects within range. Beckon Air. You create a breeze strong enough to ripple cloth, stir dust, rustle leaves, and close open doors and shutters, all in a 5-foot Cube. Doors and shutters being held open by someone or something aren't affected. Beckon Earth. You create a thin shroud of dust or sand that covers surfaces in a 5-foot-square area, or you cause a single word to appear in your handwriting in a patch of dirt or sand. Beckon Fire. You create a thin cloud of harmless embers and colored, scented smoke in a 5-foot Cube. You choose the color and scent, and the embers can light candles, torches, or lamps in that area. The smoke's scent lingers for 1 minute. Beckon Water. You create a spray of cool mist that lightly dampens creatures and objects in a 5-foot Cube. Alternatively, you create 1 cup of clean water either in an open container or on a surface, and the water evaporates in 1 minute. Sculpt Element. You cause dirt, sand, fire, smoke, mist, or water that can fit in a 1-foot Cube to assume a crude shape (such as that of a creature) for 1 hour."
   },
   {
     "name": "Encode Thoughts",
@@ -65,9 +122,16 @@
       "Wizard"
     ],
     "races": [
-      "Tiefling"
+      "Tiefling",
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
     ],
-    "description": "Source: XPHB. Level: Cantrip. School: V. You hurl a mote of fire at a creature or an object within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 Fire damage. A flammable object hit by this spell starts burning if it isn't being worn or carried. Cantrip Upgrade The damage increases by 1d10 when you reach levels 5 (2d10), 11 (3d10), and 17 (4d10)."
+    "description": "Source: XPHB. Level: Cantrip. School: V. You hurl a mote of fire at a creature or an object within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 Fire damage. A flammable object hit by this spell starts burning if it isn't being worn or carried. Cantrip Upgrade. The damage increases by 1d10 when you reach levels 5 (2d10), 11 (3d10), and 17 (4d10)."
   },
   {
     "name": "Friends",
@@ -80,15 +144,40 @@
     ],
     "races": [
       "Khoravar",
-      "Siren"
+      "Siren",
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)",
+      "Tiefling (Fierna)"
     ],
     "description": "Source: XPHB. Level: Cantrip. School: E. You magically emanate a sense of friendship toward one creature you can see within range. The target must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target succeeds automatically if it isn't a Humanoid, if you're fighting it, or if you have cast this spell on it within the past 24 hours. The spell ends early if the target takes damage or if you make an attack roll, deal damage, or force anyone to make a saving throw. When the spell ends, the target knows it was Charmed by you."
   },
   {
     "name": "Frostbite",
     "level": 0,
-    "classes": [],
-    "races": [],
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Artificer"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: XGE. Level: Cantrip. School: V. You cause numbing frost to form on one creature that you can see within range. The target must make a Constitution saving throw. On a failed save, the target takes 1d6 cold damage, and it has disadvantage on the next weapon attack roll it makes before the end of its next turn. The spell's damage increases by 1d6 when you reach 5th level (2d6), 11th level (3d6), and 17th level (4d6)."
   },
   {
@@ -100,21 +189,61 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: TCE. Level: Cantrip. School: V. You brandish the weapon used in the spell's casting and make a melee attack with it against one creature within 5 feet of you. On a hit, the target suffers the weapon attack's normal effects, and you can cause green fire to leap from the target to a different creature of your choice that you can see within 5 feet of it. The second creature takes fire damage equal to your spellcasting ability modifier. This spell's damage increases when you reach certain levels. At 5th level, the melee attack deals an extra 1d8 fire damage to the target on a hit, and the fire damage to the second creature increases to 1d8 + your spellcasting ability modifier. Both damage rolls increase by 1d8 at 11th level (2d8 and 2d8) and 17th level (3d8 and 3d8)."
   },
   {
     "name": "Gust",
     "level": 0,
-    "classes": [],
-    "races": [],
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Mark of Storm)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: XGE. Level: Cantrip. School: T. You seize the air and compel it to create one of the following effects at a point you can see within range: One Medium or smaller creature that you choose must succeed on a Strength saving throw or be pushed up to 5 feet away from you. You create a small blast of air capable of moving one object that is neither held nor carried and that weighs no more than 5 pounds. The object is pushed up to 10 feet away from you. It isn't pushed with enough force to cause damage. You create a harmless sensory effect using air, such as causing leaves to rustle, wind to slam shutters closed, or your clothing to ripple in a breeze."
   },
   {
     "name": "Infestation",
     "level": 0,
-    "classes": [],
-    "races": [],
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: XGE. Level: Cantrip. School: C. You cause a cloud of mites, fleas, and other parasites to appear momentarily on one creature you can see within range. The target must succeed on a Constitution saving throw, or it takes 1d6 poison damage and moves 5 feet in a random direction if it can move and its speed is at least 5 feet. Roll a d4 for the direction: 1, north; 2, south; 3, east; or 4, west. This movement doesn't provoke opportunity attacks, and if the direction rolled is blocked, the target doesn't move. The spell's damage increases by 1d6 when you reach 5th level (2d6), 11th level (3d6), and 17th level (4d6)."
   },
   {
@@ -126,7 +255,15 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: TCE. Level: Cantrip. School: V. You create a lash of lightning energy that strikes at one creature of your choice that you can see within 15 feet of you. The target must succeed on a Strength saving throw or be pulled up to 10 feet in a straight line toward you and then take 1d8 lightning damage if it is within 5 feet of you. This spell's damage increases by 1d8 when you reach 5th level (2d8), 11th level (3d8), and 17th level (4d8)."
   },
   {
@@ -141,15 +278,37 @@
     ],
     "races": [
       "Githyanki",
-      "Githzerai"
+      "Githzerai",
+      "Elf (High)",
+      "Elf",
+      "Gith (Githyanki)",
+      "Gith (Githzerai)",
+      "Tiefling (Mammon)",
+      "Tiefling (Mephistopheles)",
+      "Kobold",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
     ],
     "description": "Source: XPHB. Level: Cantrip. School: C. A spectral, floating hand appears at a point you choose within range. The hand lasts for the duration. The hand vanishes if it is ever more than 30 feet away from you or if you cast this spell again. When you cast the spell, you can use the hand to manipulate an object, open an unlocked door or container, stow or retrieve an item from an open container, or pour the contents out of a vial. As a Magic action on your later turns, you can control the hand thus again. As part of that action, you can move the hand up to 30 feet. The hand can't attack, activate magic items, or carry more than 10 pounds."
   },
   {
     "name": "Magic Stone",
     "level": 0,
-    "classes": [],
-    "races": [],
+    "classes": [
+      "Druid",
+      "Warlock",
+      "Artificer"
+    ],
+    "races": [
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
     "description": "Source: XGE. Level: Cantrip. School: T. You touch one to three pebbles and imbue them with magic. You or someone else can make a ranged spell attack with one of the pebbles by throwing it or hurling it with a sling. If thrown, a pebble has a range of 60 feet. If someone else attacks with a pebble, that attacker adds your spellcasting ability modifier, not the attacker's, to the attack roll. On a hit, the target takes bludgeoning damage equal to 1d6 + your spellcasting ability modifier. Whether the attack hits or misses, the spell then ends on the stone. If you cast this spell again, the spell ends on any pebbles still affected by your previous casting."
   },
   {
@@ -160,8 +319,16 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
-    "description": "Source: TCE. Level: Cantrip. School: E. You drive a disorienting spike of psychic energy into the mind of one creature you can see within range. The target must succeed on an Intelligence saving throw or take 1d6 psychic damage and subtract 1d4 from the next saving throw it makes before the end of your next turn. This spell's damage increases by 1d6 when you reach certain levels: 5th level (2d6), 11th level (3d6), and 17th level (4d6)."
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: E. You try to temporarily sliver the mind of one creature you can see within range. The target must succeed on an Intelligence saving throw or take 1d6 Psychic damage and subtract 1d4 from the next saving throw it makes before the end of your next turn. Cantrip Upgrade. The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
   },
   {
     "name": "Minor Illusion",
@@ -173,16 +340,42 @@
       "Wizard"
     ],
     "races": [
-      "Gnome"
+      "Gnome",
+      "Elf (High)",
+      "Gnome (Forest)",
+      "Elf (Mark of Shadow)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)",
+      "Tiefling (Glasya)"
     ],
-    "description": "Source: XPHB. Level: Cantrip. School: I. You create a sound or an image of an object within range that lasts for the duration. See the descriptions below for the effects of each. The illusion ends if you cast this spell again. If a creature takes a Study action to examine the sound or image, the creature can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the illusion becomes faint to the creature. Sound If you create a sound, its volume can range from a whisper to a scream. It can be your voice, someone else's voice, a lion's roar, a beating of drums, or any other sound you choose. The sound continues unabated throughout the duration, or you can make discrete sounds at different times before the spell ends. Image If you create an image of an object—such as a chair, muddy footprints, or a small chest—it must be no larger than a 5-foot Cube [Area of Effect]. The image can't create sound, light, smell, or any other sensory effect. Physical interaction with the image reveals it to be an illusion, since things can pass through it."
+    "description": "Source: XPHB. Level: Cantrip. School: I. You create a sound or an image of an object within range that lasts for the duration. See the descriptions below for the effects of each. The illusion ends if you cast this spell again. If a creature takes a Study action to examine the sound or image, the creature can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the illusion becomes faint to the creature. Sound. If you create a sound, its volume can range from a whisper to a scream. It can be your voice, someone else's voice, a lion's roar, a beating of drums, or any other sound you choose. The sound continues unabated throughout the duration, or you can make discrete sounds at different times before the spell ends. Image. If you create an image of an object-such as a chair, muddy footprints, or a small chest-it must be no larger than a 5-foot Cube. The image can't create sound, light, smell, or any other sensory effect. Physical interaction with the image reveals it to be an illusion, since things can pass through it."
   },
   {
     "name": "Mold Earth",
     "level": 0,
-    "classes": [],
-    "races": [],
-    "description": "Source: XGE. Level: Cantrip. School: T. You choose a portion of dirt or stone that you can see within range and that fits within a 5-foot cube. You manipulate it in one of the following ways: If you target an area of loose earth, you can instantaneously excavate it, move it along the ground, and deposit it up to 5 feet away. This movement doesn't involve enough force to cause damage. You cause shapes, colors, or both to appear on the dirt or stone, spelling out words, creating images, or shaping patterns. The changes last for 1 hour. If the dirt or stone you target is on the ground, you cause it to become difficult terrain||3. Alternatively, you can cause the ground to become normal terrain if it is already difficult terrain||3. This change lasts for 1 hour. If you cast this spell multiple times, you can have no more than two of its non-instantaneous effects active at a time, and you can dismiss such an effect as an action."
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XGE. Level: Cantrip. School: T. You choose a portion of dirt or stone that you can see within range and that fits within a 5-foot cube. You manipulate it in one of the following ways: If you target an area of loose earth, you can instantaneously excavate it, move it along the ground, and deposit it up to 5 feet away. This movement doesn't involve enough force to cause damage. You cause shapes, colors, or both to appear on the dirt or stone, spelling out words, creating images, or shaping patterns. The changes last for 1 hour. If the dirt or stone you target is on the ground, you cause it to become 3. Alternatively, you can cause the ground to become normal terrain if it is already 3. This change lasts for 1 hour. If you cast this spell multiple times, you can have no more than two of its non-instantaneous effects active at a time, and you can dismiss such an effect as an action."
   },
   {
     "name": "Prestidigitation",
@@ -196,15 +389,31 @@
     ],
     "races": [
       "Elf",
-      "Gnome"
+      "Gnome",
+      "Elf (High)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Halfling (Mark of Hospitality)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
     ],
-    "description": "Source: XPHB. Level: Cantrip. School: T. You create a magical effect within range. Choose the effect from the options below. If you cast this spell multiple times, you can have up to three of its non-instantaneous effects active at a time. Sensory Effect You create an instantaneous, harmless sensory effect, such as a shower of sparks, a puff of wind, faint musical notes, or an odd odor. Fire Play You instantaneously light or snuff out a candle, a torch, or a small campfire. Clean or Soil You instantaneously clean or soil an object no larger than 1 cubic foot. Minor Sensation You chill, warm, or flavor up to 1 cubic foot of nonliving material for 1 hour. Magic Mark You make a color, a small mark, or a symbol appear on an object or a surface for 1 hour. Minor Creation You create a nonmagical trinket or an illusory image that can fit in your hand. It lasts until the end of your next turn. A trinket can deal no damage and has no monetary worth."
+    "description": "Source: XPHB. Level: Cantrip. School: T. You create a magical effect within range. Choose the effect from the options below. If you cast this spell multiple times, you can have up to three of its non-instantaneous effects active at a time. Sensory Effect. You create an instantaneous, harmless sensory effect, such as a shower of sparks, a puff of wind, faint musical notes, or an odd odor. Fire Play. You instantaneously light or snuff out a candle, a torch, or a small campfire. Clean or Soil. You instantaneously clean or soil an object no larger than 1 cubic foot. Minor Sensation. You chill, warm, or flavor up to 1 cubic foot of nonliving material for 1 hour. Magic Mark. You make a color, a small mark, or a symbol appear on an object or a surface for 1 hour. Minor Creation. You create a nonmagical trinket or an illusory image that can fit in your hand. It lasts until the end of your next turn. A trinket can deal no damage and has no monetary worth."
   },
   {
     "name": "Primal Savagery",
     "level": 0,
-    "classes": [],
-    "races": [],
+    "classes": [
+      "Druid"
+    ],
+    "races": [
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
     "description": "Source: XGE. Level: Cantrip. School: T. You channel primal magic to cause your teeth or fingernails to sharpen, ready to deliver a corrosive attack. Make a melee spell attack against one creature within 5 feet of you. On a hit, the target takes 1d10 acid damage. After you make the attack, your teeth or fingernails return to normal. The spell's damage increases by 1d10 when you reach 5th level (2d10), 11th level (3d10), and 17th level (4d10)."
   },
   {
@@ -213,9 +422,17 @@
     "classes": [
       "Artificer",
       "Cleric",
-      "Druid"
+      "Druid",
+      "Apothecary",
+      "Tamer"
     ],
-    "races": [],
+    "races": [
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
     "description": "Source: XPHB. Level: Cantrip. School: A. You touch a willing creature and choose a damage type: Acid, Bludgeoning, Cold, Fire, Lightning, Necrotic, Piercing, Poison, Radiant, Slashing, or Thunder. When the creature takes damage of the chosen type before the spell ends, the creature reduces the total damage taken by 1d4. A creature can benefit from this spell only once per turn."
   },
   {
@@ -225,9 +442,10 @@
       "Cleric"
     ],
     "races": [
-      "Astral Elf"
+      "Astral Elf",
+      "Khoravar"
     ],
-    "description": "Source: XPHB. Level: Cantrip. School: V. Flame-like radiance descends on a creature that you can see within range. The target must succeed on a Dexterity saving throw or take 1d8 Radiant damage. The target gains no benefit from Half Cover or Three-Quarters Cover for this save. Cantrip Upgrade The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+    "description": "Source: XPHB. Level: Cantrip. School: V. Flame-like radiance descends on a creature that you can see within range. The target must succeed on a Dexterity saving throw or take 1d8 Radiant damage. The target gains no benefit from Half Cover or Three-Quarters Cover for this save. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
   },
   {
     "name": "Sapping Sting",
@@ -239,8 +457,24 @@
   {
     "name": "Shape Water",
     "level": 0,
-    "classes": [],
-    "races": [],
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Genasi (Water)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: XGE. Level: Cantrip. School: T. You choose an area of water that you can see within range and that fits within a 5-foot cube. You manipulate it in one of the following ways: You instantaneously move or otherwise change the flow of the water as you direct, up to 5 feet in any direction. This movement doesn't have enough force to cause damage. You cause the water to form into simple shapes and animate at your direction. This change lasts for 1 hour. You change the water's color or opacity. The water must be changed in the same way throughout. This change lasts for 1 hour. You freeze the water, provided that there are no creatures in it. The water unfreezes in 1 hour. If you cast this spell multiple times, you can have no more than two of its non-instantaneous effects active at a time, and you can dismiss such an effect as an action."
   },
   {
@@ -249,8 +483,14 @@
     "classes": [
       "Druid"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: Cantrip. School: T. A Club or Quarterstaff you are holding is imbued with nature's power. For the duration, you can use your spellcasting ability instead of Strength for the attack and damage rolls of melee attacks using that weapon, and the weapon's damage die becomes a d8. If the attack deals damage, it can be Force damage or the weapon's normal damage type (your choice). The spell ends early if you cast it again or if you let go of the weapon. Cantrip Upgrade The damage die changes when you reach levels 5 (d10), 11 (d12), and 17 (2d6)."
+    "races": [
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: T. A Club or Quarterstaff you are holding is imbued with nature's power. For the duration, you can use your spellcasting ability instead of Strength for the attack and damage rolls of melee attacks using that weapon, and the weapon's damage die becomes a d8. If the attack deals damage, it can be Force damage or the weapon's normal damage type (your choice). The spell ends early if you cast it again or if you let go of the weapon. Cantrip Upgrade. The damage die changes when you reach levels 5 (d10), 11 (d12), and 17 (2d6)."
   },
   {
     "name": "Sorcerous Burst",
@@ -258,8 +498,10 @@
     "classes": [
       "Sorcerer"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: Cantrip. School: V. You cast sorcerous energy at one creature or object within range. Make a ranged attack roll against the target. On a hit, the target takes 1d8 damage of a type you choose: Acid, Cold, Fire, Lightning, Poison, Psychic, or Thunder. If you roll an 8 on a d8 for this spell, you can roll another d8, and add it to the damage. When you cast this spell, the maximum number of these d8s you can add to the spell's damage equals your spellcasting ability modifier. Cantrip Upgrade The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+    "races": [
+      "Kobold"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. You cast sorcerous energy at one creature or object within range. Make a ranged attack roll against the target. On a hit, the target takes 1d8 damage of a type you choose: Acid, Cold, Fire, Lightning, Poison, Psychic, or Thunder. If you roll an 8 on a d8 for this spell, you can roll another d8, and add it to the damage. When you cast this spell, the maximum number of these d8s you can add to the spell's damage equals your spellcasting ability modifier. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
   },
   {
     "name": "Spare the Dying",
@@ -267,12 +509,19 @@
     "classes": [
       "Artificer",
       "Cleric",
-      "Druid"
+      "Druid",
+      "Apothecary",
+      "Tamer"
     ],
     "races": [
-      "Autognome"
+      "Autognome",
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
     ],
-    "description": "Source: XPHB. Level: Cantrip. School: N. Choose a creature within range that has 0 Hit Points and isn't dead. The creature becomes Stable. Cantrip Upgrade The range doubles when you reach levels 5 (30 feet), 11 (60 feet), and 17 (120 feet)."
+    "description": "Source: XPHB. Level: Cantrip. School: N. Choose a creature within range that has 0 Points and isn't dead. The creature becomes Stable. Cantrip Upgrade. The range doubles when you reach levels 5 (30 feet), 11 (60 feet), and 17 (120 feet)."
   },
   {
     "name": "Starry Wisp",
@@ -281,8 +530,15 @@
       "Bard",
       "Druid"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: Cantrip. School: V. You launch a mote of light at one creature or object within range. Make a ranged spell attack against the target. On a hit, the target takes 1d8 Radiant damage, and until the end of your next turn, it emits Dim Light in a 10-foot radius and can't benefit from the Invisible condition. Cantrip Upgrade The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+    "races": [
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. You launch a mote of light at one creature or object within range. Make a ranged spell attack against the target. On a hit, the target takes 1d8 Radiant damage, and until the end of your next turn, it emits Light in a 10-foot radius and can't benefit from the Invisible condition. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
   },
   {
     "name": "Sword Burst",
@@ -293,19 +549,35 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
     "description": "Source: TCE. Level: Cantrip. School: C. You create a momentary circle of spectral blades that sweep around you. All other creatures within 5 feet of you must succeed on a Dexterity saving throw or take 1d6 force damage. This spell's damage increases by 1d6 when you reach 5th level (2d6), 11th level (3d6), and 17th level (4d6)."
   },
   {
     "name": "Thaumaturgy",
     "level": 0,
     "classes": [
-      "Cleric"
+      "Cleric",
+      "Apothecary"
     ],
     "races": [
-      "Tiefling"
+      "Tiefling",
+      "Khoravar",
+      "Tiefling (Asmodeus)",
+      "Tiefling (Baalzebul)",
+      "Tiefling (Dispater)",
+      "Tiefling (Zariel)",
+      "Tiefling (Variant; Hellfire)",
+      "Tiefling (Variant; Infernal Legacy)"
     ],
-    "description": "Source: XPHB. Level: Cantrip. School: T. You manifest a minor wonder within range. You create one of the effects below within range. If you cast this spell multiple times, you can have up to three of its 1-minute effects active at a time. Altered Eyes You alter the appearance of your eyes for 1 minute. Booming Voice Your voice booms up to three times as loud as normal for 1 minute. For the duration, you have Advantage on Charisma (Intimidation) checks. Fire Play You cause flames to flicker, brighten, dim, or change color for 1 minute. Invisible Hand You instantaneously cause an unlocked door or window to fly open or slam shut. Phantom Sound You create an instantaneous sound that originates from a point of your choice within range, such as a rumble of thunder, the cry of a raven, or ominous whispers. Tremors You cause harmless tremors in the ground for 1 minute."
+    "description": "Source: XPHB. Level: Cantrip. School: T. You manifest a minor wonder within range. You create one of the effects below within range. If you cast this spell multiple times, you can have up to three of its 1-minute effects active at a time. Altered Eyes. You alter the appearance of your eyes for 1 minute. Booming Voice. Your voice booms up to three times as loud as normal for 1 minute. For the duration, you have Advantage on Charisma (Intimidation) checks. Fire Play. You cause flames to flicker, brighten, dim, or change color for 1 minute. Invisible Hand. You instantaneously cause an unlocked door or window to fly open or slam shut. Phantom Sound. You create an instantaneous sound that originates from a point of your choice within range, such as a rumble of thunder, the cry of a raven, or ominous whispers. Tremors. You cause harmless tremors in the ground for 1 minute."
   },
   {
     "name": "Thunderclap",
@@ -318,8 +590,20 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: Cantrip. School: V. Each creature in a 5-foot Emanation [Area of Effect] originating from you must succeed on a Constitution saving throw or take 1d6 Thunder damage. The spell's thunderous sound can be heard up to 100 feet away. Cantrip Upgrade The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. Each creature in a 5-foot Emanation originating from you must succeed on a Constitution saving throw or take 1d6 Thunder damage. The spell's thunderous sound can be heard up to 100 feet away. Cantrip Upgrade. The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
   },
   {
     "name": "Toll the Dead",
@@ -329,8 +613,15 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: Cantrip. School: N. You point at one creature you can see within range, and the single chime of a dolorous bell is audible within 10 feet of the target. The target must succeed on a Wisdom saving throw or take 1d8 Necrotic damage. If the target is missing any of its Hit Points, it instead takes 1d12 Necrotic damage. Cantrip Upgrade The damage increases by one die when you reach levels 5 (2d8 or 2d12), 11 (3d8 or 3d12), and 17 (4d8 or 4d12)."
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: N. You point at one creature you can see within range, and the single chime of a dolorous bell is audible within 10 feet of the target. The target must succeed on a Wisdom saving throw or take 1d8 Necrotic damage. If the target is missing any of its Points, it instead takes 1d12 Necrotic damage. Cantrip Upgrade. The damage increases by one die when you reach levels 5 (2d8 or 2d12), 11 (3d8 or 3d12), and 17 (4d8 or 4d12)."
   },
   {
     "name": "True Strike",
@@ -342,8 +633,17 @@
       "Warlock",
       "Wizard"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: Cantrip. School: D. Guided by a flash of magical insight, you make one attack with the weapon used in the spell's casting. The attack uses your spellcasting ability for the attack and damage rolls instead of using Strength or Dexterity. If the attack deals damage, it can be Radiant damage or the weapon's normal damage type (your choice). Cantrip Upgrade Whether you deal Radiant damage or the weapon's normal damage type, the attack deals extra Radiant damage when you reach levels 5 (1d6), 11 (2d6), and 17 (3d6)."
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: D. Guided by a flash of magical insight, you make one attack with the weapon used in the spell's casting. The attack uses your spellcasting ability for the attack and damage rolls instead of using Strength or Dexterity. If the attack deals damage, it can be Radiant damage or the weapon's normal damage type (your choice). Cantrip Upgrade. Whether you deal Radiant damage or the weapon's normal damage type, the attack deals extra Radiant damage when you reach levels 5 (1d6), 11 (2d6), and 17 (3d6)."
   },
   {
     "name": "Word of Radiance",
@@ -351,8 +651,10 @@
     "classes": [
       "Cleric"
     ],
-    "races": [],
-    "description": "Source: XGE. Level: Cantrip. School: V. You utter a divine word, and burning radiance erupts from you. Each creature of your choice that you can see within range must succeed on a Constitution saving throw or take 1d6 radiant damage. The spell's damage increases by 1d6 when you reach 5th level (2d6), 11th level (3d6), and 17th level (4d6)."
+    "races": [
+      "Khoravar"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. Burning radiance erupts from you in a 5-foot Emanation. Each creature of your choice that you can see in it must succeed on a Constitution saving throw or take 1d6 Radiant damage. Cantrip Upgrade. The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
   },
   {
     "name": "Absorb Elements",
@@ -365,7 +667,7 @@
       "Artificer"
     ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: A. The spell captures some of the incoming energy, lessening its effect on you and storing it for your next melee attack. You have resistance to the triggering damage type until the start of your next turn. Also, the first time you hit with a melee attack on your next turn, the target takes an extra 1d6 damage of the triggering type, and the spell ends. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the extra damage increases by 1d6 for each slot level above 1st."
+    "description": "Source: XGE. Level: 1. School: A. The spell captures some of the incoming energy, lessening its effect on you and storing it for your next melee attack. You have resistance to the triggering damage type until the start of your next turn. Also, the first time you hit with a melee attack on your next turn, the target takes an extra 1d6 damage of the triggering type, and the spell ends. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the extra damage increases by 1d6 for each slot level above 1st."
   },
   {
     "name": "Alarm",
@@ -373,12 +675,13 @@
     "classes": [
       "Artificer",
       "Ranger",
-      "Wizard"
+      "Wizard",
+      "Apothecary"
     ],
     "races": [
       "Dwarf (Mark of Warding)"
     ],
-    "description": "Source: XPHB. Level: 1. School: A. You set an alarm against intrusion. Choose a door, a window, or an area within range that is no larger than a 20-foot [Area of Effect]. Until the spell ends, an alarm alerts you whenever a creature touches or enters the warded area. When you cast the spell, you can designate creatures that won't set off the alarm. You also choose whether the alarm is audible or mental: Audible Alarm The alarm produces the sound of a handbell for 10 seconds within 60 feet of the warded area. Mental Alarm You are alerted by a mental ping if you are within 1 mile of the warded area. This ping awakens you if you're asleep."
+    "description": "Source: XPHB. Level: 1. School: A. You set an alarm against intrusion. Choose a door, a window, or an area within range that is no larger than a 20-foot Cube. Until the spell ends, an alarm alerts you whenever a creature touches or enters the warded area. When you cast the spell, you can designate creatures that won't set off the alarm. You also choose whether the alarm is audible or mental: Audible Alarm. The alarm produces the sound of a handbell for 10 seconds within 60 feet of the warded area. Mental Alarm. You are alerted by a mental ping if you are within 1 mile of the warded area. This ping awakens you if you're asleep."
   },
   {
     "name": "Beast Bond",
@@ -393,30 +696,42 @@
   {
     "name": "Catapult",
     "level": 1,
-    "classes": [],
+    "classes": [
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: T. Choose one object weighing 1 to 5 pounds within range that isn't being worn or carried. The object flies in a straight line up to 90 feet in a direction you choose before falling to the ground, stopping early if it impacts against a solid surface. If the object would strike a creature, that creature must make a Dexterity saving throw. On a failed save, the object strikes the target and stops moving. When the object strikes something, the object and what it strikes each take 3d8 bludgeoning damage. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the maximum weight of objects that you can target with this spell increases by 5 pounds, and the damage increases by 3d8|1-9|1d8, for each slot level above 1st."
+    "description": "Source: XGE. Level: 1. School: T. Choose one object weighing 1 to 5 pounds within range that isn't being worn or carried. The object flies in a straight line up to 90 feet in a direction you choose before falling to the ground, stopping early if it impacts against a solid surface. If the object would strike a creature, that creature must make a Dexterity saving throw. On a failed save, the object strikes the target and stops moving. When the object strikes something, the object and what it strikes each take 3d8 bludgeoning damage. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the maximum weight of objects that you can target with this spell increases by 5 pounds, and the damage increases by 3d8, for each slot level above 1st."
   },
   {
     "name": "Cause Fear",
     "level": 1,
-    "classes": [],
+    "classes": [
+      "Warlock",
+      "Wizard"
+    ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: N. You awaken the sense of mortality in one creature you can see within range. A construct or an undead is immune to this effect. The target must succeed on a Wisdom saving throw or become frightened of you until the spell ends. The frightened target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st. The creatures must be within 30 feet of each other when you target them."
+    "description": "Source: XGE. Level: 1. School: N. You awaken the sense of mortality in one creature you can see within range. A construct or an undead is immune to this effect. The target must succeed on a Wisdom saving throw or become frightened of you until the spell ends. The frightened target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st. The creatures must be within 30 feet of each other when you target them."
   },
   {
     "name": "Ceremony",
     "level": 1,
-    "classes": [],
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: A. You perform a special religious ceremony that is infused with magic. When you cast the spell, choose one of the following rites, the target of which must be within 10 feet of you throughout the casting. Atonement You touch one willing creature whose alignment has changed, and you make a 20 Wisdom (Insight) check. On a successful check, you restore the target to its original alignment. Bless Water You touch one vial of water and cause it to become Holy Water (flask). Coming of Age You touch one humanoid who is a young adult. For the next 24 hours, whenever the target makes an ability check, it can roll a d4 and add the number rolled to the ability check. A creature can benefit from this rite only once. Dedication You touch one humanoid who wishes to be dedicated to your god's service. For the next 24 hours, whenever the target makes a saving throw, it can roll a d4 and add the number rolled to the save. A creature can benefit from this rite only once. Funeral Rite You touch one corpse, and for the next 7 days, the target can't become undead by any means short of a wish spell. Wedding You touch adult humanoids willing to be bonded together in marriage. For the next 7 days, each target gains a +2 bonus to AC while they are within 30 feet of each other. A creature can benefit from this rite again only if widowed."
+    "description": "Source: XGE. Level: 1. School: A. You perform a special religious ceremony that is infused with magic. When you cast the spell, choose one of the following rites, the target of which must be within 10 feet of you throughout the casting. Atonement. You touch one willing creature whose alignment has changed, and you make a 20 Wisdom (Insight) check. On a successful check, you restore the target to its original alignment. Bless Water. You touch one vial of water and cause it to become holy water. Coming of Age. You touch one humanoid who is a young adult. For the next 24 hours, whenever the target makes an ability check, it can roll a d4 and add the number rolled to the ability check. A creature can benefit from this rite only once. Dedication. You touch one humanoid who wishes to be dedicated to your god's service. For the next 24 hours, whenever the target makes a saving throw, it can roll a d4 and add the number rolled to the save. A creature can benefit from this rite only once. Funeral Rite. You touch one corpse, and for the next 7 days, the target can't become undead by any means short of a wish spell. Wedding. You touch adult humanoids willing to be bonded together in marriage. For the next 7 days, each target gains a +2 bonus to AC while they are within 30 feet of each other. A creature can benefit from this rite again only if widowed."
   },
   {
     "name": "Chaos Bolt",
     "level": 1,
-    "classes": [],
+    "classes": [
+      "Sorcerer"
+    ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: V. You hurl an undulating, warbling mass of chaotic energy at one creature in range. Make a ranged spell attack against the target. On a hit, the target takes 2d8 + 1d6 damage. Choose one of the d8s. The number rolled on that die determines the attack's damage type, as shown below. Chaos Bolt 1 Acid 2 Cold 3 Fire 4 Force 5 Lightning 6 Poison 7 Psychic 8 Thunder If you roll the same number on both d8s, the chaotic energy leaps from the target to a different creature of your choice within 30 feet of it. Make a new attack roll against the new target, and make a new damage roll, which could cause the chaotic energy to leap again. A creature can be targeted only once by each casting of this spell. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, each target takes 2d8 + 1d6|1-9|1d6 extra damage of the type rolled for each slot level above 1st."
+    "description": "Source: XGE. Level: 1. School: V. You hurl an undulating, warbling mass of chaotic energy at one creature in range. Make a ranged spell attack against the target. On a hit, the target takes + 1d6 damage. Choose one of the d8s. The number rolled on that die determines the attack's damage type, as shown below. d8 Damage Type Acid Cold Fire Force Lightning Poison Psychic Thunder If you roll the same number on both d8s, the chaotic energy leaps from the target to a different creature of your choice within 30 feet of it. Make a new attack roll against the new target, and make a new damage roll, which could cause the chaotic energy to leap again. A creature can be targeted only once by each casting of this spell. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, each target takes 1d6 extra damage of the type rolled for each slot level above 1st."
   },
   {
     "name": "Chromatic Orb",
@@ -426,7 +741,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: V. You hurl an orb of energy at a target within range. Choose Acid, Cold, Fire, Lightning, Poison, or Thunder for the type of orb you create, and then make a ranged spell attack against the target. On a hit, the target takes 3d8 damage of the chosen type. If you roll the same number on two or more of the d8s, the orb leaps to a different target of your choice within 30 feet of the target. Make an attack roll against the new target, and make a new damage roll. The orb can't leap again unless you cast the spell with a level 2+ spell slot. Using a Higher-Level Spell Slot The damage increases by 3d8|1-9|1d8 for each spell slot level above 1. The orb can leap a maximum number of times equal to the level of the slot expended, and a creature can be targeted only once by each casting of this spell."
+    "description": "Source: XPHB. Level: 1. School: V. You hurl an orb of energy at a target within range. Choose Acid, Cold, Fire, Lightning, Poison, or Thunder for the type of orb you create, and then make a ranged spell attack against the target. On a hit, the target takes 3d8 damage of the chosen type. If you roll the same number on two or more of the d8s, the orb leaps to a different target of your choice within 30 feet of the target. Make an attack roll against the new target, and make a new damage roll. The orb can't leap again unless you cast the spell with a level 2+ spell slot. Using a Higher-Level Spell Slot. The damage increases by 3d8 for each spell slot level above 1. The orb can leap a maximum number of times equal to the level of the slot expended, and a creature can be targeted only once by each casting of this spell."
   },
   {
     "name": "Detect Magic",
@@ -440,14 +755,16 @@
       "Ranger",
       "Sorcerer",
       "Warlock",
-      "Wizard"
+      "Wizard",
+      "Apothecary",
+      "Tamer"
     ],
     "races": [
       "Elf",
       "Firbolg",
       "Half-Elf (Variant; Mark of Detection)"
     ],
-    "description": "Source: XPHB. Level: 1. School: D. For the duration, you sense the presence of magical effects within 30 feet of yourself. If you sense such effects, you can take the Magic action to see a faint aura around any visible creature or object in the area that bears the magic, and if an effect was created by a spell, you learn the spell's magic. The spell is blocked by 1 foot of stone, dirt, or wood; 1 inch of metal; or a thin sheet of lead."
+    "description": "Source: XPHB. Level: 1. School: D. For the duration, you sense the presence of magical effects within 30 feet of yourself. If you sense such effects, you can take the Magic action to see a faint aura around any visible creature or object in the area that bears the magic, and if an effect was created by a spell, you learn the spell's Schools of Magic. The spell is blocked by 1 foot of stone, dirt, or wood; 1 inch of metal; or a thin sheet of lead."
   },
   {
     "name": "Distort Value",
@@ -459,7 +776,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: AI. Level: 1. School: I. Do you need to squeeze a few more gold pieces out of a merchant as you try to sell that weird octopus statue you liberated from the chaos temple? Do you need to downplay the worth of some magical assets when the tax collector stops by? Distort value has you covered. You cast this spell on an object no more than 1 foot on a side, doubling the object's perceived value by adding illusory flourishes or polish to it, or reducing its perceived value by half with the help of illusory scratches, dents, and other unsightly features. Anyone examining the object can ascertain its true value with a successful Intelligence (Investigation) check against your spell save DC. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the maximum size of the object increases by 1 foot for each slot level above 1st."
+    "description": "Source: AI. Level: 1. School: I. Do you need to squeeze a few more gold pieces out of a merchant as you try to sell that weird octopus statue you liberated from the chaos temple? Do you need to downplay the worth of some magical assets when the tax collector stops by? Distort value has you covered. You cast this spell on an object no more than 1 foot on a side, doubling the object's perceived value by adding illusory flourishes or polish to it, or reducing its perceived value by half with the help of illusory scratches, dents, and other unsightly features. Anyone examining the object can ascertain its true value with a successful Intelligence (Investigation) check against your spell save DC. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the maximum size of the object increases by 1 foot for each slot level above 1st."
   },
   {
     "name": "Divine Smite",
@@ -468,14 +785,19 @@
       "Paladin"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: V. The target takes an extra 2d8 Radiant damage from the attack. The damage increases by 1d8 if the target is a Fiend or an Undead. Using a Higher-Level Spell Slot The damage increases by 2d8|1-9|1d8 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: V. The target takes an extra 2d8 Radiant damage from the attack. The damage increases by 1d8 if the target is a Fiend or an Undead. Using a Higher-Level Spell Slot. The damage increases by 2d8 for each spell slot level above 1."
   },
   {
     "name": "Earth Tremor",
     "level": 1,
-    "classes": [],
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: V. You cause a tremor in the ground within range. Each creature other than you in that area must make a Dexterity saving throw. On a failed save, a creature takes 1d6 bludgeoning damage and is knocked prone. If the ground in that area is loose earth or stone, it becomes difficult terrain||3 until cleared, with each 5-foot-diameter portion requiring at least 1 minute to clear by hand. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6|1-9|1d6 for each slot level above 1st."
+    "description": "Source: XGE. Level: 1. School: V. You cause a tremor in the ground within range. Each creature other than you in that area must make a Dexterity saving throw. On a failed save, a creature takes 1d6 bludgeoning damage and is knocked prone. If the ground in that area is loose earth or stone, it becomes 3 until cleared, with each 5-foot-diameter portion requiring at least 1 minute to clear by hand. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st."
   },
   {
     "name": "Entangle",
@@ -496,7 +818,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: IDRotF. Level: 1. School: V. Freezing cold blasts from your fingertips in a 15-foot cone. Each creature in that area must make a Constitution saving throw, taking 2d8 cold damage on a failed save, or half as much damage on a successful one. The cold freezes nonmagical liquids in the area that aren't being worn or carried. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d8 for each slot level above 1st."
+    "description": "Source: IDRotF. Level: 1. School: V. Freezing cold blasts from your fingertips in a 15-foot cone. Each creature in that area must make a Constitution saving throw, taking 2d8 cold damage on a failed save, or half as much damage on a successful one. The cold freezes nonmagical liquids in the area that aren't being worn or carried. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d8 for each slot level above 1st."
   },
   {
     "name": "Gift of Alacrity",
@@ -511,10 +833,12 @@
     "classes": [
       "Artificer",
       "Sorcerer",
-      "Wizard"
+      "Wizard",
+      "Apothecary",
+      "Tamer"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: C. Nonflammable grease covers the ground in a 10-foot square centered on a point within range and turns it into Difficult Terrain for the duration. When the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or have the Prone condition. A creature that enters the area or ends its turn there must also succeed on that save or fall Prone."
+    "description": "Source: XPHB. Level: 1. School: C. Nonflammable grease covers the ground in a 10-foot square centered on a point within range and turns it into Terrain for the duration. When the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or have the Prone condition. A creature that enters the area or ends its turn there must also succeed on that save or fall Prone."
   },
   {
     "name": "Ice Knife",
@@ -527,7 +851,7 @@
     "races": [
       "Rimekin"
     ],
-    "description": "Source: XGE. Level: 1. School: C. You create a shard of ice and fling it at one creature within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 piercing damage. Hit or miss, the shard then explodes. The target and each creature within 5 feet of it must succeed on a Dexterity saving throw or take 2d6 cold damage. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the cold damage increases by 2d6|1-9|1d6 for each slot level above 1st."
+    "description": "Source: XPHB. Level: 1. School: C. You create a shard of ice and fling it at one creature within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 Piercing damage. Hit or miss, the shard then explodes. The target and each creature within 5 feet of it must succeed on a Dexterity saving throw or take 2d6 Cold damage. Using a Higher-Level Spell Slot. The Cold damage increases by 2d6 for each spell slot level above 1."
   },
   {
     "name": "Jim's Magic Missile",
@@ -536,7 +860,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: AI. Level: 1. School: V. Jim's magic missile is an ancient and powerful spell, as well as being the name of my band in Wizard Academy. Any apprentice wizard can cast a boring old magic missile. Sure, it always strikes its target. Yawn. Do away with the drudgery of your grandfather's magic with this improved version of the spell, as used by Jim Darkmagic! You create three twisting, whistling, hypoallergenic, gluten-free darts of magical force. Each dart targets a creature of your choice that you can see within range. Make a ranged spell attack for each missile. On a hit, a missile deals 2d4 force damage to its target. If the attack roll scores a critical hit, the target of that missile takes 5d4 force damage instead of you rolling damage twice for a critical hit. If the attack roll for any missile is a 1, all missiles miss their targets and blow up in your face, dealing 1 force damage per missile to you. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart, and the royalty component increases by 1 gp, for each slot level above 1st."
+    "description": "Source: AI. Level: 1. School: V. Jim's magic missile is an ancient and powerful spell, as well as being the name of my band in Wizard Academy. Any apprentice wizard can cast a boring old magic missile. Sure, it always strikes its target. Yawn. Do away with the drudgery of your grandfather's magic with this improved version of the spell, as used by Jim Darkmagic! You create three twisting, whistling, hypoallergenic, gluten-free darts of magical force. Each dart targets a creature of your choice that you can see within range. Make a ranged spell attack for each missile. On a hit, a missile deals 2d4 force damage to its target. If the attack roll scores a critical hit, the target of that missile takes 5d4 force damage instead of you rolling damage twice for a critical hit. If the attack roll for any missile is a 1, all missiles miss their targets and blow up in your face, dealing 1 force damage per missile to you. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart, and the royalty component increases by 1 gp, for each slot level above 1st."
   },
   {
     "name": "Jump",
@@ -546,14 +870,16 @@
       "Druid",
       "Ranger",
       "Sorcerer",
-      "Wizard"
+      "Wizard",
+      "Apothecary",
+      "Tamer"
     ],
     "races": [
       "Githyanki",
       "Gith (Githyanki)",
       "Human (Mark of Passage)"
     ],
-    "description": "Source: XPHB. Level: 1. School: T. You touch a willing creature. Once on each of its turns until the spell ends, that creature can jump up to 30 feet by spending 10 feet of movement. Using a Higher-Level Spell Slot You can target one additional creature for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: T. You touch a willing creature. Once on each of its turns until the spell ends, that creature can jump up to 30 feet by spending 10 feet of movement. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
   },
   {
     "name": "Magnify Gravity",
@@ -570,7 +896,8 @@
       "Druid",
       "Paladin",
       "Warlock",
-      "Wizard"
+      "Wizard",
+      "Tamer"
     ],
     "races": [],
     "description": "Source: XPHB. Level: 1. School: A. Until the spell ends, one willing creature you touch is protected against creatures that are Aberrations, Celestials, Elementals, Fey, Fiends, or Undead. The protection grants several benefits. Creatures of those types have Disadvantage on attack rolls against the target. The target also can't be possessed by or gain the Charmed or Frightened conditions from them. If the target is already possessed, Charmed, or Frightened by such a creature, the target has Advantage on any new saving throw against the relevant effect."
@@ -581,10 +908,13 @@
     "classes": [
       "Bard",
       "Sorcerer",
-      "Wizard"
+      "Wizard",
+      "Tamer"
     ],
-    "races": [],
-    "description": "Source: XPHB. Level: 1. School: I. You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 15-foot Cube [Area of Effect]. The image appears at a spot within range and lasts for the duration. The image is purely visual; it isn't accompanied by sound, smell, or other sensory effects. As a Magic action, you can cause the image to move to any spot within range. As the image changes location, you can alter its appearance so that its movements appear natural for the image. For example, if you create an image of a creature and move it, you can alter the image so that it appears to be walking. Physical interaction with the image reveals it to be an illusion, since things can pass through it. A creature that takes a Study action to examine the image can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the creature can see through the image."
+    "races": [
+      "Elf (Mark of Shadow)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: I. You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 15-foot Cube. The image appears at a spot within range and lasts for the duration. The image is purely visual; it isn't accompanied by sound, smell, or other sensory effects. As a Magic action, you can cause the image to move to any spot within range. As the image changes location, you can alter its appearance so that its movements appear natural for the image. For example, if you create an image of a creature and move it, you can alter the image so that it appears to be walking. Physical interaction with the image reveals it to be an illusion, since things can pass through it. A creature that takes a Study action to examine the image can determine that it is an illusion with a successful Intelligence (Investigation) check against your spell save DC. If a creature discerns the illusion for what it is, the creature can see through the image."
   },
   {
     "name": "Silvery Barbs",
@@ -617,16 +947,18 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: FRHoF. Level: 1. School: V. You unleash a blast of brilliant fire. Make a ranged spell attack against a target within range; a target gains no benefit from Cover or Cover for this attack roll. On a hit, the target takes 2d10 Radiant damage. Using a Higher-Level Spell Slot You create an additional blast for each spell slot level above 1. You can direct the blasts at the same target or at different ones. Make a separate attack roll for each blast."
+    "description": "Source: FRHoF. Level: 1. School: V. You unleash a blast of brilliant fire. Make a ranged spell attack against a target within range; a target gains no benefit from Half Cover or Three-Quarters Cover for this attack roll. On a hit, the target takes 2d10 Radiant damage. Using a Higher-Level Spell Slot. You create an additional blast for each spell slot level above 1. You can direct the blasts at the same target or at different ones. Make a separate attack roll for each blast."
   },
   {
     "name": "Tasha's Caustic Brew",
     "level": 1,
     "classes": [
-      "Artificer"
+      "Artificer",
+      "Sorcerer",
+      "Wizard"
     ],
     "races": [],
-    "description": "Source: TCE. Level: 1. School: V. A stream of acid emanates from you in a line 30 feet long and 5 feet wide in a direction you choose. Each creature in the line must succeed on a Dexterity saving throw or be covered in acid for the spell's duration or until a creature uses its action to scrape or wash the acid off itself or another creature. A creature covered in the acid takes 2d4 acid damage at start of each of its turns. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 2d4|1-9|2d4 for each slot level above 1st."
+    "description": "Source: TCE. Level: 1. School: V. A stream of acid emanates from you in a line 30 feet long and 5 feet wide in a direction you choose. Each creature in the line must succeed on a Dexterity saving throw or be covered in acid for the spell's duration or until a creature uses its action to scrape or wash the acid off itself or another creature. A creature covered in the acid takes 2d4 acid damage at start of each of its turns. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 2d4 for each slot level above 1st."
   },
   {
     "name": "Tasha's Hideous Laughter",
@@ -634,10 +966,11 @@
     "classes": [
       "Bard",
       "Warlock",
-      "Wizard"
+      "Wizard",
+      "Apothecary"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: E. One creature of your choice that you can see within range makes a Wisdom saving throw. On a failed save, it has the Prone and Incapacitated conditions for the duration. During that time, it laughs uncontrollably if it's capable of laughter, and it can't end the Prone condition on itself. At the end of each of its turns and each time it takes damage, it makes another Wisdom saving throw. The target has Advantage on the save if the save is triggered by damage. On a successful save, the spell ends. Using a Higher-Level Spell Slot You can target one additional creature for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: E. One creature of your choice that you can see within range makes a Wisdom saving throw. On a failed save, it has the Prone and Incapacitated conditions for the duration. During that time, it laughs uncontrollably if it's capable of laughter, and it can't end the Prone condition on itself. At the end of each of its turns and each time it takes damage, it makes another Wisdom saving throw. The target has Advantage on the save if the save is triggered by damage. On a successful save, the spell ends. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
   },
   {
     "name": "Thunderous Smite",
@@ -646,7 +979,7 @@
       "Paladin"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: V. Your strike rings with thunder that is audible within 300 feet of you, and the target takes an extra 2d6 Thunder damage from the attack. Additionally, if the target is a creature, it must succeed on a Strength saving throw or be pushed 10 feet away from you and have the Prone condition. Using a Higher-Level Spell Slot The damage increases by 2d6|1-9|1d6 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: V. Your strike rings with thunder that is audible within 300 feet of you, and the target takes an extra 2d6 Thunder damage from the attack. Additionally, if the target is a creature, it must succeed on a Strength saving throw or be pushed 10 feet away from you and have the Prone condition. Using a Higher-Level Spell Slot. The damage increases by 2d6 for each spell slot level above 1."
   },
   {
     "name": "Wardaway",
@@ -658,7 +991,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: FRHoF. Level: 1. School: A. You hurl a disorienting magical force toward one creature within range. The target makes a Constitution saving throw; Constructs and Undead automatically succeed on this save. On a failed save, the target takes 2d4 Force damage, its Speed is halved until the start of your next turn, and on its next turn, it can take only an action or a Bonus Action (but not both). On a successful save, the target takes half as much damage only. Using a Higher-Level Spell Slot The damage increases by 2d4|1-9|2d4 for every spell slot level above 1."
+    "description": "Source: FRHoF. Level: 1. School: A. You hurl a disorienting magical force toward one creature within range. The target makes a Constitution saving throw; Constructs and Undead automatically succeed on this save. On a failed save, the target takes 2d4 Force damage, its Speed is halved until the start of your next turn, and on its next turn, it can take only an action or a Action (but not both). On a successful save, the target takes half as much damage only. Using a Higher-Level Spell Slot. The damage increases by 2d4 for every spell slot level above 1."
   },
   {
     "name": "Wrathful Smite",
@@ -667,7 +1000,7 @@
       "Paladin"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: N. The target takes an extra 1d6 Necrotic damage from the attack, and it must succeed on a Wisdom saving throw or have the Frightened condition until the spell ends. At the end of each of its turns, the Frightened target repeats the save, ending the spell on itself on a success. Using a Higher-Level Spell Slot The damage increases by 1d6|1-9|1d6 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: N. The target takes an extra 1d6 Necrotic damage from the attack, and it must succeed on a Wisdom saving throw or have the Frightened condition until the spell ends. At the end of each of its turns, the Frightened target repeats the save, ending the spell on itself on a success. Using a Higher-Level Spell Slot. The damage increases by 1d6 for each spell slot level above 1."
   },
   {
     "name": "Zephyr Strike",
@@ -2565,7 +2898,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: GrimHollowPG24. Level: 1. School: V. The ground around you in a 15-foot [Area of Effect] begins to shake violently. You are unaffected by the tremors. The ground is considered Terrain and whenever the [Area of Effect] enters a creature's space, a creature enters the [Area of Effect], or the creature ends its turn there, the creature makes a Dexterity saving throw. On a failed save, the creature takes 1d6 Bludgeoning damage and has the Prone condition. A creature makes this save only once per turn. Using a Higher-Level Spell Slot The damage increases by 1d6 for each spell slot level above 1."
+    "description": "Source: GrimHollowPG24. Level: 1. School: V. The ground around you in a 15-foot Emanation begins to shake violently. You are unaffected by the tremors. The ground is considered Terrain and whenever the Emanation enters a creature's space, a creature enters the Emanation, or the creature ends its turn there, the creature makes a Dexterity saving throw. On a failed save, the creature takes 1d6 Bludgeoning damage and has the Prone condition. A creature makes this save only once per turn. Using a Higher-Level Spell Slot. The damage increases by 1d6 for each spell slot level above 1."
   },
   {
     "name": "Thorn Armor",
@@ -2575,7 +2908,7 @@
       "Ranger"
     ],
     "races": [],
-    "description": "Source: GrimHollowPG24. Level: 1. School: A. When you cast this spell, a flexible exoskeleton covered in thorns appears around a willing target within range. The target gains 3d6 Points. If a creature hits the target with a melee attack roll before the spell ends, that creature takes Piercing damage equal to the number of Points lost as a result of the attack. This spell ends early if the target has no remaining Points granted by this spell. Using a Higher-Level Spell Slot The target gains an additional 2d6 Points for each spell slot level above 1."
+    "description": "Source: GrimHollowPG24. Level: 1. School: A. When you cast this spell, a flexible exoskeleton covered in thorns appears around a willing target within range. The target gains 3d6 Points. If a creature hits the target with a melee attack roll before the spell ends, that creature takes Piercing damage equal to the number of Points lost as a result of the attack. This spell ends early if the target has no remaining Points granted by this spell. Using a Higher-Level Spell Slot. The target gains an additional 2d6 Points for each spell slot level above 1."
   },
   {
     "name": "Spiny Shield",
@@ -2587,7 +2920,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: HumblewoodCampaignSetting. Level: 1. School: A. An ethereal barrier of spikes, made of magical force, interposes itself between you and an attacker. Until your next turn, when you are hit by a melee attack, the barrier reduces the damage you are dealt by 2d4, and deals the same amount of piercing damage to the attacker. The shield is ineffective against ranged attackers, but still provides a +2 bonus to AC (treat as half cover) against them for the duration. At Higher Levels When you cast this spell using a spell slot above 1st level, increase the spell's effect by an additional 2d4 for every slot level above 1st."
+    "description": "Source: HumblewoodCampaignSetting. Level: 1. School: A. An ethereal barrier of spikes, made of magical force, interposes itself between you and an attacker. Until your next turn, when you are hit by a melee attack, the barrier reduces the damage you are dealt by 2d4, and deals the same amount of piercing damage to the attacker. The shield is ineffective against ranged attackers, but still provides a +2 bonus to AC (treat as half cover) against them for the duration. At Higher Levels. When you cast this spell using a spell slot above 1st level, increase the spell's effect by an additional 2d4 for every slot level above 1st."
   },
   {
     "name": "Speak with Animals",
@@ -2596,7 +2929,8 @@
       "Bard",
       "Druid",
       "Ranger",
-      "Warlock"
+      "Warlock",
+      "Tamer"
     ],
     "races": [
       "Human (Mark of Handling)"
@@ -2613,7 +2947,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: GrimHollowPG24. Level: 1. School: I. As part of casting this spell, you must expend one Dice or the spell automatically fails. You can choose yourself or a willing creature within 30 feet of yourself to have Advantage on Dexterity (Stealth) checks. When the target loses the Invisible condition, it can take a Reaction to gain the Invisible condition for a number of rounds equal to the number of Dice expended to cast the spell. The target loses the Invisible condition immediately after it makes an attack roll, deals damage, or casts a spell. Using a Higher-Level Spell Slot You can target an additional creature for each spell slot level above 1."
+    "description": "Source: GrimHollowPG24. Level: 1. School: I Sangromancy. As part of casting this spell, you must expend one Hit Point Die or the spell automatically fails. You can choose yourself or a willing creature within 30 feet of yourself to have Advantage on Dexterity (Stealth) checks. When the target loses the Invisible condition, it can take a Reaction to gain the Invisible condition for a number of rounds equal to the number of Dice expended to cast the spell. The target loses the Invisible condition immediately after it makes an attack roll, deals damage, or casts a spell. Using a Higher-Level Spell Slot. You can target an additional creature for each spell slot level above 1."
   },
   {
     "name": "Longstrider",
@@ -2623,14 +2957,15 @@
       "Druid",
       "Ranger",
       "Wizard",
-      "Artificer"
+      "Artificer",
+      "Tamer"
     ],
     "races": [
       "Elf",
       "Half-Orc (Variant; Mark of Finding)",
       "Human (Variant; Mark of Finding)"
     ],
-    "description": "Source: XPHB. Level: 1. School: T. You touch a creature. The target's Speed increases by 10 feet until the spell ends. Using a Higher-Level Spell Slot You can target one additional creature for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: T. You touch a creature. The target's Speed increases by 10 feet until the spell ends. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
   },
   {
     "name": "Initiative",
@@ -2643,7 +2978,7 @@
       "Tamer"
     ],
     "races": [],
-    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: E. As a reaction when initiative is rolled, choose a willing creature you can see within range; it begins to subtly jitter as its pupils dilate. If the target is surprised, it is no longer surprised, and takes its turn on the first round as normal If the target is not surprised, it gains advantage on the initiative roll that prompted this spell At Higher Levels When you cast this spell using a spell slot of 2nd level or higher you may target one additional creature for each spell slot above 1st."
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: E. As a reaction when initiative is rolled, choose a willing creature you can see within range; it begins to subtly jitter as its pupils dilate. If the target is surprised, it is no longer surprised, and takes its turn on the first round as normal If the target is not surprised, it gains advantage on the initiative roll that prompted this spell At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher you may target one additional creature for each spell slot above 1st."
   },
   {
     "name": "Hunter's Mark",
@@ -2655,7 +2990,7 @@
       "Half-Orc (Variant; Mark of Finding)",
       "Human (Variant; Mark of Finding)"
     ],
-    "description": "Source: XPHB. Level: 1. School: D. You magically mark one creature you can see within range as your quarry. Until the spell ends, you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll. You also have Advantage on any Wisdom (Perception or Survival) check you make to find it. If the target drops to 0 Points before this spell ends, you can take a Action to move the mark to a new creature you can see within range. Using a Higher-Level Spell Slot Your Concentration can last longer with a spell slot of level 3-4 (up to 8 hours) or 5+ (up to 24 hours)."
+    "description": "Source: XPHB. Level: 1. School: D. You magically mark one creature you can see within range as your quarry. Until the spell ends, you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll. You also have Advantage on any Wisdom (Perception or Survival) check you make to find it. If the target drops to 0 Points before this spell ends, you can take a Action to move the mark to a new creature you can see within range. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 3-4 (up to 8 hours) or 5+ (up to 24 hours)."
   },
   {
     "name": "Hungering Blade",
@@ -2666,7 +3001,7 @@
       "Warlock"
     ],
     "races": [],
-    "description": "Source: CrookedMoon24. Level: 1. School: N. You imbue a weapon you are holding, or your Strike, with ravenous negative energy. For the duration, when you hit a creature with an attack using the empowered weapon or Strike for the first time on a turn, the target takes Necrotic damage equal to your spellcasting ability modifier, and you gain a number of Points equal to the Necrotic damage dealt."
+    "description": "Source: CrookedMoon24. Level: 1. School: N. You imbue a weapon you are holding, or your Unarmed Strikes, with ravenous negative energy. For the duration, when you hit a creature with an attack using the empowered weapon or Strike for the first time on a turn, the target takes Necrotic damage equal to your spellcasting ability modifier, and you gain a number of Points equal to the Necrotic damage dealt."
   },
   {
     "name": "Hail of Thorns",
@@ -2675,7 +3010,7 @@
       "Ranger"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: C. As you hit the creature, this spell creates a rain of thorns that sprouts from your Ranged weapon or ammunition. The target of the attack and each creature within 5 feet of it make a Dexterity saving throw, taking 1d10 Piercing damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot The damage increases by 1d10 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: C. As you hit the creature, this spell creates a rain of thorns that sprouts from your Ranged weapon or ammunition. The target of the attack and each creature within 5 feet of it make a Dexterity saving throw, taking 1d10 Piercing damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot. The damage increases by 1d10 for each spell slot level above 1."
   },
   {
     "name": "Goodberry",
@@ -2687,7 +3022,7 @@
     "races": [
       "Halfling (Mark of Hospitality)"
     ],
-    "description": "Source: XPHB. Level: 1. School: C. Ten berries appear in your hand and are infused with magic for the duration. A creature can take a Action to eat one berry. Eating a berry restores 1 Points, and the berry provides enough nourishment to sustain a creature for one day. Uneaten berries disappear when the spell ends."
+    "description": "Source: XPHB. Level: 1. School: C. Ten berries appear in your hand and are infused with magic for the duration. A creature can take a Action to eat one berry. Eating a berry restores 1 Hit Point, and the berry provides enough nourishment to sustain a creature for one day. Uneaten berries disappear when the spell ends."
   },
   {
     "name": "Fog Cloud",
@@ -2696,13 +3031,14 @@
       "Druid",
       "Ranger",
       "Sorcerer",
-      "Wizard"
+      "Wizard",
+      "Apothecary"
     ],
     "races": [
       "Half-Elf (Variant; Mark of Storm)",
       "Triton"
     ],
-    "description": "Source: XPHB. Level: 1. School: C. You create a 20-foot-radius [Area of Effect] of fog centered on a point within range. The [Area of Effect] is Obscured. It lasts for the duration or until a strong wind (such as one created by Wind) disperses it. Using a Higher-Level Spell Slot The fog's radius increases by 20 feet for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: C. You create a 20-foot-radius Sphere of fog centered on a point within range. The Sphere is Obscured. It lasts for the duration or until a strong wind (such as one created by Wind) disperses it. Using a Higher-Level Spell Slot. The fog's radius increases by 20 feet for each spell slot level above 1."
   },
   {
     "name": "Flipperform",
@@ -2715,7 +3051,7 @@
       "Tamer"
     ],
     "races": [],
-    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: BM. You change the morphology of a willing creature within range. It grows webbed fingers and gains a swimming speed equal to its walking speed At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, you can affect one additional creature for each slot level above 1st In addition, the duration of the spell doubles for each slot level above 1st."
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: BM. You change the morphology of a willing creature within range. It grows webbed fingers and gains a swimming speed equal to its walking speed At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can affect one additional creature for each slot level above 1st In addition, the duration of the spell doubles for each slot level above 1st."
   },
   {
     "name": "Ensnaring Strike",
@@ -2724,7 +3060,7 @@
       "Ranger"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: C. As you hit the target, grasping vines appear on it, and it makes a Strength saving throw. A Large or larger creature has Advantage on this save. On a failed save, the target has the Restrained condition until the spell ends. On a successful save, the vines shrivel away, and the spell ends. While Restrained, the target takes 1d6 Piercing damage at the start of each of its turns. The target or a creature within reach of it can take an action to make a Strength (Athletics) check against your spell save DC. On a success, the spell ends. Using a Higher-Level Spell Slot The damage increases by 1d6 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: C. As you hit the target, grasping vines appear on it, and it makes a Strength saving throw. A Large or larger creature has Advantage on this save. On a failed save, the target has the Restrained condition until the spell ends. On a successful save, the vines shrivel away, and the spell ends. While Restrained, the target takes 1d6 Piercing damage at the start of each of its turns. The target or a creature within reach of it can take an action to make a Strength (Athletics) check against your spell save DC. On a success, the spell ends. Using a Higher-Level Spell Slot. The damage increases by 1d6 for each spell slot level above 1."
   },
   {
     "name": "Elevated Sight",
@@ -2737,7 +3073,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: HumblewoodCampaignSetting. Level: 1. School: D. You cast your eyes skyward, granting you sight from a higher vantage point. You project your vision to see through an invisible sensor which appears in a spot up to 120 feet above you. You can see through the sensor as if you were flying, granting a full 360 degree view from its location. The sensor moves with you, retaining its height in relation to you. You can use a bonus action to adjust the sensor's height, but only to a maximum of 120 feet above you. While looking through this sensor you are blinded, though you can switch between seeing through the sensor or through your own eyes at any time during your turn."
+    "description": "Source: HumblewoodCampaignSetting. Level: 1. School: D. You cast your eyes skyward, granting you sight from a higher vantage point. You project your vision to see through an invisible sensor which appears in a spot up to 120 feet above you. You can see through the sensor as if you were flying, granting a full 360 degree view from its location. The sensor moves with you, retaining its height in relation to you. You can use a bonus action to adjust the sensor's height, but only to a maximum of 120 feet above you. While looking through this sensor you are blind, though you can switch between seeing through the sensor or through your own eyes at any time during your turn."
   },
   {
     "name": "Detect Poison and Disease",
@@ -2746,7 +3082,8 @@
       "Cleric",
       "Druid",
       "Ranger",
-      "Paladin"
+      "Paladin",
+      "Apothecary"
     ],
     "races": [
       "Half-Elf (Variant; Mark of Detection)"
@@ -2762,12 +3099,14 @@
       "Druid",
       "Ranger",
       "Paladin",
-      "Artificer"
+      "Artificer",
+      "Apothecary",
+      "Tamer"
     ],
     "races": [
       "Halfling (Mark of Healing)"
     ],
-    "description": "Source: XPHB. Level: 1. School: A. A creature you touch regains a number of Points equal to 2d8 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot The healing increases by 2d8 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: A. A creature you touch regains a number of Points equal to 2d8 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. The healing increases by 2d8 for each spell slot level above 1."
   },
   {
     "name": "Chameleon Skin",
@@ -2780,7 +3119,7 @@
       "Tamer"
     ],
     "races": [],
-    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: BM. You imbue a creature you touch with pigment so that its skin, and anything it wears or carries, slowly shifts hues to match its surroundings For the duration, the target can take the Hide action as a bonus action on each of its turns, even when only lightly obscured If the target did not move during its last turn, creatures have disadvantage on any Wisdom (Perception) checks made to see the target Creatures who do not rely on sight, such as those with tremorsense, are immune to this effect. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st."
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: BM. You imbue a creature you touch with pigment so that its skin, and anything it wears or carries, slowly shifts hues to match its surroundings For the duration, the target can take the Hide action as a bonus action on each of its turns, even when only lightly obscured If the target did not move during its last turn, creatures have disadvantage on any Wisdom (Perception) checks made to see the target Creatures who do not rely on sight, such as those with tremorsense, are immune to this effect. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st."
   },
   {
     "name": "Boil Blood",
@@ -2793,7 +3132,7 @@
       "Warlock"
     ],
     "races": [],
-    "description": "Source: GrimHollowPG24. Level: 1. School: T. As part of casting this spell, you must expend one Dice or the spell automatically fails. A willing target takes Fire damage equal to a roll of the expended Dice. If the target has the Poisoned condition, that condition immediately ends."
+    "description": "Source: GrimHollowPG24. Level: 1. School: T Sangromancy. As part of casting this spell, you must expend one Hit Point Die or the spell automatically fails. A willing target takes Fire damage equal to a roll of the expended Hit Point Die. If the target has the Poisoned condition, that condition immediately ends."
   },
   {
     "name": "Blood Rush",
@@ -2803,7 +3142,7 @@
       "Ranger"
     ],
     "races": [],
-    "description": "Source: GrimHollowPG24. Level: 1. School: T. As part of casting this spell, you must expend one Dice or the spell automatically fails. Roll the Dice twice, and regain a number of Points equal to the added roll plus your spellcasting ability modifier. Using a Higher-Level Spell Slot You can expend one additional Dice for each spell slot level above 1."
+    "description": "Source: GrimHollowPG24. Level: 1. School: T Sangromancy. As part of casting this spell, you must expend one Hit Point Die or the spell automatically fails. Roll the Hit Point Die twice, and regain a number of Points equal to the added roll plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. You can expend one additional Hit Point Die for each spell slot level above 1."
   },
   {
     "name": "Assisted Aim",
@@ -2816,7 +3155,7 @@
       "Ranger"
     ],
     "races": [],
-    "description": "Source: GrimHollowPG24. Level: 1. School: E. You invigorate up to three creatures within range with improved accuracy. Each target gains a +1 bonus to attack rolls it makes with Ranged weapons. Additionally, the normal and long range of Ranged weapons wielded by a target are doubled for the spell's duration. Using a Higher-Level Spell Slot You can target one additional creature for each spell slot level above 1."
+    "description": "Source: GrimHollowPG24. Level: 1. School: E. You invigorate up to three creatures within range with improved accuracy. Each target gains a +1 bonus to attack rolls it makes with Ranged weapons. Additionally, the normal and long range of Ranged weapons wielded by a target are doubled for the spell's duration. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
   },
   {
     "name": "Animal Friendship",
@@ -2831,7 +3170,7 @@
       "Yuan-Ti",
       "Yuan-ti Pureblood"
     ],
-    "description": "Source: XPHB. Level: 1. School: E. Target a Beast that you can see within range. The target must succeed on a Wisdom saving throw or have the Charmed condition for the duration. If you or one of your allies deals damage to the target, the spells ends. Using a Higher-Level Spell Slot You can target one additional Beast for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: E. Target a Beast that you can see within range. The target must succeed on a Wisdom saving throw or have the Charmed condition for the duration. If you or one of your allies deals damage to the target, the spells ends. Using a Higher-Level Spell Slot. You can target one additional Beast for each spell slot level above 1."
   },
   {
     "name": "Ancestral Communion",
@@ -2852,9 +3191,1532 @@
       "Ranger",
       "Sorcerer",
       "Warlock",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [],
+    "description": "Source: GuideDrakkenheim. Level: 1. School: V. You create an orb of acid gel and fling it at one creature within range. Make a ranged spell attack against the target. On a hit, the target takes 2d6 acid damage. Whether the attack hits or misses, the orb explodes. The target and each creature within 5 feet of it must succeed on a Dexterity saving throw or take 2d6 acid damage. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the exploding acid damage increases by 1d6 for each slot level above 1st."
+  },
+  {
+    "name": "Aundair's Silent Sanctum",
+    "level": 0,
+    "classes": [
+      "Artificer",
+      "Bard",
+      "Sorcerer",
       "Wizard"
     ],
     "races": [],
-    "description": "Source: GuideDrakkenheim. Level: 1. School: V. You create an orb of acid gel and fling it at one creature within range. Make a ranged spell attack against the target. On a hit, the target takes 2d6 acid damage. Whether the attack hits or misses, the orb explodes. The target and each creature within 5 feet of it must succeed on a Dexterity saving throw or take 2d6 acid damage. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the exploding acid damage increases by 1d6 for each slot level above 1st."
+    "description": "Source: ExploringEberron24. Level: Cantrip. School: I. You surround yourself with an invisible bubble of energy in a 5-foot Emanation. The sphere muffles sound in both directions. Creatures outside of the Emanation have Disadvantage on Wisdom (Perception) checks made to hear any sounds from within the Emanation, and creatures inside the Emanation have Disadvantage on Wisdom (Perception) checks made to hear sounds outside of the Emanation. In addition, creatures have Advantage on saving throws against effects that require them to hear a sound from the other side of the Emanation, such as the Command spell."
+  },
+  {
+    "name": "Bacterial Barrage",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [],
+    "description": "Source: GuideDrakkenheim. Level: Cantrip. School: N. You attack a creature in range with a quick spreading infection that takes advantage of existing conditions. Make a ranged spell attack against a target, on a hit the infection does 1d8 necrotic damage to the target. If the target is suffering from the poisoned condition or a disease, it instead takes 1d12 necrotic damage. The spell's damage increases by one die when you reach 5th level (2d8 or 2d12), 11th level (3d8 or 3d12), and 17th level (4d8 or 4d12)."
+  },
+  {
+    "name": "Blade Ward",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Genasi (Earth)",
+      "Kobold",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: A. Whenever a creature makes an attack roll against you before the spell ends, the attacker subtracts 1d4 from the attack roll."
+  },
+  {
+    "name": "Blood Bolt",
+    "level": 0,
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: CrookedMoon24. Level: Cantrip. School: N. You hurl a twisting bolt of blood at a creature within range. Make a ranged spell attack against the target. On a hit, the target takes 1d6 Necrotic damage, and you gain a number of Points equal to your Proficiency Bonus. Cantrip Upgrade. The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
+  },
+  {
+    "name": "Calling Card",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: Cantrip. School: I. You touch a corpse and leave a magical mark. You can choose to make it a visible mark that appears as a rune or word written on the flesh, or you can choose to make the mark Invisible. A creature that takes the Study action to specifically examine a corpse automatically detects it, whether visible or Invisible."
+  },
+  {
+    "name": "Can't Trip",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Druid",
+      "Wizard",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: A. Choose a willing creature within range that you can see Until the end of your next turn, that creature is immune to the prone condition If it is already prone and is not restrained, this spell sets it on its feet The number of creatures you can simultaneously target with this spell increases by 1 when you reach 5th level (2 creatures), 11th level (3 creatures), and 17th level (4 creatures)."
+  },
+  {
+    "name": "Can'trip",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: A. You temporarily tangle the Weave around a creature within range that you can see Until the start of your next turn, each time the creature tries to cast a cantrip whilst this spell affects it, it must succeed on a spellcasting ability check against your spell save DC waste its action (but not its spell slot). The spell ends if the target moves out of the spell's range The maximum level of spell inhibited by this cantrip increases when you reach 5th level (1st-level spells), 11th level (2nd-level spells), and 17th level (3rd-level spells)."
+  },
+  {
+    "name": "Chill Touch",
+    "level": 0,
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Tiefling",
+      "Elf (Zendikar; Mul Daya Nation)",
+      "Merfolk (Zendikar; Ula Creed)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: N. Channeling the chill of the grave, make a melee spell attack against a target within reach. On a hit, the target takes 1d10 Necrotic damage, and it can't regain Points until the end of your next turn. Cantrip Upgrade. The damage increases by 1d10 when you reach levels 5 (2d10), 11 (3d10), and 17 (4d10)."
+  },
+  {
+    "name": "Concussion",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: V. With a thdoom that can be heard 100 feet away, you cause a sudden increase in the air pressure surrounding a creature you can see within range The target must succeed on a Constitution saving throw or take 1d8 thunder damage and become deafened until the start of your next turn This spell's damage increases by 1d8 when you reach 5th level (2d8), 11th level (3d8), and 17th level (4d8)"
+  },
+  {
+    "name": "Dancing Lights",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "races": [
+      "Astral Elf",
+      "Elf (Drow)",
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Drow Descent)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: I. You create up to four torch-size lights within range, making them appear as torches, lanterns, or glowing orbs that hover for the duration. Alternatively, you combine the four lights into one glowing Medium form that is vaguely humanlike. Whichever form you choose, each light sheds Light in a 10-foot radius. As a Action, you can move the lights up to 60 feet to a space within range. A light must be within 20 feet of another light created by this spell, and a light vanishes if it exceeds the spell's range."
+  },
+  {
+    "name": "Dissolution",
+    "level": 0,
+    "classes": [
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: CrookedMoon24. Level: Cantrip. School: T. You touch a creature or nonmagical object and break the target's substance down into its most fundamental components. Make a melee spell attack. On a hit, the target takes 1d8 Force damage, and its AC is reduced by 1 against the next attack roll made against it before the end of your next turn. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+  },
+  {
+    "name": "Eldritch Blast",
+    "level": 0,
+    "classes": [
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: Cantrip. School: V. You hurl a beam of crackling energy. Make a ranged spell attack against one creature or object in range. On a hit, the target takes 1d10 Force damage. Cantrip Upgrade. The spell creates two beams at level 5, three beams at level 11, and four beams at level 17. You can direct the beams at the same target or at different ones. Make a separate attack roll for each beam."
+  },
+  {
+    "name": "Eye Burn",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: CrookedMoon24. Level: Cantrip. School: T. You sting the eyes of a creature attacking you. The target must make a Constitution saving throw (a creature with Blindsight or Immunity to the Blinded condition succeeds automatically). On a failed save, the target has the Blinded condition until the end of the turn. On a successful save, it must subtract 1d4 from the triggering attack roll. The target automatically succeeds on its saves against your subsequent casting of this spell for 24 hours."
+  },
+  {
+    "name": "Ferocious Strike",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: BM. With a pulse of adrenaline, a tremendous ferocity comes upon you Make one weapon attack against a target within your reach or range If this attack hits, the target takes additional 1d4 damage of the weapon's damage type This spell's damage increases by 1d4 when you reach 5th level (2d4) 11th level (3d4) and 17th level (4d4)."
+  },
+  {
+    "name": "Flare",
+    "level": 0,
+    "classes": [
+      "Cleric",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: V. You launch a pulse of radiant energy at a target within range Make a ranged spell attack against the target On a hit, the target takes 1d8 radiant damage On a critical hit, the target is covered in glittering mystical light, granting advantage on attack rolls against the target until the end of your next turn Alternatively, you can launch the pulse at a point in the air within range where it slowly falls towards the ground. Until the end of your next turn, the flare sheds bright light in a 20-foot radius and dim light for an additional 20 feet This spell's damage increases by 1d8, and the radius of the bright and dim light increases by 10 feet, when you reach 5th level (2d8, 30 feet), 11th level (3d8, 40 feet), and 17th level (4d8, 50 feet)."
+  },
+  {
+    "name": "Force Blast",
+    "level": 0,
+    "classes": [
+      "Artificer",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: ExploringEberron24. Level: Cantrip. School: V. You unleash a bolt of mystical power at a creature or an object within range. Make a ranged spell attack against the target. On a hit, the target takes 1d8 Force damage. Cantrip Upgrade. This damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+  },
+  {
+    "name": "Frightful Start",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: Cantrip. School: I. You twist your visage to scare a creature that you can see within range. The creature must succeed on a Wisdom saving throw or have the Frightened condition until the start of your next turn."
+  },
+  {
+    "name": "Gray Gaze",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: FoEQuickstone. Level: Cantrip. School: T. You turn your gaze on one creature you can see within range. If the target can see your eyes, their body stiffens and cracks as if it were turning to stone. The target must succeed on a Constitution saving throw or take Necrotic damage equal to your Proficiency Bonus and have Disadvantage on the next Dexterity saving throw it makes before the end of its next turn."
+  },
+  {
+    "name": "Guidance",
+    "level": 0,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Artificer",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: D. You touch a willing creature and choose a skill. Until the spell ends, the creature adds 1d4 to any ability check using the chosen skill."
+  },
+  {
+    "name": "Gust Barrier",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HumblewoodCampaignSetting. Level: Cantrip. School: V. You spread your arms wide, allowing yourself to become enveloped by the air around you. Until the end of your next turn, any ranged attack against you is made with disadvantage. Melee attackers who successfully hit you must make a Constitution saving throw against your spell save DC. On a failure, the attacker is flung away from you up to 10 feet and is knocked prone."
+  },
+  {
+    "name": "Holy Word",
+    "level": 0,
+    "classes": [
+      "Cleric"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: Cantrip. School: V. You whisper a divine word under your breath, careful not to speak loudly, for such celestial power isn't for the unworthy. Make a ranged spell attack against a target within range. On a hit, the target takes 1d8 Radiant damage. If the target is Fey, Fiend, or Undead, its Speed is reduced by 10 feet and it can't take Reactions until the end of its next turn. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+  },
+  {
+    "name": "Howl",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: T. You utter a bestial, magically-augmented howl that can be heard for 1000 feet The howl can manifest as any animal call you've heard, such as the screech of a hawk or trumpet of an elephant Choose one creature with whom you are familiar as the recipient: if it can hear your howl, it understands your meaning and can respond in a likewise manner Creatures other than your recipient that hear the howl and that are under the effects of the languages spell or similar magic, or that can understand beasts, can understand the howl's meaning Otherwise, the howl is unintelligible to creatures that can hear it"
+  },
+  {
+    "name": "Hunter Sense",
+    "level": 0,
+    "classes": [
+      "Druid"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: Cantrip. School: D. You touch a willing creature. For the duration, the target's senses are heightened. Whenever the target makes a Wisdom (Perception) check, it can treat a d20 roll of 9 or lower as a 10."
+  },
+  {
+    "name": "Illusory Instrument",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: Cantrip. School: I. You create an illusionary copy of a mundane instrument. The copy of the instrument takes on the shape of your fondest memory of the instrument, such as the first flute you owned or the half harp gifted to you by a loved one. This illusion moves as its physical counterpart would, but it is weightless and is tangible only to you. This instrument can be used as a Focus. This illusory instrument dissipates if you move 10 feet away from it orchoose to end the spell (no action required by you). As a Action, you can command your instrument to create one of the following effects: Mimic basic sounds heard on a daily basis, such as a bird chirping, footsteps, or a slamming door. Automatically play a basic beat at the tempo of your choice. Record anything played on it, and play it back on a loop. Record and playback any noise that it could pick up within 15 feet, such as conversation, a royal decree, or a snoring party member who swears that they don't snore."
+  },
+  {
+    "name": "Light",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Sorcerer",
+      "Wizard",
+      "Artificer",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Aasimar",
+      "Kobold",
+      "Aasimar (Fallen)",
+      "Aasimar (Protector)",
+      "Aasimar (Scourge)",
+      "Elf",
+      "Astral Elf",
+      "Elf (High)",
+      "Elf (Pallid)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. You touch one Large or smaller object that isn't being worn or carried by someone else. Until the spell ends, the object sheds Light in a 20-foot radius and Light for an additional 20 feet. The light can be colored as you like. Covering the object with something opaque blocks the light. The spell ends if you cast it again."
+  },
+  {
+    "name": "Magecraft",
+    "level": 0,
+    "classes": [
+      "Artificer",
+      "Bard",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: ExploringEberron24. Level: Cantrip. School: D. You channel your arcane talent through a set of tools. Choose an Artisan Tool or Kit. Until the spell ends, you add 1d6 to ability checks you make when you take the Utilize action with the chosen tool."
+  },
+  {
+    "name": "Magnetobolt",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: V. A near-invisible pulse of arcanomagnetic energy shoots towards a creature within range Make a ranged spell attack against the target On a hit, the target takes 1d6 force damage and must succeed on a Strength saving throw or be knocked prone A creature made of ferrous metal or wearing ferrous armour has disadvantage on this saving throw This spell's damage increases by 1d6 when you reach 5th level 2d6 11th level 3d6 and 17th level 4d6"
+  },
+  {
+    "name": "Mend Plants",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HumblewoodTales. Level: Cantrip. School: T. Drawing on primordial magic, you instill vitality in nearby plants to create one of the following effects within range: You instantly repair a single break or tear in a living plant you touch, such as torn foliage, a scorched branch, a scar cut into bark, or two pieces of a plant that have been broken apart. As long as the damage is no larger than 1 foot in any dimension, you mend it, leaving no trace of the former destruction. You instantly cause a defoliated plant to grow foliage, cause a planted seed to sprout, or restore the ability to sprout to a dead seed pod. You can cause a 5-foot cube of living plants to flourish with foliage such as leaves and grass. This area can become thick enough to conceal a Medium or smaller creature, or become overgrown enough to become 3 (your choice when you cast the spell). You can touch a living plant or plant creature to grant it 1d4 temporary hit points."
+  },
+  {
+    "name": "Mending",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Druid",
+      "Sorcerer",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Human (Mark of Making)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: T. This spell repairs a single break or tear in an object you touch, such as a broken chain link, two halves of a broken key, a torn cloak, or a leaking wineskin. As long as the break or tear is no larger than 1 foot in any dimension, you mend it, leaving no trace of the former damage. This spell can physically repair a magic item, but it can't restore magic to such an object."
+  },
+  {
+    "name": "Message",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Wizard",
+      "Artificer",
+      "Apothecary"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Elf (Kaladesh; Vahadar)",
+      "Gnome (Mark of Scribing)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: T. You point toward a creature within range and whisper a message. The target (and only the target) hears the message and can reply in a whisper that only you can hear. You can cast this spell through solid objects if you are familiar with the target and know it is beyond the barrier. Magical silence; 1 foot of stone, metal, or wood; or a thin sheet of lead blocks the spell."
+  },
+  {
+    "name": "Mysterious Presence",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer"
+    ],
+    "races": [],
+    "description": "Source: CrookedMoon24. Level: Cantrip. School: I. You touch a willing creature and shroud its presence. Until the spell ends, other creatures must subtract 1d4 from any Wisdom (Insight or Perception) checks made against the target."
+  },
+  {
+    "name": "Pins & Needles",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: BM. 509509Appendix B | SpellsYou momentarily shut down a small part of the nervous system of a creature you can see within range, before overstimulating it and causing crippling pain The creature must succeed on a Constitution saving throw or take 1d8 psychic damage If the target fails its saving throw by 5 or more, it has disadvantage on the next attack roll it makes before the end of its next turn as it temporarily loses full control of a part of its body This spell's damage increases by 1d8 when you reach 5th level 2d8 11th level 3d8 and 17th level 4d8"
+  },
+  {
+    "name": "Poison Needle",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [],
+    "description": "Source: GuideDrakkenheim. Level: Cantrip. School: C. You launch a conjured dart coated with lethal poison at a creature you can see within range. Make a ranged spell attack against the target. On a hit, the target takes 1d10 poison damage. If the poison damage reduces the target to 0 hit points, the target is stable but poisoned for 1 hour, even after regaining hit points, and is paralyzed while poisoned in this way. This spell's damage increases by 1d10 when you reach 5th level (2d10), 11th level (3d10), and 17th level (4d10)."
+  },
+  {
+    "name": "Poison Spray",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Artificer",
+      "Apothecary"
+    ],
+    "races": [
+      "Elf",
+      "Elf (High)",
+      "Tiefling",
+      "Elf (Kaladesh; Vahadar)",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Yuan-Ti",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)",
+      "Merfolk (Zendikar; Ula Creed)",
+      "Yuan-ti Pureblood"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: N. You spray toxic mist at a creature within range. Make a ranged spell attack against the target. On a hit, the target takes 1d12 Poison damage. Cantrip Upgrade. The damage increases by 1d12 when you reach levels 5 (2d12), 11 (3d12), and 17 (4d12)."
+  },
+  {
+    "name": "Preserve",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: Cantrip. School: T. Food and other perishable items weighing 5 pounds or less that you place in a sack don't age or decay for the duration."
+  },
+  {
+    "name": "Primal Scent",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: D. You inhale deeply, magically enhancing the scents that surround you You have advantage on the next ability check you make that relies on smell, and you can treat a roll of 4 or lower as a 5 When you reach higher levels, this spell gives you an increasingly astute ability to identify the source of the scents around you When you reach 5th level, whenever you make an ability check that relies on smell, you can treat a d20 roll of 7 or lower as an 8 At 11th level, a roll of 10 or lower is treated as an 11, and at 17th level, a roll of 13 or lower is treated as a 14"
+  },
+  {
+    "name": "Produce Flame",
+    "level": 0,
+    "classes": [
+      "Druid"
+    ],
+    "races": [
+      "Elf",
+      "Flamekin",
+      "Elf (Kaladesh; Vahadar)",
+      "Genasi (Fire)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: C. A flickering flame appears in your hand and remains there for the duration. While there, the flame emits no heat and ignites nothing, and it sheds Light in a 20-foot radius and Light for an additional 20 feet. The spell ends if you cast it again. Until the spell ends, you can take a Magic action to hurl fire at a creature or an object within 60 feet of you. Make a ranged spell attack. On a hit, the target takes 1d8 Fire damage. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+  },
+  {
+    "name": "Ray of Frost",
+    "level": 0,
+    "classes": [
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Kobold",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)",
+      "Rimekin",
+      "Tiefling (Levistus)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. A frigid beam of blue-white light streaks toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes 1d8 Cold damage, and its Speed is reduced by 10 feet until the start of your next turn. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+  },
+  {
+    "name": "Shocking Grasp",
+    "level": 0,
+    "classes": [
+      "Sorcerer",
+      "Wizard",
+      "Artificer",
+      "Apothecary"
+    ],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Genasi (Air)",
+      "Kobold",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. Lightning springs from you to a creature that you try to touch. Make a melee spell attack against the target. On a hit, the target takes 1d8 Lightning damage, and it can't make Opportunity Attacks until the start of its next turn. Cantrip Upgrade. The damage increases by 1d8 when you reach levels 5 (2d8), 11 (3d8), and 17 (4d8)."
+  },
+  {
+    "name": "Smokescreen",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: C. You spew a thick cloud of dense black smoke that forms a 5-foot-diameter, 10-foot-high cylinder centred on you that lasts until the start of your next turn The smoke heavily obscures its area When you cast the spell, you can choose whether the cloud remains in the location where you cast it or moves with you, centred on you When you reach higher levels, the size of the cloud you can create with this spell increases When you reach 5th level, the cloud has a maximum diameter of 15 feet and a height of 20 feet; at 11th level this increases to 25 feet and 30 feet; and at 17th level this increases to 35 feet and 40 feet You choose how big the cloud is in each dimension up to this maximum each time that you cast it"
+  },
+  {
+    "name": "Spark",
+    "level": 0,
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: V. A spark of bright light arcs from you to a creature within range Make a ranged spell attack against the target On a hit, the target takes 1d8 lightning damage On a critical hit, the target is also blinded until the end of its next turn The spell creates more than one spark when you reach higher levels: two sparks at 5th level, three sparks at 11th level, and four sparks at 17th level You can direct the sparks at the same target or at different ones Make a separate attack roll for each spark"
+  },
+  {
+    "name": "Spore Cloud",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: BM. You produce a cloud of virulent spores Each creature within 5 feet of you, other than you, must succeed on a Constitution saving throw or take 1d4 poison damage A creature that fails the saving throw by 5 or more is poisoned until the end of its next turn The spell's damage increases by 1d6 when you reach 5th level 2d4 11th level 3d4 and 17th level 4d4"
+  },
+  {
+    "name": "Stalker's Eye",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: E. A willing creature you touch gains a preternatural ability to perceive the weaknesses in a creature's defences. The first time the creature makes an attack while under the effect of this spell, it makes the attack with advantage. After it makes an attack, the spell ends This spell augments the creature's ability to strike at vital points when you reach certain levels When you reach 5th level, the augmented attack scores a critical hit on a roll of 19 or 20 At 11th level, this range is increased to 18 to 20, and at 17th level, this range becomes 17 to 20"
+  },
+  {
+    "name": "Swarm",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: BM. Choose a target within range; a cloud of miniscule poisonous spiders floats on gossamer strands towards it The target must succeed on a Dexterity saving throw to avoid the spiders or become poisoned until the end of its next turn This spell deals poison damage on a failed saving throw when you reach certain levels When you reach 5th level, a creature takes 1d10 poison damage; at 11th level this increases to 2d10 and at 17th level this increases to 3d10"
+  },
+  {
+    "name": "Thorn Whip",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Artificer"
+    ],
+    "races": [
+      "Elf",
+      "Elf (Kaladesh; Vahadar)",
+      "Khoravar",
+      "Merfolk (Ixalan; Green)",
+      "Merfolk (Zendikar; Emeria Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: T. You create a vine-like whip covered in thorns that lashes out at your command toward a creature in range. Make a melee spell attack against the target. On a hit, the target takes 1d6 Piercing damage, and if it is Large or smaller, you can pull it up to 10 feet closer to you. Cantrip Upgrade. The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
+  },
+  {
+    "name": "Vicious Mockery",
+    "level": 0,
+    "classes": [
+      "Bard",
+      "Tamer"
+    ],
+    "races": [
+      "Merfolk (Zendikar; Cosi Creed)",
+      "Tiefling (Variant; Devil's Tongue)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: E. You unleash a string of insults laced with subtle enchantments at one creature you can see or hear within range. The target must succeed on a Wisdom saving throw or take 1d6 Psychic damage and have Disadvantage on the next attack roll it makes before the end of its next turn. Cantrip Upgrade. The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
+  },
+  {
+    "name": "Water Whip",
+    "level": 0,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: Cantrip. School: T. Choose a source of water that you can see within range that has a volume of at least 1 gallon Make a melee spell attack against a creature within 30 feet of the source of water On a hit, the target takes 1d6 slashing damage and, if the creature is Large or smaller, you can force it to make a Strength saving throw, pulling it up to 10 feet towards the body of water on a failure The spell's damage and distance it can pull a target increases when you reach 5th level 2d6 and 15 feet), 11th level 3d6 and 20 feet), and 17th level 4d6 and 25 feet)"
+  },
+  {
+    "name": "Arcane Aegis",
+    "level": 1,
+    "classes": [
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: A. When you cast this spell, you are surrounded by a shimmering light that quickly dissipates. You gain 2d10 Points. If a creature hits you with a melee attack before the spell ends, the creature takes Force damage equal to the number of Points lost as a result of the attack. The spell ends early if you have no Points. Using a Higher-Level Spell Slot. You gain an additional 2d10 Points for each spell slot level above 1."
+  },
+  {
+    "name": "Armor of Agathys",
+    "level": 1,
+    "classes": [
+      "Warlock"
+    ],
+    "races": [
+      "Dwarf (Mark of Warding)",
+      "Tiefling (Levistus)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: A. Protective magical frost surrounds you. You gain 5 Points. If a creature hits you with a melee attack roll before the spell ends, the creature takes 5 Cold damage. The spell ends early if you have no Points. Using a Higher-Level Spell Slot. The Points and the Cold damage both increase by 5 for each spell slot level above 1."
+  },
+  {
+    "name": "Arms of Hadar",
+    "level": 1,
+    "classes": [
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: C. Invoking Hadar, you cause tendrils to erupt from yourself. Each creature in a 10-foot Emanation originating from you makes a Strength saving throw. On a failed save, a target takes 2d6 Necrotic damage and can't take Reactions until the start of its next turn. On a successful save, a target takes half as much damage only. Using a Higher-Level Spell Slot. The damage increases by 2d6 for each spell slot level above 1."
+  },
+  {
+    "name": "Bane",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: E. Up to three creatures of your choice that you can see within range must each make a Charisma saving throw. Whenever a target that fails this save makes an attack roll or a saving throw before the spell ends, the target must subtract 1d4 from the attack roll or save. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Binding Pledge",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: D. When you cast the spell, a willing creature within range makes a promise, swears an oath, or enters into a contract. For the duration of the spell, you immediately know if the creature breaks that promise, oath, or contract. If this happens, for the remainder of the duration of the spell, you know the distance and direction to the creature. If this spell is dispelled, you immediately know it but don't learn the distance and direction to the creature. Using a Higher-Level Spell Slot. The duration becomes 30 days (level 3-4 slot) or 1 year (level 5-6 slot). If you use a level 7+ spell slot, the spell lasts until dispelled."
+  },
+  {
+    "name": "Bless",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: E. You bless up to three creatures within range. Whenever a target makes an attack roll or a saving throw before the spell ends, the target adds 1d4 to the attack roll or save. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Bloodbane Rune",
+    "level": 1,
+    "classes": [
+      "Cleric"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: T Sangromancy. As part of casting this spell, you must expend one Hit Point Die or the spell automatically fails. You target a weapon of your choice within range and scrawl onto it a rune written in blood. For the duration, while you wield this weapon, it weeps a phantasmal red ichor when within 30 feet of an Undead creature. Additionally, once per turn, when you damage an Undead creature with the weapon, you deal extra Radiant damage. To determine this damage, roll the number of Dice you expended to cast the spell. Using a Higher-Level Spell Slot. You expend an additional Hit Point Die for each spell slot level above 1. In addition, your Concentration can last longer with a spell slot of level 2 (up to 10 minutes) or 3+ (up to 1 hour)."
+  },
+  {
+    "name": "Burning Hands",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Flamekin",
+      "Genasi (Fire)",
+      "Tiefling (Mephistopheles)",
+      "Tiefling (Variant; Hellfire)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: V. A thin sheet of flames shoots forth from you. Each creature in a 15-foot Cone makes a Dexterity saving throw, taking 3d6 Fire damage on a failed save or half as much damage on a successful one. Flammable objects in the Cone that aren't being worn or carried start burning. Using a Higher-Level Spell Slot. The damage increases by 3d6 for each spell slot level above 1."
+  },
+  {
+    "name": "Cannotrip",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: A. Choose a creature you can see within range Each time the target tries to cast a spell of equal or lower level than this spell, it must succeed on a spellcasting ability check against your spell save DC or waste its action (but not its spell slot). At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you inhibit spells 1 spell level higher for each slot level above 1st."
+  },
+  {
+    "name": "Captivate Undead",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: CrookedMoon24. Level: 1. School: N. You usurp the negative energy animating an Undead creature that you can see within range, attempting to take control of it. The target must make a Charisma saving throw. On a failed save, for the duration, the target has the Charmed condition (ignoring any Immunity to that condition), and it is Friendly toward you. On a successful save, the target has Disadvantage on the next attack roll it makes against you before the start of your next turn. If you or any of your allies damage the target or force it to make a saving throw, the spell ends. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Charm Person",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [
+      "Tiefling (Fierna)",
+      "Tiefling (Variant; Devil's Tongue)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: E. One Humanoid you can see within range makes a Wisdom saving throw. It does so with Advantage if you or your allies are fighting it. On a failed save, the target has the Charmed condition until the spell ends or until you or your allies damage it. The Charmed creature is Friendly to you. When the spell ends, the target knows it was Charmed by you. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Color Spray",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: I. You launch a dazzling array of flashing, colorful light. Each creature in a 15-foot Cone originating from you must succeed on a Constitution saving throw or have the Blinded condition until the end of your next turn."
+  },
+  {
+    "name": "Command",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Paladin"
+    ],
+    "races": [
+      "Elf"
+    ],
+    "description": "Source: XPHB. Level: 1. School: E. You speak a one-word command to a creature you can see within range. The target must succeed on a Wisdom saving throw or follow the command on its next turn. Choose the command from these options: Approach. The target moves toward you by the shortest and most direct route, ending its turn if it moves within 5 feet of you. Drop. The target drops whatever it is holding and then ends its turn. Flee. The target spends its turn moving away from you by the fastest available means. Grovel. The target has the Prone condition and then ends its turn. Halt. On its turn, the target doesn't move and takes no action or Action. Using a Higher-Level Spell Slot. You can affect one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Compelled Duel",
+    "level": 1,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [
+      "Human (Mark of Sentinel)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: E. You try to compel a creature into a duel. One creature that you can see within range makes a Wisdom saving throw. On a failed save, the target has Disadvantage on attack rolls against creatures other than you, and it can't willingly move to a space that is more than 30 feet away from you. The spell ends if you make an attack roll against a creature other than the target, if you cast a spell on an enemy other than the target, if an ally of yours damages the target, or if you end your turn more than 30 feet away from the target."
+  },
+  {
+    "name": "Comprehend Languages",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [
+      "Gnome (Mark of Scribing)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: D. For the duration, you understand the literal meaning of any language that you hear or see signed. You also understand any written language that you see, but you must be touching the surface on which the words are written. It takes about 1 minute to read one page of text. This spell doesn't decode symbols or secret messages."
+  },
+  {
+    "name": "Concussive Burst",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: ExploringEberron24. Level: 1. School: V. A pulse of energy ripples through the air at a point you choose within range, dealing minor damage over a wide area. Each creature within a 20-foot-radius Sphere centered on that point makes a Constitution saving throw, taking 2d4 Force damage on a failed save and has the Deafened condition until the end of your next turn. On a successful save, a creature takes half as much damage only. Using a Higher-Level Spell Slot. The damage increases by 2d4 for each spell slot level above 1."
+  },
+  {
+    "name": "Consumption",
+    "level": 1,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: V Sangromancy. As part of casting this spell, you must expend one Hit Point Die or the spell automatically fails. Choose a creature within range and roll the expended Hit Point Die. The target takes Necrotic damage equal to the result. At the end of each of its turns while the spell lasts, the target makes a Constitution saving throw. On a failed save, it takes this damage again. On a successful save, the spell ends. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Corrupting Ichor",
+    "level": 1,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: N. You spit a globule of phlegm at one creature within range Make a ranged spell attack against the target On a hit, the target takes 2d8 necrotic damage In addition, until it uses its action to wipe off the phlegm, it takes 1d4 necrotic damage at the start of each of its turns and any hit points regained are reduced by half At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage at the end of the target's next turn increases by 1d8 for each slot level above 1st."
+  },
+  {
+    "name": "Create or Destroy Water",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Apothecary"
+    ],
+    "races": [
+      "Genasi (Water)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: T. You do one of the following: Create Water. You create up to 10 gallons of clean water within range in an open container. Alternatively, the water falls as rain in a 30-foot Cube within range, extinguishing exposed flames there. Destroy Water. You destroy up to 10 gallons of water in an open container within range. Alternatively, you destroy fog in a 30-foot Cube within range. Using a Higher-Level Spell Slot. You create or destroy 10 additional gallons of water, or the size of the Cube increases by 5 feet, for each spell slot level above 1."
+  },
+  {
+    "name": "Creeping Touch",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: T. You detach your hand at the wrist, transforming it into a Spider. While the spider is within 100 feet of you, you can communicate with it telepathically. Additionally, as a Magic action, you can see through its eyes and hear what it hears until the start of your next turn. During this time, you have no awareness of your own surroundings. If the spider is killed or doesn't return to you before the spell ends, your hand is restored, but you take 1d6 Psychic damage. As a Action, you can command the spider to return to you. Once it arrives, it reattaches as your hand and the spell ends."
+  },
+  {
+    "name": "Crimson Lash",
+    "level": 1,
+    "classes": [
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: C Sangromancy. As part of casting this spell, you must expend one Hit Point Die or the spell automatically fails. A writhing lash of coagulated blood springs from your hand with the following properties: It counts as a Simple weapon with which you are proficient. It has the Light, Finesse, and Reach properties. You can use your spellcasting ability modifier instead of your Strength or Dexterity modifier for the attack and damage rolls with this weapon. Its damage die is the same as the Hit Point Die expended to cast the spell, and the damage dealt is Necrotic. Each time a creature takes damage from this weapon, its Hit Point maximum decreases by an amount equal to the damage taken. Using a Higher-Level Spell Slot. If you cast this spell using a level 3-4 spell slot, you can make two weapon attacks with this weapon when you take the Attack action. If you use a level 5+ spell slot, you can make three weapon attacks with this weapon when you take the Attack action."
+  },
+  {
+    "name": "Daydream",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: E. You float some mildly distracting thoughts into the mind of a humanoid you can see within range The target must succeed on a Wisdom saving throw or have disadvantage on Wisdom (Perception) checks (taking a -5 penalty to its passive Perception as a result of this disadvantage) until the spell ends. A creature immune to being charmed is unaffected by this spell. A creature that succeeds on the saving throw by 5 or more is aware that an attempt was made to influence it with magic Otherwise, the creature remains unaware of the magic that affected it. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st, or you can extend the range of the spell by 30 feet for each slot level above 1st."
+  },
+  {
+    "name": "Delerium Orb",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: DungeonsDrakkenheim. Level: 1. School: V contaminated. When you cast this spell, you gain one 12. You draw chaotic magical power from the delerium fragment held in your hand, and blast a creature you can see within range with paradoxical power. Choose one ability score, then choose cold, fire, lightning, necrotic, psychic, or radiant damage. The target must succeed on a saving throw using the chosen ability score; it takes 6d6 damage of the chosen type on a failed saving throw, or half as much on a successful one. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 2d6 for each slot level above 1st."
+  },
+  {
+    "name": "Detect Evil and Good",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Paladin",
+      "Apothecary"
+    ],
+    "races": [
+      "Half-Elf (Variant; Mark of Detection)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: D. For the duration, you sense the location of any Aberration, Celestial, Elemental, Fey, Fiend, or Undead within 30 feet of yourself. You also sense whether the Hallow spell is active there and, if so, where. The spell is blocked by 1 foot of stone, dirt, or wood; 1 inch of metal; or a thin sheet of lead."
+  },
+  {
+    "name": "Devil's Due",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: CrookedMoon24. Level: 1. School: N. You absorb a measure of a creature's suffering and escaping vital essence. Expend and roll one Hit Points Die. You regain a number of Points equal to the number rolled plus your spellcasting ability modifier. If the creature took damage from a Hit, double the number of Points you regain. Using a Higher-Level Spell Slot. You can expend one additional Hit Points Die for each spell slot level above 1."
+  },
+  {
+    "name": "Disguise Self",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard",
+      "Artificer"
+    ],
+    "races": [
+      "Deep Gnome",
+      "Firbolg",
+      "Elf (Mark of Shadow)",
+      "Gnome (Deep)",
+      "Hexblood",
+      "Tiefling (Dispater)",
+      "Tiefling (Glasya)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: I. You make yourself-including your clothing, armor, weapons, and other belongings on your person-look different until the spell ends. You can seem 1 foot shorter or taller and can appear heavier or lighter. You must adopt a form that has the same basic arrangement of limbs as you have. Otherwise, the extent of the illusion is up to you. The changes wrought by this spell fail to hold up to physical inspection. For example, if you use this spell to add a hat to your outfit, objects pass through the hat, and anyone who touches it would feel nothing. To discern that you are disguised, a creature must take the Study action to inspect your appearance and succeed on an Intelligence (Investigation) check against your spell save DC."
+  },
+  {
+    "name": "Dissonant Whispers",
+    "level": 1,
+    "classes": [
+      "Bard"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: E. One creature of your choice that you can see within range hears a discordant melody in its mind. The target makes a Wisdom saving throw. On a failed save, it takes 3d6 Psychic damage and must immediately use its Reaction, if available, to move as far away from you as it can, using the safest route. On a successful save, the target takes half as much damage only. Using a Higher-Level Spell Slot. The damage increases by 3d6 for each spell slot level above 1."
+  },
+  {
+    "name": "Divine Favor",
+    "level": 1,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: T. Until the spell ends, your attacks with weapons deal an extra 1d4 Radiant damage on a hit."
+  },
+  {
+    "name": "Envenom",
+    "level": 1,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [],
+    "description": "Source: GuideDrakkenheim. Level: 1. School: C. Choose a creature you can see within range to inflict with a magical poison. The target takes 2d4 poison damage and must make a Constitution saving throw. On a failed saving throw, it becomes poisoned for the spell's duration. While poisoned in this way, the target must make a Constitution saving throw at the end of each of its turns. It takes 2d4 poison damage on a failed saving throw. On a success, the spell ends on that target. A restoration spell cast on the target ends this spell early. At Higher Levels. If you cast this spell using a spell slot of 2nd level or higher, you can target one additional creature for each slot level above 1st"
+  },
+  {
+    "name": "Expeditious Retreat",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Artificer",
+      "Tamer"
+    ],
+    "races": [
+      "Human (Mark of Passage)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: T. You take the Dash action, and until the spell ends, you can take that action again as a Action."
+  },
+  {
+    "name": "Faerie Fire",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Artificer",
+      "Tamer"
+    ],
+    "races": [
+      "Elf (Drow)",
+      "Elf",
+      "Faerie",
+      "Fairy",
+      "Half-Elf (Variant; Drow Descent)",
+      "Half-Orc (Variant; Mark of Finding)",
+      "Human (Variant; Mark of Finding)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: V. Objects in a 20-foot Cube within range are outlined in blue, green, or violet light (your choice). Each creature in the Cube is also outlined if it fails a Dexterity saving throw. For the duration, objects and affected creatures shed Light in a 10-foot radius and can't benefit from the Invisible condition. Attack rolls against an affected creature or object have Advantage if the attacker can see it."
+  },
+  {
+    "name": "False Life",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Wizard",
+      "Artificer",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Tiefling"
+    ],
+    "description": "Source: XPHB. Level: 1. School: N. You gain + 4 Points. Using a Higher-Level Spell Slot. You gain 5 additional Points for each spell slot level above 1."
+  },
+  {
+    "name": "Feather Fall",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard",
+      "Artificer",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Genasi (Air)",
+      "Half-Elf (Variant; Mark of Storm)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: T. Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends. If a creature lands before the spell ends, the creature takes no damage from the fall, and the spell ends for that creature."
+  },
+  {
+    "name": "Find Familiar",
+    "level": 1,
+    "classes": [
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: C. You gain the service of a familiar, a spirit that takes an animal form you choose: Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel, or another Beast that has a miscellaneous=!swarm. Appearing in an unoccupied space within range, the familiar has the statistics of the chosen form, though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast. Your familiar acts independently of you, but it obeys your commands. Telepathic Connection. While your familiar is within 100 feet of you, you can communicate with it telepathically. Additionally, as a Action, you can see through the familiar's eyes and hear what it hears until the start of your next turn, gaining the benefits of any special senses it has. Finally, when you cast a spell with a range of touch, your familiar can deliver the touch. Your familiar must be within 100 feet of you, and it must take a Reaction to deliver the touch when you cast the spell. Combat. The familiar is an ally to you and your allies. It rolls its own Initiative and acts on its own turn. A familiar can't attack, but it can take other actions as normal. Disappearance of the Familiar. When the familiar drops to 0 Points, it disappears. It reappears after you cast this spell again. As a Magic action, you can temporarily dismiss the familiar to a pocket dimension. Alternatively, you can dismiss it forever. As a Magic action while it is temporarily dismissed, you can cause it to reappear in an unoccupied space within 30 feet of you. Whenever the familiar drops to 0 Points or disappears into the pocket dimension, it leaves behind in its space anything it was wearing or carrying. One Familiar Only. You can't have more than one familiar at a time. If you cast this spell while you have a familiar, you instead cause it to adopt a new eligible form."
+  },
+  {
+    "name": "Fixit",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: T. You imbue a broken item no larger than 20 feet in any dimension with pure belief For the duration, the item is whole once more In addition, if you were familiar with the item's magical function (GM's discretion) and its rarity was no higher than common, the item regains its magical properties for the duration At Higher Levels. When you cast this spell using a spell slot of 3rd level or higher, the rarity of the item that can regain its magical properties increases to uncommon (3rd level), rare (5th level), very rare (7th level), or legendary (9th level)."
+  },
+  {
+    "name": "Fury's Chorus",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: ChroniclesOfEberron. Level: 1. School: E. You call a group of people to a heightened emotional state, driving them to anger and mistrust. Each Humanoid in a 20-foot-radius sphere centered on a point you choose within range must make a Charisma saving throw. On a failed save, a creature must use its reaction (if available) to make an opportunity attack whenever another creature (including an ally) moves out of its reach. A creature can repeat the saving throw at the end of each of its turns, ending the effect on a success. The emotions spell suppresses the effects of this spell."
+  },
+  {
+    "name": "Ghost Light",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: V. You touch one object that is no larger than 10 feet in any dimension and specify any number of creatures you can see within 10 feet. Until the spell ends, the object sheds silvery Light in a 20-foot radius and Light for an additional 20 feet. This light is only visible to the creatures you specified during the casting of the spell; all other creatures perceive the area affected by the light as they regularly would."
+  },
+  {
+    "name": "Guiding Bolt",
+    "level": 1,
+    "classes": [
+      "Cleric"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: V. You hurl a bolt of light toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes 4d6 Radiant damage, and the next attack roll made against it before the end of your next turn has Advantage. Using a Higher-Level Spell Slot. The damage increases by 4d6 for each spell slot level above 1."
+  },
+  {
+    "name": "Healing Word",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Druid",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Halfling (Mark of Healing)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: A. A creature of your choice that you can see within range regains Points equal to 2d4 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. The healing increases by 2d4 for each spell slot level above 1."
+  },
+  {
+    "name": "Hellish Rebuke",
+    "level": 1,
+    "classes": [
+      "Warlock"
+    ],
+    "races": [
+      "Tiefling",
+      "Tiefling (Asmodeus)",
+      "Tiefling (Variant; Infernal Legacy)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: V. The creature that damaged you is momentarily surrounded by green flames. It makes a Dexterity saving throw, taking 2d10 Fire damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot. The damage increases by 2d10 for each spell slot level above 1."
+  },
+  {
+    "name": "Heroism",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Paladin",
+      "Tamer"
+    ],
+    "races": [
+      "Elf"
+    ],
+    "description": "Source: XPHB. Level: 1. School: E. A willing creature you touch is imbued with bravery. Until the spell ends, the creature is immune to the Frightened condition and gains Points equal to your spellcasting ability modifier at the start of each of its turns. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Hex",
+    "level": 1,
+    "classes": [
+      "Warlock"
+    ],
+    "races": [
+      "Elf (Zendikar; Mul Daya Nation)",
+      "Hexblood"
+    ],
+    "description": "Source: XPHB. Level: 1. School: E. You place a curse on a creature that you can see within range. Until the spell ends, you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll. Also, choose one ability when you cast the spell. The target has Disadvantage on ability checks made with the chosen ability. If the target drops to 0 Points before this spell ends, you can take a Action on a later turn to curse a new creature. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 2 (up to 4 hours), 3-4 (up to 8 hours), or 5+ (24 hours)."
+  },
+  {
+    "name": "Humperdink's Halitosis",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: T. You belch forward acidic fumes, afflicting those in a 15-foot cone before you The fumes spread around corners All creatures in the area must make a Constitution saving throw, taking 3d4 acid damage on a failure or half as much damage on a success The fumes linger until the end of your next turn or until dispersed by a moderate or stronger wind Any creature ending its turn in the area must make a Constitution saving throw, taking 3d4 acid damage, taking half as much damage on a success At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d4 for each slot level above 1st."
+  },
+  {
+    "name": "Identify",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Wizard",
+      "Artificer",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Human (Mark of Making)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: D. You touch an object throughout the spell's casting. If the object is a magic item or some other magical object, you learn its properties and how to use them, whether it requires Attunement, and how many charges it has, if any. You learn whether any ongoing spells are affecting the item and what they are. If the item was created by a spell, you learn that spell's name. If you instead touch a creature throughout the casting, you learn which ongoing spells, if any, are currently affecting it."
+  },
+  {
+    "name": "Illusory Script",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Warlock",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [
+      "Gnome (Mark of Scribing)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: I. You write on parchment, paper, or another suitable material and imbue it with an illusion that lasts for the duration. To you and any creatures you designate when you cast the spell, the writing appears normal, seems to be written in your hand, and conveys whatever meaning you intended when you wrote the text. To all others, the writing appears as if it were written in an unknown or magical script that is unintelligible. Alternatively, the illusion can alter the meaning, handwriting, and language of the text, though the language must be one you know. If the spell is dispelled, the original script and the illusion both disappear. A creature that has Truesight can read the hidden message."
+  },
+  {
+    "name": "Infect",
+    "level": 1,
+    "classes": [
+      "Druid",
+      "Sorcerer",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [],
+    "description": "Source: GuideDrakkenheim. Level: 1. School: N. You inflict a creature you can see within range with a magical disease. At the start of each of the target's turns, it must make a Constitution saving throw. The creature takes 1d12 necrotic damage on a failed saving throw, or half as much on a successful one. If a target succeeds on three of these saves, the spell ends. A restoration spell cast on the target ends this spell early. At Higher Levels. If you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d12 for every two slot levels above 1st."
+  },
+  {
+    "name": "Inflict Wounds",
+    "level": 1,
+    "classes": [
+      "Cleric"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: N. A creature you touch makes a Constitution saving throw, taking 2d10 Necrotic damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot. The damage increases by 2d10 for each spell slot level above 1."
+  },
+  {
+    "name": "Intaglio",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Paladin",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: T. You create a duplicate of a text or image. During the spell's duration, you can take a Magic action to trace your hand over any non-magical text or image on a surface within range. You copy the text or image onto a new medium that you provide, such as another book or parchement. This spell copies a single page with each Magic action. When copying a spellbook, you can do so using the same method as you would replace a spellbook, except the time and GP requirements are both halved."
+  },
+  {
+    "name": "Mage Armor",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Dwarf (Mark of Warding)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: A. You touch a willing creature who isn't wearing armor. Until the spell ends, the target's base AC becomes 13 plus its Dexterity modifier. The spell ends early if the target dons armor."
+  },
+  {
+    "name": "Magic Missile",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: V. You create three glowing darts of magical force. Each dart strikes a creature of your choice that you can see within range. A dart deals + 1 Force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several. Using a Higher-Level Spell Slot. The spell creates one more dart for each spell slot level above 1."
+  },
+  {
+    "name": "Neutralize Aura",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Cleric",
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: A. You touch a willing creature and neutralize its aura. Until the spell ends, the target can't be perceived by Fey, Fiends, Celestials, and Undead. The spell ends early immediately after the target makes an attack roll, deals damage, casts a spell, or moves within 5 feet of one of the creature types. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
+    "name": "Peppermint Plate",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Paladin",
+      "Sorcerer",
+      "Warlock",
+      "Wizard",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: HelianasGuidetoMonsterHunting. Level: 1. School: A. A protective layer of hot, hard peppermint icing coats you For the duration, you gain a +1 bonus to AC and if a creature hits you with a melee attack, the creature takes 1d4 fire damage. This damage can trigger no more than once per turn At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the fire damage increases by 1d4 for each slot level above 1st."
+  },
+  {
+    "name": "Purify Food and Drink",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Druid",
+      "Paladin",
+      "Artificer",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Halfling (Mark of Hospitality)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: T. You remove poison and rot from nonmagical food and drink in a 5-foot-radius Sphere centered on a point within range."
+  },
+  {
+    "name": "Ray of Sickness",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Tiefling (Baalzebul)",
+      "Tiefling"
+    ],
+    "description": "Source: XPHB. Level: 1. School: N. You shoot a greenish ray at a creature within range. Make a ranged spell attack against the target. On a hit, the target takes 2d8 Poison damage and has the Poisoned condition until the end of your next turn. Using a Higher-Level Spell Slot. The damage increases by 2d8 for each spell slot level above 1."
+  },
+  {
+    "name": "Sanctuary",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Artificer",
+      "Tamer"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: A. You ward a creature within range. Until the spell ends, any creature who targets the warded creature with an attack roll or a damaging spell must succeed on a Wisdom saving throw or either choose a new target or lose the attack or spell. This spell doesn't protect the warded creature from areas of effect. The spell ends if the warded creature makes an attack roll, casts a spell, or deals damage."
+  },
+  {
+    "name": "Searing Smite",
+    "level": 1,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [
+      "Tiefling (Zariel)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: V. As you hit the target, it takes an extra 1d6 Fire damage from the attack. At the start of each of its turns until the spell ends, the target takes 1d6 Fire damage and then makes a Constitution saving throw. On a failed save, the spell continues. On a successful save, the spell ends. Using a Higher-Level Spell Slot. All the damage increases by 1d6 for each spell slot level above 1."
+  },
+  {
+    "name": "Shield",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [
+      "Gith (Githzerai)",
+      "Githzerai",
+      "Human (Mark of Sentinel)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: A. An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from Missile."
+  },
+  {
+    "name": "Shield of Faith",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Paladin",
+      "Tamer"
+    ],
+    "races": [
+      "Human (Mark of Sentinel)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: A. A shimmering field surrounds a creature of your choice within range, granting it a +2 bonus to AC for the duration."
+  },
+  {
+    "name": "Sleep",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard",
+      "Apothecary",
+      "Tamer"
+    ],
+    "races": [
+      "Elf (Pallid)",
+      "Halfling (Mark of Hospitality)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: E. Each creature of your choice in a 5-foot-radius Sphere centered on a point within range must succeed on a Wisdom saving throw or have the Incapacitated condition until the end of its next turn, at which point it must repeat the save. If the target fails the second save, the target has the Unconscious condition for the duration. The spell ends on a target if it takes damage or someone within 5 feet of it takes an action to shake it out of the spell's effect. Creatures that don't sleep, such as elves, or that have Immunity to the Exhaustion condition automatically succeed on saves against this spell."
+  },
+  {
+    "name": "Somnolence",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: E Sangromancy. As part of casting this spell, you must expend one Hit Point Die or the spell automatically fails. Roll the Hit Point Die expended to cast the spell plus 2d12 and choose a creature within range. If the roll's total is equal to or greater than the chosen creature's current Points, the creature falls into a magical slumber for 1 minute. If the roll's total is equal to or greater than the chosen creature's Hit Point maximum, the magical slumber lasts for 24 hours instead. The spell ends on a target if it takes damage or someone within 5 feet of it takes an action to shake it out of the spell's effect. A creature woken early from this spell gains 1 Exhaustion level. Creatures that don't sleep, such as elves, or that have Immunity to the Exhaustion condition automatically succeed on saves against this spell. The Long Sleep. Adherents of the Prismatic Circle perform a variation of the Somnolence spell that takes 10 minutes and requires the sacrifice of a Humanoid. These adherents believe when the ritual is completed, it staves off the waking of Gormadraug for a day and night. Through the repetitive performance of this ritual, the Druids of the Prismatic Circle hope to ensure Gormadraug slumbers forever. Using a Higher-Level Spell Slot. You roll an additional 1d12 and can expend an additional two Dice for every spell slot level above 1."
+  },
+  {
+    "name": "Stream of Consumption",
+    "level": 1,
+    "classes": [
+      "Cleric",
+      "Warlock",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [],
+    "description": "Source: GuideDrakkenheim. Level: 1. School: N. For the spell's duration, your tongue becomes an elongated tether of necrotic green energy you can use to drink the vitality of other creatures. One creature of your choice within 60 feet of you that you can see must make a Constitution saving throw. On a failed save, the target gains 1 level of exhaustion, and you regain hit points equal to 1d4 + your spellcasting ability modifier. On each of your turns until the spell ends, you can use your action to target the same creature or a different one, but can't target a creature again if it has succeeded on a saving throw against this casting of stream of consumption"
+  },
+  {
+    "name": "Tenser's Floating Disk",
+    "level": 1,
+    "classes": [
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [
+      "Human (Mark of Making)",
+      "Tiefling (Mammon)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: C. This spell creates a circular, horizontal plane of force, 3 feet in diameter and 1 inch thick, that floats 3 feet above the ground in an unoccupied space of your choice that you can see within range. The disk remains for the duration and can hold up to 500 pounds. If more weight is placed on it, the spell ends, and everything on the disk falls to the ground. The disk is immobile while you are within 20 feet of it. If you move more than 20 feet away from it, the disk follows you so that it remains within 20 feet of you. It can move across uneven terrain, up or down stairs, slopes and the like, but it can't cross an elevation change of 10 feet or more. For example, the disk can't move across a 10-foot-deep pit, nor could it leave such a pit if it was created at the bottom. If you move more than 100 feet from the disk (typically because it can't move around an obstacle to follow you), the spell ends."
+  },
+  {
+    "name": "Thunderwave",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Druid",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: V. You unleash a wave of thunderous energy. Each creature in a 15-foot Cube originating from you makes a Constitution saving throw. On a failed save, a creature takes 2d8 Thunder damage and is pushed 10 feet away from you. On a successful save, a creature takes half as much damage only. In addition, unsecured objects that are entirely within the Cube are pushed 10 feet away from you, and a thunderous boom is audible within 300 feet. Using a Higher-Level Spell Slot. The damage increases by 2d8 for each spell slot level above 1."
+  },
+  {
+    "name": "Toxic Shield",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Paladin",
+      "Warlock",
+      "Apothecary"
+    ],
+    "races": [],
+    "description": "Source: GuideDrakkenheim. Level: 1. School: C. You gain resistance to poison damage and advantage on saves against being poisoned for the duration. In addition, whenever a creature within 5 feet of you hits you with a melee attack, the shield sprays them with poison, dealing 1d8 poison damage to the attacker. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the poison damage increases by 1d8 for every 2 slot levels above 1st."
+  },
+  {
+    "name": "Unseen Servant",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Warlock",
+      "Wizard",
+      "Apothecary"
+    ],
+    "races": [
+      "Halfling (Mark of Hospitality)"
+    ],
+    "description": "Source: XPHB. Level: 1. School: C. This spell creates an Invisible, mindless, shapeless, Medium force that performs simple tasks at your command until the spell ends. The servant springs into existence in an unoccupied space on the ground within range. It has AC 10, 1 Hit Point, and a Strength of 2, and it can't attack. If it drops to 0 Points, the spell ends. Once on each of your turns as a Action, you can mentally command the servant to move up to 15 feet and interact with an object. The servant can perform simple tasks that a human could do, such as fetching things, cleaning, mending, folding clothes, lighting fires, serving food, and pouring drinks. Once you give the command, the servant performs the task to the best of its ability until it completes the task, then waits for your next command. If you command the servant to perform a task that would move it more than 60 feet away from you, the spell ends."
+  },
+  {
+    "name": "Veil of Dusk",
+    "level": 1,
+    "classes": [
+      "Druid",
+      "Warlock"
+    ],
+    "races": [],
+    "description": "Source: HumblewoodCampaignSetting. Level: 1. School: A. You incant towards a creature, cloaking them in a shadowy veil of darkness and silence. The target gains a +1 bonus to their armor class and makes Stealth checks with advantage for the duration of the spell."
+  },
+  {
+    "name": "Vibrating Humors",
+    "level": 1,
+    "classes": [
+      "Bard",
+      "Sorcerer",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: GrimHollowPG24. Level: 1. School: V Sangromancy. As part of casting this spell, you must expend one Hit Die or the spell automatically fails. A creature you can see within 30 feet of you must make a Constitution saving throw. On a failed save, the target takes Thunder damage and has Disadvantage on Dexterity (Stealth) checks from its blood vibrating loudly. To determine this damage, roll the Hit Point Die expended to cast this spell. The target repeats the save at the end of each of turns, ending the spell on a success. Using a Higher-Level Spell Slot. You increase the damage by expending an additional Hit Die for each spell slot level above 1."
+  },
+  {
+    "name": "Witch Bolt",
+    "level": 1,
+    "classes": [
+      "Sorcerer",
+      "Warlock",
+      "Wizard"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: V. A beam of crackling energy lances toward a creature within range, forming a sustained arc of lightning between you and the target. Make a ranged spell attack against it. On a hit, the target takes 2d12 Lightning damage. On each of your subsequent turns, you can take a Action to deal 1d12 Lightning damage to the target automatically, even if the first attack missed. The spell ends if the target is ever outside the spell's range or if it has Total Cover from you. Using a Higher-Level Spell Slot. The initial damage increases by 2d12 for each spell slot level above 1."
+  },
+  {
+    "name": "Acid Splash",
+    "level": 0,
+    "classes": [
+      "Sorcerer",
+      "Wizard",
+      "Artificer",
+      "Apothecary"
+    ],
+    "races": [
+      "Elf (High)",
+      "Elf",
+      "Genasi (Water)",
+      "Kobold",
+      "Half-Elf (Variant; Moon Elf or Sun Elf Descent)",
+      "Khoravar",
+      "Merfolk (Ixalan; Blue)",
+      "Merfolk (Zendikar; Ula Creed)"
+    ],
+    "description": "Source: XPHB. Level: Cantrip. School: V. You create an acidic bubble at a point within range, where it explodes in a 5-foot-radius Sphere. Each creature in that Sphere must succeed on a Dexterity saving throw or take 1d6 Acid damage. Cantrip Upgrade. The damage increases by 1d6 when you reach levels 5 (2d6), 11 (3d6), and 17 (4d6)."
   }
 ]
