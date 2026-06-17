@@ -882,7 +882,7 @@
       if (spell.level !== level) return false;
       if (!canUseSpellLevel(level)) return false;
       const className = normalizeName(getSelectedClassName());
-      const raceName = normalizeName(getSelectedRaceName());
+      const raceName = normalizeName(selectedRaceBaseName());
       const classMatches = className && spell.classes?.some((name) => normalizeName(name) === className);
       const raceMatches = raceName && spell.races?.some((name) => normalizeName(name) === raceName);
       const featMatches = featGrantsSpell(spell, level);
@@ -2237,6 +2237,11 @@
     function optionName(option) {
       if (!option) return "";
       return typeof option === "string" ? option : option.name || "";
+    }
+
+    function optionEntityName(option) {
+      if (!option) return "";
+      return typeof option === "string" ? option : option.entityName || option.name || "";
     }
 
     function rawOptionDescriptionText(option) {
@@ -4879,6 +4884,51 @@
       return /\bexpertise\b/i.test(`${feature?.name || ""} ${text || ""}`) && /\bskills?|skill proficiencies\b/i.test(text || "");
     }
 
+    function featOptionsForCategories(categories = []) {
+      const allowed = new Set((Array.isArray(categories) ? categories : [categories]).map((item) => String(item || "")));
+      const seen = new Set();
+      return feats
+        .filter((feat) => allowed.has(String(feat?.category || "")))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((feat) => ({
+          value: featChoiceValue(feat),
+          label: featChoiceLabel(feat),
+          type: "feat",
+          description: flattenEntryText(feat.entries)
+        }))
+        .filter((option) => {
+          const key = normalizeName(option.value);
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
+    function raceFeatChoiceSpecs(feature) {
+      const race = raceDetailByName(feature?.raceName || getSelectedRaceName());
+      const groups = Array.isArray(race?.feats) ? race.feats : [];
+      const text = `${feature?.name || ""} ${flattenEntryText(feature?.entries || "")}`;
+      if (!/\bfeat\b|\bvirtue\b/i.test(text)) return [];
+      return groups
+        .map((group) => {
+          const anyFromCategory = group?.anyFromCategory;
+          const categories = Array.isArray(anyFromCategory?.category) ? anyFromCategory.category : [];
+          const options = featOptionsForCategories(categories);
+          if (!options.length) return null;
+          const label = categories.includes("O")
+            ? "Origin Feat"
+            : /virtue/i.test(text)
+              ? "Cultural Virtue"
+              : "Race Feat";
+          return {
+            label,
+            count: Math.max(1, Number.parseInt(anyFromCategory?.count || 1, 10) || 1),
+            options
+          };
+        })
+        .filter(Boolean);
+    }
+
     function featureChoiceSpecs(feature) {
       const specs = collectStructuredChoiceSpecs(feature?.entries || []);
       const text = flattenEntryText(feature?.entries || "").toLowerCase();
@@ -4913,10 +4963,10 @@
           specs.push({ label: "Ability Score Increase", count: 1, options: abilityScoreIncreaseOptions() });
         }
       }
-      if (feature?.isRaceFeature && /origin feat/.test(text)) {
-        const options = feats
-          .filter((feat) => feat.category === "O")
-          .map((feat) => ({ value: featChoiceValue(feat), label: featChoiceLabel(feat), type: "feat", description: flattenEntryText(feat.entries) }));
+      const structuredRaceFeatSpecs = feature?.isRaceFeature ? raceFeatChoiceSpecs(feature) : [];
+      if (structuredRaceFeatSpecs.length) specs.push(...structuredRaceFeatSpecs);
+      if (feature?.isRaceFeature && /origin feat/.test(text) && !structuredRaceFeatSpecs.length) {
+        const options = featOptionsForCategories(["O"]);
         if (options.length) specs.push({ label: "Origin Feat", count: 1, options });
       }
       if (feature?.isFeatFeature) {
@@ -6094,8 +6144,9 @@
       return `background:${normalizeName(backgroundName)}:${normalizeName(label)}`;
     }
 
-    function raceChoiceKey(raceName, label) {
-      return `race:${normalizeName(raceName)}:${normalizeName(label)}`;
+    function raceChoiceKey(raceName, label, source = "") {
+      const identity = raceNameParts(raceName);
+      return `race:${normalizeName(identity.name)}:${normalizeName(source || identity.source)}:${normalizeName(label)}`;
     }
 
     function backgroundChoiceAlertTitle(label) {
@@ -6266,7 +6317,7 @@
           if (!options.length) return null;
           const label = table.caption || "Draconic Ancestry";
           return {
-            key: raceChoiceKey(race.name, `${label}:${options.map((item) => item.value).join("|")}`),
+            key: raceChoiceKey(race.name, `${label}:${options.map((item) => item.value).join("|")}`, race.source),
             label: `${label}: elegir una opcion`,
             sectionLabel: label,
             count: 1,
@@ -6303,7 +6354,7 @@
             .filter(Boolean);
           if (!options.length) return null;
           return {
-            key: raceChoiceKey(race.name, `Fiendish Legacy:${options.map((item) => item.value).join("|")}`),
+            key: raceChoiceKey(race.name, `Fiendish Legacy:${options.map((item) => item.value).join("|")}`, race.source),
             label: "Fiendish Legacy: elegir una opcion",
             sectionLabel: "Fiendish Legacy",
             count: 1,
@@ -6325,7 +6376,7 @@
           if (!options.length) return null;
           const label = entry.name || "Race Choice";
           return {
-            key: raceChoiceKey(race.name, `${label}:${options.map((item) => item.value).join("|")}`),
+            key: raceChoiceKey(race.name, `${label}:${options.map((item) => item.value).join("|")}`, race.source),
             label: `${label}: elegir una opcion`,
             sectionLabel: label,
             count: 1,
@@ -6564,6 +6615,10 @@
       return selectedOption("race", getSelectedRaceName());
     }
 
+    function selectedRaceBaseName() {
+      return optionEntityName(selectedRaceOption()) || raceNameParts(getSelectedRaceName()).name;
+    }
+
     function selectedRaceDetail() {
       return raceDetailByName(getSelectedRaceName());
     }
@@ -6578,7 +6633,7 @@
           const options = optionMapper(choose.from);
           if (!options.length) return;
           choices.push({
-            key: raceChoiceKey(race.name, `${propertyName}:${index}:${options.map((item) => item.value).join("|")}`),
+            key: raceChoiceKey(race.name, `${propertyName}:${index}:${options.map((item) => item.value).join("|")}`, race.source),
             label: `${sectionLabel}: elegir ${count === 1 ? "una opcion" : `${count} opciones`}`,
             sectionLabel,
             count,
@@ -6591,7 +6646,7 @@
           const options = languageChoiceOptions();
           if (!options.length) return;
           choices.push({
-            key: raceChoiceKey(race.name, `${propertyName}:${index}:anyStandard`),
+            key: raceChoiceKey(race.name, `${propertyName}:${index}:anyStandard`, race.source),
             label: `${sectionLabel}: elegir ${count === 1 ? "una opcion" : `${count} opciones`}`,
             sectionLabel,
             count,
@@ -6603,7 +6658,7 @@
           const options = toolChoiceOptions();
           if (!options.length) return;
           choices.push({
-            key: raceChoiceKey(race.name, `${propertyName}:${index}:any`),
+            key: raceChoiceKey(race.name, `${propertyName}:${index}:any`, race.source),
             label: `${sectionLabel}: elegir ${count === 1 ? "una opcion" : `${count} opciones`}`,
             sectionLabel,
             count,
@@ -6637,7 +6692,7 @@
         const sizeOptions = raceSizeChoiceOptions(Array.isArray(race.size) ? race.size : []);
         if (sizeOptions.length > 1) {
           choices.push({
-            key: raceChoiceKey(race.name, `Size:${sizeOptions.map((item) => item.value).join("|")}`),
+            key: raceChoiceKey(race.name, `Size:${sizeOptions.map((item) => item.value).join("|")}`, race.source),
             label: "Size: elegir una opcion",
             sectionLabel: "Size",
             count: 1,
@@ -7758,10 +7813,23 @@
     function selectedOption(type, selectedName) {
       const normalized = normalizeName(selectedName);
       if (!normalized) return null;
-      const matches = (fieldOptions.get(type) || []).filter((option) => normalizeName(optionName(option)) === normalized);
+      const options = fieldOptions.get(type) || [];
+      const matches = options.filter((option) => normalizeName(optionName(option)) === normalized);
       if (type === "background" && matches.length > 1) {
         return matches.find((option) => normalizeName(rawOptionDescriptionText(option)).includes("source xphb"))
           || matches[0]
+          || null;
+      }
+      if (type === "race" && !matches.length) {
+        const parts = raceNameParts(selectedName);
+        const entityMatches = options.filter((option) => normalizeName(optionEntityName(option)) === normalizeName(parts.name));
+        if (parts.source) {
+          return entityMatches.find((option) => normalizeName(option.source || optionSource(option)) === normalizeName(parts.source))
+            || entityMatches[0]
+            || null;
+        }
+        return entityMatches.find((option) => normalizeName(option.source || optionSource(option)) === "xphb")
+          || entityMatches[0]
           || null;
       }
       return matches[0] || null;
@@ -8104,14 +8172,29 @@
     function preferredRaceSource(races = []) {
       return races.find((item) => item.source === "XPHB")
         || races.find((item) => item.source === "MPMM")
+        || races.find((item) => item.edition === "one")
         || races[0]
         || null;
     }
 
+    function raceNameParts(value) {
+      const text = String(value || "").trim();
+      const match = text.match(/^(.*)\s+\[([^[\]]+)\]$/);
+      if (!match) return { name: text, source: "" };
+      return { name: match[1].trim(), source: match[2].trim() };
+    }
+
     function raceDetailByName(raceName) {
-      const normalized = normalizeName(raceName);
+      const parts = raceNameParts(raceName);
+      const normalized = normalizeName(parts.name);
+      const normalizedSource = normalizeName(parts.source);
       if (!normalized) return null;
       const matches = raceDetails.filter((race) => normalizeName(race.name || "") === normalized);
+      if (!matches.length) return null;
+      if (normalizedSource) {
+        return matches.find((race) => normalizeName(race.source || "") === normalizedSource)
+          || preferredRaceSource(matches);
+      }
       return preferredRaceSource(matches);
     }
 

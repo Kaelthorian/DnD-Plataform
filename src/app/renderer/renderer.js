@@ -96,6 +96,8 @@
     }
 
     async function loadRaceDetails() {
+      const localResponse = await fetch("../../data/races/race-details.json");
+      if (localResponse.ok) return localResponse.json();
       const response = await fetch("../../../vendor/5etools-src-main/data/races.json");
       if (!response.ok) return {};
       return response.json();
@@ -414,7 +416,7 @@
         loadItemOptions(),
         loadLanguageOptions()
       ]);
-      raceDetails = dedupeModernByName(Array.isArray(raceDetailData?.race) ? raceDetailData.race : [], (race) => race?.name || "", (race) => race?.source || "");
+      raceDetails = Array.isArray(raceDetailData?.race) ? raceDetailData.race : [];
       backgroundDetails = dedupeModernByName(Array.isArray(backgroundDetailData?.background) ? backgroundDetailData.background : [], (background) => background?.name || "", (background) => background?.source || "");
       fieldOptions = new Map([
         ["race", raceOptions],
