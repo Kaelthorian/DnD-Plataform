@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dnd-plataform.local/schemas/spell.schema.json",
+  "title": "AppSpell",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["id", "name", "source", "level"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable app-owned spell id, usually kebab-case."
+    },
+    "name": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "level": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9
+    },
+    "school": {
+      "type": "string"
+    },
+    "classes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "races": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "description": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": ["string", "object"]
+      }
+    },
+    "handler": {
+      "type": "string",
+      "description": "Optional handler id registered in src/engine/spell-registry.js."
+    }
+  }
+}

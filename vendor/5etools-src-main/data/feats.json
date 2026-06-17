@@ -11995,6 +11995,1266 @@
 					]
 				}
 			]
+		},
+		{
+			"name": "Unreflected",
+			"source": "CrookedMoon24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"Your image is separated from you, making you unable to cast a reflection or a shadow, but you're able to easily slip notice. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Inscrutable",
+					"entries": [
+						"Creatures have {@variantrule Disadvantage|XPHB} on Wisdom ({@skill Insight|XPHB}) checks made against you."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Unremarkable",
+					"entries": [
+						"The loss of some part of yourself leaves you able to fade into the background. While you are within a group of at least two other creatures of your type and that there are no more than one size larger or smaller than you, you can take the {@action Hide|XPHB} action from creatures outside that group by making a Charisma ({@skill Deception|XPHB}) check instead of Dexterity ({@skill Stealth|XPHB}), with no need for being behind cover or {@variantrule Heavily Obscured|XPHB}. If you are ever more than 5 feet from at least two other such creatures while hiding this way, you are revealed."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Unreflected.webp"
+						},
+						"width": 850,
+						"height": 229,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Unreflected.webp"
+		},
+		{
+			"name": "Reveling Fool",
+			"source": "CrookedMoon24",
+			"page": 115,
+			"category": "O",
+			"additionalSpells": [
+				{
+					"ability": {
+						"choose": [
+							"int",
+							"wis",
+							"cha"
+						]
+					},
+					"innate": {
+						"_": {
+							"daily": {
+								"1e": [
+									"Tasha's Hideous Laughter"
+								]
+							}
+						}
+					}
+				}
+			],
+			"entries": [
+				"You joined a troupe of madcap revelers and learned to take on the guise of a fool, channeling otherworldly laughter and joviality. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Fool's Mask",
+					"entries": [
+						"By donning a jovial mask and a fool's, jester's, or clown's costume, you take on a new identity that hides your own. In the guise of the fool, you can get away with minor transgressions against people in positions of authority or station."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Jester's Repartee",
+					"entries": [
+						"You always have the {@spell Tasha's Hideous Laughter|XPHB|Hideous Laughter} spell prepared, and your spellcasting ability for it is Intelligence, Wisdom, or Charisma (choose the ability when you select this feat). You can cast it once without Material components or a spell slot, and you regain the ability to cast it in that way when you finish a {@variantrule Long Rest|XPHB}. You can also cast the spell using any spell slots you have."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Reveling%20Fool.webp"
+						},
+						"width": 850,
+						"height": 829,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Reveling%20Fool.webp"
+		},
+		{
+			"name": "Memory Starved",
+			"source": "CrookedMoon24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"Your mind ravenously gathers details and desperately clings to its memories and faculties, granting you the following benefits.",
+				{
+					"type": "entries",
+					"name": "Desperate Detail",
+					"entries": [
+						"You have {@variantrule Advantage|XPHB} on Intelligence ({@skill Investigation|XPHB}) checks."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Iron Mind",
+					"entries": [
+						"You have {@variantrule Advantage|XPHB} on saving throws made to avoid or end the {@condition Charmed|XPHB} condition and to avoid having your memories read or altered."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Memory%20Starved.webp"
+						},
+						"width": 850,
+						"height": 1993,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Memory%20Starved.webp"
+		},
+		{
+			"name": "Hunter of Hunters",
+			"source": "CrookedMoon24",
+			"page": 114,
+			"category": "O",
+			"entries": [
+				"You are adept at hunting monstrous prey, granting you the following benefits.",
+				{
+					"type": "entries",
+					"name": "Dead Aim",
+					"entries": [
+						"As a {@variantrule Bonus Action|XPHB}, you can scrutinize a creature to spot its vulnerable points. The next time you deal damage to the creature before the start of your next turn, you ignore the creature's damage {@variantrule Resistance|XPHB|Resistances}, if any."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Studied Quarry",
+					"entries": [
+						"You have {@variantrule Advantage|XPHB} on ability checks made to recall information about a creature."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Hunter%20of%20Hunters.webp"
+						},
+						"width": 850,
+						"height": 1583,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Hunter%20of%20Hunters.webp"
+		},
+		{
+			"name": "Grave Keeper",
+			"source": "CrookedMoon24",
+			"page": 114,
+			"category": "O",
+			"entries": [
+				"Studying funeral rites and tending the dead's rest has made you a conduit between the worlds of the living and the dead. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Divine Channel",
+					"entries": [
+						"You gain one use of the Channel Divinity feature from the Cleric class, and you can create the Turn Undead effect with it. If you already have Channel Divinity, you add this use to the feature from one class of your choice. Your save DC for this benefit is 8 plus your Wisdom modifier and {@variantrule Proficiency|XPHB|Proficiency Bonus}."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Last Rites",
+					"entries": [
+						"You can enact a 10-minute ritual to prepare the corpse of a Medium or smaller creature, expending at least 10 GP worth of incense, oils, linen wraps, or similar trappings. The prepared corpse can't become Undead."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Grave%20Keeper.webp"
+						},
+						"width": 850,
+						"height": 1291,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Grave%20Keeper.webp"
+		},
+		{
+			"name": "Ghostlight Medium",
+			"source": "CrookedMoon24",
+			"page": 114,
+			"category": "O",
+			"entries": [
+				"You formed a mystical connection to the Ghostlight Express that affords you insight into the nature of spirits, granting the following benefits.",
+				{
+					"type": "entries",
+					"name": "Ghostly Touch",
+					"entries": [
+						"When you damage a creature with the Incorporeal Movement trait, you can ignore the creature's damage {@variantrule Resistance|XPHB|Resistances}, if any."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Spirit Sense",
+					"entries": [
+						"As a {@variantrule Bonus Action|XPHB}, you can sense any Undead within 60 feet of you, or any creatures in the Ethereal Plane that overlaps that area. You learn the distance and direction to any creatures you detect (or an Ethereal creature's equivalent position on your plane). Once you detect a creature with this benefit, you can't use it again until you finish a {@variantrule Short Rest|XPHB|Short} or {@variantrule Long Rest|XPHB}."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Ghostlight%20Medium.webp"
+						},
+						"width": 850,
+						"height": 552,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Ghostlight%20Medium.webp"
+		},
+		{
+			"name": "Fate Gambler",
+			"source": "CrookedMoon24",
+			"page": 114,
+			"category": "O",
+			"entries": [
+				"Coming out ahead, whether in games of chance or in life-or-death contention, fills you with resolve and vigor. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Bet Big",
+					"entries": [
+						"If you don't already have it, you gain {@variantrule Heroic Inspiration|XPHB} whenever you succeed on an ability check made against another creature, when you reduce a creature to 0 {@variantrule Hit Points|XPHB}, or when a creature fails a saving throw you forced it to make. If, in any of these cases, the creature has a CR of 0 or lacks a CR (such as another player character), you don't gain {@variantrule Heroic Inspiration|XPHB}."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Win Big",
+					"entries": [
+						"As a {@variantrule Bonus Action|XPHB}, you can expend your {@variantrule Heroic Inspiration|XPHB} to gain a number of {@variantrule Temporary Hit Points|XPHB} equal to your level."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Fate%20Gambler.webp"
+						},
+						"width": 850,
+						"height": 868,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Fate%20Gambler.webp"
+		},
+		{
+			"name": "Dread Speech",
+			"source": "CrookedMoon24",
+			"page": 114,
+			"category": "O",
+			"additionalSpells": [
+				{
+					"ability": {
+						"choose": [
+							"int",
+							"wis",
+							"cha"
+						]
+					},
+					"prepared": {
+						"_": {
+							"daily": {
+								"1e": [
+									"Bane|XPHB"
+								]
+							}
+						}
+					}
+				}
+			],
+			"entries": [
+				"You have articulated a few words of forbidden truth that resonate with—and fray—the fabric of creation, granting you the following benefits.",
+				{
+					"type": "entries",
+					"name": "Eldritch Word",
+					"entries": [
+						"As a {@variantrule Bonus Action|XPHB}, you can speak a magical word aloud to force a creature within 60 feet of yourself to make a Wisdom saving throw (DC = 8 plus your {@variantrule Proficiency|XPHB|Proficiency Bonus} and Intelligence, Wisdom, or Charisma modifier; choose the ability when you select this feat). On a failed save, the target has the {@condition Frightened|XPHB} condition until the start of your next turn. You can use this benefit safely once, and you regain the ability to do so when you finish a {@variantrule Short Rest|XPHB|Short} or {@variantrule Long Rest|XPHB}. You can use it again before resting, but you take {@damage 1d6} Necrotic damage, which can't be reduced or prevented in any way."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Shred Fate",
+					"entries": [
+						"Your dread secrets can unravel the destiny of your foes. You always have the {@spell Bane|XPHB} spell prepared, and your spellcasting ability for it is the ability you chose for Eldritch Word. You can cast it once without Material components or a spell slot, and you regain the ability to cast it in that way when you finish a {@variantrule Long Rest|XPHB}. You can also cast the spell using any spell slots you have."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Dread%20Speech.webp"
+						},
+						"width": 850,
+						"height": 2461,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Dread%20Speech.webp"
+		},
+		{
+			"name": "Cult Initiate",
+			"source": "CrookedMoon24",
+			"page": 113,
+			"category": "O",
+			"additionalSpells": [
+				{
+					"ability": {
+						"choose": [
+							"int",
+							"wis",
+							"cha"
+						]
+					},
+					"innate": {
+						"_": {
+							"will": [
+								{
+									"choose": "level=0|class=warlock"
+								},
+								{
+									"choose": "level=0|class=warlock"
+								}
+							],
+							"daily": {
+								"1e": [
+									{
+										"choose": "level=1|class=warlock"
+									}
+								]
+							}
+						}
+					}
+				}
+			],
+			"entries": [
+				"Your cult instructs you in eldritch rites, granting you the following benefits.",
+				{
+					"type": "entries",
+					"name": "Two Cantrips",
+					"entries": [
+						"You learn two cantrips of your choice from the Warlock spell list. Intelligence, Wisdom, or Charisma is your spellcasting ability for this feat's spells (choose the ability when you select this feat)."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Level 1 Spell",
+					"entries": [
+						"Choose a level 1 spell from the Warlock spell list. You always have that spell prepared. You can cast it once without a spell slot, and you regain the ability to cast it in that way when you finish a {@variantrule Short Rest|XPHB|Short} or {@variantrule Long Rest|XPHB}. You can also cast the spell using any spell slots you have."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Spell Change",
+					"entries": [
+						"Whenever you gain a new level, you can replace one of the spells you chose for this feat with a different spell of the same level from the Warlock spell list."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Cult%20Initiate.webp"
+						},
+						"width": 850,
+						"height": 2361,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Cult%20Initiate.webp"
+		},
+		{
+			"name": "Crimson Ritualist",
+			"source": "CrookedMoon24",
+			"page": 113,
+			"category": "O",
+			"additionalSpells": [
+				{
+					"ability": {
+						"choose": [
+							"int",
+							"wis",
+							"cha"
+						]
+					},
+					"innate": {
+						"_": {
+							"daily": {
+								"1e": [
+									"Blood Bolt|CrookedMoon24"
+								]
+							}
+						}
+					}
+				}
+			],
+			"entries": [
+				"Your study of blood magic and life force has borne fruit, granting you the following benefits.",
+				{
+					"type": "entries",
+					"name": "Blood Lash",
+					"entries": [
+						"You learn the {@spell Blood Bolt|CrookedMoon24} cantrip. Your spellcasting ability for it is Intelligence, Wisdom, or Charisma (choose the ability when you select this feat)."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Bottled Life",
+					"entries": [
+						"When you finish a {@variantrule Long Rest|XPHB}, you can perform a 1-minute ritual to transfer some of your life essence into a vessel for later use. Expend a number of {@variantrule Hit Point Dice|XPHB} up to your {@variantrule Proficiency|XPHB|Proficiency Bonus}, and bleed into a vial of water or other liquid. As a {@variantrule Bonus Action|XPHB}, a creature can drink the vial to roll the {@variantrule Hit Point Dice|XPHB|Hit Dice} you expended. The creature regains a number of {@variantrule Hit Points|XPHB} equal to the total rolled plus its Constitution modifier. The vial remains potent until you finish a {@variantrule Long Rest|XPHB}."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Crimson%20Ritualist.webp"
+						},
+						"width": 850,
+						"height": 635,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Crimson%20Ritualist.webp"
+		},
+		{
+			"name": "Charm Twister",
+			"source": "CrookedMoon24",
+			"page": 113,
+			"category": "O",
+			"additionalSpells": [
+				{
+					"ability": {
+						"choose": [
+							"int",
+							"wis",
+							"cha"
+						]
+					},
+					"innate": {
+						"_": {
+							"daily": {
+								"1e": [
+									"Bless"
+								]
+							}
+						}
+					}
+				}
+			],
+			"entries": [
+				"You know hedge remedies and hexes passed down through Old Ways teachings, and you can impart them into small wicker charms you weave. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Old Blessing",
+					"entries": [
+						"You can cast the {@spell Bless|XPHB} spell once using this benefit, targeting only creatures carrying a wicker charm you've woven, and you can't do so again until you finish a {@variantrule Long Rest|XPHB}. You can also cast the spell using any spell slots you have. Your spellcasting ability for casting the spell in this way is Intelligence, Wisdom, or Charisma (choose the ability when you select this feat)."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Twisted Hex",
+					"entries": [
+						"As a {@action Magic|XPHB} action, you can weave spite into a wicker charm you touch. Choose an ability. When another creature is carrying the charm, or while this charm is within an area that the creature considers home, it has {@variantrule Disadvantage|XPHB} on ability checks and attack rolls using the chosen ability. When the creature fails one of these rolls, it can make a Charisma saving throw, destroying the charm on a success (DC = 8 plus your {@variantrule Proficiency|XPHB|Proficiency Bonus} and the ability modifier you chose for Old Blessing). You can only have one Twisted Hex charm at a time. If you make a new one, the previous one loses its magic."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Charm%20Twister.webp"
+						},
+						"width": 850,
+						"height": 744,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Charm%20Twister.webp"
+		},
+		{
+			"name": "Altered",
+			"source": "CrookedMoon24",
+			"page": 113,
+			"category": "O",
+			"entries": [
+				"You have been changed through magic, science, or a volatile blend of the two. You have a blatant physical augmentation of your choice from the options below. The augmentation is obvious—such as with stitches, grafts of other creature's body parts, or implants—unless disguised.",
+				{
+					"type": "entries",
+					"name": "Aquatic Adaptation",
+					"entries": [
+						"You have gills or mucus membranes that allow you to breathe water, and you have webbed extremities that grant you a {@variantrule Swim Speed|XPHB} equal to your {@variantrule Speed|XPHB}."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Natural Armor",
+					"entries": [
+						"You have scales, plates, or thick hide that grants you an AC of 13 + your Dexterity or Constitution modifier (choose the ability when you select this feat)."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Natural Weapons",
+					"entries": [
+						"You have claws, fangs, horns, or some other natural weapon that you can use to make {@variantrule Unarmed Strike|XPHB|Unarmed Strikes} that deal {@damage 1d8} damage on a hit. The damage is Bludgeoning, Piercing, or Slashing as appropriate to the form."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Night Vision",
+					"entries": [
+						"You have {@sense Darkvision|XPHB} with a range of 60 feet. If you already have {@sense Darkvision|XPHB}, its range increases by 30 feet."
+					]
+				}
+			],
+			"fluff": {
+				"images": [
+					{
+						"type": "image",
+						"href": {
+							"type": "external",
+							"url": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Feats/Altered.webp"
+						},
+						"width": 850,
+						"height": 1467,
+						"credit": "Suzanne Helmigh"
+					}
+				]
+			},
+			"foundryImg": "https://raw.githubusercontent.com/TheGiddyLimit/homebrew-img/refs/heads/main/img/CrookedMoon24/Foundry/Feats/Altered.webp"
+		},
+		{
+			"name": "Survivor",
+			"source": "RHW",
+			"category": "O",
+			"entries": [
+				"You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Hypervigilance",
+					"entries": [
+						"Whenever you roll {@variantrule Initiative|XPHB}, you can reroll the {@dice d20} if the number rolled is 9 or lower. You must use the new roll."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Steel Yourself",
+					"entries": [
+						"When you fail a saving throw to avoid or end the {@condition Charmed|XPHB} or {@condition Frightened|XPHB} condition, you can take a {@variantrule Reaction|XPHB} to add a bonus to the roll, potentially causing it to succeed. The bonus is equal to your {@variantrule Proficiency|XPHB|Proficiency Bonus}.",
+						"Once you take this {@variantrule Reaction|XPHB}, you can't do so again until you finish a {@variantrule Long Rest|XPHB}."
+					]
+				}
+			]
+		},
+		{
+			"name": "Sharp Eye",
+			"source": "RHW",
+			"category": "O",
+			"entries": [
+				"When you take the {@action Search|XPHB} or {@action Study|XPHB} action, you can give yourself {@variantrule Advantage|XPHB} on any ability check made as part of that action. You can use this feature a number of times equal to your {@variantrule Proficiency|XPHB|Proficiency Bonus}, and you regain all expended uses when you finish a {@variantrule Long Rest|XPHB}. If the check fails, the use of this feature isn't expended."
+			]
+		},
+		{
+			"name": "Triage Expert",
+			"source": "GrimHollowPG24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"You are trained in dealing with injuries on the battlefield, and with the saving of lives afterward. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Bedside Manner",
+					"entries": [
+						"Whenever you cause a creature to regain {@variantrule Hit Points|XPHB} or the Blood and Bone benefit, you can roll one extra die and discard the lowest die."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Blood and Bone",
+					"entries": [
+						"Taking the {@action Utilize|XPHB} action and expending the use of a {@item Healer's Kit|XPHB} lets you heal a creature within 5 feet of you. The creature can expend and roll a {@variantrule Hit Point Dice|XPHB|Hit Point Die} and regain that number of {@variantrule Hit Points|XPHB}."
+					]
+				}
+			]
+		},
+		{
+			"name": "Survivor",
+			"source": "GrimHollowPG24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"Your ability to make the best out of a bad situation has served you well. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Hardy",
+					"entries": [
+						"You need half the amount of food per day based on your size."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Intuitive",
+					"entries": [
+						"When you take the {@action Study|XPHB} action, you have {@variantrule Advantage|XPHB} on Intelligence checks made when taking the {@action Study|XPHB} action."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Shake It Off",
+					"entries": [
+						"Whenever you finish a {@variantrule Short Rest|XPHB}, your {@condition Exhaustion|XPHB} level, if any, decreases by 1. Additionally, when you finish a {@variantrule Long Rest|XPHB}, your {@condition Exhaustion|XPHB} level decreases by 2."
+					]
+				}
+			]
+		},
+		{
+			"name": "Resolution of the Syndicate",
+			"source": "GrimHollowPG24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"Membership in the Ebon Syndicate provides perks—one of which is the motivation that comes with the understanding that the Syndicate kills those who fail too often. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Quick Strike",
+					"entries": [
+						"On your first turn after an {@variantrule Initiative|XPHB} roll, add {@dice 1d4} to the first damage roll you make. This extra damage increases to {@dice 2d4} at character level 9, and to {@dice 4d4} at character level 16."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Resilient",
+					"entries": [
+						"Your {@variantrule Hit Points|XPHB|Hit Point} maximum increases by an amount equal to your character level when you gain this feat. Whenever you gain a character level thereafter, your {@variantrule Hit Points|XPHB|Hit Point} maximum increases by an additional 1 {@variantrule Hit Points|XPHB|Hit Point}."
+					]
+				}
+			]
+		},
+		{
+			"name": "Insightful Collector",
+			"source": "GrimHollowPG24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"Your expeditions, transactions, and mercantile activities on behalf of the Augustine Trading Company have put you in contact with collectors of historical artifacts, relics, and tomes. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Object Intuition",
+					"entries": [
+						"You can take a {@action Study|XPHB} action to examine one magical object and learn its properties and how to use it without attuning to it or taking a {@variantrule Short Rest|XPHB} in physical contact with it, but you don't learn any curse the item might bear. There is a cumulative 5% chance for every rarity above Common that you misidentify the nature and the power of the object."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Rare Find",
+					"entries": [
+						"You begin play in possession of a Common magic item. Work with your GM to decide on which object fits your character and the campaign."
+					]
+				}
+			]
+		},
+		{
+			"name": "Free Sword Mercenary's Will",
+			"source": "GrimHollowPG24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"Your training with the Company of Free Swords has given you an increased stamina and an attitude that make you less likely to succumb to hardships. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Hold the Ground",
+					"entries": [
+						"When you are moved without using your movement by a creature, you can take a {@variantrule Reaction|XPHB} to reduce the distance you are moved by up to your {@variantrule Speed|XPHB}."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Resolute",
+					"entries": [
+						"You have {@variantrule Advantage|XPHB} on saving throws that would apply a condition."
+					]
+				}
+			]
+		},
+		{
+			"name": "Fortune of the Thaumaturge",
+			"source": "GrimHollowPG24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"Your connection to the Thaumaturge puts you in touch with forces outside mortal understanding, making others think you were born under a fortunate moon. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Fortune's Fortitude",
+					"entries": [
+						"When you fail a {@variantrule D20 Test|XPHB}, you can expend and roll one {@variantrule Hit Point Dice|XPHB|Hit Point Die}, adding that number to your result. You can do this only once per {@variantrule D20 Test|XPHB}.",
+						"You can use this benefit a number of times equal to your {@variantrule Proficiency|XPHB|Proficiency Bonus}, and you regain all uses of this ability when you finish a {@variantrule Long Rest|XPHB}."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Fortune of the Unknown",
+					"entries": [
+						"When using the Fortune's Fortitude benefit, if you roll the highest or lowest number on the {@variantrule Hit Point Dice|XPHB|Hit Point Die}, you regain that {@variantrule Hit Point Dice|XPHB|Hit Point Die}. It still counts as a use of Fortune's Fortitude."
+					]
+				}
+			]
+		},
+		{
+			"name": "Deathbound",
+			"source": "GrimHollowPG24",
+			"page": 115,
+			"category": "O",
+			"entries": [
+				"You have seen death many times, up close and personal, and sometimes at your own hand. These experiences have affected you deeply, teaching you about life and death. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "One Last Breath",
+					"entries": [
+						"If you have two {@variantrule Death Saving Throw|XPHB} failures, you have {@variantrule Advantage|XPHB} on {@variantrule Death Saving Throw|XPHB|Death Saving Throws} until you are no longer at 0 {@variantrule Hit Points|XPHB}."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Recuperation",
+					"entries": [
+						"When you spend a {@variantrule Hit Point Dice|XPHB|Hit Point Die} during a {@variantrule Short Rest|XPHB} to recover {@variantrule Hit Points|XPHB}, you can roll the {@variantrule Hit Point Dice|XPHB|Hit Point Die} twice and use the higher roll."
+					]
+				}
+			]
+		},
+		{
+			"name": "Convincing Inquisitor",
+			"source": "GrimHollowPG24",
+			"page": 114,
+			"category": "O",
+			"entries": [
+				"You know how to spot a liar, and you can get people to see your way, whether through charm, reasonable arguments, or force of will. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Charming Presence",
+					"entries": [
+						"When you take the {@action Influence|XPHB} action, you don't have {@variantrule Disadvantage|XPHB} on checks to influence {@variantrule Hostile [Attitude]|XPHB|Hostile} creatures, and you have {@variantrule Advantage|XPHB} on checks to influence {@variantrule Indifferent [Attitude]|XPHB|Indifferent} creatures."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Multiple Paths",
+					"entries": [
+						"You can use any ability modifier when you take the {@action Influence|XPHB} action to make an {@skill Intimidation|XPHB} or  {@skill Persuasion|XPHB} check."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Zealous Insight",
+					"entries": [
+						"When you succeed on a {@action Search|XPHB} action's Wisdom ({@skill Insight|XPHB}) check to detect lies or evasive answers, you have {@variantrule Advantage|XPHB} on {@variantrule Initiative|XPHB} rolls involving combat against that creature for 1 hour."
+					]
+				}
+			]
+		},
+		{
+			"name": "Blood Hound",
+			"source": "GrimHollowPG24",
+			"page": 114,
+			"category": "O",
+			"entries": [
+				"Your senses are heightened beyond those of most folk. Whether these senses were strengthened through training or the loss of other senses, or they simply matured as you did, you are a master of finding those whom you seek. You  gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Motion Sensor",
+					"entries": [
+						"Whenever a creature that is Small or larger moves within 10 feet of you while you do not have the {@condition Unconscious|XPHB} condition, you immediately become aware of its presence."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "No Hiding",
+					"entries": [
+						"You have {@variantrule Advantage|XPHB} on Wisdom ({@skill Perception|XPHB}) checks that rely on sound or smell."
+					]
+				}
+			]
+		},
+		{
+			"name": "Lesser Dragonmark",
+			"source": "FoEQuickstone",
+			"page": 165,
+			"category": "O",
+			"prerequisite": [
+				{
+					"other": "Member of appropriate species"
+				}
+			],
+			"entries": [
+				"You possess a Lesser Dragonmark, which is visible somewhere on your body. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Manifest Dragonmark",
+					"entries": [
+						"You manifest a dragonmark. Your choice of Mark is restricted by your species, as shown in the Least Dragonmark Benefit table. Your choice of Mark determines the skills, tools, and spells you gain, as given in the same table. When you select this feat, choose Intelligence, Wisdom, or Charisma as your spellcasting ability for the feat's cantrip(s) and spells."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Guidance of the Mark",
+					"entries": [
+						"You add 1d4 to any ability check you make using the skills or tools associated with your Mark."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Cantrip",
+					"entries": [
+						"You learn the cantrip(s) associated with your Mark. The Mark of Handling and Mark of Warding don't grant a cantrip; instead, each Mark grants three Spells of the Mark."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Spells of the Mark",
+					"entries": [
+						"Your dragonmark grants you access to the spells associated with your Mark. You always have these spells prepared, and you can cast each of them once at their lowest level without expending a spell slot. When you do so, you can't cast them in this way again until you finish a Long Rest. To cast any of these spells at a higher level or a second time prior to finishing a Long Rest, you must expend a spell slot."
+					]
+				},
+				{
+					"type": "table",
+					"caption": "Lesser Dragonmark Benefit",
+					"page": 165,
+					"colLabels": [
+						"Mark",
+						"Species",
+						"Guidance of the Mark",
+						"Cantrip",
+						"Spells of the Mark"
+					],
+					"rows": [
+						[
+							"Detection",
+							"Khoravar (Half-Elf)",
+							"{@skill Investigation|XPHB}, {@skill Insight|XPHB}",
+							"{@spell Guidance|XPHB}",
+							"{@spell Detect Poison and Disease|XPHB}, {@spell See Invisibility|XPHB}"
+						],
+						[
+							"Finding",
+							"Human, Orc, Half-Orc",
+							"{@skill Perception|XPHB}, {@skill Survival|XPHB}",
+							"{@spell True Strike|XPHB}",
+							"{@spell Locate Animals and Plants|XPHB}, {@spell Locate Object|XPHB}"
+						],
+						[
+							"Handling",
+							"Human",
+							"{@skill Animal Handling|XPHB}, {@skill Nature|XPHB}",
+							"None",
+							"{@spell Animal Friendship|XPHB}, {@spell Beast Sense|XPHB}, {@spell Speak with Animals|XPHB}"
+						],
+						[
+							"Healing",
+							"Halfling",
+							"{@skill Medicine|XPHB}, {@skill Herbalism|XPHB}",
+							"{@spell Spare the Dying|XPHB}",
+							"{@spell Cure Wounds|XPHB}, {@spell Lesser Restoration|XPHB}"
+						],
+						[
+							"Hospitality",
+							"Halfling",
+							"{@skill Persuasion|XPHB}, {@item Brewer's Supplies|XPHB} or {@item Cook's Utensils|XPHB}",
+							"{@spell Friends|XPHB}, {@spell Prestidigitation|XPHB}",
+							"{@spell Calm Emotions|XPHB}, {@spell Purify Food and Drink|XPHB}"
+						],
+						[
+							"Making",
+							"Human",
+							"{@skill Arcana|XPHB}, {@item Artisan's Tools|XPHB}",
+							"{@spell Mending|XPHB}",
+							"{@spell Identify|XPHB}, {@spell Magic Weapon|XPHB}"
+						],
+						[
+							"Passage",
+							"Human",
+							"{@skill Acrobatics|XPHB}, Land Vehicles",
+							"{@spell Orien Step|FoEQuickstone}",
+							"{@spell Longstrider|XPHB}, {@spell Misty Step|XPHB}"
+						],
+						[
+							"Scribing",
+							"Gnome",
+							"{@skill History|XPHB}, {@item Calligrapher's Supplies|XPHB}",
+							"{@spell Message|XPHB}",
+							"{@spell Comprehend Languages|XPHB}, {@spell Illusory Script|XPHB} (no Material component required)"
+						],
+						[
+							"Sentinel",
+							"Human",
+							"{@skill Insight|XPHB}, {@skill Perception|XPHB}",
+							"{@spell Blade Ward|XPHB}",
+							"{@spell Shield|XPHB}, {@spell Warding Bond|XPHB}"
+						],
+						[
+							"Shadow",
+							"Elf",
+							"{@skill Performance|XPHB}, {@skill Stealth|XPHB}",
+							"{@spell Minor Illusion|XPHB}",
+							"{@spell Darkness|XPHB}, {@spell Mirror Image|XPHB}"
+						],
+						[
+							"Storm",
+							"Khoravar (Half-Elf)",
+							"{@skill Acrobatics|XPHB}, {@item Navigator's Tools|XPHB}",
+							"{@spell Shocking Grasp|XPHB}",
+							"{@spell Fog Cloud|XPHB}, {@spell Gust of Wind|XPHB}"
+						],
+						[
+							"Warding",
+							"Dwarf",
+							"{@skill Investigation|XPHB}, {@item Thieves' Tools|XPHB}",
+							"None",
+							"{@spell Alarm|XPHB}, {@spell Arcane Lock|XPHB}, {@spell Knock|XPHB}"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Uul Dhakaan",
+			"source": "ExploringEberron24",
+			"category": "O",
+			"prerequisite": [
+				{
+					"race": [
+						{
+							"name": "Dhakaani Ghaal'dar"
+						},
+						{
+							"name": "Dhakaani Golin'dar"
+						},
+						{
+							"name": "Dhakaani Guul'dar"
+						}
+					]
+				}
+			],
+			"resist": [
+				"psychic"
+			],
+			"entries": [
+				"You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Dreamwalker",
+					"entries": [
+						"You remain fully lucid when you dream and when you wake, you clearly remember everything that transpired."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Mentor in the Uul",
+					"entries": [
+						"There is a spirit in the Uul Dhakaan that serves as your mentor. Work with your DM to develop the identity of this spirit; they could be the memory of an ancestor or fallen hero, or a living uul'kala bard. Whenever you finish a {@variantrule Long Rest|XPHB}, there's a chance you'll receive a vision, a mission, or a clue about your current situation."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Shielded by Dreams",
+					"entries": [
+						"You have {@variantrule Resistance|XPHB} to Psychic damage."
+					]
+				}
+			]
+		},
+		{
+			"name": "Thoughtsinger",
+			"source": "ExploringEberron24",
+			"category": "O",
+			"prerequisite": [
+				{
+					"race": [
+						{
+							"name": "Kalashtar"
+						}
+					]
+				}
+			],
+			"entries": [
+				"You have honed your telepathic abilities, allowing you to link to and guide your companions as a united group. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Superior Telepathy",
+					"entries": [
+						"The telepathy granted by your Mind Link trait has a range of 120 feet or 10 times your level, whichever is higher."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Thoughtsong",
+					"entries": [
+						"When you use your Mind Link trait to grant a creature the ability to speak to you telepathically, you form a mental connection with that individual. When you communicate telepathically, you may choose to send the message to all creatures you currently have a mental connection to. You may also allow those creatures to speak telepathically with one another. These effects last for as long as the Mind Link remains in effect."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Telepathic Aid",
+					"entries": [
+						"If you can speak telepathically to an ally using your Mind Link trait, you can take the {@action Help|XPHB} action to aid them in attacking a creature, even if you are more than 5 feet away from them."
+					]
+				}
+			]
+		},
+		{
+			"name": "Khesh'dar Training",
+			"source": "ExploringEberron24",
+			"category": "O",
+			"expertise": [
+				{
+					"stealth": true
+				}
+			],
+			"entries": [
+				"You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Swift and Silent",
+					"entries": [
+						"You gain proficiency in the {@skill Stealth|XPHB} skill."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Master of Shadows",
+					"entries": [
+						"You gain {@variantrule Expertise|XPHB} with the {@skill Stealth|XPHB} skill."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Fade Away",
+					"entries": [
+						"When you take the {@action Hide|XPHB} action, the DC for a successful check is reduced to 10. All other restrictions still apply."
+					]
+				}
+			]
+		},
+		{
+			"name": "Focused Personas",
+			"source": "ExploringEberron24",
+			"category": "O",
+			"prerequisite": [
+				{
+					"race": [
+						{
+							"name": "Changeling"
+						}
+					]
+				}
+			],
+			"languageProficiencies": [
+				{
+					"Skin Cant|ExploringEberron24": true
+				}
+			],
+			"entries": [
+				"You've developed personas that help you focus your talents. Work with your DM to define two unique personas—identities with distinct appearances and personalities. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Adept Persona",
+					"entries": [
+						"Choose a tool and define a persona associated with it. Whenever you use your Shape-Shifter trait to assume the persona, you gain proficiency with the chosen tool and when you make an ability check with the chosen tool, you can roll {@dice 1d4} and add the number rolled to the ability check."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Expert Persona",
+					"entries": [
+						"Choose a skill you are proficient in and define a different persona associated with it. Whenever you use your Shape-Shifter trait to assume the persona, you gain {@variantrule Expertise|XPHB} in the chosen skill."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Skin Cant",
+					"entries": [
+						"You are fluent in {@language Skin Cant|ExploringEberron24}, a language used by the Changeling Travelers."
+					]
+				}
+			]
+		},
+		{
+			"name": "Envoy Specialist",
+			"source": "ExploringEberron24",
+			"category": "O",
+			"prerequisite": [
+				{
+					"race": [
+						{
+							"name": "Warforged"
+						}
+					]
+				}
+			],
+			"toolProficiencies": [
+				{
+					"any": 1
+				}
+			],
+			"entries": [
+				"You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Envoy Competence",
+					"entries": [
+						"You gain proficiency with one tool of your choice."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Integrated Tool",
+					"entries": [
+						"Choose one tool you are proficient with. You have a working model of this tool integrated into your body, which can't be removed. As long as you have a hand free, you can make use of the integrated tool."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Innate Talent",
+					"entries": [
+						"When you make an ability check with the integrated tool, you can roll {@dice 1d4} and add the number rolled to the ability check."
+					]
+				}
+			]
+		},
+		{
+			"name": "Aquatic Adaptation",
+			"source": "ExploringEberron24",
+			"category": "O",
+			"skillProficiencies": [
+				{
+					"athletics": true
+				}
+			],
+			"entries": [
+				"You are able to live underwater. This may be a natural feature of your character if you're playing a Malenti or an Elf from Valraea, or it could be the result of arcane transmutation or a divine blessing. Whatever the origin of this gift, you gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Amphibious",
+					"entries": [
+						"You can breathe underwater. If you possess the Limited Amphibiousness trait in addition to this feat, this eliminates your dependence on water."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Athletic Build",
+					"entries": [
+						"You gain proficiency in the {@skill Athletics|XPHB} skill."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Natural Swimmer",
+					"entries": [
+						"You have a {@variantrule Swim Speed|XPHB} equal to your {@variantrule Speed|XPHB}."
+					]
+				}
+			]
+		},
+		{
+			"name": "Aereni Expertise",
+			"source": "ExploringEberron24",
+			"category": "O",
+			"prerequisite": [
+				{
+					"race": [
+						{
+							"name": "Elf"
+						}
+					]
+				}
+			],
+			"skillProficiencies": [
+				{
+					"any": 1
+				}
+			],
+			"expertise": [
+				{
+					"anyProficientSkill": 1
+				}
+			],
+			"entries": [
+				"Growing up in Aerenal, you spent decades developing your talent with one particular skill. You gain the following benefits.",
+				{
+					"type": "entries",
+					"name": "Skill Proficiency",
+					"entries": [
+						"You gain proficiency in one skill of your choice."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Expertise",
+					"entries": [
+						"You gain {@variantrule Expertise|XPHB} with the skill you selected for this feat."
+					]
+				}
+			]
 		}
 	]
 }

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dnd-plataform.local/schemas/feat.schema.json",
+  "title": "AppFeat",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["id", "name", "source"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable app-owned feat id, usually kebab-case."
+    },
+    "name": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": ["string", "object"]
+      }
+    },
+    "handler": {
+      "type": "string",
+      "description": "Optional handler id registered in src/engine/feat-registry.js."
+    },
+    "prerequisite": {
+      "type": ["string", "array", "object", "null"]
+    }
+  }
+}

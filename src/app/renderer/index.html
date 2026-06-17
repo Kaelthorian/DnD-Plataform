@@ -897,6 +897,11 @@
       cursor: pointer;
     }
 
+    .option-choice.active {
+      color: #111;
+      font-weight: 600;
+    }
+
     .option-choice.disabled,
     .alert-choice.disabled {
       color: #777;
@@ -910,6 +915,21 @@
 
     .option-choice-text {
       overflow-wrap: anywhere;
+    }
+
+    .feature-choice-picker {
+      gap: 10px;
+    }
+
+    .feature-choice-picker-main {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .feature-choice-picker-summary {
+      color: #555;
+      font-size: 12px;
     }
 
     @media (max-width: 720px) {
@@ -1678,8 +1698,8 @@
         if (!Promise.try) {
           Promise.try = (callback, ...args) => new Promise((resolve) => resolve(callback(...args)));
         }
-        pdfjsLib = await import("./node_modules/pdfjs-dist/legacy/build/pdf.mjs");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs";
+        pdfjsLib = await import("../../../node_modules/pdfjs-dist/legacy/build/pdf.mjs");
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs";
       } catch (error) {
         throw new Error("No se encontro PDF.js. Ejecuta `npm install` en la carpeta del proyecto antes de abrir la app.");
       }
@@ -1694,7 +1714,7 @@
 
     async function loadPdfBytes() {
       if (desktopStore?.loadPdf) return base64ToBytes(await desktopStore.loadPdf());
-      const response = await fetch("./DnD_5E_CharacterSheet_FormFillable.pdf");
+      const response = await fetch("./assets/DnD_5E_CharacterSheet_FormFillable.pdf");
       if (!response.ok) {
         throw new Error(`No se encontro DnD_5E_CharacterSheet_FormFillable.pdf (${response.status})`);
       }
@@ -1703,24 +1723,24 @@
 
     async function loadRaceOptions() {
       if (desktopStore?.loadRaces) return dedupeModernByName(await desktopStore.loadRaces(), optionName, optionSource);
-      const response = await fetch("./races.json");
+      const response = await fetch("../../data/races/races.json");
       return dedupeModernByName(await response.json(), optionName, optionSource);
     }
 
     async function loadRaceDetails() {
-      const response = await fetch("./5etools-src-main/data/races.json");
+      const response = await fetch("../../../vendor/5etools-src-main/data/races.json");
       if (!response.ok) return {};
       return response.json();
     }
 
     async function loadBackgroundOptions() {
       if (desktopStore?.loadBackgrounds) return dedupeModernByName(await desktopStore.loadBackgrounds(), optionName, optionSource);
-      const response = await fetch("./backgrounds.json");
+      const response = await fetch("../../data/backgrounds/backgrounds.json");
       return dedupeModernByName(await response.json(), optionName, optionSource);
     }
 
     async function loadBackgroundDetails() {
-      const response = await fetch("./5etools-src-main/data/backgrounds.json");
+      const response = await fetch("../../../vendor/5etools-src-main/data/backgrounds.json");
       if (!response.ok) return {};
       return response.json();
     }
@@ -1728,34 +1748,34 @@
     async function loadClassOptions() {
       const withoutSidekicks = (options) => (options || []).filter((option) => !/sidekick/i.test(optionName(option)));
       if (desktopStore?.loadClasses) return dedupeModernByName(withoutSidekicks(await desktopStore.loadClasses()), optionName, optionSource);
-      const response = await fetch("./classes.json");
+      const response = await fetch("../../data/classes/classes.json");
       return dedupeModernByName(withoutSidekicks(await response.json()), optionName, optionSource);
     }
 
     async function loadClassDetails() {
-      const indexResponse = await fetch("./5etools-src-main/data/class/index.json");
+      const indexResponse = await fetch("../../../vendor/5etools-src-main/data/class/index.json");
       if (!indexResponse.ok) return [];
       const classIndex = await indexResponse.json();
       const files = Object.values(classIndex).filter((file) => /^class-.*\.json$/i.test(file));
-      const responses = await Promise.all(files.map((file) => fetch(`./5etools-src-main/data/class/${file}`).catch(() => null)));
+      const responses = await Promise.all(files.map((file) => fetch(`../../../vendor/5etools-src-main/data/class/${file}`).catch(() => null)));
       const loaded = await Promise.all(responses.map(async (response) => response?.ok ? response.json() : null));
       return loaded.filter(Boolean);
     }
 
     async function loadSpellOptions() {
       if (desktopStore?.loadSpells) return dedupeModernByName(await desktopStore.loadSpells(), (spell) => spell?.name || "", (spell) => spell?.source || "");
-      const response = await fetch("./spells.json");
+      const response = await fetch("../../data/spells/spells.json");
       return dedupeModernByName(await response.json(), (spell) => spell?.name || "", (spell) => spell?.source || "");
     }
 
     async function loadFeatOptions() {
       if (desktopStore?.loadFeats) return desktopStore.loadFeats();
-      const response = await fetch("./5etools-src-main/data/feats.json");
+      const response = await fetch("../../../vendor/5etools-src-main/data/feats.json");
       return response.json();
     }
 
     async function loadOptionalFeatureOptions() {
-      const response = await fetch("./5etools-src-main/data/optionalfeatures.json");
+      const response = await fetch("../../../vendor/5etools-src-main/data/optionalfeatures.json");
       if (!response.ok) return {};
       return response.json();
     }
@@ -1763,8 +1783,8 @@
     async function loadItemOptions() {
       if (desktopStore?.loadItems) return desktopStore.loadItems();
       const [itemsResponse, baseItemsResponse] = await Promise.all([
-        fetch("./5etools-src-main/data/items.json"),
-        fetch("./5etools-src-main/data/items-base.json")
+        fetch("../../../vendor/5etools-src-main/data/items.json"),
+        fetch("../../../vendor/5etools-src-main/data/items-base.json")
       ]);
       return {
         items: await itemsResponse.json(),
@@ -1774,7 +1794,7 @@
 
     async function loadLanguageOptions() {
       if (desktopStore?.loadLanguages) return desktopStore.loadLanguages();
-      const response = await fetch("./5etools-src-main/data/languages.json");
+      const response = await fetch("../../../vendor/5etools-src-main/data/languages.json");
       return response.json();
     }
 
@@ -6177,12 +6197,29 @@
       D: "Dragonmark"
     };
 
+    function featRefParts(refOrName) {
+      if (refOrName && typeof refOrName === "object") {
+        return {
+          name: refOrName.name || "",
+          source: refOrName.source || "",
+          variant: refOrName.variant || ""
+        };
+      }
+      const parts = String(refOrName || "").split("|");
+      return {
+        name: parts[0] || "",
+        source: parts[1] || "",
+        variant: ""
+      };
+    }
+
     function findFeatData(refOrName) {
       const ref = refOrName && typeof refOrName === "object" ? refOrName : null;
-      const rawName = ref ? ref.name : refOrName;
-      const normalizedSource = normalizeName(ref?.source || "");
+      const refParts = featRefParts(refOrName);
+      const rawName = refParts.name;
+      const normalizedSource = normalizeName(refParts.source || "");
       const replacementSource = modernReplacementSource(normalizedSource);
-      const normalizedVariant = normalizeName(ref?.variant || "");
+      const normalizedVariant = normalizeName(refParts.variant || "");
       const normalizedFull = normalizeName(String(rawName || "")
         .replace(/^background feat:\s*/i, "")
         .replace(/\([^)]*\)\s*$/g, "")
@@ -6214,6 +6251,25 @@
         || dedupeModernByName(nameMatches, (feat) => feat?.name || "", (feat) => feat?.source || "")[0]
         || feats.find((feat) => normalizeName(feat.name) === normalized)
         || null;
+    }
+
+    function duplicateFeatNameSet() {
+      const counts = new Map();
+      feats.forEach((feat) => {
+        const key = normalizeName(feat?.name || "");
+        if (key) counts.set(key, (counts.get(key) || 0) + 1);
+      });
+      return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([key]) => key));
+    }
+
+    function featChoiceValue(feat) {
+      if (!feat?.name) return "";
+      return duplicateFeatNameSet().has(normalizeName(feat.name)) && feat.source ? `${feat.name}|${feat.source}` : feat.name;
+    }
+
+    function featChoiceLabel(feat) {
+      if (!feat?.name) return "";
+      return duplicateFeatNameSet().has(normalizeName(feat.name)) && feat.source ? `${feat.name} (${sourceLabel(feat.source) || feat.source})` : feat.name;
     }
 
     function formatAbilityChoice(value) {
@@ -6523,12 +6579,13 @@
         .filter((feat) => !feat.category || feat.category === "G" || feat.category === "O")
         .sort((a, b) => a.name.localeCompare(b.name))
         .forEach((feat) => {
-          const key = normalizeName(feat.name);
+          const value = featChoiceValue(feat);
+          const key = normalizeName(value);
           if (seen.has(key)) return;
           seen.add(key);
           options.push({
-            value: feat.name,
-            label: feat.name,
+            value,
+            label: featChoiceLabel(feat),
             type: "feat",
             description: flattenEntryText(feat.entries)
           });
@@ -6598,23 +6655,69 @@
 
     function featAbilityChoiceOptions(feat) {
       return (Array.isArray(feat?.ability) ? feat.ability : [])
-        .flatMap((item) => Array.isArray(item?.choose)
-          ? item.choose.map((ability) => {
+        .flatMap((item) => {
+          const choices = Array.isArray(item?.choose) ? item.choose : Array.isArray(item?.choose?.from) ? item.choose.from : [];
+          return choices.map((ability) => {
             const key = ABILITY_LABELS[ability] || String(ability || "").toUpperCase();
             return ABILITY_KEYS.includes(key)
               ? { value: `feat-ability:${key}+1`, label: `${key} +1`, type: "abilityScoreIncrease", description: `${feat.name}: increase ${key} by 1.` }
               : null;
-          }).filter(Boolean)
-          : [])
+          }).filter(Boolean);
+        })
         .filter((option, index, list) => list.findIndex((item) => item.value === option.value) === index);
     }
 
     function toolChoiceOptionsFromFeat(feat) {
       return (Array.isArray(feat?.toolProficiencies) ? feat.toolProficiencies : [])
-        .flatMap((group) => group?.choose?.from || [])
-        .map((tool) => titleCaseWords([String(tool).split("|")[0]])[0])
+        .flatMap((group) => {
+          if (group?.choose?.from?.length) return group.choose.from;
+          if (Number.isFinite(group?.anyMusicalInstrument)) return BACKGROUND_CHOICE_OPTION_SETS["musical instrument"] || [];
+          if (Number.isFinite(group?.any)) return toolChoiceOptions().map((option) => option.value);
+          return [];
+        })
+        .map((tool) => titleCaseWords([String(tool).split("|")[0].replace(/([a-z])([A-Z])/g, "$1 $2")])[0])
         .filter(Boolean)
+        .filter((tool, index, list) => list.findIndex((item) => normalizeName(item) === normalizeName(tool)) === index)
         .map((tool) => ({ value: `tool:${tool}`, label: tool, type: "tool", description: `${feat.name}: tool proficiency.` }));
+    }
+
+    function skillChoiceSpecFromFeat(feat) {
+      const groups = Array.isArray(feat?.skillProficiencies) ? feat.skillProficiencies : [];
+      const optionNames = [];
+      let count = 0;
+      groups.forEach((group) => {
+        if (group?.choose?.from?.length) {
+          count += group.choose.count || 1;
+          group.choose.from.forEach((skill) => optionNames.push(skill));
+        } else if (Number.isFinite(group?.any)) {
+          count += group.any;
+          SKILL_NAMES.forEach((skill) => optionNames.push(skill));
+        }
+      });
+      const options = skillChoiceOptions(optionNames).map((option) => ({
+        value: `skill:${option.value}`,
+        label: option.label,
+        type: "skill",
+        description: `${feat.name}: skill proficiency.`
+      }));
+      return options.length ? { label: "Skill", count: Math.max(1, count || 1), options } : null;
+    }
+
+    function expertiseChoiceSpecFromFeat(feat) {
+      const groups = Array.isArray(feat?.expertise) ? feat.expertise : [];
+      let count = 0;
+      const optionNames = [];
+      groups.forEach((group) => {
+        if (Number.isFinite(group?.anyProficientSkill)) {
+          count += group.anyProficientSkill;
+          SKILL_NAMES.forEach((skill) => optionNames.push(skill));
+        } else if (group?.choose?.from?.length) {
+          count += group.choose.count || 1;
+          group.choose.from.forEach((skill) => optionNames.push(skill));
+        }
+      });
+      const options = expertiseSkillChoiceOptions(optionNames.length ? optionNames : SKILL_NAMES);
+      return count > 0 && options.length ? { label: "Expertise", count, options } : null;
     }
 
     function collectStructuredChoiceSpecs(entries, specs = []) {
@@ -6688,6 +6791,7 @@
       const specs = collectStructuredChoiceSpecs(feature?.entries || []);
       const text = flattenEntryText(feature?.entries || "").toLowerCase();
       const featureSearchText = `${normalizeName(feature?.name || "")} ${text}`;
+      let structuredExpertiseSpec = null;
       if (normalizeName(feature?.name || "") === "eldritch invocation options") return [];
       const cantripSpec = isMagicInitiateFeat(feature?.feat || feature)
         ? null
@@ -6720,7 +6824,7 @@
       if (feature?.isRaceFeature && /origin feat/.test(text)) {
         const options = feats
           .filter((feat) => feat.category === "O")
-          .map((feat) => ({ value: feat.name, label: feat.name, type: "feat", description: flattenEntryText(feat.entries) }));
+          .map((feat) => ({ value: featChoiceValue(feat), label: featChoiceLabel(feat), type: "feat", description: flattenEntryText(feat.entries) }));
         if (options.length) specs.push({ label: "Origin Feat", count: 1, options });
       }
       if (feature?.isFeatFeature) {
@@ -6743,6 +6847,10 @@
         }
         const abilityOptions = featAbilityChoiceOptions(feat);
         if (abilityOptions.length) specs.push({ label: "Feat Ability", count: 1, options: abilityOptions });
+        const structuredSkillSpec = skillChoiceSpecFromFeat(feat);
+        if (structuredSkillSpec) specs.push(structuredSkillSpec);
+        structuredExpertiseSpec = expertiseChoiceSpecFromFeat(feat);
+        if (structuredExpertiseSpec) specs.push(structuredExpertiseSpec);
         const skillAndToolMatch = /any combination of three .*skills?.*tools?/i.test(text);
         if (skillAndToolMatch) {
           const options = [
@@ -6750,23 +6858,23 @@
             ...toolChoiceOptionsFromFeat(feat)
           ];
           if (options.length) specs.push({ label: "Skill/Tool", count: 3, options });
-        } else if (/proficiency in one skill of your choice|one skill of your choice/.test(text)) {
+        } else if (!structuredSkillSpec && /proficiency in one skill of your choice|one skill of your choice/.test(text)) {
           const options = SKILL_NAMES.map((skill) => ({ value: `skill:${skill}`, label: skill, type: "skill", description: `${feat?.name || feature.name}: skill proficiency.` }));
           specs.push({ label: "Skill", count: 1, options });
         }
         const toolOptions = skillAndToolMatch ? [] : toolChoiceOptionsFromFeat(feat);
         if (toolOptions.length) {
-          const count = Math.max(1, ...((Array.isArray(feat?.toolProficiencies) ? feat.toolProficiencies : []).map((group) => group?.choose?.count || 1)));
+          const count = Math.max(1, ...((Array.isArray(feat?.toolProficiencies) ? feat.toolProficiencies : []).map((group) => group?.choose?.count || group?.anyMusicalInstrument || group?.any || 1)));
           specs.push({ label: "Tool", count, options: toolOptions });
         }
       }
       if (feature?.isBackgroundFeatChoice) {
         const options = (feature.featRefs || [])
           .map((ref) => {
-            const feat = findFeatData(ref.name);
+            const feat = findFeatData(ref);
             const label = featDisplayName({ ...ref, name: feat?.name || ref.name });
             return {
-              value: feat?.name || ref.name,
+              value: feat ? featChoiceValue(feat) : ref.source ? `${ref.name}|${ref.source}` : ref.name,
               label,
               type: "feat",
               description: flattenEntryText(feat?.entries || "")
@@ -6825,7 +6933,7 @@
         const options = optionalFeatureOptionsByType("EI");
         if (options.length) specs.push({ label: "Eldritch Invocation", count: eldritchInvocationCountForFeature(feature), options });
       }
-      if (isExpertiseSkillFeature(feature, text)) {
+      if (!structuredExpertiseSpec && isExpertiseSkillFeature(feature, text)) {
         const options = expertiseSkillOptionsForFeature(flattenEntryText(feature?.entries || ""));
         if (options.length) specs.push({ label: "Expertise", count: expertiseSkillCountForFeature(feature, text), options });
       }
@@ -6886,6 +6994,215 @@
       button.setAttribute("aria-label", `${button.textContent}. ${state.label}`);
     }
 
+    function featureChoiceOptionTypeLabel(option) {
+      const type = String(option?.type || "").toLowerCase();
+      if (type === "feat") return "Feat";
+      if (type === "optionalfeature") return "Feature option";
+      if (type === "abilityscoreimprovement" || type === "abilityscoreincrease") return "Ability Score";
+      if (type === "spell") return "Spell";
+      if (type === "spelllist") return "Spell list";
+      if (type === "weaponmastery") return "Weapon Mastery";
+      if (type === "subclass") return "Subclass";
+      if (type === "language") return "Language";
+      if (type === "tool") return "Tool";
+      if (type === "skill") return "Skill";
+      if (type === "expertiseskill") return "Expertise";
+      if (type === "racechoice") return "Race choice";
+      return "Choice";
+    }
+
+    function buildFeatureChoiceOptionDetailContent(option) {
+      if (!option) return buildTextFeatureDrawerContent("Choice", "Selecciona una opcion para ver el detalle.", "");
+      if (option.type === "feat") {
+        const feat = findFeatData(option.value);
+        return feat
+          ? buildFeatDrawerContent(feat, option.label || option.value)
+          : buildTextFeatureDrawerContent(option.label || option.value, option.description || "No encontre este feat en los datos locales.", "Feat");
+      }
+      if (option.type === "optionalfeature") {
+        const optional = optionalFeatureByName(option.value);
+        return buildTextFeatureDrawerContent(
+          optional?.name || option.label || option.value,
+          flattenEntryText(optional?.entries || option.description || ""),
+          optional?.source ? sourceLabel(optional.source) : "Feature option"
+        );
+      }
+      if (option.type === "spell") {
+        const spellName = String(option.value || "").replace(/^spell:/, "") || option.label || "";
+        const spell = findSpellByName(spellName);
+        return spell
+          ? buildSpellDrawerContent(spell)
+          : buildTextFeatureDrawerContent(option.label || spellName, option.description || "No encontre esta spell en los datos locales.", "Spell");
+      }
+      return buildTextFeatureDrawerContent(
+        option.label || option.value || "Choice",
+        option.description || "Sin descripcion adicional disponible.",
+        featureChoiceOptionTypeLabel(option)
+      );
+    }
+
+    function showFeatureChoiceOptionDetail(detailBody, option) {
+      const detail = detailBody?.closest(".spell-picker-detail");
+      if (!detailBody || !detail) return;
+      detailBody.dataset.currentChoiceValue = option?.value || "";
+      detailBody.textContent = "";
+      detailBody.appendChild(buildFeatureChoiceOptionDetailContent(option));
+      detail.classList.remove("hidden");
+    }
+
+    function refreshFeatureChoiceSectionState(section, key, spec) {
+      const selectedValues = selectedFeatureChoices(key);
+      section.querySelectorAll("[data-choice-value]").forEach((row) => {
+        const option = spec.options.find((item) => item.value === row.dataset.choiceValue);
+        if (!option) return;
+        const selected = selectedValues.includes(option.value);
+        const disabled = Boolean(option.disabled) || isSkillOptionAlreadyProficient(option, selectedValues);
+        const input = row.querySelector("input");
+        const text = row.querySelector(".option-choice-text");
+        const action = row.querySelector("[data-choice-action='true']");
+        row.classList.toggle("active", selected);
+        row.classList.toggle("disabled", disabled);
+        if (input) {
+          input.checked = selected;
+          input.disabled = disabled;
+        }
+        if (text) {
+          const optionLabel = skillOptionLabel(option, disabled);
+          const summary = option.description ? option.description.split(/(?<=[.!?])\s+/)[0] : "";
+          text.textContent = summary ? `${optionLabel}: ${summary}` : optionLabel;
+        }
+        if (action) {
+          action.classList.toggle("secondary", spec.count > 1 && selected);
+          action.textContent = selected ? (spec.count > 1 ? "Quitar" : "Elegida") : "Elegir";
+          action.disabled = selected ? spec.count === 1 : disabled;
+        }
+      });
+    }
+
+    function applyFeatureChoiceSelectionChange(feature, key, spec, section, input, option) {
+      let current = selectedFeatureChoices(key).filter((value) => !spec.options.some((item) => item.value === value));
+      if (option.type === "spellList" && isMagicInitiateFeat(feature?.feat || feature)) {
+        current = current.filter((value) => !String(value).startsWith("spell:"));
+      }
+      let picked = [...section.querySelectorAll("input:checked")].map((item) => item.value);
+      if (picked.length > spec.count) {
+        input.checked = false;
+        picked = picked.filter((value) => value !== option.value);
+        showStatus(`Maximo ${spec.count} opcion(es)`);
+      }
+      setSelectedFeatureChoices(key, [...current, ...picked]);
+      if (isAbilityScoreImprovementFeature(feature) || isMagicInitiateFeat(feature?.feat || feature)) {
+        rerenderFeatureChoiceDrawer(feature);
+        return;
+      }
+      refreshFeatureChoiceSectionState(section, key, spec);
+      const detailBody = section.querySelector(".spell-picker-detail-body");
+      if (!detailBody) return;
+      const currentDetailValue = detailBody.dataset.currentChoiceValue || option.value;
+      const detailOption = spec.options.find((item) => item.value === currentDetailValue) || option;
+      showFeatureChoiceOptionDetail(detailBody, detailOption);
+    }
+
+    function buildFeatureChoiceInput(feature, key, spec, section, option, specIndex) {
+      const input = document.createElement("input");
+      input.type = spec.count > 1 ? "checkbox" : "radio";
+      input.name = `${key}:${specIndex}`;
+      input.value = option.value;
+      input.addEventListener("change", () => applyFeatureChoiceSelectionChange(feature, key, spec, section, input, option));
+      return input;
+    }
+
+    function buildFeatureChoicePickerRow(feature, key, spec, section, option, specIndex, detailBody) {
+      const row = document.createElement("div");
+      row.className = "spell-picker-row";
+      row.dataset.choiceValue = option.value;
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("button") || event.target.closest("input")) return;
+        showFeatureChoiceOptionDetail(detailBody, option);
+      });
+
+      const nameButton = document.createElement("button");
+      nameButton.type = "button";
+      nameButton.className = "spell-picker-name";
+      nameButton.textContent = option.label || option.value;
+      nameButton.addEventListener("click", () => showFeatureChoiceOptionDetail(detailBody, option));
+
+      const meta = document.createElement("div");
+      meta.className = "spell-picker-meta";
+      meta.textContent = featureChoiceOptionTypeLabel(option);
+
+      const actions = document.createElement("div");
+      actions.className = "spell-picker-actions";
+
+      const input = buildFeatureChoiceInput(feature, key, spec, section, option, specIndex);
+      const toggleButton = document.createElement("button");
+      toggleButton.type = "button";
+      toggleButton.className = "spell-picker-button";
+      toggleButton.dataset.choiceAction = "true";
+      toggleButton.addEventListener("click", () => {
+        if (input.disabled) return;
+        if (input.type === "checkbox") input.checked = !input.checked;
+        else if (!input.checked) input.checked = true;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+
+      actions.append(input, toggleButton);
+      row.append(nameButton, meta, actions);
+      return row;
+    }
+
+    function buildFeatureChoicePickerSection(feature, key, spec, specIndex) {
+      const section = document.createElement("div");
+      section.className = "option-choice-group feature-choice-picker";
+      appendText(section, "option-choice-title", `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`);
+
+      const picker = document.createElement("div");
+      picker.className = "spell-picker";
+
+      const main = document.createElement("div");
+      main.className = "feature-choice-picker-main";
+      const summary = document.createElement("div");
+      summary.className = "feature-choice-picker-summary";
+      summary.textContent = `${spec.options.length} opcion(es) disponibles`;
+      main.appendChild(summary);
+
+      const detail = document.createElement("section");
+      detail.className = "spell-picker-detail";
+      const detailHeader = document.createElement("div");
+      detailHeader.className = "spell-picker-detail-header";
+      const detailTitle = document.createElement("div");
+      detailTitle.textContent = "Detalle";
+      const detailClose = document.createElement("button");
+      detailClose.type = "button";
+      detailClose.className = "spell-picker-detail-close";
+      detailClose.textContent = "X";
+      detailClose.setAttribute("aria-label", "Cerrar detalle");
+      detailClose.addEventListener("click", () => detail.classList.add("hidden"));
+      detailHeader.append(detailTitle, detailClose);
+      const detailBody = document.createElement("div");
+      detailBody.className = "spell-picker-detail-body";
+      detail.append(detailHeader, detailBody);
+
+      appendSearchableList(
+        main,
+        spec.options.map((option) => buildFeatureChoicePickerRow(feature, key, spec, section, option, specIndex, detailBody)),
+        "Buscar opcion..."
+      );
+
+      const selectedValues = selectedFeatureChoices(key);
+      const defaultOption = spec.options.find((option) => selectedValues.includes(option.value)) || spec.options[0] || null;
+      if (defaultOption) showFeatureChoiceOptionDetail(detailBody, defaultOption);
+
+      picker.append(main, detail);
+      section.appendChild(picker);
+      refreshFeatureChoiceSectionState(section, key, spec);
+      return section;
+    }
+
+    function featureUsesChoicePicker(feature) {
+      return featureChoiceSpecs(feature).some((spec) => (spec.options || []).length > 10);
+    }
+
     function rerenderFeatureChoiceDrawer(feature) {
       const entries = generatedFeaturesAndTraitsEntries();
       if (feature?.isFeatFeature) {
@@ -6902,53 +7219,29 @@
       }
       const body = buildClassFeatureDrawerContent(feature);
       appendFeatureBackButton(body, entries);
-      showDrawer(feature?.name || "Feature", "Feature choice", body);
+      showDrawer(feature?.name || "Feature", "Feature choice", body, featureUsesChoicePicker(feature) ? "spell-picker-drawer" : "");
     }
 
     function appendFeatureChoiceControls(root, feature) {
       const specs = featureChoiceSpecs(feature);
       if (!specs.length) return;
       const key = featureChoiceKey(feature);
-      const selected = selectedFeatureChoices(key);
       specs.forEach((spec, specIndex) => {
+        if ((spec.options || []).length > 10) {
+          root.appendChild(buildFeatureChoicePickerSection(feature, key, spec, specIndex));
+          return;
+        }
         const section = document.createElement("div");
         section.className = "option-choice-group";
         appendText(section, "option-choice-title", `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`);
         spec.options.forEach((option) => {
-          const disabled = Boolean(option.disabled) || isSkillOptionAlreadyProficient(option, selected);
           const label = document.createElement("label");
           label.className = "option-choice";
-          label.classList.toggle("disabled", disabled);
-          const input = document.createElement("input");
-          input.type = spec.count > 1 ? "checkbox" : "radio";
-          input.name = `${key}:${specIndex}`;
-          input.value = option.value;
-          input.checked = selected.includes(option.value);
-          input.disabled = disabled;
-          input.addEventListener("change", () => {
-            let current = selectedFeatureChoices(key).filter((value) => !spec.options.some((item) => item.value === value));
-            if (option.type === "spellList" && isMagicInitiateFeat(feature?.feat || feature)) {
-              current = current.filter((value) => !String(value).startsWith("spell:"));
-            }
-            let picked = [...section.querySelectorAll("input:checked")].map((item) => item.value);
-            if (picked.length > spec.count) {
-              input.checked = false;
-              picked = picked.filter((value) => value !== option.value);
-              showStatus(`Maximo ${spec.count} opcion(es)`);
-            }
-            setSelectedFeatureChoices(key, [...current, ...picked]);
-            if (isAbilityScoreImprovementFeature(feature)) {
-              const body = buildClassFeatureDrawerContent(feature);
-              appendFeatureBackButton(body, generatedFeaturesAndTraitsEntries());
-              showDrawer(feature?.name || "Class Feature", "Feature choice", body);
-            } else if (isMagicInitiateFeat(feature?.feat || feature)) {
-              rerenderFeatureChoiceDrawer(feature);
-            }
-          });
+          label.dataset.choiceValue = option.value;
+          const input = buildFeatureChoiceInput(feature, key, spec, section, option, specIndex);
           const text = document.createElement("span");
           text.className = "option-choice-text";
-          const optionLabel = skillOptionLabel(option, disabled);
-          text.textContent = option.description ? `${optionLabel}: ${option.description.split(/(?<=[.!?])\s+/)[0]}` : optionLabel;
+          text.textContent = option.label || option.text || option.value || "";
           label.append(input, text);
           section.appendChild(label);
           if (option.type === "feat") {
@@ -6978,6 +7271,7 @@
             section.appendChild(inspect);
           }
         });
+        refreshFeatureChoiceSectionState(section, key, spec);
         root.appendChild(section);
       });
     }
@@ -7031,19 +7325,19 @@
       if (entry.type === "classFeature" || entry.type === "classSkillChoice") {
         const body = buildClassFeatureDrawerContent(entry.feature);
         appendFeatureBackButton(body, entries);
-        showDrawer(entry.feature?.name || entry.title, entry.meta, body);
+        showDrawer(entry.feature?.name || entry.title, entry.meta, body, featureUsesChoicePicker(entry.feature) ? "spell-picker-drawer" : "");
         return;
       }
       if (entry.type === "raceFeature") {
         const body = buildClassFeatureDrawerContent(entry.feature);
         appendFeatureBackButton(body, entries);
-        showDrawer(entry.feature?.name || entry.title, entry.meta, body);
+        showDrawer(entry.feature?.name || entry.title, entry.meta, body, featureUsesChoicePicker(entry.feature) ? "spell-picker-drawer" : "");
         return;
       }
       if (entry.type === "backgroundFeatChoice") {
         const body = buildClassFeatureDrawerContent(entry.feature);
         appendFeatureBackButton(body, entries);
-        showDrawer(entry.feature?.name || entry.title, entry.meta, body);
+        showDrawer(entry.feature?.name || entry.title, entry.meta, body, featureUsesChoicePicker(entry.feature) ? "spell-picker-drawer" : "");
         return;
       }
       if (entry.type === "optionalfeature") {
@@ -8839,13 +9133,30 @@
         .map(normalizeName));
     }
 
+    function fixedSkillProficiencyNamesFromFeat(feat) {
+      return (Array.isArray(feat?.skillProficiencies) ? feat.skillProficiencies : [])
+        .flatMap((group) => Object.entries(group || {})
+          .filter(([key, value]) => value === true && !["any", "choose"].includes(key))
+          .map(([key]) => canonicalSkillName(key)))
+        .filter(Boolean);
+    }
+
+    function fixedExpertiseSkillNamesFromFeat(feat) {
+      return (Array.isArray(feat?.expertise) ? feat.expertise : [])
+        .flatMap((group) => Object.entries(group || {})
+          .filter(([key, value]) => value === true && !["anyProficientSkill", "choose"].includes(key))
+          .map(([key]) => canonicalSkillName(key)))
+        .filter(Boolean);
+    }
+
     function allSelectedExpertiseSkillNames() {
-      return new Set(Object.values(sheetMeta.featureChoices || {})
+      const selected = Object.values(sheetMeta.featureChoices || {})
         .flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
         .filter((value) => String(value).startsWith("expertise:"))
         .map((value) => canonicalSkillName(String(value).replace(/^expertise:/, "")))
-        .filter(Boolean)
-        .map(normalizeName));
+        .filter(Boolean);
+      const fixed = activeFeatData().flatMap(fixedExpertiseSkillNamesFromFeat);
+      return new Set([...selected, ...fixed].map(normalizeName));
     }
 
     function isExpertiseSkillOptionUnavailable(option, selectedValues = []) {
@@ -9154,7 +9465,11 @@
     }
 
     function updateFeatSkillProficiencies() {
-      const skills = selectedFeatSkillChoices();
+      const fixedSkills = activeFeatData().flatMap((feat) => [
+        ...fixedSkillProficiencyNamesFromFeat(feat),
+        ...fixedExpertiseSkillNamesFromFeat(feat)
+      ]);
+      const skills = [...fixedSkills, ...selectedFeatSkillChoices()];
       applyGeneratedSkillProficiencies("feat", [...new Set(skills.map((skill) => SKILL_NAMES.find((item) => normalizeName(item) === normalizeName(skill)) || skill))]);
     }
 
@@ -10292,11 +10607,13 @@
           const selectedOption = specOptions.find((option) => option.value === choiceName);
           if (entry.feature?.isRaceFeature && !choiceName.startsWith("weapon-mastery:")) {
             const feat = findFeatData(choiceName);
+            const choiceLabel = selectedOption?.label || (feat ? featChoiceLabel(feat) : String(choiceName).split("|")[0]);
             return {
               type: feat ? "feat" : "text",
-              title: `${entry.feature.name}: ${choiceName}`,
+              title: `${entry.feature.name}: ${choiceLabel}`,
               meta: feat ? "Race feat" : "Race choice",
               featName: feat?.name,
+              feat,
               description: flattenEntryText(feat?.entries || selectedOption?.description || ""),
               parentFeature: entry.feature
             };
@@ -10329,12 +10646,13 @@
           }
           const feat = findFeatData(choiceName);
           const optional = optionalFeatureByName(choiceName);
-          const cleanedChoiceName = String(choiceName).replace(/^(?:skill|tool|feat-ability|spell|expertise|language):/i, "");
+          const cleanedChoiceName = selectedOption?.label || String(choiceName).replace(/^(?:skill|tool|feat-ability|spell|expertise|language):/i, "").split("|")[0];
           return {
             type: feat ? "feat" : optional ? "optionalfeature" : "text",
             title: `${entry.feature.name}: ${selectedOption?.type === "expertiseSkill" ? `Expertise in ${cleanedChoiceName}` : cleanedChoiceName}`,
             meta: feat ? "Selected feat" : optional ? "Selected feature option" : selectedOption?.type === "expertiseSkill" ? "Expertise" : "Selected choice",
             featName: feat?.name,
+            feat,
             optionalFeature: optional,
             description: flattenEntryText(feat?.entries || optional?.entries || selectedOption?.description || ""),
             parentFeature: entry.feature

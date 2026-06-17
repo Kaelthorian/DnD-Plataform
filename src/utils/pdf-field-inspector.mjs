@@ -1,6 +1,6 @@
-import * as pdfjsLib from './node_modules/pdfjs-dist/legacy/build/pdf.mjs';
+import * as pdfjsLib from '../../node_modules/pdfjs-dist/legacy/build/pdf.mjs';
 import fs from 'fs';
-const data = new Uint8Array(fs.readFileSync('DnD_5E_CharacterSheet_FormFillable.pdf'));
+const data = new Uint8Array(fs.readFileSync('src/app/renderer/assets/DnD_5E_CharacterSheet_FormFillable.pdf'));
 const pdf = await pdfjsLib.getDocument({ data, disableWorker: true }).promise;
 console.log('pages', pdf.numPages);
 for (let p = 1; p <= Math.min(pdf.numPages, 3); p++) {
