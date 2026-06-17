@@ -2,6 +2,21 @@
 
 This map describes where systems should live after staged extraction. Some behavior still lives in `src/app/renderer/index.html`.
 
+## Renderer Split
+
+- HTML shell and remaining inline mechanics: `src/app/renderer/index.html`
+- Extracted renderer infrastructure: `src/app/renderer/renderer.js`
+- Extracted renderer stylesheet: `src/app/renderer/styles.css`
+
+Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` are marked with searchable comments:
+
+- `INLINE SPELL/REST MECHANICS`
+- `INLINE SPELL UI`
+- `INLINE FEAT/FEATURE MECHANICS`
+- `INLINE BACKGROUND FEAT RESOLUTION`
+- `INLINE FEAT PROFICIENCY EFFECTS`
+- `INLINE FEAT TRAIT TEXT`
+
 ## Data
 
 - Classes: `src/data/classes`
