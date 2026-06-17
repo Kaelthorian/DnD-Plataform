@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "start": "set ELECTRON_RUN_AS_NODE=& electron .",
-    "test:engine": "node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js",
+    "test:engine": "node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/resource-state.test.js && node tests/engine/long-rest.test.js",
     "dist": "set ELECTRON_RUN_AS_NODE=& electron-builder --win nsis",
     "dist:portable": "set ELECTRON_RUN_AS_NODE=& electron-builder --win portable"
   },

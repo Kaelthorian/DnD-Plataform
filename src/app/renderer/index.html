@@ -73,11 +73,26 @@
   </div>
   <div class="damage-tooltip" id="damageTooltip"></div>
 
+  <script src="../../engine/resources/resource-state.js"></script>
+  <script src="../../engine/rests/long-rest.js"></script>
   <script src="./renderer.js"></script>
   <script>
     "use strict";
 
     // INLINE SPELL/REST MECHANICS: spell slots, prepared/known spells, long-rest recovery, and spell availability remain here for now.
+    const {
+      computeLongRestRecovery,
+      computeSpellSlotFieldUpdates,
+      getLongRestTransition
+    } = globalThis.dndLongRestEngine;
+    const {
+      ensureResourceState,
+      getResourceUseInfo,
+      spendResourceUse,
+      getMagicInitiateUseInfo,
+      spendMagicInitiateUse
+    } = globalThis.dndResourceStateEngine;
+
     const SPELL_SLOT_TOTAL_KEYS = new Map([
       [1, "SlotsTotal 19"],
       [2, "SlotsTotal 20"],
@@ -581,24 +596,28 @@
       return spellSlotTotal(level);
     }
 
-    function syncSpellSlotFields({ resetRemaining = false } = {}) {
+    function spellSlotRemainingByLevel() {
+      const remainingByLevel = {};
       for (let level = 1; level <= 9; level += 1) {
-        const total = spellSlotTotal(level);
-        const totalValue = total ? String(total) : "";
-        const remainingField = spellSlotRemainingField(level);
-        const currentRemaining = Number.parseInt(remainingField?.value || "", 10);
-        setFieldValue(SPELL_SLOT_TOTAL_KEYS.get(level), totalValue);
-        if (!remainingField) continue;
-        if (!total) {
-          remainingField.value = "";
-          continue;
-        }
-        if (resetRemaining || !Number.isFinite(currentRemaining)) {
-          remainingField.value = totalValue;
-        } else {
-          remainingField.value = String(Math.max(0, Math.min(currentRemaining, total)));
-        }
+        remainingByLevel[level] = spellSlotRemainingField(level)?.value || "";
       }
+      return remainingByLevel;
+    }
+
+    function applySpellSlotFieldUpdates(updates = []) {
+      updates.forEach(({ level, totalValue, remainingValue }) => {
+        setFieldValue(SPELL_SLOT_TOTAL_KEYS.get(level), totalValue);
+        const remainingField = spellSlotRemainingField(level);
+        if (remainingField) remainingField.value = remainingValue;
+      });
+    }
+
+    function syncSpellSlotFields({ resetRemaining = false } = {}) {
+      applySpellSlotFieldUpdates(computeSpellSlotFieldUpdates({
+        slotTotals: spellSlotsForCharacter(),
+        remainingByLevel: spellSlotRemainingByLevel(),
+        resetRemaining
+      }));
     }
 
     function getCurrentHitPointsField() {
@@ -627,11 +646,16 @@
     }
 
     function restoreLongRestResources() {
-      syncSpellSlotFields({ resetRemaining: true });
-      sheetMeta.featureUses = {};
       const currentHpField = getCurrentHitPointsField();
-      const maxHp = fieldValue("HPMax");
-      if (currentHpField && maxHp) currentHpField.value = maxHp;
+      const recovery = computeLongRestRecovery({
+        slotTotals: spellSlotsForCharacter(),
+        remainingByLevel: spellSlotRemainingByLevel(),
+        currentHitPoints: currentHpField?.value || "",
+        maxHitPoints: fieldValue("HPMax")
+      });
+      applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
+      sheetMeta.featureUses = recovery.featureUses;
+      if (currentHpField && fieldValue("HPMax")) currentHpField.value = recovery.currentHitPoints;
       updatePreparedSpellsPanel();
     }
 
@@ -643,14 +667,18 @@
     }
 
     function longRestSpellResources() {
+      const transition = getLongRestTransition({
+        characterReady: isCharacterReady(),
+        longRestActive: isLongRestActive()
+      });
       if (!isCharacterReady()) {
         restoreLongRestResources();
         scheduleSave();
         showStatus("Long rest: vida y spell slots restaurados");
         return;
       }
-      sheetMeta.longRestActive = !isLongRestActive();
-      if (!sheetMeta.longRestActive) {
+      sheetMeta.longRestActive = transition.nextLongRestActive;
+      if (transition.shouldRestoreResources) {
         restoreLongRestResources();
       }
       updateInteractionState();
@@ -1735,7 +1763,7 @@
     }
 
     function featureUseState() {
-      if (!sheetMeta.featureUses || typeof sheetMeta.featureUses !== "object") sheetMeta.featureUses = {};
+      sheetMeta.featureUses = ensureResourceState(sheetMeta.featureUses);
       return sheetMeta.featureUses;
     }
 
@@ -1785,26 +1813,23 @@
     }
 
     function featureUseInfo(row) {
-      const max = Number.parseInt(row?.usesMax, 10);
-      if (!Number.isFinite(max) || max <= 0 || !row?.key) return null;
-      const state = featureUseState();
-      const spent = Math.max(0, Math.min(max, Number.parseInt(state[row.key] || "0", 10) || 0));
-      return { max, spent, remaining: max - spent };
+      return getResourceUseInfo({
+        key: row?.key,
+        max: row?.usesMax,
+        state: featureUseState()
+      });
     }
 
     function magicInitiateFreeUseInfo(spellName) {
       const grant = magicInitiateGrantForSpell(spellName);
-      if (!grant?.prepared || grant.level !== 1 || !grant.key) return null;
-      const state = featureUseState();
-      const spent = Math.max(0, Math.min(1, Number.parseInt(state[grant.key] || "0", 10) || 0));
-      return { key: grant.key, max: 1, spent, remaining: 1 - spent, grant };
+      return getMagicInitiateUseInfo({ grant, state: featureUseState() });
     }
 
     function spendMagicInitiateFreeUse(spellName) {
-      const info = magicInitiateFreeUseInfo(spellName);
-      if (!info || info.remaining <= 0) return false;
-      const state = featureUseState();
-      state[info.key] = info.spent + 1;
+      const grant = magicInitiateGrantForSpell(spellName);
+      const result = spendMagicInitiateUse({ grant, state: featureUseState() });
+      if (!result.changed) return false;
+      sheetMeta.featureUses = result.state;
       showStatus(`${spellName}: casteada por Magic Initiate. Uso gratis: 0/1`);
       updatePreparedSpellsPanel();
       scheduleSave();
@@ -1887,16 +1912,18 @@
     }
 
     function expendFeatureUse(row) {
-      const info = featureUseInfo(row);
-      if (!info) return;
-      if (info.remaining <= 0) {
+      const result = spendResourceUse({
+        key: row?.key,
+        max: row?.usesMax,
+        state: featureUseState()
+      });
+      if (!result.info) return;
+      if (!result.changed || !result.nextInfo) {
         showStatus(`${row.name}: sin usos restantes`);
         return;
       }
-      const state = featureUseState();
-      state[row.key] = info.spent + 1;
-      const nextRemaining = info.remaining - 1;
-      showStatus(`${row.name}: ${nextRemaining}/${info.max} usos restantes`);
+      sheetMeta.featureUses = result.state;
+      showStatus(`${row.name}: ${result.nextInfo.remaining}/${result.nextInfo.max} usos restantes`);
       updatePreparedSpellsPanel();
       scheduleSave();
     }
@@ -4123,41 +4150,131 @@
       return root;
     }
 
-    function buildSpellSelectionDrawerContent(field, selectedSpell = null) {
-      const root = document.createElement("div");
-      root.className = "spell-picker";
-      const level = Number(field.dataset.spellLevel);
-      if (isWizardCharacter()) return buildWizardSpellbookDrawerContent(field, selectedSpell);
-      if (isBardCharacter()) return buildBardSpellsDrawerContent(field, selectedSpell);
-      const currentSpell = selectedSpell || findSpellByName(field.value || "");
-      const options = getSpellOptions(level, field);
-      const wizardAccessibleOptions = isWizardCharacter() && level > 0 ? getWizardAccessibleSpellOptions(level) : [];
+    function assignManagedSpellToSheet(spellName) {
+      if (!ensureCanModifySpells()) return null;
+      const spell = findSpellByName(spellName);
+      if (!spell || spell.level <= 0) return null;
+      const existing = knownSpellFieldForSpell(spell.name);
+      if (existing) return existing;
+      if (!spellMatchesSelection(spell, spell.level)) {
+        showStatus("Esa spell no esta disponible para tu personaje.");
+        return null;
+      }
+      if (getSelectedSpellCount(spell.level) >= getSpellLevelLimit(spell.level)) {
+        showStatus(`Limite de spells nivel ${spell.level} alcanzado`);
+        return null;
+      }
+      const field = firstEmptyWizardFieldForLevel(spell.level);
+      if (!field) {
+        showStatus(`No hay campo libre para spells nivel ${spell.level}`);
+        return null;
+      }
+      field.value = spell.name;
+      syncFeatPreparedSpellCheckbox(field);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      updatePreparedSpellsPanel();
+      scheduleSave();
+      return field;
+    }
 
-      const main = document.createElement("div");
-      main.className = "spell-picker-main";
+    function getAllManagedSpellOptions() {
+      const autoPrepared = new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
+      const maxLevel = maxSpellLevelForCharacter();
+      return spells.filter((spell) => spell.level > 0
+        && spell.level <= maxLevel
+        && spellMatchesSelection(spell, spell.level)
+        && !autoPrepared.has(normalizeName(spell.name)));
+    }
 
-      const current = document.createElement("section");
-      current.className = "spell-picker-current";
-      appendText(current, "item-section-title", "Magia actual");
-      appendText(current, "item-section-body", field.value.trim() || "Ninguna seleccionada", "p");
-      const currentActions = document.createElement("div");
-      currentActions.className = "spell-picker-actions";
+    function managedKnownSpellRow(field, spell, detailBody) {
+      const row = document.createElement("div");
+      row.className = "spell-picker-row active";
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("button")) return;
+        showSpellPickerDetail(detailBody, spell);
+      });
+
+      const nameButton = document.createElement("button");
+      nameButton.type = "button";
+      nameButton.className = "spell-picker-name";
+      nameButton.textContent = spell.name;
+      nameButton.addEventListener("click", () => showSpellPickerDetail(detailBody, spell));
+
+      const meta = document.createElement("div");
+      meta.className = "spell-picker-meta";
+      meta.textContent = [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell), "Seleccionada"].filter(Boolean).join(" - ");
+
+      const actions = document.createElement("div");
+      actions.className = "spell-picker-actions";
       const removeButton = document.createElement("button");
       removeButton.type = "button";
       removeButton.className = "spell-picker-button secondary";
       removeButton.textContent = "Quitar";
-      removeButton.disabled = !field.value.trim() || isAutoGrantedSpellField(field);
-      removeButton.addEventListener("click", () => clearSpellSelection(field));
-      currentActions.appendChild(removeButton);
-      current.appendChild(currentActions);
-      main.appendChild(current);
+      removeButton.disabled = !canModifySpells();
+      removeButton.addEventListener("click", () => {
+        removeKnownSpellFromSheet(spell.name);
+        showStatus(`${spell.name} quitada`);
+        showSpellSelectionDrawer(field);
+      });
 
-      const listTitle = document.createElement("div");
-      listTitle.className = "item-section-title";
-      listTitle.textContent = isWizardCharacter() && level > 0
-        ? `Spellbook (${wizardSpellbookNames().length}/${wizardMaxSpellbookSpells()}) - nivel ${level}: ${options.length}`
-        : `Opciones (${options.length})`;
-      main.appendChild(listTitle);
+      actions.append(removeButton);
+      row.append(nameButton, meta, actions);
+      return row;
+    }
+
+    function managedLearnSpellRow(field, spell, detailBody) {
+      const selected = selectedKnownSpellSet().has(normalizeName(spell.name));
+      const limit = getSpellLevelLimit(spell.level);
+      const used = getSelectedSpellCount(spell.level);
+      const atCapacity = !selected && used >= limit;
+      const row = document.createElement("div");
+      row.className = `spell-picker-row ${selected ? "active" : ""}`;
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("button")) return;
+        showSpellPickerDetail(detailBody, spell);
+      });
+
+      const nameButton = document.createElement("button");
+      nameButton.type = "button";
+      nameButton.className = "spell-picker-name";
+      nameButton.textContent = spell.name;
+      nameButton.addEventListener("click", () => showSpellPickerDetail(detailBody, spell));
+
+      const meta = document.createElement("div");
+      meta.className = "spell-picker-meta";
+      meta.textContent = [
+        spellLevelLabel(spell.level),
+        spellSchoolLabel(spell),
+        spellSourceLabel(spell),
+        selected ? "Seleccionada" : atCapacity ? "Limite alcanzado" : `${used}/${limit === Infinity ? "sin limite" : limit}`
+      ].filter(Boolean).join(" - ");
+
+      const actions = document.createElement("div");
+      actions.className = "spell-picker-actions";
+      const learnButton = document.createElement("button");
+      learnButton.type = "button";
+      learnButton.className = "spell-picker-button";
+      learnButton.textContent = selected ? "Seleccionada" : "Aprender";
+      learnButton.disabled = !canModifySpells() || selected || atCapacity;
+      learnButton.addEventListener("click", () => {
+        if (!assignManagedSpellToSheet(spell.name)) return;
+        showStatus(`${spell.name} aprendida`);
+        showSpellSelectionDrawer(field, spell);
+      });
+
+      actions.append(learnButton);
+      row.append(nameButton, meta, actions);
+      return row;
+    }
+
+    function buildManagedSpellsDrawerContent(field, selectedSpell = null) {
+      const root = document.createElement("div");
+      root.className = "spell-picker";
+      const currentSpell = selectedSpell || findSpellByName(field.value || "");
+
+      const main = document.createElement("div");
+      main.className = "spell-picker-main";
 
       const detail = document.createElement("section");
       detail.className = "spell-picker-detail";
@@ -4175,50 +4292,91 @@
       const detailBody = document.createElement("div");
       detailBody.className = "spell-picker-detail-body";
       detail.append(detailHeader, detailBody);
-      main.prepend(buildSpellTranslationToolbar(detailBody, currentSpell));
+      main.appendChild(buildSpellTranslationToolbar(detailBody, currentSpell));
 
-      if (!options.length) {
-        appendItemSection(main, "Sin opciones", isWizardCharacter() && level > 0
-          ? "No hay magias de este nivel en tu spellbook. Agrega magias desde la lista de Wizard."
-          : "No hay magias disponibles para este campo con tu clase, raza, feats y nivel actual.");
+      const summary = document.createElement("section");
+      summary.className = "spell-picker-current";
+      appendText(summary, "item-section-title", "Spells");
+      appendText(
+        summary,
+        "item-section-body",
+        `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
+        "p"
+      );
+      main.appendChild(summary);
+
+      const knownCantrips = selectedCantripNames()
+        .map(findSpellByName)
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const knownCantripTitle = document.createElement("div");
+      knownCantripTitle.className = "item-section-title";
+      knownCantripTitle.textContent = "Cantrips conocidos";
+      main.appendChild(knownCantripTitle);
+      if (!knownCantrips.length) {
+        appendItemSection(main, "Sin cantrips", "Agrega cantrips desde la lista de cantrips disponibles.");
       } else {
         appendSearchableList(
           main,
-          options
-          .sort((a, b) => a.name.localeCompare(b.name))
-            .map((spell) => spellPickerRow(field, spell, detailBody, currentSpell)),
-          "Buscar spell..."
+          knownCantrips.map((spell) => cantripManagerRow(spell, detailBody, field)),
+          "Buscar cantrip conocido..."
         );
       }
 
-      if (wizardAccessibleOptions.length) {
-        const wizardTitle = document.createElement("div");
-        wizardTitle.className = "item-section-title";
-        wizardTitle.textContent = `Lista Wizard para aprender (${wizardAccessibleOptions.length})`;
-        main.appendChild(wizardTitle);
-        appendSearchableList(
-          main,
-          wizardAccessibleOptions
+      const cantripBody = appendCollapsibleSection(main, "Aprender cantrips", { collapsed: true, stateKey: "managed:learn-cantrips" });
+      appendSearchableList(
+        cantripBody,
+        getAccessibleCantripOptions()
           .sort((a, b) => a.name.localeCompare(b.name))
-            .map((spell) => wizardSpellListRow(field, spell, detailBody)),
-          "Buscar spell wizard..."
+          .map((spell) => cantripManagerRow(spell, detailBody, field)),
+        "Buscar cantrip..."
+      );
+
+      const knownSpells = selectedKnownSpellNames()
+        .map(findSpellByName)
+        .filter(Boolean)
+        .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+      const knownBody = appendCollapsibleSection(main, "Spells seleccionadas", { collapsed: false, stateKey: "managed:known-spells" });
+      if (!knownSpells.length) {
+        appendItemSection(knownBody, "Sin spells seleccionadas", "Agrega spells desde la lista disponible.");
+      } else {
+        appendSpellLevelGroups(
+          knownBody,
+          knownSpells,
+          (spell) => managedKnownSpellRow(field, spell, detailBody),
+          "managed:known-spells",
+          "Buscar spell seleccionada"
         );
       }
 
-      showSpellPickerDetail(detailBody, currentSpell || options[0] || wizardAccessibleOptions[0] || null);
+      const learnBody = appendCollapsibleSection(main, "Aprender spells", { collapsed: true, stateKey: "managed:learn-spells" });
+      appendSpellLevelGroups(
+        learnBody,
+        getAllManagedSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
+        (spell) => managedLearnSpellRow(field, spell, detailBody),
+        "managed:learn-spells",
+        "Buscar spell"
+      );
+
+      showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || getAccessibleCantripOptions()[0] || getAllManagedSpellOptions()[0] || null);
       root.append(main, detail);
       return root;
     }
 
+    function buildSpellSelectionDrawerContent(field, selectedSpell = null) {
+      if (isWizardCharacter()) return buildWizardSpellbookDrawerContent(field, selectedSpell);
+      if (isBardCharacter()) return buildBardSpellsDrawerContent(field, selectedSpell);
+      return buildManagedSpellsDrawerContent(field, selectedSpell);
+    }
+
     function showSpellSelectionDrawer(field, selectedSpell = null) {
-      const level = Number(field.dataset.spellLevel);
       showDrawer(
-        isWizardCharacter() ? "Wizard spellbook" : isBardCharacter() ? "Bard spells" : level === 0 ? "Cantrips" : `Magias nivel ${level}`,
+        isWizardCharacter() ? "Wizard spellbook" : isBardCharacter() ? "Bard spells" : "Spells",
         isWizardCharacter()
           ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spellbook ${wizardSpellbookNames().length}/${wizardMaxSpellbookSpells()} - Prepared ${selectedWizardPreparedSpellCount()}/${wizardPreparedSpellLimit()}`
           : isBardCharacter()
             ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells conocidos ${selectedKnownSpellNames().length}/${bardKnownSpellLimit()}`
-          : field.value.trim() ? `Actual: ${field.value.trim()}` : "Sin magia seleccionada",
+          : `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
         buildSpellSelectionDrawerContent(field, selectedSpell)
       );
       itemDrawer.classList.add("spell-picker-drawer");

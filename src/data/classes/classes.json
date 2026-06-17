@@ -9,7 +9,7 @@
   },
   {
     "name": "Bard",
-    "description": "Source: XPHB. Hit Die: d8. Armor: light. Weapons: simple."
+    "description": "Source: XPHB. Primary Ability: Charisma. Hit Die: d8. Saving Throws: Dexterity, Charisma. Spellcasting: Charisma. Armor: light. Weapons: simple. Tools: choose 3 musical instruments. Skills: choose any 3."
   },
   {
     "name": "Cleric",
@@ -41,11 +41,11 @@
   },
   {
     "name": "Ranger",
-    "description": "Source: XPHB. Hit Die: d10. Armor: light, medium, shield. Weapons: simple, martial."
+    "description": "Source: XPHB. Primary Ability: Dexterity, Wisdom. Hit Die: d10. Saving Throws: Strength, Dexterity. Spellcasting: Wisdom. Armor: light, medium, shield. Weapons: simple, martial. Skills: choose 3 from Animal Handling, Athletics, Insight, Investigation, Nature, Perception, Stealth, and Survival."
   },
   {
     "name": "Rogue",
-    "description": "Source: XPHB. Hit Die: d8. Armor: light. Weapons: simple, Martial weapons that have the Finesse or Light property."
+    "description": "Source: XPHB. Primary Ability: Dexterity. Hit Die: d8. Saving Throws: Dexterity, Intelligence. Armor: light. Weapons: simple, Martial weapons that have the Finesse or Light property. Tools: Thieves' Tools. Skills: choose 4 from Acrobatics, Athletics, Deception, Insight, Intimidation, Investigation, Perception, Persuasion, Sleight of Hand, and Stealth."
   },
   {
     "name": "Sorcerer",
@@ -57,7 +57,7 @@
   },
   {
     "name": "Warlock",
-    "description": "Source: XPHB. Hit Die: d8. Armor: light. Weapons: simple."
+    "description": "Source: XPHB. Primary Ability: Charisma. Hit Die: d8. Saving Throws: Wisdom, Charisma. Spellcasting: Charisma. Armor: light. Weapons: simple. Skills: choose 2 from Arcana, Deception, History, Intimidation, Investigation, Nature, and Religion."
   },
   {
     "name": "Warrior Sidekick",
