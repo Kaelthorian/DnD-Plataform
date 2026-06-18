@@ -1,8 +1,10 @@
 const assert = require("assert");
+require("../../src/engine/resources/resource-state");
 const {
   computeSpellSlotFieldUpdates,
   computeLongRestRecovery,
-  getLongRestTransition
+  getLongRestTransition,
+  resolveLongRest
 } = require("../../src/engine/rests/long-rest");
 
 assert.deepStrictEqual(computeSpellSlotFieldUpdates({
@@ -26,6 +28,7 @@ assert.deepStrictEqual(computeLongRestRecovery({
     resetRemaining: true
   }),
   featureUses: {},
+  nextResourceState: {},
   currentHitPoints: "17"
 });
 
@@ -43,4 +46,39 @@ assert.deepStrictEqual(getLongRestTransition({
 }), {
   nextLongRestActive: false,
   shouldRestoreResources: true
+});
+
+assert.deepStrictEqual(resolveLongRest({
+  characterReady: true,
+  longRestActive: false,
+  slotTotals: [4, 3],
+  remainingByLevel: { 1: "2", 2: "1" },
+  currentHitPoints: "8",
+  maxHitPoints: "17"
+}), {
+  nextLongRestActive: true,
+  shouldRestoreResources: false,
+  mode: "start",
+  recovery: null
+});
+
+const instantLongRest = resolveLongRest({
+  characterReady: false,
+  longRestActive: false,
+  slotTotals: [4],
+  remainingByLevel: { 1: "0" },
+  currentHitPoints: "3",
+  maxHitPoints: "9"
+});
+assert.strictEqual(instantLongRest.mode, "instant");
+assert.strictEqual(instantLongRest.shouldRestoreResources, true);
+assert.deepStrictEqual(instantLongRest.recovery, {
+  spellSlotUpdates: computeSpellSlotFieldUpdates({
+    slotTotals: [4],
+    remainingByLevel: { 1: "0" },
+    resetRemaining: true
+  }),
+  featureUses: {},
+  nextResourceState: {},
+  currentHitPoints: "9"
 });

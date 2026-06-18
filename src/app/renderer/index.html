@@ -79,11 +79,11 @@
   <script>
     "use strict";
 
-    // INLINE SPELL/REST MECHANICS: spell slots, prepared/known spells, long-rest recovery, and spell availability remain here for now.
+    // INLINE SPELL/REST MECHANICS: spell slots, prepared/known spells, and spell availability remain here for now.
     const {
       computeLongRestRecovery,
       computeSpellSlotFieldUpdates,
-      getLongRestTransition
+      resolveLongRest
     } = globalThis.dndLongRestEngine;
     const {
       ensureResourceState,
@@ -645,18 +645,22 @@
       return Boolean(field) && field === getCurrentHitPointsField();
     }
 
-    function restoreLongRestResources() {
+    function applyLongRestRecovery(recovery) {
+      if (!recovery) return;
       const currentHpField = getCurrentHitPointsField();
-      const recovery = computeLongRestRecovery({
-        slotTotals: spellSlotsForCharacter(),
-        remainingByLevel: spellSlotRemainingByLevel(),
-        currentHitPoints: currentHpField?.value || "",
-        maxHitPoints: fieldValue("HPMax")
-      });
       applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
-      sheetMeta.featureUses = recovery.featureUses;
+      sheetMeta.featureUses = recovery.nextResourceState;
       if (currentHpField && fieldValue("HPMax")) currentHpField.value = recovery.currentHitPoints;
       updatePreparedSpellsPanel();
+    }
+
+    function restoreLongRestResources() {
+      applyLongRestRecovery(computeLongRestRecovery({
+        slotTotals: spellSlotsForCharacter(),
+        remainingByLevel: spellSlotRemainingByLevel(),
+        currentHitPoints: getCurrentHitPointsField()?.value || "",
+        maxHitPoints: fieldValue("HPMax")
+      }));
     }
 
     function spendSpellSlot(level) {
@@ -667,19 +671,23 @@
     }
 
     function longRestSpellResources() {
-      const transition = getLongRestTransition({
+      const result = resolveLongRest({
         characterReady: isCharacterReady(),
-        longRestActive: isLongRestActive()
+        longRestActive: isLongRestActive(),
+        slotTotals: spellSlotsForCharacter(),
+        remainingByLevel: spellSlotRemainingByLevel(),
+        currentHitPoints: getCurrentHitPointsField()?.value || "",
+        maxHitPoints: fieldValue("HPMax")
       });
-      if (!isCharacterReady()) {
-        restoreLongRestResources();
+      if (result.mode === "instant") {
+        applyLongRestRecovery(result.recovery);
         scheduleSave();
         showStatus("Long rest: vida y spell slots restaurados");
         return;
       }
-      sheetMeta.longRestActive = transition.nextLongRestActive;
-      if (transition.shouldRestoreResources) {
-        restoreLongRestResources();
+      sheetMeta.longRestActive = result.nextLongRestActive;
+      if (result.recovery) {
+        applyLongRestRecovery(result.recovery);
       }
       updateInteractionState();
       if (itemDrawer?.classList.contains("visible") && itemDrawer.classList.contains("spell-picker-drawer")) {

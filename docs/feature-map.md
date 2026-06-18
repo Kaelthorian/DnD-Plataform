@@ -33,10 +33,10 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
 - Spells: `src/engine/spells`
 - Feats: `src/engine/feats`
 - Rests: `src/engine/rests`
-- Long-rest recovery math: `src/engine/rests/long-rest.js`
+- Long-rest transitions and recovery math: `src/engine/rests/long-rest.js`
 - Conditions: `src/engine/conditions`
 - Resources: `src/engine/resources`
-- Resource use state math: `src/engine/resources/resource-state.js`
+- Resource use state normalization, spending, and reset math: `src/engine/resources/resource-state.js`
 - Proficiencies: `src/engine/proficiencies`
 - Attacks: `src/engine/attacks`
 - Skills: `src/engine/skills`

@@ -1,9 +1,18 @@
 (function createLongRestModule(globalScope, factory) {
-  const api = factory();
+  const api = factory(globalScope);
   if (typeof module === "object" && module.exports) module.exports = api;
   globalScope.dndLongRestEngine = api;
-})(typeof globalThis !== "undefined" ? globalThis : this, function longRestFactory() {
+})(typeof globalThis !== "undefined" ? globalThis : this, function longRestFactory(globalScope) {
   "use strict";
+
+  function fallbackResetResourceState() {
+    return {};
+  }
+
+  function getResetResourceState() {
+    const reset = globalScope?.dndResourceStateEngine?.resetResourceState;
+    return typeof reset === "function" ? reset : fallbackResetResourceState;
+  }
 
   function readLevelValue(source, level) {
     if (Array.isArray(source)) return source[level - 1];
@@ -43,13 +52,15 @@
   }
 
   function computeLongRestRecovery({ slotTotals = [], remainingByLevel = {}, currentHitPoints = "", maxHitPoints = "" } = {}) {
+    const nextResourceState = getResetResourceState()();
     return {
       spellSlotUpdates: computeSpellSlotFieldUpdates({
         slotTotals,
         remainingByLevel,
         resetRemaining: true
       }),
-      featureUses: {},
+      featureUses: nextResourceState,
+      nextResourceState,
       currentHitPoints: String(maxHitPoints || "").trim() ? maxHitPoints : currentHitPoints
     };
   }
@@ -68,9 +79,38 @@
     };
   }
 
+  function resolveLongRest({
+    characterReady,
+    longRestActive,
+    slotTotals = [],
+    remainingByLevel = {},
+    currentHitPoints = "",
+    maxHitPoints = ""
+  } = {}) {
+    const transition = getLongRestTransition({ characterReady, longRestActive });
+    const mode = !characterReady
+      ? "instant"
+      : transition.nextLongRestActive
+        ? "start"
+        : "finish";
+    return {
+      ...transition,
+      mode,
+      recovery: transition.shouldRestoreResources
+        ? computeLongRestRecovery({
+            slotTotals,
+            remainingByLevel,
+            currentHitPoints,
+            maxHitPoints
+          })
+        : null
+    };
+  }
+
   return {
     computeSpellSlotFieldUpdates,
     computeLongRestRecovery,
-    getLongRestTransition
+    getLongRestTransition,
+    resolveLongRest
   };
 });

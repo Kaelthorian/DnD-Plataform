@@ -37,6 +37,19 @@ assert.deepStrictEqual(spentOnce.nextInfo, {
   remaining: 2
 });
 
+const spentNone = spendResourceUse({
+  key: "feat|lucky",
+  max: 3,
+  state: { "feat|lucky": 3 }
+});
+assert.strictEqual(spentNone.changed, false);
+assert.deepStrictEqual(spentNone.nextInfo, {
+  key: "feat|lucky",
+  max: 3,
+  spent: 3,
+  remaining: 0
+});
+
 const magicGrant = {
   key: "magic-initiate|wizard|shield",
   prepared: true,
@@ -64,3 +77,4 @@ assert.deepStrictEqual(spentMagic.state, {
 });
 assert.strictEqual(spentMagic.nextInfo.remaining, 0);
 assert.deepStrictEqual(resetResourceState(), {});
+assert.notStrictEqual(resetResourceState(), resetResourceState());
