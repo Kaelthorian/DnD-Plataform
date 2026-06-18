@@ -1093,6 +1093,232 @@
 				"Dread Incarnate|Rogue|XPHB|Scion of the Three|FRHoF|17|FRHoF"
 			],
 			"hasFluffImages": true
+		},
+		{
+			"name": "Dark Petitioner",
+			"shortName": "Dark Petitioner",
+			"source": "CoE",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"page": 94,
+			"spellcastingAbility": "wis",
+			"casterProgression": "1/3",
+			"spellsKnownProgression": [
+				0,
+				0,
+				3,
+				4,
+				4,
+				4,
+				5,
+				6,
+				6,
+				7,
+				8,
+				8,
+				9,
+				10,
+				10,
+				11,
+				11,
+				11,
+				12,
+				13
+			],
+			"cantripProgression": [
+				0,
+				0,
+				2,
+				2,
+				2,
+				2,
+				2,
+				2,
+				2,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3
+			],
+			"additionalSpells": [
+				{
+					"known": {
+						"3": [
+							"guidance|xphb#c"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Dark Petitioner|Rogue|XPHB|Dark Petitioner|CoE|3|CoE",
+				"Azur's Advantage|Rogue|XPHB|Dark Petitioner|CoE|9|CoE",
+				"Shadow's Veil|Rogue|XPHB|Dark Petitioner|CoE|13|CoE",
+				"Keeper's End|Rogue|XPHB|Dark Petitioner|CoE|17|CoE"
+			]
+		},
+		{
+			"name": "Grim Surgeon",
+			"shortName": "Grim Surgeon",
+			"source": "TGS2",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"page": 224,
+			"subclassFeatures": [
+				"Grim Surgeon|Rogue|XPHB|Grim Surgeon|TGS2|3|TGS2",
+				"Field Surgeon|Rogue|XPHB|Grim Surgeon|TGS2|9|TGS2",
+				"Toxic Shock|Rogue|XPHB|Grim Surgeon|TGS2|13|TGS2",
+				"Bloodbound|Rogue|XPHB|Grim Surgeon|TGS2|17|TGS2"
+			]
+		},
+		{
+			"name": "Highway Rider",
+			"shortName": "Highway Rider",
+			"source": "GH:PG'24",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"page": 89,
+			"edition": "one",
+			"additionalSpells": [
+				{
+					"prepared": {
+						"3": [
+							"find steed|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Highway Rider|Rogue|XPHB|Highway Rider|GH:PG'24|3|GH:PG'24",
+				"Horse Lord|Rogue|XPHB|Highway Rider|GH:PG'24|9|GH:PG'24",
+				"True Grit|Rogue|XPHB|Highway Rider|GH:PG'24|13|GH:PG'24",
+				"Desperado|Rogue|XPHB|Highway Rider|GH:PG'24|17|GH:PG'24"
+			]
+		},
+		{
+			"name": "Misfortune Bringer",
+			"shortName": "Misfortune Bringer",
+			"source": "GH:PG'24",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"page": 90,
+			"edition": "one",
+			"subclassFeatures": [
+				"Misfortune Bringer|Rogue|XPHB|Misfortune Bringer|GH:PG'24|3|GH:PG'24",
+				"Steal Luck|Rogue|XPHB|Misfortune Bringer|GH:PG'24|9|GH:PG'24",
+				"Curse Caster|Rogue|XPHB|Misfortune Bringer|GH:PG'24|13|GH:PG'24",
+				"Improved Steal Luck|Rogue|XPHB|Misfortune Bringer|GH:PG'24|17|GH:PG'24"
+			]
+		},
+		{
+			"name": "Phantom",
+			"shortName": "Phantom",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"edition": "one",
+			"subclassFeatures": [
+				"Phantom|Rogue|XPHB|Phantom|RHW|3|RHW",
+				"Tokens of the Departed|Rogue|XPHB|Phantom|RHW|9|RHW",
+				"Ghost Walk|Rogue|XPHB|Phantom|RHW|13|RHW",
+				"Death's Friend|Rogue|XPHB|Phantom|RHW|17|RHW"
+			]
+		},
+		{
+			"name": "Sanguine Thief",
+			"shortName": "Sanguine Thief",
+			"source": "GH:PG'24",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"page": 91,
+			"spellcastingAbility": "int",
+			"casterProgression": "1/3",
+			"preparedSpellsProgression": [
+				0,
+				0,
+				3,
+				4,
+				4,
+				4,
+				5,
+				6,
+				6,
+				7,
+				8,
+				8,
+				9,
+				10,
+				10,
+				11,
+				11,
+				11,
+				12,
+				13
+			],
+			"preparedSpellsChange": "level",
+			"cantripProgression": [
+				0,
+				0,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3,
+				3,
+				4,
+				4,
+				4,
+				4,
+				4,
+				4,
+				4,
+				4,
+				4,
+				4,
+				4
+			],
+			"additionalSpells": [
+				{
+					"expanded": {
+						"3": [
+							{
+								"all": "level=0|class=Wizard"
+							},
+							{
+								"all": "level=1|class=Wizard"
+							}
+						],
+						"7": [
+							{
+								"all": "level=2|class=Wizard"
+							}
+						],
+						"13": [
+							{
+								"all": "level=3|class=Wizard"
+							}
+						],
+						"19": [
+							{
+								"all": "level=4|class=Wizard"
+							}
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Sanguine Thief|Rogue|XPHB|Sanguine Thief|GH:PG'24|3|GH:PG'24",
+				"Bloody Blades|Rogue|XPHB|Sanguine Thief|GH:PG'24|9|GH:PG'24",
+				"Bloodstitch|Rogue|XPHB|Sanguine Thief|GH:PG'24|13|GH:PG'24",
+				"Bloody Exit|Rogue|XPHB|Sanguine Thief|GH:PG'24|17|GH:PG'24"
+			]
 		}
 	],
 	"classFeature": [
@@ -2376,6 +2602,644 @@
 			"header": 2,
 			"entries": [
 				"You are adept at laying ambushes and quickly escaping danger. You can take two turns during the first round of any combat. You take your first turn at your normal {@variantrule Initiative|XPHB} and your second turn at your {@variantrule Initiative|XPHB} minus 10."
+			]
+		},
+		{
+			"name": "Dark Petitioner",
+			"source": "CoE",
+			"page": 94,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Dark Petitioner",
+			"subclassSource": "CoE",
+			"level": 3,
+			"entries": [
+				"As a rogue, you know that the path to peace and prosperity is rarely as virtuous as the Vassals of the Sovereign Host claim. Victory must be won by pragmatism, sacrifice, and the blood of those who aren't afraid to get their hands dirty.",
+				"Though some Dark Petitioners worship the Dark Six as great leaders to venerate and emulate, many instead appease those powers and turn their attention toward their enemies.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Spellcasting|Rogue|XPHB|Dark Petitioner|CoE|3|CoE"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Pragmatic Petition|Rogue|XPHB|Dark Petitioner|CoE|3|CoE"
+				}
+			]
+		},
+		{
+			"name": "Spellcasting",
+			"source": "CoE",
+			"page": 94,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Dark Petitioner",
+			"subclassSource": "CoE",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you reach 3rd level, you gain the ability to cast cleric spells.",
+				"You automatically learn {@spell Guidance|XPHB} and learn two additional cantrips of your choice from the Dark Petitioner list: Dancing Lights, Friends, Message, Resistance, Spare the Dying, Thaumaturgy, True Strike, and Traveler's Enigma. At Rogue level 10, you learn another cantrip from that list.",
+				"You know three 1st-level cleric spells of your choice. The number of cleric spells you know increases as you gain Rogue levels. Whenever you gain a level in this class, you can replace one cleric spell you know with another spell of your choice from the cleric list for which you have spell slots.",
+				"Wisdom is your spellcasting ability for these spells."
+			]
+		},
+		{
+			"name": "Pragmatic Petition",
+			"source": "CoE",
+			"page": 95,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Dark Petitioner",
+			"subclassSource": "CoE",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you hit a creature with an attack on your turn, you can use the Bonus Action granted by your Cunning Action to cast one of your Dark Petitioner cantrips, regardless of its normal casting time."
+			]
+		},
+		{
+			"name": "Azur's Advantage",
+			"source": "CoE",
+			"page": 95,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Dark Petitioner",
+			"subclassSource": "CoE",
+			"level": 9,
+			"header": 2,
+			"entries": [
+				"If you roll a 1 or 2 on one or more of your Sneak Attack dice when dealing damage to a creature that is blinded, charmed, deafened, frightened, grappled, incapacitated, poisoned, prone, or restrained, you can reroll those dice and must use the new roll."
+			]
+		},
+		{
+			"name": "Shadow's Veil",
+			"source": "CoE",
+			"page": 95,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Dark Petitioner",
+			"subclassSource": "CoE",
+			"level": 13,
+			"header": 2,
+			"entries": [
+				"When you hit a creature with an attack, you can choose to become invisible to that creature for 1 minute or until you dismiss this effect (no action required). This invisibility ends early if you deal damage to a creature or force a creature to make a saving throw.",
+				"Once you use this feature, you can't do so again until you finish a Long Rest unless you expend a spell slot to use it again."
+			]
+		},
+		{
+			"name": "Keeper's End",
+			"source": "CoE",
+			"page": 95,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Dark Petitioner",
+			"subclassSource": "CoE",
+			"level": 17,
+			"header": 2,
+			"entries": [
+				"When you reduce a creature to 0 Hit Points, you can steal that creature's soul and keep it joined with your own. While a creature's soul is joined to yours, that creature can be restored to life only by a Wish spell.",
+				"When you have to make a death saving throw, you can instead release a soul you have stolen to regain 1 Hit Point."
+			]
+		},
+		{
+			"name": "Grim Surgeon",
+			"source": "TGS2",
+			"page": 224,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Surgeon",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"entries": [
+				"You've developed a unique familiarity with knives, bodies, and blood in your line of work. A grim surgeon uses medical knowledge and strange blood magic to dismantle foes, restore allies, and control bodies like puppets.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Medic|Rogue|XPHB|Grim Surgeon|TGS2|3|TGS2"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Transfusion|Rogue|XPHB|Grim Surgeon|TGS2|3|TGS2"
+				}
+			]
+		},
+		{
+			"name": "Medic",
+			"source": "TGS2",
+			"page": 224,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Surgeon",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You gain proficiency in the Medicine skill if you don't already have it, and your proficiency bonus is doubled for any ability check you make using it.",
+				"You can use a Bonus Action to magically stabilize an unconscious creature within 5 feet of you.",
+				"You can also use a Bonus Action to expend one use of a healer's kit on a creature. When you do, that creature regains hit points equal to 1d4 + your proficiency bonus, and it can't regain hit points from this feature again until it finishes a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Transfusion",
+			"source": "TGS2",
+			"page": 224,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Surgeon",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Once on each of your turns when you deal Sneak Attack damage to a creature that isn't a construct or an undead, you gain Temporary Hit Points equal to your Wisdom modifier (minimum 1).",
+				"When you reach Rogue level 13, you instead gain Temporary Hit Points equal to twice your Wisdom modifier. These Temporary Hit Points last until the start of your next turn."
+			]
+		},
+		{
+			"name": "Field Surgeon",
+			"source": "TGS2",
+			"page": 224,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Surgeon",
+			"subclassSource": "TGS2",
+			"level": 9,
+			"header": 2,
+			"entries": [
+				"At the start of a Short Rest, you can choose a willing creature within your reach. Roll your Sneak Attack dice and record the result. At the end of the Short Rest, that creature regains Hit Points equal to the total.",
+				"Once a creature regains Hit Points from this feature, it can't do so again until it finishes a Long Rest."
+			]
+		},
+		{
+			"name": "Toxic Shock",
+			"source": "TGS2",
+			"page": 224,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Surgeon",
+			"subclassSource": "TGS2",
+			"level": 13,
+			"header": 2,
+			"entries": [
+				"When you gain Temporary Hit Points from Transfusion, the target of the attack is overcome by sickness. Until the end of its next turn, its Speed is reduced by 10 feet, and it has Disadvantage on the next attack roll or ability check it makes before then."
+			]
+		},
+		{
+			"name": "Bloodbound",
+			"source": "TGS2",
+			"page": 224,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Surgeon",
+			"subclassSource": "TGS2",
+			"level": 17,
+			"header": 2,
+			"entries": [
+				"Immediately after you deal Sneak Attack damage to a Beast or Humanoid, you can force that creature to make a Constitution saving throw against a DC equal to 8 + your proficiency bonus + your Wisdom modifier.",
+				"On a failed save, that creature is affected by Dominate Beast or Dominate Person, respectively, for 1 minute or until you choose to end the effect.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Highway Rider",
+			"source": "GH:PG'24",
+			"page": 89,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Highway Rider",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"{@i A Steed Makes the Best Partner in Crime}",
+				"Stalking the backroads, the Highway Rider strikes fear into the heart of every traveler and penny-pinching merchant. They run down their prize astride a swift and loyal steed and then make a quick getaway.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Hair Trigger|Rogue|XPHB|Highway Rider|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Trusty Mount|Rogue|XPHB|Highway Rider|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Ride Them Down|Rogue|XPHB|Highway Rider|GH:PG'24|3|GH:PG'24"
+				}
+			]
+		},
+		{
+			"name": "Hair Trigger",
+			"source": "GH:PG'24",
+			"page": 89,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Highway Rider",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You gain proficiency with Blackpowder Pistols.",
+				"When you roll Initiative and don't have Disadvantage on that roll, you can immediately take a Reaction to make one weapon or Unarmed Strike attack, move up to your Speed without provoking Opportunity Attacks, have a controlled mount move up to its Speed without provoking Opportunity Attacks, or take the Dodge or Utilize action."
+			]
+		},
+		{
+			"name": "Trusty Mount",
+			"source": "GH:PG'24",
+			"page": 89,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Highway Rider",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You always have {@spell Find Steed|XPHB} prepared. With this feature, you can cast it without a spell slot or components, and Intelligence is your spellcasting ability for it.",
+				"Once you cast the spell this way, you can't do so again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Ride Them Down",
+			"source": "GH:PG'24",
+			"page": 89,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Highway Rider",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You don't need Advantage on the attack roll to use Sneak Attack if you or a controlled mount you ride moved at least 20 feet and you don't have Disadvantage on the attack roll."
+			]
+		},
+		{
+			"name": "Horse Lord",
+			"source": "GH:PG'24",
+			"page": 89,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Highway Rider",
+			"subclassSource": "GH:PG'24",
+			"level": 9,
+			"header": 2,
+			"entries": [
+				"You can spend 1 minute grooming and caring for your mount, at the end of which it gains Temporary Hit Points equal to twice your Rogue level."
+			]
+		},
+		{
+			"name": "True Grit",
+			"source": "GH:PG'24",
+			"page": 89,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Highway Rider",
+			"subclassSource": "GH:PG'24",
+			"level": 13,
+			"header": 2,
+			"entries": [
+				"You gain proficiency in Constitution saving throws.",
+				"When an effect allows you to make a Constitution saving throw to take only half damage, you instead take no damage on a success and only half damage on a failure."
+			]
+		},
+		{
+			"name": "Desperado",
+			"source": "GH:PG'24",
+			"page": 89,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Highway Rider",
+			"subclassSource": "GH:PG'24",
+			"level": 17,
+			"header": 2,
+			"entries": [
+				"When you are reduced to 0 Hit Points and not killed outright, you can use your Hair Trigger feature immediately before you fall Unconscious."
+			]
+		},
+		{
+			"name": "Misfortune Bringer",
+			"source": "GH:PG'24",
+			"page": 90,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Misfortune Bringer",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"{@i Curse Those You're About to Strike}",
+				"You've matched your penchant for illicit activities with the ability to mark your enemies for mishap and misfortune.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Evil Eye|Rogue|XPHB|Misfortune Bringer|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Misfortunist|Rogue|XPHB|Misfortune Bringer|GH:PG'24|3|GH:PG'24"
+				}
+			]
+		},
+		{
+			"name": "Evil Eye",
+			"source": "GH:PG'24",
+			"page": 90,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Misfortune Bringer",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"As a Bonus Action, choose a creature you can see within 60 feet to be cursed by your Evil Eye.",
+				"While a creature is cursed by your Evil Eye, you can deal Sneak Attack damage to it if you don't have Disadvantage on the attack roll.",
+				"The curse lasts for 1 minute or until you curse a different creature."
+			]
+		},
+		{
+			"name": "Misfortunist",
+			"source": "GH:PG'24",
+			"page": 90,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Misfortune Bringer",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You learn two Misfortunes of your choice.",
+				"You learn an additional Misfortune when you reach Rogue levels 9, 13, and 17. Whenever you finish a Long Rest, you can replace one Misfortune you know with a different one.",
+				"You have 4 Jinx Points, gaining 2 additional Jinx Points at Rogue level 13. You spend Jinx Points to use Misfortunes and regain all expended Jinx Points when you finish a Short or Long Rest.",
+				"If a Misfortune requires a saving throw, the DC equals 8 + your Charisma or Intelligence modifier (your choice) + your proficiency bonus."
+			]
+		},
+		{
+			"name": "Steal Luck",
+			"source": "GH:PG'24",
+			"page": 90,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Misfortune Bringer",
+			"subclassSource": "GH:PG'24",
+			"level": 9,
+			"header": 2,
+			"entries": [
+				"When a creature you can see within 30 feet is about to make a d20 Test with Advantage, you can take a Reaction to prevent the roll from being affected by Advantage. When you do, you regain 1 expended Jinx Point.",
+				"Once you use this feature, you can't do so again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Curse Caster",
+			"source": "GH:PG'24",
+			"page": 90,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Misfortune Bringer",
+			"subclassSource": "GH:PG'24",
+			"level": 13,
+			"header": 2,
+			"entries": [
+				"You can take a Magic action and spend 3 Jinx Points to cast {@spell Bestow Curse|XPHB}."
+			]
+		},
+		{
+			"name": "Improved Steal Luck",
+			"source": "GH:PG'24",
+			"page": 90,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Misfortune Bringer",
+			"subclassSource": "GH:PG'24",
+			"level": 17,
+			"header": 2,
+			"entries": [
+				"You can use your Steal Luck feature three times, and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Phantom",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Phantom",
+			"subclassSource": "RHW",
+			"level": 3,
+			"entries": [
+				"{@i Embrace Death and Wield Ghostly Power}",
+				"Some Rogues traverse the veil between life and death, shepherding opponents to the grave and slipping through the world as undetectable as a spirit.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Wails from the Grave|Rogue|XPHB|Phantom|RHW|3|RHW"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Whispers of the Dead|Rogue|XPHB|Phantom|RHW|3|RHW"
+				}
+			]
+		},
+		{
+			"name": "Wails from the Grave",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Phantom",
+			"subclassSource": "RHW",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Immediately after you deal Sneak Attack damage to a creature on your turn, you can target a second creature you can see within 30 feet of the first creature.",
+				"Roll half the number of Sneak Attack damage dice for your level (round up). The second creature takes Necrotic damage equal to the roll's total.",
+				"You can use this feature a number of times equal to your Dexterity modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Whispers of the Dead",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Phantom",
+			"subclassSource": "RHW",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Whenever you finish a Short or Long Rest, you can choose one skill or tool proficiency that you lack and gain it. You lose this proficiency when you use this benefit again to choose a different proficiency."
+			]
+		},
+		{
+			"name": "Tokens of the Departed",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Phantom",
+			"subclassSource": "RHW",
+			"level": 9,
+			"header": 2,
+			"entries": [
+				"The spirits of the dead are drawn to you, and echoes of their past lives magically manifest as soul trinkets. You begin with two soul trinkets, and if you move more than 30 feet from one it teleports back to you.",
+				"You can destroy a soul trinket when you deal Sneak Attack damage to immediately use Wails from the Grave without expending a normal use.",
+				"While you have at least one soul trinket, you have Advantage on death saving throws and Constitution saving throws.",
+				"You can take a Magic action to destroy one soul trinket and cast {@spell Augury|XPHB}, or if you know the associated creature, ask that spirit one question instead.",
+				"When a creature you can see within 30 feet dies, you can take a Reaction to gain another soul trinket. You can have up to two at a time, increasing to three at Rogue level 13 and four at Rogue level 17."
+			]
+		},
+		{
+			"name": "Voice of Death",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Phantom",
+			"subclassSource": "RHW",
+			"level": 9,
+			"header": 2,
+			"entries": [
+				"You can cast {@spell Speak with Dead|XPHB} once without a spell slot, requiring no spell components and using Dexterity as your spellcasting ability for the spell. You regain this use when you finish a Short or Long Rest.",
+				"When you cast the spell, you can target one of your soul trinkets from Tokens of the Departed instead of a corpse."
+			]
+		},
+		{
+			"name": "Ghost Walk",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Phantom",
+			"subclassSource": "RHW",
+			"level": 13,
+			"header": 2,
+			"entries": [
+				"As a Bonus Action, you assume a spectral form for 10 minutes or until you end it. Once you use this feature, you can't use it again until you finish a Long Rest unless you destroy one soul trinket to restore your use.",
+				"While in this form, you gain a Fly Speed of 10 feet and can hover.",
+				"Attack rolls have Disadvantage against you.",
+				"You can move through creatures and objects as if they were Difficult Terrain, but you take 1d10 Force damage if you end your turn inside a creature or object."
+			]
+		},
+		{
+			"name": "Death's Friend",
+			"source": "RHW",
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Phantom",
+			"subclassSource": "RHW",
+			"level": 17,
+			"header": 2,
+			"entries": [
+				"When you use Wails from the Grave, you can deal the feature's Necrotic damage to both the first and the second creature.",
+				"When you roll Initiative, if you have no soul trinkets remaining for Tokens of the Departed, you gain one."
+			]
+		},
+		{
+			"name": "Sanguine Thief",
+			"source": "GH:PG'24",
+			"page": 91,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Sanguine Thief",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"{@i Eliminate Your Prey with Blood Magic}",
+				"Sanguine Thieves are assassins who harness the power of Sangromancy to fuel their abilities, finding new ways to use the blood they see all too frequently in their line of work.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Spellcasting|Rogue|XPHB|Sanguine Thief|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Stolen Power|Rogue|XPHB|Sanguine Thief|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Steal Blood|Rogue|XPHB|Sanguine Thief|GH:PG'24|3|GH:PG'24"
+				}
+			]
+		},
+		{
+			"name": "Spellcasting",
+			"source": "GH:PG'24",
+			"page": 91,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Sanguine Thief",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You have learned to cast Wizard spells, as well as spells from the Sangromancy school. All Sangromancy spells and cantrips are treated as Wizard spells for the purposes of this subclass.",
+				"You know three cantrips from the Wizard spell list and Sangromancy list. When you reach Rogue level 10, you learn another Wizard cantrip.",
+				"You prepare the list of level 1+ Wizard spells available to you with this feature, starting with three 1st-level Wizard spells. The number of prepared spells increases as you gain Rogue levels, and whenever you gain a Rogue level you can replace one prepared spell with another Wizard spell for which you have spell slots.",
+				"Intelligence is your spellcasting ability, and you can use an Arcane Focus as a Spellcasting Focus for these spells."
+			]
+		},
+		{
+			"name": "Stolen Power",
+			"source": "GH:PG'24",
+			"page": 92,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Sanguine Thief",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You draw magic from blood, represented by your Sangromancy Dice. You have a pool of d8s equal to the number of Sneak Attack dice shown for your Rogue level.",
+				"You can spend Sangromancy Dice instead of Hit Dice when you cast Sangromancy spells.",
+				"You regain all expended Sangromancy Dice when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Steal Blood",
+			"source": "GH:PG'24",
+			"page": 92,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Sanguine Thief",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you deal Sneak Attack damage, you can restore 1 Sangromancy Die.",
+				"If you are Bloodied, instead of restoring 1 Sangromancy Die you can immediately roll the die and regain Hit Points equal to the roll's total.",
+				"You can use this feature a number of times equal to your Intelligence modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Bloody Blades",
+			"source": "GH:PG'24",
+			"page": 92,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Sanguine Thief",
+			"subclassSource": "GH:PG'24",
+			"level": 9,
+			"header": 2,
+			"entries": [
+				"When you finish a Long Rest, you can spend up to 2 Hit Dice or Sangromancy Dice to create a number of daggers equal to the number of dice spent. Each dagger counts as an Arcane Focus for your Sanguine Thief spells, and you can cast spells with Somatic components even if you wield them.",
+				"When you score a Critical Hit with one of these daggers, you can cause it to deal extra Necrotic damage equal to a number of d8s equal to the number of Hit Dice or Sangromancy Dice spent on the feature.",
+				"The daggers last until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Bloodstitch",
+			"source": "GH:PG'24",
+			"page": 92,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Sanguine Thief",
+			"subclassSource": "GH:PG'24",
+			"level": 13,
+			"header": 2,
+			"entries": [
+				"As a Magic action, you can spend 3 Hit Dice or Sangromancy Dice to fling a wave of needle-like blood shards. Each creature of your choice in a 30-foot Emanation originating from you must make a Dexterity saving throw against your spell save DC, taking 3d8 Necrotic damage on a failed save or half as much on a success.",
+				"You regain 1 Hit Die or Sangromancy Die of your choice for each creature reduced to 0 Hit Points by this feature.",
+				"Once you use this feature, you can't do so again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Bloody Exit",
+			"source": "GH:PG'24",
+			"page": 92,
+			"className": "Rogue",
+			"classSource": "XPHB",
+			"subclassShortName": "Sanguine Thief",
+			"subclassSource": "GH:PG'24",
+			"level": 17,
+			"header": 2,
+			"entries": [
+				"When a creature hits you with an attack roll, you can take a Reaction and spend 5 Hit Dice or Sangromancy Dice to turn into bloody mist. The attack automatically misses you, you can teleport up to 30 feet to an unoccupied space you can see, and you regain your normal form.",
+				"As part of this Reaction, you can make one melee weapon attack immediately after you teleport. On a hit, that attack deals an extra 5d8 Necrotic damage.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest."
 			]
 		}
 	]

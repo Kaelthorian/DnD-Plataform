@@ -816,6 +816,304 @@
 				"Frozen Haunt|Ranger|XPHB|Winter Walker|FRHoF|15|FRHoF"
 			],
 			"hasFluffImages": true
+		},
+		{
+			"name": "Bloodhound",
+			"shortName": "Bloodhound",
+			"source": "FoEQ",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"page": 152,
+			"edition": "one",
+			"additionalSpells": [
+				{
+					"prepared": {
+						"3": [
+							"alarm|xphb"
+						],
+						"5": [
+							"hold person|xphb"
+						],
+						"9": [
+							"clairvoyance|xphb"
+						],
+						"13": [
+							"locate creature|xphb"
+						],
+						"17": [
+							"scrying|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Bloodhound|Ranger|XPHB|Bloodhound|FoEQ|3|FoEQ",
+				"Relentless Pursuit|Ranger|XPHB|Bloodhound|FoEQ|7|FoEQ",
+				"Eyes on the Prize|Ranger|XPHB|Bloodhound|FoEQ|11|FoEQ",
+				"Nowhere to Hide|Ranger|XPHB|Bloodhound|FoEQ|15|FoEQ"
+			]
+		},
+		{
+			"name": "Green Reaper",
+			"shortName": "Green Reaper",
+			"source": "GH:PG'24",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"page": 84,
+			"edition": "one",
+			"additionalSpells": [
+				{
+					"prepared": {
+						"3": [
+							"detect poison and disease|xphb"
+						],
+						"5": [
+							"hold person|xphb"
+						],
+						"9": [
+							"bestow curse|xphb"
+						],
+						"13": [
+							"greater invisibility|xphb"
+						],
+						"17": [
+							"cloudkill|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Green Reaper|Ranger|XPHB|Green Reaper|GH:PG'24|3|GH:PG'24",
+				"Poison Control|Ranger|XPHB|Green Reaper|GH:PG'24|7|GH:PG'24",
+				"Variegated Vexations|Ranger|XPHB|Green Reaper|GH:PG'24|11|GH:PG'24",
+				"Pain Tolerance|Ranger|XPHB|Green Reaper|GH:PG'24|15|GH:PG'24"
+			]
+		},
+		{
+			"name": "Grim Harbinger",
+			"shortName": "Grim Harbinger",
+			"source": "TCM'24",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"page": 84,
+			"edition": "one",
+			"additionalSpells": [
+				{
+					"prepared": {
+						"3": [
+							"bane|xphb"
+						],
+						"5": [
+							"hold person|xphb"
+						],
+						"9": [
+							"fear|xphb"
+						],
+						"13": [
+							"intrusive despair|tcm'24"
+						],
+						"17": [
+							"dream|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Grim Harbinger|Ranger|XPHB|Grim Harbinger|TCM'24|3|TCM'24",
+				"Harbinger of Doom|Ranger|XPHB|Grim Harbinger|TCM'24|7|TCM'24",
+				"Grave Bond|Ranger|XPHB|Grim Harbinger|TCM'24|11|TCM'24",
+				"Sealed Fate|Ranger|XPHB|Grim Harbinger|TCM'24|15|TCM'24"
+			]
+		},
+		{
+			"name": "Hollow Warden",
+			"shortName": "Hollow Warden",
+			"source": "RHW",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"edition": "one",
+			"additionalSpells": [
+				{
+					"prepared": {
+						"3": [
+							"wrathful smite|xphb"
+						],
+						"5": [
+							"alter self|xphb"
+						],
+						"9": [
+							"phantom steed|xphb"
+						],
+						"13": [
+							"dominate beast|xphb"
+						],
+						"17": [
+							"steel wind strike|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Hollow Warden|Ranger|XPHB|Hollow Warden|RHW|3|RHW",
+				"Hungering Might|Ranger|XPHB|Hollow Warden|RHW|7|RHW",
+				"Rot and Violence|Ranger|XPHB|Hollow Warden|RHW|11|RHW",
+				"Ancient Might|Ranger|XPHB|Hollow Warden|RHW|15|RHW"
+			]
+		},
+		{
+			"name": "Primordial Archer",
+			"shortName": "Primordial Archer",
+			"source": "GH:PG'24",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"page": 86,
+			"edition": "one",
+			"additionalSpells": [
+				{
+					"prepared": {
+						"3": [
+							"hex|xphb"
+						],
+						"5": [
+							"blindness/deafness|xphb"
+						],
+						"9": [
+							"call lightning|xphb"
+						],
+						"13": [
+							"polymorph|xphb"
+						],
+						"17": [
+							"wall of stone|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Primordial Archer|Ranger|XPHB|Primordial Archer|GH:PG'24|3|GH:PG'24",
+				"Weave the Elements|Ranger|XPHB|Primordial Archer|GH:PG'24|7|GH:PG'24",
+				"Witching Arrows|Ranger|XPHB|Primordial Archer|GH:PG'24|11|GH:PG'24",
+				"Primordial Magic|Ranger|XPHB|Primordial Archer|GH:PG'24|15|GH:PG'24"
+			]
+		},
+		{
+			"name": "Rocborne",
+			"shortName": "Rocborne",
+			"source": "TGS2",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"page": 222,
+			"additionalSpells": [
+				{
+					"known": {
+						"3": [
+							"feather fall|xphb"
+						],
+						"5": [
+							"gust of wind|xphb"
+						],
+						"9": [
+							"lightning bolt|xphb"
+						],
+						"13": [
+							"ice storm|xphb"
+						],
+						"17": [
+							"legend lore|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Rocborne|Ranger|XPHB|Rocborne|TGS2|3|TGS2",
+				"Windswept|Ranger|XPHB|Rocborne|TGS2|7|TGS2",
+				"Soar|Ranger|XPHB|Rocborne|TGS2|11|TGS2",
+				"Hurricane|Ranger|XPHB|Rocborne|TGS2|15|TGS2"
+			]
+		},
+		{
+			"name": "Trapper",
+			"shortName": "Trapper",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassFeatures": [
+				"Trapper|Ranger|XPHB|Trapper|HGtMH|3|HGtMH",
+				"Tracker|Ranger|XPHB|Trapper|HGtMH|7|HGtMH",
+				"Leave No Trace|Ranger|XPHB|Trapper|HGtMH|11|HGtMH",
+				"Booby Trap|Ranger|XPHB|Trapper|HGtMH|15|HGtMH"
+			]
+		},
+		{
+			"name": "Urban Ranger",
+			"shortName": "Urban Ranger",
+			"source": "SCGtD",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"page": 167,
+			"additionalSpells": [
+				{
+					"known": {
+						"3": [
+							"feather fall|xphb"
+						],
+						"5": [
+							"invisibility|xphb"
+						],
+						"9": [
+							"haste|xphb"
+						],
+						"13": [
+							"dimension door|xphb"
+						],
+						"17": [
+							"animate objects|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Urban Ranger|Ranger|XPHB|Urban Ranger|SCGtD|3|SCGtD",
+				"Rooftop Mobility|Ranger|XPHB|Urban Ranger|SCGtD|7|SCGtD",
+				"Perfect Position|Ranger|XPHB|Urban Ranger|SCGtD|11|SCGtD",
+				"Sitting Duck|Ranger|XPHB|Urban Ranger|SCGtD|15|SCGtD"
+			]
+		},
+		{
+			"name": "Vermin Lord",
+			"shortName": "Vermin Lord",
+			"source": "GH:PG'24",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"page": 87,
+			"edition": "one",
+			"additionalSpells": [
+				{
+					"prepared": {
+						"3": [
+							"consumption|gh:pg'24"
+						],
+						"5": [
+							"animal messenger|xphb"
+						],
+						"9": [
+							"flash fever|gh:pg'24"
+						],
+						"13": [
+							"freedom of movement|xphb"
+						],
+						"17": [
+							"contagion|xphb"
+						]
+					}
+				}
+			],
+			"subclassFeatures": [
+				"Vermin Lord|Ranger|XPHB|Vermin Lord|GH:PG'24|3|GH:PG'24",
+				"Filth and Fortitude|Ranger|XPHB|Vermin Lord|GH:PG'24|7|GH:PG'24",
+				"Infectious Spread|Ranger|XPHB|Vermin Lord|GH:PG'24|11|GH:PG'24",
+				"Strength of the Swarm|Ranger|XPHB|Vermin Lord|GH:PG'24|15|GH:PG'24"
+			]
 		}
 	],
 	"classFeature": [
@@ -1993,6 +2291,1277 @@
 			"header": 2,
 			"entries": [
 				"When you take damage, you can take a {@variantrule Reaction|XPHB} to give yourself {@variantrule Resistance|XPHB} to that damage and any other damage of the same type until the end of the current turn."
+			]
+		},
+		{
+			"name": "Bloodhound",
+			"source": "FoEQ",
+			"page": 152,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Bloodhound",
+			"subclassSource": "FoEQ",
+			"level": 3,
+			"entries": [
+				"{@i Follow your Mark to the Bitter End}",
+				"Rangers recognise the primal connections between all living things, and as a Bloodhound you know precisely how to exploit them to track down your chosen prey. The Western Frontier is home to countless fugitives and war criminals, and House Tharashk trains its best bounty hunters to follow these ancient techniques - while on the other side of the Border Road, Znir hunters and worgs of the Great Pack use the skills of the Bloodhound to track enemies of Droaam.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Bloodhound Spells|Ranger|XPHB|Bloodhound|FoEQ|3|FoEQ"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Ley Line Tracker|Ranger|XPHB|Bloodhound|FoEQ|3|FoEQ"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Unwavering Attention|Ranger|XPHB|Bloodhound|FoEQ|3|FoEQ"
+				}
+			]
+		},
+		{
+			"name": "Bloodhound Spells",
+			"source": "FoEQ",
+			"page": 152,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Bloodhound",
+			"subclassSource": "FoEQ",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you reach a Ranger level specified in the Bloodhound Spells table, you thereafter always have the listed spells prepared.",
+				{
+					"type": "table",
+					"caption": "Bloodhound Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spells"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3rd",
+							"Alarm"
+						],
+						[
+							"5th",
+							"Hold Person"
+						],
+						[
+							"9th",
+							"Clairvoyance"
+						],
+						[
+							"13th",
+							"Locate Creature"
+						],
+						[
+							"17th",
+							"Scrying"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Ley Line Tracker",
+			"source": "FoEQ",
+			"page": 152,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Bloodhound",
+			"subclassSource": "FoEQ",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Given your knowledge of the landscape, you can use ley lines as conduits to stretch your magic over vast distances when tracking a target, granting you the following benefits.",
+				"Mark Bounty. Whenever you finish a Short or Long Rest, you can single out one creature as your bounty. To mark a creature as your bounty, you must have seen that creature or possess an object that has been in their possession for at least 24 hours. Once on each of your turns you can change your bounty to one creature you can see (no action required).",
+				"Masterful Tracking. Your Ranger spells of the Divination school can target your bounty at any distance, even if you cannot see them, unless your bounty is protected from Divination spells (as with Nondetection) or is on another plane of existence."
+			]
+		},
+		{
+			"name": "Unwavering Attention",
+			"source": "FoEQ",
+			"page": 152,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Bloodhound",
+			"subclassSource": "FoEQ",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you hit your bounty or a creature currently marked by your Hunter's Mark, you deal an extra 1d6 damage. You can deal this extra damage only once per turn. If you deal this damage as part of an Opportunity Attack, you can take a Reaction again from the start of the next creature's turn (instead of on your next turn)."
+			]
+		},
+		{
+			"name": "Relentless Pursuit",
+			"source": "FoEQ",
+			"page": 153,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Bloodhound",
+			"subclassSource": "FoEQ",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"If your bounty or a creature currently marked by your Hunter's Mark ends its turn more than 5 feet away from you and you can see it, you can use your Reaction to move your speed towards it. This movement does not provoke Opportunity Attacks."
+			]
+		},
+		{
+			"name": "Eyes on the Prize",
+			"source": "FoEQ",
+			"page": 153,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Bloodhound",
+			"subclassSource": "FoEQ",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"You focus everything on bringing your chosen target down. When you take the Attack action and target only one creature with all your attacks, you can make an additional attack against that creature. If the additional attack is a melee attack and it hits, the target has either the Grappled or Prone condition (your choice). If the additional attack is a ranged attack and it hits, the target has the Prone condition."
+			]
+		},
+		{
+			"name": "Nowhere to Hide",
+			"source": "FoEQ",
+			"page": 153,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Bloodhound",
+			"subclassSource": "FoEQ",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"Illusions and other magical concealments cannot hinder your pursuit. You can cast True Seeing on yourself without expending a spell slot or material components. If you do so, you can't do so again until you finish a Short or Long Rest.",
+				"Additionally, when you use your Ley Line Tracker feature to target your bounty, you are not affected by magic that conceals your bounty from your Divination spells."
+			]
+		},
+		{
+			"name": "Green Reaper",
+			"source": "GH:PG'24",
+			"page": 84,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Green Reaper",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"{@i Slay with Nature's Venom}",
+				"Green Reapers are assassins who specialize in harnessing the toxic elements of flora and fauna. These Rangers often work as killers for hire utilizing their extensive knowledge to end lives discreetly or with gory panache, depending on the poison used and the client's wishes. Green Reapers exhibit a morbid curiosity when encountering a toxin they're unfamiliar with, typically followed by an enthusiastic application of the substance on their next foe.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Green Reaper Spells|Ranger|XPHB|Green Reaper|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Envenomed Attack|Ranger|XPHB|Green Reaper|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Toxic Tradecraft|Ranger|XPHB|Green Reaper|GH:PG'24|3|GH:PG'24"
+				}
+			]
+		},
+		{
+			"name": "Green Reaper Spells",
+			"source": "GH:PG'24",
+			"page": 84,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Green Reaper",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you reach a Ranger level specified in the Green Reaper Spells table, you thereafter always have the listed spells prepared.",
+				{
+					"type": "table",
+					"caption": "Green Reaper Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spells"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3rd",
+							"Detect Poison and Disease"
+						],
+						[
+							"5th",
+							"Hold Person"
+						],
+						[
+							"9th",
+							"Bestow Curse"
+						],
+						[
+							"13th",
+							"Greater Invisibility"
+						],
+						[
+							"17th",
+							"Cloudkill"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Envenomed Attack",
+			"source": "GH:PG'24",
+			"page": 84,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Green Reaper",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"As a Bonus Action, you can apply a poison dose to a weapon or up to 20 pieces of ammunition. Once applied, the poison retains its potency for 1 minute. Your attacks with the poisoned item deal an extra 1d4 Poison damage on a hit.",
+				"You can use this feature a number of times equal to your Wisdom modifier (minimum of once). You regain all expended uses when you finish a Long Rest.",
+				"At Ranger level 11, the extra Poison damage increases to 2d4, and you regain all expended uses when you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Toxic Tradecraft",
+			"source": "GH:PG'24",
+			"page": 84,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Green Reaper",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You gain a Poisoner's Kit, and you have proficiency with it. In addition, your Proficiency Bonus is doubled for ability checks with a Poisoner's Kit. If you lose the kit, you can harvest toxic flora and venomous fauna for 1 hour to magically create a replacement. This harvest can be performed during a Short or Long Rest, and it destroys the previous Poisoner's Kit.",
+				"Once per turn when you deal Poison damage to a creature with a weapon attack, you can expend a spell slot (no action required). The attack deals an extra 1d6 Poison damage and the target gains the Poisoned condition until the end of your next turn. You may also add a Toxin Effect, chosen from the appropriate list below. All Toxin Effects last until the end of your next turn, unless its description states otherwise.",
+				"Level 1+ spell slot effects: Attenuate (the target has Disadvantage on Strength and Dexterity saves while Poisoned), Befuddled (the target can't speak, read, or write and has Disadvantage on Concentration saves), or Uncoordinated (the target can't take Reactions or the Disengage or Dodge action).",
+				"Level 2+ spell slot effects: Debilitate (for 1 minute the target can't regain Hit Points), Potent (for 1 minute the target loses Resistance to Poison damage), or Suffer (for 1 minute the first time on each turn the target takes Poison damage, it takes an extra 1d6 Poison damage).",
+				"Level 3+ spell slot effects: Lingering (the Poisoned condition lasts 10 minutes and can be ended with repeated Constitution saves) or Supernatural (the target loses Immunity to the Poisoned condition and then has the Poisoned condition for 1 minute, repeating a Constitution save at the end of each turn to end it and regain the immunity).",
+				"Level 4+ spell slot effects: Flesh Eating (for 1 minute the target is Poisoned and takes 2d6 Acid damage at the start of each turn), Insensate (the target is also Blinded and Deafened while Poisoned), or Paraplegia (the target's Speed is 0 and it has Disadvantage on Dexterity saves while Poisoned).",
+				"Level 5 spell slot effects: Enhanced (apply one level 4 option and one additional level 1 or 2 option) or Stinging Application (for 1 minute, once per turn when you hit with a poisoned item, the attack deals an extra 5d6 damage of your choice of Acid, Necrotic, or Poison)."
+			]
+		},
+		{
+			"name": "Poison Control",
+			"source": "GH:PG'24",
+			"page": 84,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Green Reaper",
+			"subclassSource": "GH:PG'24",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"You gain Resistance to Poison damage and have Advantage on saving throws to avoid or end the Poisoned condition."
+			]
+		},
+		{
+			"name": "Variegated Vexations",
+			"source": "GH:PG'24",
+			"page": 85,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Green Reaper",
+			"subclassSource": "GH:PG'24",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"Whenever you would deal Poison damage with a weapon attack, you can change that damage to be either Acid or Necrotic instead."
+			]
+		},
+		{
+			"name": "Pain Tolerance",
+			"source": "GH:PG'24",
+			"page": 85,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Green Reaper",
+			"subclassSource": "GH:PG'24",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"You have learned to quickly inure yourself against harm. Immediately before you take damage from a creature you can see within 60 feet of yourself, you can take a Reaction to gain Temporary Hit Points equal to the damage you take. If any of these Temporary Hit Points remain at the end of your next turn, they vanish."
+			]
+		},
+		{
+			"name": "Grim Harbinger",
+			"source": "TCM'24",
+			"page": 84,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Harbinger",
+			"subclassSource": "TCM'24",
+			"level": 3,
+			"entries": [
+				"{@i Seal Fate as an Omen of Doom}",
+				"Grim harbingers wander places touched by death, serving as both a watcher of the dead and the herald of doom for those whose lives are running out. At their side is a guardian spirit and omen of death known as a grim, a constant companion that aids in performing their shared, grave duty.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Grim Harbinger Spells|Ranger|XPHB|Grim Harbinger|TCM'24|3|TCM'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Omen of Doom|Ranger|XPHB|Grim Harbinger|TCM'24|3|TCM'24"
+				}
+			]
+		},
+		{
+			"name": "Grim Harbinger Spells",
+			"source": "TCM'24",
+			"page": 84,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Harbinger",
+			"subclassSource": "TCM'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you reach a Ranger level specified in the Grim Harbinger Spells table, you thereafter always have the listed spell prepared.",
+				{
+					"type": "table",
+					"caption": "Grim Harbinger Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spells"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3rd",
+							"Bane"
+						],
+						[
+							"5th",
+							"Hold Person"
+						],
+						[
+							"9th",
+							"Fear"
+						],
+						[
+							"13th",
+							"Intrusive Despair"
+						],
+						[
+							"17th",
+							"Dream"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Omen of Doom",
+			"source": "TCM'24",
+			"page": 85,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Harbinger",
+			"subclassSource": "TCM'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"As a Bonus Action, you target a creature you can see within 90 feet of you and magically seal its doom for 1 hour. Once per turn when you hit the doomed target with an attack, it takes an extra 1d6 Necrotic damage.",
+				"In addition, a ghostly creature called the Grim appears in an unoccupied space within 30 feet of the target. Grims most often appear as black, spectral hounds, but you can choose an appearance appropriate to its stat block.",
+				"The grim is Friendly to you and your allies, and it obeys your commands. It vanishes if you die, when the doomed creature dies, when it is reduced to 0 Hit Points, or when you use this feature again.",
+				"You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Short or Long Rest. You can also expend a spell slot to restore an expended use (no action required).",
+				"The Grim in Combat. In combat, the grim acts during your turn. It can move and use its Reaction on its own, but the only action it takes is the Dodge action unless you take a Bonus Action to command it to take an action in its stat block or some other action. You can also command it as part of the Bonus Action you take to use Omen of Doom, or you can sacrifice one of your attacks when you take the Attack action to command the grim to take the Ominous Rend action. If you have the Incapacitated condition, the grim acts on its own and is not limited to the Dodge action."
+			]
+		},
+		{
+			"name": "Harbinger of Doom",
+			"source": "TCM'24",
+			"page": 85,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Harbinger",
+			"subclassSource": "TCM'24",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"When a creature hit by the Grim's Ominous Rend action makes an attack roll, it subtracts 1d4 from the roll until the start of your next turn."
+			]
+		},
+		{
+			"name": "Grave Bond",
+			"source": "TCM'24",
+			"page": 85,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Harbinger",
+			"subclassSource": "TCM'24",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"When your target of Omen of Doom succeeds on a saving throw, you can take a Reaction to force it to reroll the save with Disadvantage and use the new roll. Once you cause a save to fail with this benefit, you can't use it again until the current Omen of Doom ends."
+			]
+		},
+		{
+			"name": "Sealed Fate",
+			"source": "TCM'24",
+			"page": 85,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Grim Harbinger",
+			"subclassSource": "TCM'24",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"The strength of your Omen of Doom reaches its peak, granting the following benefits while it is active.",
+				"Jaws of Doom. The Grim's Ominous Rend action deals an extra 1d6 Necrotic damage (for a total of 2d6 extra damage).",
+				"Marked for Death. When you use Omen of Doom, you can force the target to make a Charisma saving throw against your spell save DC. On a failed save, until the current Omen of Doom ends, the target has Vulnerability to damage dealt by the grim and to the extra damage you deal with Omen of Doom. Once you use this benefit, you can't use it again until you finish a Long Rest. You can also restore your use of it by expending a level 4+ spell slot (no action required)."
+			]
+		},
+		{
+			"name": "Hollow Warden",
+			"source": "RHW",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Hollow Warden",
+			"subclassSource": "RHW",
+			"level": 3,
+			"entries": [
+				"{@i Draw on the Might of Ancient Wild Terrors}",
+				"Legends tell that the most ancient and bloodthirsty terrors lurk deep within the old places of the earth. Hollow Wardens venerate and draw power from such beings, transforming themselves into merciless and monstrous guardians that stalk jagged coastlines, steep mountain crags, and other dark and wild places.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Hollow Warden Spells|Ranger|XPHB|Hollow Warden|RHW|3|RHW"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Wrath of the Wild|Ranger|XPHB|Hollow Warden|RHW|3|RHW"
+				}
+			]
+		},
+		{
+			"name": "Hollow Warden Spells",
+			"source": "RHW",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Hollow Warden",
+			"subclassSource": "RHW",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you reach a Ranger level specified in the Hollow Warden Spells table, you thereafter always have the listed spell prepared.",
+				{
+					"type": "table",
+					"caption": "Hollow Warden Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spell"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3",
+							"Wrathful Smite"
+						],
+						[
+							"5",
+							"Alter Self"
+						],
+						[
+							"9",
+							"Phantom Steed"
+						],
+						[
+							"13",
+							"Dominate Beast"
+						],
+						[
+							"17",
+							"Steel Wind Strike"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Wrath of the Wild",
+			"source": "RHW",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Hollow Warden",
+			"subclassSource": "RHW",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You draw power from the strange and ancient horrors of the land, causing you to sprout unnatural growths, such as bloody antlers or putrid fangs, or causing your shadow to lengthen or twist around you. As a Bonus Action, you can expend a use of Favored Enemy to transform into a ghastly form, gaining the following benefits for 1 minute or until you have the Incapacitated condition, die, or end the transformation (no action required).",
+				"Ancient Armor. You gain a +1 bonus to AC, as your body is wreathed in rotten bark and beastly bristles. This bonus increases to +2 when you reach Ranger level 11.",
+				"Prowling Retribution. Immediately after a creature you can see within 5 feet of yourself deals damage to you or one of your allies, you can make an Opportunity Attack against that creature.",
+				"Unnerving Aura. When you transform and at the start of each of your subsequent turns, each creature of your choice in a 10-foot Emanation originating from you makes a Wisdom saving throw against your spell save DC. On a failed save, a creature has the Frightened condition until the start of your next turn."
+			]
+		},
+		{
+			"name": "Hungering Might",
+			"source": "RHW",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Hollow Warden",
+			"subclassSource": "RHW",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"While transformed using Wrath of the Wild, you have Advantage on attack rolls against creatures that have the Frightened condition.",
+				"In addition, when you hit a creature that has the Frightened condition with a weapon attack, the attack deals extra Psychic damage equal to your Wisdom modifier."
+			]
+		},
+		{
+			"name": "Rot and Violence",
+			"source": "RHW",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Hollow Warden",
+			"subclassSource": "RHW",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"Your dedication to wild eldritch beings alters you further. When transformed using Wrath of the Wild, you gain the following additional benefits.",
+				"Menacing Aura. When a creature fails its saving throw against your Unnerving Aura, it also can't regain Hit Points or take Reactions until the start of your next turn.",
+				"Strangling Roots. When you hit a creature with an attack roll using a weapon, you can activate the Sap or Slow mastery property in addition to a different mastery property you're using with that weapon."
+			]
+		},
+		{
+			"name": "Ancient Might",
+			"source": "RHW",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Hollow Warden",
+			"subclassSource": "RHW",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"You become wholly suffused with the wild's ancient and terrible power, granting you the following benefits.",
+				"Ominous Strikes. When you hit a creature that has the Frightened condition with an attack roll, that attack deals extra damage equal to your Wisdom modifier.",
+				"Persistent Wrath. If you're reduced to 0 Hit Points but not killed outright while transformed using Wrath of the Wild, you can surge with wild power. Your Hit Points instead change to a number equal to twice your Ranger level. Once you use this feature, you can't do so again until you finish a Long Rest. You can also expend a level 4+ spell slot (no action required) to restore your use of this feature.",
+				"Timeless. You have Immunity to the Exhaustion condition."
+			]
+		},
+		{
+			"name": "Primordial Archer",
+			"source": "GH:PG'24",
+			"page": 86,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Primordial Archer",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"{@i Channel the Wrath of the Wilds}",
+				"In the areas of Etharis where nature still holds sway, many cling to the ancient customs of woodland hunters and witches. Marking themselves with wild plants and bone needles, theirs is a tradition of cunning, cruelty, and reprisal against all trespassers. Unlike the Druids, these wood witches twist natural magic into hexes, imbuing their weapons with nature's fury.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Primordial Archer Spells|Ranger|XPHB|Primordial Archer|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Elemental Arrows|Ranger|XPHB|Primordial Archer|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Herbal Lore|Ranger|XPHB|Primordial Archer|GH:PG'24|3|GH:PG'24"
+				}
+			]
+		},
+		{
+			"name": "Primordial Archer Spells",
+			"source": "GH:PG'24",
+			"page": 86,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Primordial Archer",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you reach a Ranger level specified in the Primordial Archer Spells table, you thereafter always have the listed spells prepared.",
+				{
+					"type": "table",
+					"caption": "Primordial Archer Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spells"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3rd",
+							"Hex"
+						],
+						[
+							"5th",
+							"Blindness/Deafness"
+						],
+						[
+							"9th",
+							"Call Lightning"
+						],
+						[
+							"13th",
+							"Polymorph"
+						],
+						[
+							"17th",
+							"Wall of Stone"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Elemental Arrows",
+			"source": "GH:PG'24",
+			"page": 86,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Primordial Archer",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"As a Bonus Action, you can imbue a Longbow or Shortbow with elemental energy for 1 minute. Choose one of the following damage types: Acid, Cold, Fire, Lightning, or Thunder. For the duration, the imbued weapon deals damage of the selected type instead of its normal type and deals an extra 1d6 damage of the chosen type when it hits. At the start of each of your turns, you can change this choice.",
+				"You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Herbal Lore",
+			"source": "GH:PG'24",
+			"page": 86,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Primordial Archer",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You gain an Herbalism Kit and are proficient with it. You can use the Herbalism Kit as a Bonus Action to stabilize an Unconscious creature within 5 feet of you that has 0 Hit Points as if using a Healer's Kit without needing to make a Wisdom (Medicine) check.",
+				"If you take a Utilize action, an Unconscious creature within 5 feet of you that has 0 Hit Points gains 1 Hit Point instead.",
+				"Once you use this feature, you can't do so again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Weave the Elements",
+			"source": "GH:PG'24",
+			"page": 86,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Primordial Archer",
+			"subclassSource": "GH:PG'24",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"With 1 hour of work or when you finish a Long Rest, you can use an Herbalism Kit to mark yourself with elemental patterns. You gain Resistance to one of the following damage types of your choice until you finish a Long Rest: Acid, Cold, Fire, Lightning, or Thunder."
+			]
+		},
+		{
+			"name": "Witching Arrows",
+			"source": "GH:PG'24",
+			"page": 86,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Primordial Archer",
+			"subclassSource": "GH:PG'24",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"You gain the ability to imbue curses into your arrows. Once per turn when you hit a creature with a ranged attack using a Longbow or Shortbow, you can expend a level 1+ spell slot to choose one of the following effects (no action required). The listed damage increases by 2d6 for each spell slot above 1.",
+				"Arcing Shot. Make a ranged attack roll with the same weapon against a second creature within 30 feet of the first and within your range. Each creature hit takes 2d6 Lightning damage.",
+				"Entangling Shot. The target makes a Strength save against your spell save DC. On a failure it takes 2d6 Piercing damage and has the Restrained condition for 1 minute, repeating the save at the end of each turn. On a success it takes the damage only.",
+				"Hexing Shot. The target makes a Wisdom save against your spell save DC. On a failure it takes 2d6 Psychic damage and gains the Charmed or Frightened condition (your choice) for 1 minute, repeating the save at the end of each turn. On a success it takes half damage only.",
+				"Viper Shot. The target makes a Constitution save against your spell save DC. On a failure it takes 2d6 Poison damage and has the Poisoned condition for 1 minute, repeating the save at the end of each turn. On a success it takes half damage only."
+			]
+		},
+		{
+			"name": "Primordial Magic",
+			"source": "GH:PG'24",
+			"page": 87,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Primordial Archer",
+			"subclassSource": "GH:PG'24",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"Taking damage can't break your Concentration on any Ranger spells you cast.",
+				"In addition, you can take a Bonus Action to change the damage type you chose for the Weave the Elements feature to a different damage type in the list. When you do, choose a creature you can see within 30 feet of yourself. That creature must succeed on a Constitution saving throw or take 6d6 damage of either damage type (your choice).",
+				"You can use this feature a number of times equal to your Wisdom modifier (minimum of once). You regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Rocborne",
+			"source": "TGS2",
+			"page": 222,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Rocborne",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"entries": [
+				"The Rocborne are nomads of the sky who travel the world on the backs of ancestral rocs. These travelers understand that the air and wind aren't just one force but the collective effort of untold numbers of spirits that are carried along by it.",
+				"By listening to the wind the same way a medium beckons to the dead, a Rocborne can learn more about the weather, their path forward, and even themselves. By calling on the spirits of the wind to aid them, rangers of this archetype can exert a degree of control over both wind and weather.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Rocborne Magic|Ranger|XPHB|Rocborne|TGS2|3|TGS2"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Guiding Wind|Ranger|XPHB|Rocborne|TGS2|3|TGS2"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Whispers of Knowledge|Ranger|XPHB|Rocborne|TGS2|3|TGS2"
+				}
+			]
+		},
+		{
+			"name": "Rocborne Magic",
+			"source": "TGS2",
+			"page": 222,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Rocborne",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Starting at 3rd level, you learn an additional spell when you reach certain levels in this class, as shown in the Rocborne Spells table. The spell counts as a Ranger spell for you, but it doesn't count against the number of Ranger spells you know.",
+				{
+					"type": "table",
+					"caption": "Rocborne Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spell"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3rd",
+							"Feather Fall"
+						],
+						[
+							"5th",
+							"Gust of Wind"
+						],
+						[
+							"9th",
+							"Lightning Bolt"
+						],
+						[
+							"13th",
+							"Ice Storm"
+						],
+						[
+							"17th",
+							"Legend Lore"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Guiding Wind",
+			"source": "TGS2",
+			"page": 223,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Rocborne",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Starting at 3rd level, when you make an attack, you can whisper to the wind to have it aid your strikes. Once on each of your turns, you can choose one of the following benefits.",
+				"When you hit with a weapon attack, the target takes an extra 1d4 damage of the weapon's type. When you reach 11th level in this class, the extra damage increases to 1d8.",
+				"When you miss with a weapon attack, you can change its trajectory to attack a different target up to 5 feet away from the original one and within range of your weapon. Use the original attack roll plus your Wisdom modifier against the new target. At 11th level, the new target can be up to 15 feet away."
+			]
+		},
+		{
+			"name": "Whispers of Knowledge",
+			"source": "TGS2",
+			"page": 223,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Rocborne",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You can spend 10 minutes communing with spirits carried on the wind to gain proficiency in one skill or tool of your choice that you don't already have proficiency in.",
+				"You lose this proficiency the next time you use this feature or finish a Short or Long Rest.",
+				"You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Windswept",
+			"source": "TGS2",
+			"page": 223,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Rocborne",
+			"subclassSource": "TGS2",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"At 7th level, the wind spirits help bear you along. Your walking speed increases by 10 feet, and you have Advantage on ability checks and saving throws made to resist being pushed, knocked Prone, or forcibly moved."
+			]
+		},
+		{
+			"name": "Soar",
+			"source": "TGS2",
+			"page": 223,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Rocborne",
+			"subclassSource": "TGS2",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"At 11th level, you can use a Bonus Action immediately after you make a running jump to grow a pair of spectral, roc-like wings that last until the end of your next turn or until you touch the ground again. While the wings are present, you have a flying speed equal to your walking speed."
+			]
+		},
+		{
+			"name": "Hurricane",
+			"source": "TGS2",
+			"page": 223,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Rocborne",
+			"subclassSource": "TGS2",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"When you take damage, you can use your Reaction to give yourself Resistance to that damage, or take no damage instead if it was falling damage.",
+				"When you do, each creature of your choice within 15 feet of you must make a Strength saving throw against your Ranger spell save DC. On a failed save, a creature takes bludgeoning damage equal to your Ranger level and is knocked Prone. On a successful save, it takes half as much damage and isn't knocked Prone.",
+				"When you use this feature, you can choose to allow the wind spirits to immediately fly you to an unoccupied space that you can see within 30 feet of you, without provoking Opportunity Attacks.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Trapper",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Trapper",
+			"subclassSource": "HGtMH",
+			"level": 3,
+			"entries": [
+				"Through careful preparation, trappers can create both physical and magical traps to ensnare, explode, or enrapture those unlucky enough to find themselves in their vicinity. Trappers are found in all terrains where there are creatures to be hunted.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Trapper's Tools|Ranger|XPHB|Trapper|HGtMH|3|HGtMH"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Trapped Weapons|Ranger|XPHB|Trapper|HGtMH|3|HGtMH"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Set Trap|Ranger|XPHB|Trapper|HGtMH|3|HGtMH"
+				}
+			]
+		},
+		{
+			"name": "Trapper's Tools",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Trapper",
+			"subclassSource": "HGtMH",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Having learnt how to create traps, you've gained an understanding of how to thwart the traps of others. You gain proficiency with thieves' tools and add double your proficiency bonus to any ability check you make using those tools to disarm or manipulate a trap."
+			]
+		},
+		{
+			"name": "Trapped Weapons",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Trapper",
+			"subclassSource": "HGtMH",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you finish a Short or Long Rest, you can augment one weapon or up to twenty pieces of ammunition that you are holding with a concealed magical augmentation. You decide whether the augmentation deals Acid, Cold, Fire, or Lightning damage. The augmentation lasts until you finish a Short or Long Rest.",
+				"Once per turn, when you hit a target with a weapon attack using the augmented weapon or ammunition, you can activate the concealed augment (no action required). The target takes 1d8 extra damage of the associated type. At 11th level, you can augment one additional item or up to 20 additional pieces of ammunition, and the damage increases to 2d8."
+			]
+		},
+		{
+			"name": "Set Trap",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Trapper",
+			"subclassSource": "HGtMH",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"At 3rd level, and later at 5th, 9th, 13th, and 17th level, you learn how to make new traps, as detailed on the Trapper Traps table. Details of these traps can be found on page 192-194.",
+				"Physical Traps. Creating a physical trap takes 1 hour (which can be done during a Short or Long Rest) and uses trap-making materials specified in the trap's description. After a physical trap activates, its materials are consumed. Over 10 minutes, you can salvage half the materials from an untriggered physical trap.",
+				"Magical Traps. Immediately after you finish a Long Rest, you can create magical traps up to a number equal to your Wisdom modifier (minimum 1), choosing from the options in the Ranger Traps section. Some of these traps require spell slots. When you finish a Long Rest, all undeployed magical traps lose their effects.",
+				"When you deploy a magical trap, you can choose a creature size and a distance of up to 30 feet. When a creature of that size or larger comes within the chosen distance, the trap activates. You can also intentionally activate an armed magical trap within 150 feet of you using a Bonus Action or a Reaction.",
+				"Trap options by Ranger level: 3rd - bear trap, tanglevine, snare trap, solestriker; 5th - immolation, miasma, soulbind, pit trap; 9th - bewilderment, net trap, thunder charge; 13th - catapult trap, infection, snapfrost; 17th - banisher, gravity well."
+			]
+		},
+		{
+			"name": "Tracker",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Trapper",
+			"subclassSource": "HGtMH",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"You are an expert at detecting and obscuring tracks. When you make an ability check to find or follow tracks, you can add your proficiency bonus to the check even if you aren't proficient in the relevant skill. If you are already proficient, your proficiency bonus is doubled for that check.",
+				"The merest hiss of escaping air, depression of a tile, or scent of ozone is all the warning you need to avoid traps' effects. When you are subjected to a trap's activation effect that allows a saving throw for half damage, you instead take no damage on a success and only half damage on a failure.",
+				"In addition, if a trap makes an attack roll against you, that attack roll has Disadvantage. This feature doesn't function against a trap's ongoing effects."
+			]
+		},
+		{
+			"name": "Leave No Trace",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Trapper",
+			"subclassSource": "HGtMH",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"You've learnt to use magic to hide traps, allowing them to be concealed in the heat of battle. When you deploy a trap, you can expend a spell slot of 1st level or higher to disguise the trap with illusion magic, causing it to become invisible the moment it leaves your hands.",
+				"Creatures don't see where the trap lands and, if it's a physical trap, have Disadvantage on saving throws made to avoid the trap's effects.",
+				"In addition, you learn the Invisibility spell, which counts as a Ranger spell for you but doesn't count against the number of Ranger spells you know. You can cast it once without using a spell slot, and you regain the ability to do so when you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Booby Trap",
+			"source": "HGtMH",
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Trapper",
+			"subclassSource": "HGtMH",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"When you finish a Long Rest, you can choose one of several magical effects with which to augment your body until you finish a Long Rest. After triggering an effect that activates when you are reduced to 0 Hit Points, that effect can't trigger again until you finish a Long Rest.",
+				"Defibrillate. Once per turn, when a creature hits you with a melee attack, you can trigger an electrical discharge. The creature can't take Reactions until the start of its next turn unless it is immune to Lightning damage, and you can immediately move up to 10 feet without provoking Opportunity Attacks. If you are reduced to 0 Hit Points but not killed outright, you can instead drop to 1 Hit Point and immediately take an extra turn.",
+				"Dissolve. Once per turn, when a creature within 5 feet hits you with a melee attack, you can trigger acid that coats its weapon or limb. If the melee attack was a spell attack or natural weapon, the creature takes 1d6 Acid damage. If you are reduced to 0 Hit Points, all your concealed acid charges gush outward, dealing 10d4 Acid damage in a 10-foot radius on a failed Dexterity save and causing additional ongoing acid damage.",
+				"Entomb. Once per turn, when a creature within 5 feet hits you with a melee attack, you can trigger a burst of cold, dealing 1d4 Cold damage and reducing its Speed by 15 feet until the end of its next turn unless it is immune to Cold damage. If you are reduced to 0 Hit Points, you become entombed in a block of clear ice that grants total cover and suspends death saves for up to 1 minute.",
+				"Self-Destruct. Once per turn, when a creature within 5 feet hits you with a melee attack, you can cause a small shaped charge to detonate, taking 1 Fire damage and dealing 1d8 Fire damage to the creature. If you are reduced to 0 Hit Points, you erupt in a ball of fire, immediately fail one death saving throw, and each creature within 20 feet makes a Dexterity save or takes 14d6 Fire damage."
+			]
+		},
+		{
+			"name": "Urban Ranger",
+			"source": "SCGtD",
+			"page": 167,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Urban Ranger",
+			"subclassSource": "SCGtD",
+			"level": 3,
+			"entries": [
+				"Urban rangers are less accustomed to nature and the wilds, but to rooftops and guerrilla tactics of city warfare. They are agile runners, skilled snipers, and always able to know where the best vantage points against their enemies are.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Urban Ranger Magic|Ranger|XPHB|Urban Ranger|SCGtD|3|SCGtD"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Gutter Runner|Ranger|XPHB|Urban Ranger|SCGtD|3|SCGtD"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Vantage Point|Ranger|XPHB|Urban Ranger|SCGtD|3|SCGtD"
+				}
+			]
+		},
+		{
+			"name": "Urban Ranger Magic",
+			"source": "SCGtD",
+			"page": 167,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Urban Ranger",
+			"subclassSource": "SCGtD",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You learn an additional spell when you reach certain levels in this class, as shown in the Urban Ranger Spells table. The spell counts as a Ranger spell for you, but it doesn't count against the number of Ranger spells you know.",
+				{
+					"type": "table",
+					"caption": "Urban Ranger Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spell"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3rd",
+							"Feather Fall"
+						],
+						[
+							"5th",
+							"Invisibility"
+						],
+						[
+							"9th",
+							"Haste"
+						],
+						[
+							"13th",
+							"Dimension Door"
+						],
+						[
+							"17th",
+							"Animate Objects"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Gutter Runner",
+			"source": "SCGtD",
+			"page": 167,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Urban Ranger",
+			"subclassSource": "SCGtD",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You gain a climb speed equal to your walking speed, and proficiency in the Athletics and Acrobatics skills if you don't already have it. Your proficiency bonus is doubled for any ability check you make that uses either proficiency.",
+				"When you take the Dash action on your turn, you can move through other creatures' spaces without penalty, though you can't stop there. That movement doesn't provoke Opportunity Attacks."
+			]
+		},
+		{
+			"name": "Vantage Point",
+			"source": "SCGtD",
+			"page": 167,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Urban Ranger",
+			"subclassSource": "SCGtD",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you make a ranged weapon attack against a creature, you gain Advantage on the attack roll if there are no other creatures within 5 feet of that target, or if you are 20 feet or more above the target and that creature doesn't have cover."
+			]
+		},
+		{
+			"name": "Rooftop Mobility",
+			"source": "SCGtD",
+			"page": 167,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Urban Ranger",
+			"subclassSource": "SCGtD",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"Your movement speed increases by 10 feet, and you can take the Dash action as a Bonus Action on your turn. In addition, when you take the Dash action, your jumping distance increases to match your movement speed."
+			]
+		},
+		{
+			"name": "Perfect Position",
+			"source": "SCGtD",
+			"page": 167,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Urban Ranger",
+			"subclassSource": "SCGtD",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"When you attack a creature with the benefits of your Vantage Point feature, you deal an additional 2d6 damage to the target and score a critical hit on a d20 roll of 19-20."
+			]
+		},
+		{
+			"name": "Sitting Duck",
+			"source": "SCGtD",
+			"page": 167,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Urban Ranger",
+			"subclassSource": "SCGtD",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"Once on your turn, when you hit a creature that did not move on its last turn with a ranged weapon attack, that attack automatically becomes a critical hit."
+			]
+		},
+		{
+			"name": "Vermin Lord",
+			"source": "GH:PG'24",
+			"page": 87,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Vermin Lord",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"{@i Grow Powerful from Strength in Numbers}",
+				"Vermin Lords cultivate loyal hordes of disease-bearing rodents to help them battle greater evils. For many of these Rangers, that greater evil is some kind of societal ill, but a rare few see their fellow Humanoids as an infestation that threatens the natural world.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Vermin Lord Spells|Ranger|XPHB|Vermin Lord|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Verminkin|Ranger|XPHB|Vermin Lord|GH:PG'24|3|GH:PG'24"
+				},
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Swarming Strikes|Ranger|XPHB|Vermin Lord|GH:PG'24|3|GH:PG'24"
+				}
+			]
+		},
+		{
+			"name": "Vermin Lord Spells",
+			"source": "GH:PG'24",
+			"page": 88,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Vermin Lord",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"When you reach a Ranger level specified in the Vermin Lord Spells table, you thereafter always have the listed spells prepared.",
+				{
+					"type": "table",
+					"caption": "Vermin Lord Spells",
+					"colLabels": [
+						"Ranger Level",
+						"Spells"
+					],
+					"colStyles": [
+						"col-2 text-center",
+						"col-10"
+					],
+					"rows": [
+						[
+							"3rd",
+							"Consumption"
+						],
+						[
+							"5th",
+							"Animal Messenger"
+						],
+						[
+							"9th",
+							"Flash Fever"
+						],
+						[
+							"13th",
+							"Freedom of Movement"
+						],
+						[
+							"17th",
+							"Contagion"
+						]
+					]
+				}
+			]
+		},
+		{
+			"name": "Verminkin",
+			"source": "GH:PG'24",
+			"page": 87,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Vermin Lord",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"You can comprehend and verbally communicate with Tiny Beasts.",
+				"As a Magic action, you can expend a spell slot to summon vermin swarms. You summon a number of swarms equal to the slot's level for 1 hour. Each swarm is summoned to an unoccupied space you can see within 30 feet of yourself. A swarm uses the Swarm of Vermin stat block.",
+				"In combat, each swarm acts during your turn. It can move and use its Reaction on its own, but the only action it takes is the Dodge action unless you take a Bonus Action to command it to take an action in its stat block or some other action. You can command each swarm with a single Bonus Action.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Swarming Strikes",
+			"source": "GH:PG'24",
+			"page": 88,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Vermin Lord",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"As a Bonus Action, you can command all of your swarms to make an Attack action instead of just one. Alternatively, a single swarm can attack twice instead of once when it takes the Attack action.",
+				"You can use this feature a number of times equal to your Wisdom modifier plus your Proficiency Bonus, and you regain all expended uses when you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Filth and Fortitude",
+			"source": "GH:PG'24",
+			"page": 88,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Vermin Lord",
+			"subclassSource": "GH:PG'24",
+			"level": 7,
+			"header": 2,
+			"entries": [
+				"The time you've spent with plague-bearing rodents has rendered you Immune to the Poisoned condition. Additionally, you gain proficiency in Constitution saving throws."
+			]
+		},
+		{
+			"name": "Infectious Spread",
+			"source": "GH:PG'24",
+			"page": 88,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Vermin Lord",
+			"subclassSource": "GH:PG'24",
+			"level": 11,
+			"header": 2,
+			"entries": [
+				"When you use Swarming Strikes, each swarm that takes the Attack action makes one additional attack. Each creature damaged by a swarm's attack during this action has the Poisoned condition until the start of your next turn."
+			]
+		},
+		{
+			"name": "Strength of the Swarm",
+			"source": "GH:PG'24",
+			"page": 88,
+			"className": "Ranger",
+			"classSource": "XPHB",
+			"subclassShortName": "Vermin Lord",
+			"subclassSource": "GH:PG'24",
+			"level": 15,
+			"header": 2,
+			"entries": [
+				"You can call on your rodent minions for defense. When you take damage from a creature you can see within 10 feet of yourself, you can take a Reaction to direct the damage toward a swarm you control you can see within 5 feet of yourself."
 			]
 		}
 	]

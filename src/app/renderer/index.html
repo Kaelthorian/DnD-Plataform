@@ -4661,6 +4661,74 @@
       return root;
     }
 
+    function subclassDisplayFeatures(subclass) {
+      if (!subclass) return [];
+      const detail = classDetailByName(subclass.className || getMainClassName() || getSelectedClassName());
+      if (!detail?.file) return [];
+      return (detail.file.subclassFeature || [])
+        .filter((feature) => normalizeName(feature.className || "") === normalizeName(subclass.className || detail.classItem?.name || ""))
+        .filter((feature) => normalizeName(feature.subclassShortName || "") === normalizeName(subclass.shortName || subclass.name || ""))
+        .filter((feature) => feature.subclassSource === subclass.source || feature.source === subclass.source)
+        .sort((a, b) => a.level - b.level || (a.name || "").localeCompare(b.name || ""));
+    }
+
+    function subclassIntroEntries(subclass, features = null) {
+      const subclassEntries = Array.isArray(subclass?.entries) ? subclass.entries : subclass?.entries ? [subclass.entries] : [];
+      const cleanedSubclassEntries = subclassEntries.filter((entry) => !(entry && typeof entry === "object" && entry.type === "refSubclassFeature"));
+      if (cleanedSubclassEntries.length) return cleanedSubclassEntries;
+      const items = Array.isArray(features) ? features : subclassDisplayFeatures(subclass);
+      const introFeature = items.find((feature) => normalizeName(feature?.name || "") === normalizeName(subclass?.name || ""));
+      const introEntries = Array.isArray(introFeature?.entries) ? introFeature.entries : introFeature?.entries ? [introFeature.entries] : [];
+      return introEntries.filter((entry) => !(entry && typeof entry === "object" && entry.type === "refSubclassFeature"));
+    }
+
+    function subclassChoiceSummary(subclass) {
+      const text = flattenEntryText(subclassIntroEntries(subclass, subclassDisplayFeatures(subclass)));
+      if (!text) return "";
+      return text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 2).join(" ");
+    }
+
+    function buildSubclassDrawerContent(subclass, fallbackDescription = "") {
+      const root = document.createElement("div");
+      root.className = "item-sheet";
+
+      if (!subclass) {
+        appendItemSection(root, "Subclase", fallbackDescription || "No encontre esta subclase en los datos locales.");
+        return root;
+      }
+
+      const features = subclassDisplayFeatures(subclass);
+      appendText(root, "item-sheet-title", subclass.name || subclass.shortName || "Subclase", "h2");
+      appendText(root, "item-sheet-subtitle", [subclass.className || "Clase", sourceLabel(subclass.source), subclass.page ? `p${subclass.page}` : ""].filter(Boolean).join(" - "));
+
+      const stats = document.createElement("div");
+      stats.className = "item-stat-grid";
+      appendItemStat(stats, "Tipo", "Subclase");
+      appendItemStat(stats, "Clase", subclass.className || "");
+      appendItemStat(stats, "Origen", sourceLabel(subclass.source) || subclass.source || "");
+      root.appendChild(stats);
+
+      const chips = document.createElement("div");
+      chips.className = "item-chip-list";
+      [subclass.className, sourceLabel(subclass.source), subclass.edition === "one" ? "2024" : subclass.edition === "classic" ? "Classic" : ""]
+        .filter(Boolean)
+        .forEach((value) => appendText(chips, "item-chip", value, "span"));
+      if (chips.childElementCount) root.appendChild(chips);
+
+      const introEntries = subclassIntroEntries(subclass, features);
+      if (introEntries.length) appendEntryBlocks(root, introEntries, "Descripcion");
+      else appendItemSection(root, "Descripcion", fallbackDescription || "Sin descripcion adicional disponible.");
+
+      features
+        .filter((feature) => normalizeName(feature.name || "") !== normalizeName(subclass.name || ""))
+        .forEach((feature) => {
+          appendItemSection(root, `Nivel ${feature.level}: ${feature.name}`, flattenEntryText(feature.entries || feature.entry || ""));
+        });
+
+      appendText(root, "item-source", sourceLine(subclass));
+      return root;
+    }
+
     function buildTextFeatureDrawerContent(title, description, meta = "") {
       const root = document.createElement("div");
       root.className = "item-sheet";
@@ -5273,6 +5341,13 @@
     }
 
     function featureChoiceStateForEntry(entry) {
+      if (entry?.type === "languageSummary") {
+        const missing = Math.max(0, Number.parseInt(entry.pendingChoices || 0, 10) || 0);
+        return {
+          complete: missing === 0,
+          label: missing === 0 ? "Completo" : `Pendiente: faltan ${missing} idioma(s)`
+        };
+      }
       if (entry?.type === "raceChoiceControl" && entry.choice) {
         const required = Math.max(1, Number.parseInt(entry.choice.count || 1, 10) || 1);
         const selectedCount = backgroundChoiceSelectionCount(entry.choice);
@@ -5341,6 +5416,9 @@
         return spell
           ? buildSpellDrawerContent(spell)
           : buildTextFeatureDrawerContent(option.label || spellName, option.description || "No encontre esta spell en los datos locales.", "Spell");
+      }
+      if (option.type === "subclass") {
+        return buildSubclassDrawerContent(option.subclass, option.description || "Sin descripcion adicional disponible.");
       }
       return buildTextFeatureDrawerContent(
         option.label || option.value || "Choice",
@@ -5661,7 +5739,7 @@
         return;
       }
       if (entry.type === "subclass") {
-        const body = buildTextFeatureDrawerContent(entry.subclass?.name || entry.title, entry.description || "Subclass seleccionada.", entry.meta);
+        const body = buildSubclassDrawerContent(entry.subclass, entry.description || "Subclass seleccionada.");
         appendFeatureBackButton(body, entries);
         showDrawer(entry.subclass?.name || entry.title, entry.meta, body);
         return;
@@ -6339,6 +6417,20 @@
         .map((value) => ({ value, text: value, label: value }));
     }
 
+    function standardLanguageChoiceOptions(excludeNames = []) {
+      const excluded = new Set((Array.isArray(excludeNames) ? excludeNames : [excludeNames]).map(normalizeName));
+      const officialLanguages = languages.filter((language) => language?.name && language.source === "XPHB" && language.type === "standard");
+      const unique = new Map();
+      officialLanguages.forEach((language) => {
+        const key = normalizeName(language.name);
+        if (!key || excluded.has(key)) return;
+        if (!unique.has(key)) unique.set(key, language.name);
+      });
+      return [...unique.values()]
+        .sort((a, b) => a.localeCompare(b))
+        .map((value) => ({ value, text: value, label: value }));
+    }
+
     const SKILL_NAMES = [
       "Acrobatics",
       "Animal Handling",
@@ -6393,6 +6485,12 @@
       if (normalized === "other") return "Other";
       if (normalized === "any standard") return "Any Standard";
       return titleCaseWords([String(key || "").replace(/([a-z])([A-Z])/g, "$1 $2")])[0];
+    }
+
+    function extractConcreteLanguageNames(text) {
+      return languageChoiceOptions()
+        .map((option) => option.value)
+        .filter((value) => textIncludesPhrase(text, value));
     }
 
     function choiceOptionsFromKeys(keys = [], fallbackOptions = []) {
@@ -6835,16 +6933,28 @@
       return choices;
     }
 
-    function fixedRaceProficiencyValues(race, propertyName, labelMapper) {
-      const values = Array.isArray(race?.[propertyName]) ? race[propertyName] : [];
+    function fixedGroupProficiencyValues(groups = [], labelMapper = (key) => key) {
       const fixed = [];
-      values.forEach((group) => {
+      groups.forEach((group) => {
         Object.entries(group || {}).forEach(([key, value]) => {
-          if (key === "choose" || value !== true) return;
+          if (key === "choose" || key === "any" || key === "anyStandard" || value !== true) return;
           fixed.push(labelMapper(key));
         });
       });
       return fixed;
+    }
+
+    function fixedRaceProficiencyValues(race, propertyName, labelMapper) {
+      const values = Array.isArray(race?.[propertyName]) ? race[propertyName] : [];
+      return fixedGroupProficiencyValues(values, labelMapper);
+    }
+
+    function raceUsesUniversalXphbLanguageRule(race) {
+      return normalizeName(race?.source || "") === "xphb" && !Array.isArray(race?.languageProficiencies);
+    }
+
+    function defaultRaceLanguageValues(race) {
+      return raceUsesUniversalXphbLanguageRule(race) ? ["Common"] : [];
     }
 
     function findRaceChoicesForOption(option) {
@@ -6871,6 +6981,18 @@
         choices.push(...raceProficiencyChoiceSpecs(race, "skillProficiencies", "Skill Proficiencies", (items) => skillChoiceOptions(items)));
         choices.push(...raceProficiencyChoiceSpecs(race, "languageProficiencies", "Languages", (items) => choiceOptionsFromKeys(items, languageChoiceOptions())));
         choices.push(...raceProficiencyChoiceSpecs(race, "toolProficiencies", "Tool Proficiencies", (items) => choiceOptionsFromKeys(items)));
+        if (raceUsesUniversalXphbLanguageRule(race) && !choices.some((choice) => normalizeName(choice.sectionLabel) === "languages")) {
+          const options = standardLanguageChoiceOptions(["Common"]);
+          if (options.length) {
+            choices.push({
+              key: raceChoiceKey(race.name, "Languages:xphb-default", race.source),
+              label: "Languages: elegir 2 opciones",
+              sectionLabel: "Languages",
+              count: 2,
+              options
+            });
+          }
+        }
       }
 
       const sizeMatch = String(description || "").match(/\bSize:\s*(Small|Medium|Tiny|Large)\s+or\s+(Small|Medium|Tiny|Large)\b/i);
@@ -6958,6 +7080,13 @@
       return values.filter(Boolean).join(", ");
     }
 
+    function splitChoiceTextValues(text) {
+      return String(text || "")
+        .split(/\s*,\s*/)
+        .map(cleanExtractedProficiencyText)
+        .filter(Boolean);
+    }
+
     function selectedRaceChoiceOptions(sectionPattern) {
       const matcher = sectionPattern instanceof RegExp
         ? (label) => sectionPattern.test(label)
@@ -6996,6 +7125,24 @@
         .map((value) => choice.options.find((option) => option.value === value)?.text || "")
         .filter(Boolean)
         .join(", ");
+    }
+
+    function selectedBackgroundChoiceValuesBySection(sectionLabel) {
+      return findSelectedBackgroundChoices()
+        .filter((item) => normalizeName(item.sectionLabel) === normalizeName(sectionLabel))
+        .flatMap((choice) => isBackgroundChoiceComplete(choice)
+          ? selectedChoiceValues(choice)
+            .map((value) => choice.options.find((option) => option.value === value)?.text || "")
+            .filter(Boolean)
+          : []);
+    }
+
+    function selectedBackgroundLanguageChoices() {
+      return selectedBackgroundChoiceValuesBySection("Languages").flatMap(splitChoiceTextValues);
+    }
+
+    function selectedBackgroundToolChoices() {
+      return selectedBackgroundChoiceValuesBySection("Tool Proficiencies").flatMap(splitChoiceTextValues);
     }
 
     function backgroundSameAsAboveText() {
@@ -7222,7 +7369,11 @@
     }
 
     function hasChoiceLanguageOrToolText() {
-      return /of your choice|choose one|choose two|choose a|choose either/i.test(fieldValue("ProficienciesLang"));
+      return findSelectedBackgroundChoices().some((choice) => {
+        const label = normalizeName(choice.sectionLabel || "");
+        return ["languages", "tool proficiencies", "tool proficiency", "languages and tool proficiencies"].includes(label)
+          && !isBackgroundChoiceComplete(choice);
+      });
     }
 
     function buildSheetAlerts() {
@@ -7759,8 +7910,8 @@
         .map((value) => String(value).replace(/^tool:/, ""));
     }
 
-    function selectedFeatureLanguageChoices() {
-      const choiceSources = [
+    function languageChoiceSourceFeatures() {
+      return [
         ...choosableFeatureEntriesForCharacter().map((entry) => entry.feature),
         ...activeFeatData().map((feat) => ({
           name: feat.name,
@@ -7771,11 +7922,25 @@
           entries: feat.entries || []
         }))
       ].filter((feature, index, list) => list.findIndex((item) => featureChoiceKey(item) === featureChoiceKey(feature)) === index);
-      return choiceSources
+    }
+
+    function selectedFeatureLanguageChoices() {
+      return languageChoiceSourceFeatures()
         .filter((feature) => !feature?.isClassStartingSkillChoice)
         .flatMap((feature) => selectedFeatureChoices(featureChoiceKey(feature)))
         .filter((value) => String(value).startsWith("language:"))
         .map((value) => String(value).replace(/^language:/, ""));
+    }
+
+    function pendingFeatureLanguageChoices() {
+      return languageChoiceSourceFeatures()
+        .filter((feature) => !feature?.isClassStartingSkillChoice)
+        .flatMap((feature) => {
+          const featureName = feature?.name || feature?.feat?.name || "Feature";
+          return missingFeatureChoiceSpecs(feature)
+            .filter(({ spec }) => (spec.options || []).some((option) => String(option?.type || "").toLowerCase() === "language"))
+            .map(({ missing }) => `${featureName}: elegir ${missing === 1 ? "1 idioma" : `${missing} idiomas`}`);
+        });
     }
 
     function updateFeatSkillProficiencies() {
@@ -8513,7 +8678,7 @@
           label: subclass.name || subclass.shortName,
           type: "subclass",
           subclass,
-          description: flattenEntryText(subclass.entries || subclass.fluff?.entries || "")
+          description: subclassChoiceSummary(subclass) || flattenEntryText(subclass.entries || subclass.fluff?.entries || "")
         }));
     }
 
@@ -9185,9 +9350,54 @@
 
     function generatedFeaturesAndTraitsEntries() {
       const selectedEntries = selectedFeatureChoiceEntries();
+      const languageEntry = derivedLanguageSummaryEntry();
       const baseEntries = [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()]
         .filter((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0 || featureChoiceSpecs(entry.feature).length > 0);
-      return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...classStartingSkillChoiceEntries(), ...raceChoiceControlEntries(), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
+      return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...classStartingSkillChoiceEntries(), ...raceChoiceControlEntries(), ...(languageEntry ? [languageEntry] : []), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
+    }
+
+    function derivedLanguageSummaryEntry() {
+      const race = selectedRaceDetail();
+      const raceDescription = selectedOptionDescription("race", getSelectedRaceName());
+      const cleanedRaceLanguageText = extractRaceLanguageText(raceDescription)
+        .replace(/\b(?:one|two|three)\s+(?:(?:other|extra)\s+)?languages?\s+of your choice\b/gi, "")
+        .replace(/\band\s*$/i, "")
+        .replace(/[,.]\s*$/g, "")
+        .trim();
+      const knownLanguages = uniqueReadableValues([
+        ...defaultRaceLanguageValues(race),
+        ...fixedRaceProficiencyValues(race, "languageProficiencies", languageLabelFromKey).filter((language) => normalizeName(language) !== "other"),
+        ...extractConcreteLanguageNames(cleanedRaceLanguageText),
+        ...splitChoiceTextValues(selectedRaceChoiceText("Languages")),
+        ...fixedGroupProficiencyValues(selectedBackgroundDetail()?.languageProficiencies, languageLabelFromKey),
+        ...selectedBackgroundLanguageChoices(),
+        ...activeFeatData().flatMap((feat) => fixedGroupProficiencyValues(feat.languageProficiencies, languageLabelFromKey)),
+        ...selectedFeatureLanguageChoices(),
+        ...classFeatureEntriesForCharacter()
+          .filter((entry) => /\byou know thieves'? cant\b/i.test(flattenEntryText(entry.feature?.entries || entry.description || "")))
+          .map(() => "Thieves' Cant")
+      ]);
+      const pendingChoices = uniqueReadableValues([
+        ...findSelectedRaceChoices()
+          .filter((choice) => normalizeName(choice.sectionLabel) === "languages" && !isBackgroundChoiceComplete(choice))
+          .map((choice) => `Race: elegir ${Math.max(1, Number.parseInt(choice.count || 1, 10) || 1) === 1 ? "1 idioma" : `${Math.max(1, Number.parseInt(choice.count || 1, 10) || 1)} idiomas`}`),
+        ...findSelectedBackgroundChoices()
+          .filter((choice) => normalizeName(choice.sectionLabel) === "languages" && !isBackgroundChoiceComplete(choice))
+          .map((choice) => `Background: elegir ${Math.max(1, Number.parseInt(choice.count || 1, 10) || 1) === 1 ? "1 idioma" : `${Math.max(1, Number.parseInt(choice.count || 1, 10) || 1)} idiomas`}`),
+        ...pendingFeatureLanguageChoices()
+      ]);
+      if (!knownLanguages.length && !pendingChoices.length) return null;
+      const description = [
+        knownLanguages.length ? ["Known Languages:", ...knownLanguages.map((language) => `- ${language}`)].join("\n") : "",
+        pendingChoices.length ? ["Pending Choices:", ...pendingChoices.map((choice) => `- ${choice}`)].join("\n") : ""
+      ].filter(Boolean).join("\n\n");
+      return {
+        type: "languageSummary",
+        title: "Languages",
+        meta: pendingChoices.length ? "Pending language choices" : "Derived",
+        description,
+        pendingChoices: pendingChoices.length
+      };
     }
 
     function clearLegacyAdditionalFeaturesField(primaryField) {
@@ -9359,6 +9569,8 @@
         "Hit Die",
         "Armor",
         "Weapons",
+        "Armor Proficiencies",
+        "Weapon Proficiencies",
         "Ability Scores",
         "Feat",
         "Skill Proficiencies",
@@ -9371,82 +9583,58 @@
         "Feature"
       ];
       const sections = [];
-      const classItems = [];
-
-      const classDescription = selectedOptionDescription("class", getMainClassName());
-      const classArmor = extractColonSection(classDescription, ["Armor"], stopLabels);
-      const classWeapons = extractColonSection(classDescription, ["Weapons"], stopLabels);
-      if (classArmor) classItems.push(`Armor: ${classArmor}`);
-      if (classWeapons) classItems.push(`Weapons: ${classWeapons}`);
-      const classFeatureLanguages = [
-        ...classFeatureEntriesForCharacter()
-          .filter((entry) => /\byou know thieves'? cant\b/i.test(flattenEntryText(entry.feature?.entries || entry.description || "")))
-          .map(() => "Thieves' Cant"),
-        ...selectedFeatureLanguageChoices()
-      ];
-      if (classFeatureLanguages.length) classItems.push(`Languages: ${uniqueReadableValues(classFeatureLanguages).join(", ")}`);
-      appendReadableSection(sections, "Class", classItems);
-
+      const classDetail = classDetailByName(getMainClassName());
+      const classStartingProficiencies = classDetail?.classItem?.startingProficiencies || {};
+      const backgroundDetail = selectedBackgroundDetail();
       const backgroundDescription = selectedOptionDescription("background", getFieldValueByNormalizedKey("background"));
-      const backgroundToolsAndLanguages = backgroundSectionText(backgroundDescription, ["Languages and Tool Proficiencies"], stopLabels);
-      const backgroundTools = backgroundSectionText(backgroundDescription, ["Tool Proficiencies", "Tool Proficiency"], stopLabels);
-      const backgroundLanguages = backgroundSectionText(backgroundDescription, ["Languages"], stopLabels);
-      const backgroundItems = [];
-      if (backgroundToolsAndLanguages) backgroundItems.push(`Tools/Languages: ${backgroundToolsAndLanguages}`);
-      else {
-        if (backgroundTools) backgroundItems.push(`Tools: ${backgroundTools}`);
-        if (backgroundLanguages) backgroundItems.push(`Languages: ${backgroundLanguages}`);
-      }
-      appendReadableSection(sections, "Background", backgroundItems);
-
       const race = selectedRaceDetail();
       const raceDescription = selectedOptionDescription("race", getSelectedRaceName());
-      const selectedRaceLanguages = selectedRaceChoiceText("Languages");
-      const rawRaceLanguages = extractRaceLanguageText(raceDescription)
+      const cleanedRaceLanguageText = extractRaceLanguageText(raceDescription)
         .replace(/\b(?:one|two|three)\s+(?:(?:other|extra)\s+)?languages?\s+of your choice\b/gi, "")
         .replace(/\band\s*$/i, "")
         .replace(/[,.]\s*$/g, "")
         .trim();
-      const fixedRaceLanguages = rawRaceLanguages ? [] : fixedRaceProficiencyValues(race, "languageProficiencies", languageLabelFromKey)
-        .filter((language) => normalizeName(language) !== "other");
-      const raceLanguages = [
-        ...fixedRaceLanguages,
-        rawRaceLanguages,
-        selectedRaceLanguages
-      ].filter(Boolean).join(", ");
-      const raceToolProficiencies = [
-        ...fixedRaceProficiencyValues(race, "toolProficiencies", (key) => titleCaseWords([key])[0]),
-        selectedRaceChoiceText("Tool Proficiencies")
-      ].filter(Boolean).join(", ");
-      const raceProficiencies = extractRaceProficiencyText(raceDescription)
-        .replace(/proficiency in one of the following skills of your choice:\s*[^.;]+/gi, "")
-        .replace(/proficiency in one skill of your choice/gi, "")
-        .trim();
-      const raceItems = [];
-      if (raceLanguages) raceItems.push(`Languages: ${raceLanguages}`);
-      if (raceToolProficiencies) raceItems.push(`Tools: ${raceToolProficiencies}`);
-      if (raceProficiencies) raceItems.push(`Proficiencies: ${raceProficiencies}`);
-      appendReadableSection(sections, "Race", raceItems);
+      const proficiencyLabel = (value) => titleCaseWords([String(value || "").split("|")[0].replace(/([a-z])([A-Z])/g, "$1 $2")])[0];
 
-      const featItems = [];
-      activeFeatData().forEach((feat) => {
-        const tools = backgroundProficiencyText(feat.toolProficiencies, (value) => titleCaseWords([String(value).split("|")[0]])[0]);
-        const languages = backgroundProficiencyText(feat.languageProficiencies, languageLabelFromKey);
-        const skills = backgroundProficiencyText(feat.skillProficiencies, (value) => SKILL_NAMES.find((skill) => normalizeName(skill) === normalizeName(value)) || titleCaseWords([value])[0]);
-        if (skills) featItems.push(`${feat.name} Skills: ${skills}`);
-        if (tools) featItems.push(`${feat.name} Tools: ${tools}`);
-        if (languages) featItems.push(`${feat.name} Languages: ${languages}`);
-      });
-      const selectedTools = selectedFeatToolChoices();
-      if (selectedTools.length) featItems.push(`Selected feat tools: ${uniqueReadableValues(selectedTools).join(", ")}`);
-      appendReadableSection(sections, "Feats", featItems);
+      const armorItems = uniqueReadableValues([
+        ...titleCaseWords(Array.isArray(classStartingProficiencies.armor) ? classStartingProficiencies.armor : []),
+        ...fixedRaceProficiencyValues(race, "armorProficiencies", proficiencyLabel),
+        extractColonSection(backgroundDescription, ["Armor Proficiencies", "Armor Proficiency"], stopLabels)
+      ]);
+      const weaponItems = uniqueReadableValues([
+        ...titleCaseWords(Array.isArray(classStartingProficiencies.weapons) ? classStartingProficiencies.weapons : []),
+        ...fixedRaceProficiencyValues(race, "weaponProficiencies", proficiencyLabel),
+        extractColonSection(backgroundDescription, ["Weapon Proficiencies", "Weapon Proficiency"], stopLabels)
+      ]);
+      const toolItems = uniqueReadableValues([
+        ...titleCaseWords(Array.isArray(classStartingProficiencies.tools) ? classStartingProficiencies.tools : []),
+        ...fixedRaceProficiencyValues(race, "toolProficiencies", proficiencyLabel),
+        ...splitChoiceTextValues(selectedRaceChoiceText("Tool Proficiencies")),
+        ...fixedGroupProficiencyValues(backgroundDetail?.toolProficiencies, proficiencyLabel),
+        ...selectedBackgroundToolChoices(),
+        ...activeFeatData().flatMap((feat) => fixedGroupProficiencyValues(feat.toolProficiencies, proficiencyLabel)),
+        ...selectedFeatToolChoices()
+      ]);
+      const languageItems = uniqueReadableValues([
+        ...defaultRaceLanguageValues(race),
+        ...fixedRaceProficiencyValues(race, "languageProficiencies", languageLabelFromKey).filter((language) => normalizeName(language) !== "other"),
+        ...extractConcreteLanguageNames(cleanedRaceLanguageText),
+        ...splitChoiceTextValues(selectedRaceChoiceText("Languages")),
+        ...fixedGroupProficiencyValues(backgroundDetail?.languageProficiencies, languageLabelFromKey),
+        ...selectedBackgroundLanguageChoices(),
+        ...activeFeatData().flatMap((feat) => fixedGroupProficiencyValues(feat.languageProficiencies, languageLabelFromKey)),
+        ...selectedFeatureLanguageChoices(),
+        ...classFeatureEntriesForCharacter()
+          .filter((entry) => /\byou know thieves'? cant\b/i.test(flattenEntryText(entry.feature?.entries || entry.description || "")))
+          .map(() => "Thieves' Cant")
+      ]);
 
-      const defenses = selectedDefenseSources();
-      const armorPenalty = armorProficiencyPenaltyText();
-      if (armorPenalty) defenses.conditional.push(armorPenalty);
-      appendReadableSection(sections, "Defenses", defenses.passive);
-
-      appendReadableSection(sections, "Conditional Effects", defenses.conditional);
+      const items = [];
+      if (armorItems.length) items.push(`Armor: ${armorItems.join(", ")}`);
+      if (weaponItems.length) items.push(`Weapons: ${weaponItems.join(", ")}`);
+      if (toolItems.length) items.push(`Tools: ${toolItems.join(", ")}`);
+      if (languageItems.length) items.push(`Languages: ${languageItems.join(", ")}`);
+      appendReadableSection(sections, "Proficiencies", items);
 
       return sections.join("\n\n");
     }
