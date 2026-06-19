@@ -29,19 +29,24 @@ echo Version actual: %CURRENT_VERSION%
 set /p APP_VERSION=Numero de version para este instalador [Enter = %CURRENT_VERSION%]: 
 if "%APP_VERSION%"=="" set "APP_VERSION=%CURRENT_VERSION%"
 
-call node -e "process.exit(/^[0-9]+\.[0-9]+\.[0-9]+$/.test(process.argv[1]) ? 0 : 1)" "%APP_VERSION%"
+set "NORMALIZED_VERSION="
+for /f "usebackq delims=" %%v in (`node -e "const value=(process.argv[1] || '').trim(); if (/^[0-9]+\.[0-9]+$/.test(value)) { console.log(value + '.0'); process.exit(0); } if (/^[0-9]+\.[0-9]+\.[0-9]+$/.test(value)) { console.log(value); process.exit(0); } process.exit(1);" "%APP_VERSION%"`) do set "NORMALIZED_VERSION=%%v"
 if errorlevel 1 (
   echo.
-  echo ERROR: La version debe tener formato semver, por ejemplo 1.0.1
+  echo ERROR: La version debe tener formato 1.0 o 1.0.1
   pause
   exit /b 1
 )
+if not "%APP_VERSION%"=="%NORMALIZED_VERSION%" (
+  echo Version normalizada: %NORMALIZED_VERSION%
+)
+set "APP_VERSION=%NORMALIZED_VERSION%"
 
 echo Actualizando version a %APP_VERSION%...
-call node -e "const fs=require('fs'); const p='package.json'; const data=JSON.parse(fs.readFileSync(p,'utf8')); data.version=process.argv[1]; fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n');" "%APP_VERSION%"
+call node -e "const fs=require('fs'); const version=process.argv[1]; const files=['package.json','package-lock.json']; for (const p of files) { if (!fs.existsSync(p)) continue; const data=JSON.parse(fs.readFileSync(p,'utf8')); data.version=version; if (p === 'package-lock.json' && data.packages && data.packages['']) data.packages[''].version=version; fs.writeFileSync(p, JSON.stringify(data, null, 2) + '\n'); }" "%APP_VERSION%"
 if errorlevel 1 (
   echo.
-  echo ERROR: No se pudo actualizar package.json.
+  echo ERROR: No se pudo actualizar la version del proyecto.
   pause
   exit /b 1
 )
