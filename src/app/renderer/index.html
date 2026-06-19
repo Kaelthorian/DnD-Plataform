@@ -98,6 +98,7 @@
     </aside>
   </div>
 
+  <script src="../../engine/conditions/statuses.js"></script>
   <script src="../../engine/actions/action-advisor.js"></script>
   <script src="../../engine/resources/resource-state.js"></script>
   <script src="../../engine/rests/long-rest.js"></script>
@@ -124,6 +125,13 @@
       spendMagicInitiateUse
     } = globalThis.dndResourceStateEngine;
     const {
+      getStatusDefinitions,
+      findStatusDefinition,
+      normalizeStatusIds,
+      mergeRollModes,
+      collectStatusEffects
+    } = globalThis.dndConditionEngine;
+    const {
       ACTION_TYPES,
       ACTION_TYPE_LABELS,
       ACTION_TYPE_ORDER,
@@ -131,6 +139,9 @@
       groupActionsByType
     } = globalThis.dndActionAdvisorEngine;
     const turnActionRegistry = createActionRegistry();
+    let statusDock = null;
+    let statusSearchQuery = "";
+    const pendingCriticalHits = new Set();
     const TURN_ACTION_GROUP_GUIDE = {
       [ACTION_TYPES.movement]: {
         title: "Movimiento",
@@ -1733,6 +1744,22 @@
       damageTooltip.classList.remove("feature-tooltip");
     }
 
+    function showFeatureTooltip(anchor, text) {
+      if (!anchor || !text) return;
+      damageTooltip.textContent = text;
+      damageTooltip.classList.add("feature-tooltip");
+      const rect = anchor.getBoundingClientRect();
+      const margin = 8;
+      damageTooltip.classList.add("visible");
+      const tooltipRect = damageTooltip.getBoundingClientRect();
+      const left = Math.min(Math.max(margin, rect.left + rect.width / 2 - tooltipRect.width / 2), window.innerWidth - tooltipRect.width - margin);
+      const top = rect.top > tooltipRect.height + margin
+        ? rect.top - tooltipRect.height - 6
+        : rect.bottom + 6;
+      damageTooltip.style.left = `${left}px`;
+      damageTooltip.style.top = `${top}px`;
+    }
+
     function descriptionForSpell(spell) {
       return spell?.description || "Sin descripcion disponible.";
     }
@@ -2390,6 +2417,66 @@
       return lines.filter(Boolean).join("\n");
     }
 
+    function rollD20WithMode(mode = "normal") {
+      if (mode === "advantage" || mode === "disadvantage") {
+        const first = rollDie(20);
+        const second = rollDie(20);
+        return {
+          mode,
+          rolls: [first, second],
+          selected: mode === "advantage" ? Math.max(first, second) : Math.min(first, second)
+        };
+      }
+      const roll = rollDie(20);
+      return {
+        mode: "normal",
+        rolls: [roll],
+        selected: roll
+      };
+    }
+
+    function d20RollHeader(roll) {
+      if (roll.mode === "advantage") return `Tirada: d20 (adv) = ${roll.rolls[0]} / ${roll.rolls[1]} -> ${roll.selected}`;
+      if (roll.mode === "disadvantage") return `Tirada: d20 (dis) = ${roll.rolls[0]} / ${roll.rolls[1]} -> ${roll.selected}`;
+      return `Tirada: d20 = ${roll.selected}`;
+    }
+
+    function rollBonusDiceEntries(entries = []) {
+      const lines = [];
+      let total = 0;
+      (Array.isArray(entries) ? entries : []).forEach((entry) => {
+        const expression = String(entry?.expression || "").trim();
+        if (!expression) return;
+        const roll = rollDiceExpression(expression);
+        if (!roll) return;
+        total += roll.total;
+        lines.push(`${entry.label || expression}: ${expression} = ${roll.total}`);
+        roll.terms
+          .filter((term) => term.type === "dice")
+          .forEach((term) => lines.push(`  ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`));
+      });
+      return { total, lines };
+    }
+
+    function summarizeD20Roll({ roll, parts = [], bonusDice = [], label = "", notes = [] } = {}) {
+      const cleanParts = parts.filter((part) => Number.isFinite(part.value) && part.value !== 0);
+      const bonusSummary = rollBonusDiceEntries(bonusDice);
+      const subtotal = roll.selected + cleanParts.reduce((sum, part) => sum + part.value, 0);
+      const total = subtotal + bonusSummary.total;
+      return {
+        total,
+        detail: formatDiceLines([
+          d20RollHeader(roll),
+          ...cleanParts.map((part) => `${part.label}: ${formatModifier(part.value)}`),
+          `Subtotal: ${[roll.selected, ...cleanParts.map((part) => part.value)].map((value, index) => index === 0 ? String(value) : formatModifier(value)).join(" ")} = ${subtotal}`,
+          ...bonusSummary.lines,
+          bonusSummary.total ? `Total final: ${subtotal} + ${bonusSummary.total} = ${total}` : `Total final: ${subtotal}`,
+          label ? `Nota: ${label}` : "",
+          ...notes
+        ])
+      };
+    }
+
     function d20RollDetail(d20, parts, total) {
       const cleanParts = parts.filter((part) => Number.isFinite(part.value) && part.value !== 0);
       return formatDiceLines([
@@ -2425,6 +2512,76 @@
       return [{ label: "Attack bonus", value: bonus }];
     }
 
+    function isSavingThrowLabel(label) {
+      return /saving throw/i.test(String(label || ""));
+    }
+
+    function savingThrowAbilityFromLabel(label) {
+      const match = String(label || "").match(/\b(STR|DEX|CON|INT|WIS|CHA)\b/i);
+      return match?.[1]?.toUpperCase() || "";
+    }
+
+    function attackRollStatusContext() {
+      const effects = activeStatusEffects();
+      return {
+        mode: effects.attackRollMode,
+        bonusDice: effects.attackBonusDice,
+        notes: [...effects.attackNotes, ...effects.generalNotes]
+      };
+    }
+
+    function criticalHitKey(attackName) {
+      return normalizeName(attackName || "");
+    }
+
+    function hasPendingCriticalHit(attackName) {
+      const key = criticalHitKey(attackName);
+      return key ? pendingCriticalHits.has(key) : false;
+    }
+
+    function markPendingCriticalHit(attackName, active) {
+      const key = criticalHitKey(attackName);
+      if (!key) return false;
+      const hadValue = pendingCriticalHits.has(key);
+      if (active) pendingCriticalHits.add(key);
+      else pendingCriticalHits.delete(key);
+      return hadValue !== pendingCriticalHits.has(key);
+    }
+
+    function consumePendingCriticalHit(attackName) {
+      const key = criticalHitKey(attackName);
+      if (!key || !pendingCriticalHits.has(key)) return false;
+      pendingCriticalHits.delete(key);
+      return true;
+    }
+
+    function criticalDamageExpression(expression) {
+      const terms = parseDiceExpressionTerms(expression);
+      if (!terms?.length) return null;
+      return formatDiceExpression(terms.map((term) => (
+        term.type === "dice"
+          ? { ...term, count: term.count * 2 }
+          : { ...term }
+      )));
+    }
+
+    function d20CheckStatusContext(label) {
+      const effects = activeStatusEffects();
+      if (!isSavingThrowLabel(label)) {
+        return {
+          mode: effects.abilityCheckMode,
+          bonusDice: effects.checkBonusDice,
+          notes: [...effects.checkNotes, ...effects.generalNotes]
+        };
+      }
+      const ability = savingThrowAbilityFromLabel(label);
+      return {
+        mode: mergeRollModes([effects.saveRollMode, effects.saveModeByAbility?.[ability] || "normal"]),
+        bonusDice: effects.saveBonusDice,
+        notes: [...effects.saveNotes, ...effects.generalNotes]
+      };
+    }
+
     function showDiceTray(title, result, detail) {
       diceTitle.textContent = title;
       diceResult.textContent = result;
@@ -2435,32 +2592,55 @@
     }
 
     function rollAttack(attackName, bonus, label) {
-      const d20 = rollDie(20);
-      const total = d20 + bonus;
-      const detail = d20RollDetail(d20, attackRollParts(bonus, label), total);
-      showDiceTray(`${attackName}: ataque`, String(total), formatDiceLines([detail, label ? `Nota: ${label}` : ""]));
+      const statusContext = attackRollStatusContext();
+      const roll = rollD20WithMode(statusContext.mode);
+      const isCriticalHit = roll.selected === 20;
+      const summary = summarizeD20Roll({
+        roll,
+        parts: attackRollParts(bonus, label),
+        bonusDice: statusContext.bonusDice,
+        label,
+        notes: [
+          ...statusContext.notes,
+          isCriticalHit ? "Natural 20: Critical Hit. Impacta sin importar modificadores o AC." : ""
+        ]
+      });
+      const pendingChanged = markPendingCriticalHit(attackName, isCriticalHit);
+      if (pendingChanged) updatePreparedSpellsPanel();
+      if (isCriticalHit) showStatus(`${attackName}: critico listo, el proximo danio duplica los dados`);
+      showDiceTray(`${attackName}: ataque`, String(summary.total), summary.detail);
     }
 
     function rollD20Check(label, modifier) {
-      const d20 = rollDie(20);
-      const total = d20 + modifier;
-      showDiceTray(label, String(total), d20RollDetail(d20, [{ label: "Modificador", value: modifier }], total));
+      const statusContext = d20CheckStatusContext(label);
+      const summary = summarizeD20Roll({
+        roll: rollD20WithMode(statusContext.mode),
+        parts: [{ label: "Modificador", value: modifier }],
+        bonusDice: statusContext.bonusDice,
+        notes: statusContext.notes
+      });
+      showDiceTray(label, String(summary.total), summary.detail);
     }
 
     function rollDamage(attackName, expression, damageType) {
+      const isCriticalHit = consumePendingCriticalHit(attackName);
       if (expression === "unarmed") {
         const strengthModifier = getStrengthModifier();
         const total = Math.max(0, 1 + strengthModifier);
+        updatePreparedSpellsPanel();
         showDiceTray(`${attackName}: danio`, String(total), formatDiceLines([
           "Base: 1",
           `STR mod: ${formatModifier(strengthModifier)}`,
           `Total: max(0, 1 ${formatModifier(strengthModifier)}) = ${total}`,
+          isCriticalHit ? "Critico: no hay damage dice base para duplicar en este ataque." : "",
           damageType ? `Tipo: ${damageType}` : ""
         ]));
         return;
       }
-      const roll = rollDiceExpression(expression);
+      const finalExpression = isCriticalHit ? criticalDamageExpression(expression) || expression : expression;
+      const roll = rollDiceExpression(finalExpression);
       if (!roll) {
+        updatePreparedSpellsPanel();
         showDiceTray(`${attackName}: danio`, "N/A", "No encontre dados de danio en la descripcion.");
         return;
       }
@@ -2468,8 +2648,10 @@
       const bonusTerms = roll.terms.filter((term) => term.type === "bonus");
       const diceTotal = diceTerms.reduce((sum, term) => sum + term.subtotal, 0);
       const bonusTotal = bonusTerms.reduce((sum, term) => sum + term.value, 0);
+      updatePreparedSpellsPanel();
       showDiceTray(`${attackName}: danio`, String(roll.total), formatDiceLines([
-        `Dados: ${expression}`,
+        isCriticalHit ? `Critico: ${expression} -> ${finalExpression}` : `Dados: ${expression}`,
+        isCriticalHit ? "Efecto: tiras todos los damage dice dos veces y luego sumas los modificadores." : "",
         ...diceTerms.map((term) => `Tiradas ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
         ...bonusTerms.map((term) => `Bonus fijo: ${formatModifier(term.value)}`),
         `Total: ${diceTotal}${bonusTotal ? ` ${formatModifier(bonusTotal)}` : ""} = ${roll.total}`,
@@ -2658,9 +2840,11 @@
         const damageButton = document.createElement("button");
         damageButton.type = "button";
         damageButton.className = "dice-button";
+        const criticalReady = hasPendingCriticalHit(spell.name);
+        damageButton.classList.toggle("active", criticalReady);
         damageButton.textContent = spell.damageLabel || "--";
         damageButton.title = spell.damageLabel
-          ? `Tirar danio ${spell.damageLabel} ${spell.damageType} ${spell.kind === "spell" && spell.level > 0 ? `a nivel ${spell.castLevel || spell.level}` : ""}`.trim()
+          ? `${criticalReady ? "Critico listo. " : ""}Tirar danio ${spell.damageLabel} ${spell.damageType} ${spell.kind === "spell" && spell.level > 0 ? `a nivel ${spell.castLevel || spell.level}` : ""}`.trim()
           : "Sin dados de danio detectados";
         if (spell.kind === "activation") damageButton.disabled = true;
         else if (!spell.damage) damageButton.disabled = true;
@@ -3305,9 +3489,10 @@
 
     function turnActionTotals(actions = []) {
       const hasActions = actions.some((action) => action.type === ACTION_TYPES.action);
+      const effects = activeStatusEffects();
       return {
-        action: hasActions ? 1 : 0,
-        bonus: 1
+        action: effects.actionsBlocked ? 0 : hasActions ? 1 : 0,
+        bonus: effects.bonusActionsBlocked ? 0 : 1
       };
     }
 
@@ -3415,6 +3600,33 @@
       return section;
     }
 
+    function renderTurnActionStatuses() {
+      const definitions = activeStatusDefinitions();
+      if (!definitions.length) return null;
+      const section = document.createElement("section");
+      section.className = "turn-actions-resources";
+      const title = document.createElement("h3");
+      title.className = "turn-actions-section-title";
+      title.textContent = "Estados activos";
+      const grid = document.createElement("div");
+      grid.className = "turn-actions-resource-grid";
+      definitions.forEach((definition) => {
+        const card = document.createElement("div");
+        card.className = "turn-actions-resource-card";
+        card.title = statusDescriptionText(definition);
+        const name = document.createElement("div");
+        name.className = "turn-actions-resource-name";
+        name.textContent = `${definition.symbol} ${definition.name}`;
+        const detail = document.createElement("div");
+        detail.className = "turn-actions-resource-detail";
+        detail.textContent = definition.description;
+        card.append(name, detail);
+        grid.appendChild(card);
+      });
+      section.append(title, grid);
+      return section;
+    }
+
     function renderTurnActionGroups(actions = []) {
       const container = document.createElement("section");
       container.className = "turn-actions-groups";
@@ -3470,8 +3682,10 @@
       const summary = collectCurrentTurnActions();
       updateTurnActionCounters(summary.actions);
       const resourceSection = renderTurnActionResources(summary.resources);
+      const statusSection = renderTurnActionStatuses();
       const actionGroups = renderTurnActionGroups(summary.actions);
       if (resourceSection) turnActionsBody.appendChild(resourceSection);
+      if (statusSection) turnActionsBody.appendChild(statusSection);
       if (summary.actions.length) turnActionsBody.appendChild(actionGroups);
       if (!summary.resources.length && !summary.actions.length) {
         const empty = document.createElement("div");
@@ -4057,6 +4271,192 @@
       layer.appendChild(button);
     }
 
+    function createStatusCard(definition) {
+      const card = document.createElement("div");
+      card.className = `status-card ${definition.tone === "positive" ? "positive" : "negative"}`;
+      card.title = statusDescriptionText(definition);
+      card.tabIndex = 0;
+
+      const symbol = document.createElement("div");
+      symbol.className = "status-symbol";
+      symbol.textContent = definition.symbol;
+
+      const copy = document.createElement("div");
+      copy.className = "status-copy";
+      const name = document.createElement("div");
+      name.className = "status-name";
+      name.textContent = definition.name;
+      const meta = document.createElement("div");
+      meta.className = "status-meta";
+      meta.textContent = definition.tone === "positive" ? "beneficio activo" : "penalidad activa";
+      copy.append(name, meta);
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "status-remove";
+      remove.textContent = "x";
+      remove.title = `Quitar ${definition.name}`;
+      remove.setAttribute("aria-label", `Quitar ${definition.name}`);
+      remove.addEventListener("click", (event) => {
+        event.stopPropagation();
+        sheetMeta.activeStatuses = ensureActiveStatusIds().filter((id) => id !== definition.id);
+        renderStatusDock();
+        updateDerivedStats();
+        refreshTurnActionsPanelIfVisible();
+        scheduleSave();
+        showStatus(`${definition.name}: quitado`);
+      });
+
+      ["mouseenter", "focus"].forEach((eventName) => card.addEventListener(eventName, () => showFeatureTooltip(card, statusDescriptionText(definition))));
+      ["mouseleave", "blur"].forEach((eventName) => card.addEventListener(eventName, hideDamageTooltip));
+
+      card.append(symbol, copy, remove);
+      return card;
+    }
+
+    function createStatusOption(definition) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "status-option";
+      const active = ensureActiveStatusIds().includes(definition.id);
+      button.disabled = active;
+      button.title = statusDescriptionText(definition);
+
+      const symbol = document.createElement("div");
+      symbol.className = "status-symbol";
+      symbol.textContent = definition.symbol;
+
+      const copy = document.createElement("div");
+      copy.className = "status-option-copy";
+      const name = document.createElement("div");
+      name.className = "status-option-name";
+      name.textContent = definition.name;
+      const desc = document.createElement("div");
+      desc.className = "status-option-desc";
+      desc.textContent = definition.description;
+      copy.append(name, desc);
+
+      const state = document.createElement("div");
+      state.className = "status-option-state";
+      state.textContent = active ? "Activo" : definition.tone === "positive" ? "Buff" : "Debuff";
+
+      ["mouseenter", "focus"].forEach((eventName) => button.addEventListener(eventName, () => showFeatureTooltip(button, statusDescriptionText(definition))));
+      ["mouseleave", "blur"].forEach((eventName) => button.addEventListener(eventName, hideDamageTooltip));
+      button.addEventListener("click", () => {
+        const current = ensureActiveStatusIds();
+        sheetMeta.activeStatuses = normalizeStatusIds([definition.id, ...current]);
+        statusDock.dataset.menuOpen = "false";
+        renderStatusDock();
+        updateDerivedStats();
+        refreshTurnActionsPanelIfVisible();
+        scheduleSave();
+        showStatus(`${definition.name}: activo`);
+      });
+
+      button.append(symbol, copy, state);
+      return button;
+    }
+
+    function renderStatusDock() {
+      if (!statusDock) return;
+      const open = statusDock.dataset.menuOpen === "true";
+      statusDock.textContent = "";
+
+      const stack = document.createElement("div");
+      stack.className = "status-stack";
+
+      const launcherRow = document.createElement("div");
+      launcherRow.className = "status-launcher-row";
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = `status-add-button${open ? " active" : ""}`;
+      addButton.textContent = "+";
+      addButton.title = "Agregar estado";
+      addButton.setAttribute("aria-label", "Agregar estado");
+      addButton.addEventListener("click", () => {
+        statusDock.dataset.menuOpen = open ? "false" : "true";
+        statusDock.dataset.focusSearch = open ? "false" : "true";
+        renderStatusDock();
+      });
+      launcherRow.appendChild(addButton);
+
+      const picker = document.createElement("div");
+      picker.className = `status-picker${open ? " visible" : ""}`;
+      const pickerHeader = document.createElement("div");
+      pickerHeader.className = "status-picker-header";
+      const pickerCopy = document.createElement("div");
+      const pickerTitle = document.createElement("div");
+      pickerTitle.className = "status-picker-title";
+      pickerTitle.textContent = "Estados del personaje";
+      const pickerSubtitle = document.createElement("div");
+      pickerSubtitle.className = "status-picker-subtitle";
+      pickerSubtitle.textContent = "Hover para ver la descripcion completa";
+      pickerCopy.append(pickerTitle, pickerSubtitle);
+      pickerHeader.appendChild(pickerCopy);
+      const pickerSearch = document.createElement("input");
+      pickerSearch.type = "search";
+      pickerSearch.className = "status-picker-search";
+      pickerSearch.placeholder = "Buscar estado...";
+      pickerSearch.value = statusSearchQuery;
+      pickerSearch.setAttribute("aria-label", "Buscar estado");
+      pickerSearch.addEventListener("input", () => {
+        statusSearchQuery = pickerSearch.value || "";
+        statusDock.dataset.focusSearch = "true";
+        renderStatusDock();
+      });
+      const pickerList = document.createElement("div");
+      pickerList.className = "status-picker-list";
+      const visibleDefinitions = filteredStatusDefinitions(statusSearchQuery);
+      if (visibleDefinitions.length) {
+        visibleDefinitions.forEach((definition) => pickerList.appendChild(createStatusOption(definition)));
+      } else {
+        const empty = document.createElement("div");
+        empty.className = "status-picker-empty";
+        empty.textContent = "No encontre estados con ese texto.";
+        pickerList.appendChild(empty);
+      }
+      picker.append(pickerHeader, pickerSearch, pickerList);
+      launcherRow.appendChild(picker);
+
+      const activeList = document.createElement("div");
+      activeList.className = "status-active-list";
+      activeStatusDefinitions().forEach((definition) => activeList.appendChild(createStatusCard(definition)));
+
+      stack.append(launcherRow, activeList);
+      statusDock.appendChild(stack);
+      if (open && statusDock.dataset.focusSearch === "true") {
+        statusDock.dataset.focusSearch = "false";
+        queueMicrotask(() => {
+          pickerSearch.focus();
+          const end = pickerSearch.value.length;
+          pickerSearch.setSelectionRange(end, end);
+        });
+      }
+    }
+
+    function createStatusDock() {
+      if (statusDock) return;
+      statusDock = document.createElement("section");
+      statusDock.className = "status-dock";
+      statusDock.dataset.menuOpen = "false";
+      statusDock.dataset.focusSearch = "false";
+      document.body.appendChild(statusDock);
+      renderStatusDock();
+    }
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!statusDock || statusDock.dataset.menuOpen !== "true") return;
+      if (statusDock.contains(event.target)) return;
+      statusDock.dataset.menuOpen = "false";
+      renderStatusDock();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !statusDock || statusDock.dataset.menuOpen !== "true") return;
+      statusDock.dataset.menuOpen = "false";
+      renderStatusDock();
+    });
+
     function createEquipmentPanel(layer) {
       const equipmentField = [...layer.querySelectorAll(".field")]
         .find((field) => field.dataset.key?.trim().toLowerCase() === "equipment");
@@ -4194,6 +4594,7 @@
       if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
       if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
+      if (!Array.isArray(sheetMeta.activeStatuses)) sheetMeta.activeStatuses = [];
       if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
       if (!sheetMeta.spellCastLevels || typeof sheetMeta.spellCastLevels !== "object") sheetMeta.spellCastLevels = {};
       if (!sheetMeta.spellDescriptionTranslations || typeof sheetMeta.spellDescriptionTranslations !== "object") sheetMeta.spellDescriptionTranslations = {};
@@ -4208,6 +4609,9 @@
         if (element.type === "checkbox") element.checked = Boolean(data[key]);
         else element.value = data[key];
       });
+      pendingCriticalHits.clear();
+      ensureActiveStatusIds();
+      renderStatusDock();
       updateInteractionState();
     }
 
@@ -4217,6 +4621,42 @@
       status.classList.add("visible");
       clearTimeout(statusTimer);
       statusTimer = setTimeout(() => status.classList.remove("visible"), 900);
+    }
+
+    function ensureActiveStatusIds() {
+      sheetMeta.activeStatuses = normalizeStatusIds(sheetMeta.activeStatuses);
+      return sheetMeta.activeStatuses;
+    }
+
+    function activeStatusDefinitions() {
+      return ensureActiveStatusIds()
+        .map((id) => findStatusDefinition(id))
+        .filter(Boolean);
+    }
+
+    function activeStatusEffects() {
+      return collectStatusEffects(ensureActiveStatusIds());
+    }
+
+    function statusDescriptionText(definition) {
+      if (!definition) return "";
+      const tone = definition.tone === "positive" ? "Beneficio" : "Penalidad";
+      return `${definition.name}\n${tone}: ${definition.description}`;
+    }
+
+    function filteredStatusDefinitions(query = "") {
+      const normalizedQuery = normalizeName(query || "");
+      const definitions = getStatusDefinitions();
+      if (!normalizedQuery) return definitions;
+      return definitions.filter((definition) => {
+        const haystack = normalizeName([
+          definition.name || "",
+          definition.symbol || "",
+          definition.description || "",
+          definition.tone || ""
+        ].join(" "));
+        return haystack.includes(normalizedQuery);
+      });
     }
 
     function isCharacterReady() {
@@ -4348,6 +4788,7 @@
       closeOptionMenu();
       closeItemPicker();
       closeItemDrawer();
+      if (statusDock) statusDock.dataset.menuOpen = "false";
       selectedPickerItem = null;
       if (itemPickerAdd) itemPickerAdd.disabled = true;
       if (itemPickerQuantity) itemPickerQuantity.value = "1";
@@ -11120,6 +11561,7 @@
       const shieldBonus = equippedShieldArmorClassBonus();
       const raceBonus = armorClassBonusFromRace();
       const featureBonus = armorClassBonusFromFeatures(equippedArmor);
+      const statusBonus = activeStatusEffects().acBonus;
       const candidates = [{ ac: 10 + dexModifier, allowsShield: true }];
 
       const armor = armorRuleFromItem(equippedArmor);
@@ -11135,11 +11577,17 @@
       }
 
       const best = Math.max(...candidates.map((candidate) => candidate.ac + (candidate.allowsShield ? shieldBonus : 0)));
-      return String(best + raceBonus + featureBonus);
+      return String(best + raceBonus + featureBonus + statusBonus);
     }
 
     function updateArmorClass() {
-      setFieldValue("AC", calculateArmorClass());
+      const value = calculateArmorClass();
+      setFieldValue("AC", value);
+      const effects = activeStatusEffects();
+      const pieces = [
+        effects.acBonus ? `Estados ${formatModifier(effects.acBonus)}` : ""
+      ].filter(Boolean);
+      setFieldTitle("AC", pieces.length ? `AC: ${pieces.join(", ")}` : "AC");
     }
 
     function extractRaceSpeed() {
@@ -11159,7 +11607,23 @@
     }
 
     function updateSpeed() {
-      setFieldValue("Speed", extractRaceSpeed());
+      const base = Number.parseInt(extractRaceSpeed(), 10);
+      if (!Number.isFinite(base)) {
+        setFieldValue("Speed", extractRaceSpeed());
+        setFieldTitle("Speed", "Speed");
+        return;
+      }
+      const effects = activeStatusEffects();
+      const next = Number.isFinite(effects.speedOverride)
+        ? effects.speedOverride
+        : Math.max(0, Math.round(base * (effects.speedMultiplier || 1)));
+      setFieldValue("Speed", String(next));
+      const parts = [
+        `Base ${base}`,
+        Number.isFinite(effects.speedOverride) ? `Estado fija ${effects.speedOverride}` : "",
+        !Number.isFinite(effects.speedOverride) && effects.speedMultiplier !== 1 ? `Estados x${effects.speedMultiplier}` : ""
+      ].filter(Boolean);
+      setFieldTitle("Speed", `Speed: ${parts.join(", ")}`);
     }
 
     function getHeightField() {
@@ -11209,9 +11673,12 @@
       const perception = Number.parseInt(fieldValue("Perception"), 10);
       if (!Number.isFinite(perception)) {
         setFieldValue("Passive", "");
+        setFieldTitle("Passive", "Passive");
         return;
       }
-      setFieldValue("Passive", String(10 + perception));
+      const modifier = activeStatusEffects().passivePerceptionModifier;
+      setFieldValue("Passive", String(10 + perception + modifier));
+      setFieldTitle("Passive", modifier ? `Passive: 10 + Perception ${formatModifier(perception)} ${formatModifier(modifier)}` : "Passive");
     }
 
     function syncSpellcastingClassFromClassLevel() {

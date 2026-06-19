@@ -434,6 +434,7 @@
       });
       createEquipmentPanel(layer);
       if (pageNumber === 1) createAddEquipmentButton(layer, viewport);
+      if (pageNumber === 1) createStatusDock(layer);
       if (pageNumber === 1) layer.appendChild(makeSyntheticLevelField(viewport));
       if (pageNumber === 1) createPreparedSpellsPanel(layer, viewport);
       if (pageNumber === 1) createRollHotspots(layer, viewport);
