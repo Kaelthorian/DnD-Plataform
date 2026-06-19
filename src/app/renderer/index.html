@@ -13,7 +13,9 @@
   </div>
   <button class="clear-fields-button" id="clearFieldsButton" type="button">Limpiar campos</button>
   <button class="long-rest-button" id="longRestButton" type="button">Long rest</button>
+  <button class="long-rest-button short-rest-button" id="shortRestButton" type="button">Short rest</button>
   <button class="character-ready-button" id="characterReadyButton" type="button">🔓 Personaje Listo</button>
+  <button class="turn-actions-button" id="turnActionsButton" type="button">Empezar combate</button>
   <aside class="alerts-panel empty" id="alertsPanel" aria-live="polite">
     <div class="alerts-trigger" id="alertsTrigger" tabindex="0" role="button" aria-label="Ver alertas pendientes">
       <span class="alert-icon" id="alertsIcon">!</span>
@@ -72,9 +74,34 @@
     </div>
   </div>
   <div class="damage-tooltip" id="damageTooltip"></div>
+  <div class="turn-actions-backdrop" id="turnActionsBackdrop" aria-hidden="true">
+    <aside class="turn-actions-panel" id="turnActionsPanel" role="dialog" aria-modal="true" aria-labelledby="turnActionsTitle">
+      <div class="turn-actions-header">
+        <div>
+          <div class="turn-actions-title" id="turnActionsTitle">Empezar combate</div>
+          <div class="turn-actions-subtitle">Acciones disponibles segun el estado actual del personaje.</div>
+        </div>
+        <button class="turn-actions-close" id="turnActionsClose" type="button" aria-label="Cerrar">X</button>
+      </div>
+      <div class="turn-actions-turnbar" aria-live="polite">
+        <div class="turn-actions-counter">
+          <span class="turn-actions-orb" id="turnActionsActionOrb">1</span>
+          <span id="turnActionsActionLabel">Acciones</span>
+        </div>
+        <div class="turn-actions-counter">
+          <span class="turn-actions-orb" id="turnActionsBonusOrb">1</span>
+          <span id="turnActionsBonusLabel">Acciones bonus</span>
+        </div>
+        <button class="turn-actions-new-turn" id="turnActionsNewTurn" type="button">Nuevo turno</button>
+      </div>
+      <div class="turn-actions-body" id="turnActionsBody"></div>
+    </aside>
+  </div>
 
+  <script src="../../engine/actions/action-advisor.js"></script>
   <script src="../../engine/resources/resource-state.js"></script>
   <script src="../../engine/rests/long-rest.js"></script>
+  <script src="../../engine/rests/short-rest.js"></script>
   <script src="./renderer.js"></script>
   <script>
     "use strict";
@@ -86,12 +113,42 @@
       resolveLongRest
     } = globalThis.dndLongRestEngine;
     const {
+      computeShortRestRecovery,
+      resolveShortRest
+    } = globalThis.dndShortRestEngine;
+    const {
       ensureResourceState,
       getResourceUseInfo,
       spendResourceUse,
       getMagicInitiateUseInfo,
       spendMagicInitiateUse
     } = globalThis.dndResourceStateEngine;
+    const {
+      ACTION_TYPES,
+      ACTION_TYPE_LABELS,
+      ACTION_TYPE_ORDER,
+      createActionRegistry,
+      groupActionsByType
+    } = globalThis.dndActionAdvisorEngine;
+    const turnActionRegistry = createActionRegistry();
+    const TURN_ACTION_GROUP_GUIDE = {
+      [ACTION_TYPES.movement]: {
+        title: "Movimiento",
+        subtitle: "Movement limited by movement speed. Puedes moverte antes, durante o despues de tus acciones."
+      },
+      [ACTION_TYPES.action]: {
+        title: "Accion",
+        subtitle: "Action 1/turn. Tambien puedes interactuar gratis con un objeto o parte del entorno una vez."
+      },
+      [ACTION_TYPES.bonus]: {
+        title: "Accion Bonus",
+        subtitle: "Bonus action max. 1/turn. Solo existe si un spell, habilidad o feature dice que puedes hacerlo."
+      },
+      [ACTION_TYPES.reaction]: {
+        title: "Reaccion",
+        subtitle: "Reaction max. 1/round. Es una respuesta instantanea a un trigger."
+      }
+    };
 
     const SPELL_SLOT_TOTAL_KEYS = new Map([
       [1, "SlotsTotal 19"],
@@ -645,6 +702,18 @@
       return Boolean(field) && field === getCurrentHitPointsField();
     }
 
+    function isHitDiceField(field) {
+      const key = normalizeName(field?.dataset?.key || "");
+      return key === "hd";
+    }
+
+    function applyShortRestRecovery(recovery) {
+      if (!recovery) return;
+      applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
+      sheetMeta.featureUses = recovery.nextResourceState;
+      updatePreparedSpellsPanel();
+    }
+
     function applyLongRestRecovery(recovery) {
       if (!recovery) return;
       const currentHpField = getCurrentHitPointsField();
@@ -661,6 +730,54 @@
         currentHitPoints: getCurrentHitPointsField()?.value || "",
         maxHitPoints: fieldValue("HPMax")
       }));
+    }
+
+    function resourceRecoveryKindsFromText(text) {
+      const value = String(text || "");
+      if (!value.trim()) return [];
+      const bothPattern = /\b(?:until|when|whenever|once|before|after|must|can't|cannot|regain|roll initiative)[^.]{0,180}\b(?:short\s+or\s+long|long\s+or\s+short)\s+rest\b/i;
+      const shortPattern = /\b(?:until|when|whenever|once|before|after|must|can't|cannot|regain|roll initiative)[^.]{0,180}\bshort\s+rest\b/i;
+      const longPattern = /\b(?:until|when|whenever|once|before|after|must|can't|cannot|regain|roll initiative)[^.]{0,180}\blong\s+rest\b/i;
+      if (bothPattern.test(value)) return ["short", "long"];
+      if (shortPattern.test(value) && longPattern.test(value)) return ["short", "long"];
+      if (shortPattern.test(value)) return ["short"];
+      if (longPattern.test(value)) return ["long"];
+      return [];
+    }
+
+    function featureRecoveryKinds(title, description) {
+      return resourceRecoveryKindsFromText(`${title || ""}\n${description || ""}`);
+    }
+
+    function magicInitiateRecoveryKinds(grant) {
+      if (!grant?.fromMagicInitiate) return [];
+      const feat = findFeatData("Magic Initiate");
+      return resourceRecoveryKindsFromText(flattenEntryText(feat?.entries || ""));
+    }
+
+    function shortRestRecoverableResourceKeys() {
+      const keys = new Set();
+      featureGrantedAttackSelections().forEach((row) => {
+        if (!row?.key || !row?.usesMax) return;
+        if (featureRecoveryKinds(row.name, row.description).includes("short")) keys.add(row.key);
+      });
+      featureActivationSelections().forEach((row) => {
+        if (!row?.key || !row?.usesMax) return;
+        if (featureRecoveryKinds(row.name, row.description).includes("short")) keys.add(row.key);
+      });
+      featResourceSelections().forEach((row) => {
+        if (!row?.key || !row?.usesMax) return;
+        if (featureRecoveryKinds(row.name, row.description).includes("short")) keys.add(row.key);
+      });
+      activeFeatSpellGrants().forEach((grant) => {
+        if (!grant?.key) return;
+        if (magicInitiateRecoveryKinds(grant).includes("short")) keys.add(grant.key);
+      });
+      return [...keys];
+    }
+
+    function isWarlockCharacter() {
+      return normalizeName(getMainClassName() || getSelectedClassName()) === "warlock";
     }
 
     function spendSpellSlot(level) {
@@ -681,11 +798,13 @@
       });
       if (result.mode === "instant") {
         applyLongRestRecovery(result.recovery);
+        sheetMeta.shortRestActive = false;
         scheduleSave();
         showStatus("Long rest: vida y spell slots restaurados");
         return;
       }
       sheetMeta.longRestActive = result.nextLongRestActive;
+      if (sheetMeta.longRestActive) sheetMeta.shortRestActive = false;
       if (result.recovery) {
         applyLongRestRecovery(result.recovery);
       }
@@ -698,6 +817,33 @@
       showStatus(sheetMeta.longRestActive
         ? isBardCharacter() ? "Long rest iniciado: Bard no cambia magias" : "Long rest iniciado: podes cambiar magias"
         : "Long rest terminado: vida y spell slots restaurados");
+    }
+
+    function shortRestResources() {
+      const result = resolveShortRest({
+        characterReady: isCharacterReady(),
+        shortRestActive: isShortRestActive(),
+        slotTotals: spellSlotsForCharacter(),
+        remainingByLevel: spellSlotRemainingByLevel(),
+        resourceState: featureUseState(),
+        recoverResourceKeys: shortRestRecoverableResourceKeys(),
+        restoreSpellSlots: isWarlockCharacter()
+      });
+      if (result.mode === "instant") {
+        applyShortRestRecovery(result.recovery);
+        sheetMeta.longRestActive = false;
+        scheduleSave();
+        showStatus("Short rest: recursos recuperados");
+        return;
+      }
+      sheetMeta.shortRestActive = result.nextShortRestActive;
+      if (sheetMeta.shortRestActive) sheetMeta.longRestActive = false;
+      if (result.recovery) applyShortRestRecovery(result.recovery);
+      updateInteractionState();
+      scheduleSave();
+      showStatus(sheetMeta.shortRestActive
+        ? "Short rest iniciado: podes gastar Hit Dice y ajustar HP actual"
+        : "Short rest terminado: recursos de short rest recuperados");
     }
 
     function isSpellAlreadySelected(spellName, exceptField = null) {
@@ -1319,19 +1465,149 @@
       return level >= 17 ? 3 : level >= 11 ? 2 : level >= 5 ? 1 : 0;
     }
 
-    function damageDiceForSpell(spell) {
+    function spellBaseDamageDescription(spell) {
+      const description = cleanSpellDescription(spell);
+      const higherLevelIndex = description.search(/\b(?:At Higher Levels|Using a Higher-Level Spell Slot)\b/i);
+      return higherLevelIndex >= 0 ? description.slice(0, higherLevelIndex).trim() : description;
+    }
+
+    function parseDiceExpressionTerms(expression) {
+      const compact = String(expression || "").replace(/\s+/g, "");
+      if (!compact) return null;
+      const tokens = compact.match(/[+-]?[^+-]+/g);
+      if (!tokens?.length) return null;
+      const terms = [];
+      for (const token of tokens) {
+        const sign = token.startsWith("-") ? -1 : 1;
+        const raw = token.startsWith("+") || token.startsWith("-") ? token.slice(1) : token;
+        if (!raw) return null;
+        const diceMatch = raw.match(/^(\d*)d(\d+)$/i);
+        if (diceMatch) {
+          const count = Number.parseInt(diceMatch[1] || "1", 10);
+          const sides = Number.parseInt(diceMatch[2], 10);
+          if (!Number.isFinite(count) || !Number.isFinite(sides) || count < 1 || sides < 2) return null;
+          terms.push({ type: "dice", count: sign * count, sides });
+          continue;
+        }
+        const value = Number.parseInt(raw, 10);
+        if (!Number.isFinite(value)) return null;
+        terms.push({ type: "bonus", value: sign * value });
+      }
+      return terms.length ? terms : null;
+    }
+
+    function formatDiceExpression(terms = []) {
+      const diceBySides = new Map();
+      let bonus = 0;
+      terms.forEach((term) => {
+        if (term?.type === "dice" && Number.isFinite(term.count) && Number.isFinite(term.sides)) {
+          diceBySides.set(term.sides, (diceBySides.get(term.sides) || 0) + term.count);
+          return;
+        }
+        if (term?.type === "bonus" && Number.isFinite(term.value)) bonus += term.value;
+      });
+      const parts = [];
+      [...diceBySides.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .forEach(([sides, count]) => {
+          if (!count) return;
+          const value = `${Math.abs(count)}d${sides}`;
+          parts.push(parts.length ? `${count > 0 ? "+" : "-"}${value}` : `${count < 0 ? "-" : ""}${value}`);
+        });
+      if (bonus) parts.push(parts.length ? formatModifier(bonus) : String(bonus));
+      return parts.join("") || "0";
+    }
+
+    function normalizeDiceExpression(expression) {
+      const parsed = parseDiceExpressionTerms(expression);
+      return parsed ? formatDiceExpression(parsed) : String(expression || "").replace(/\s+/g, "");
+    }
+
+    function addScaledDiceExpression(baseExpression, incrementExpression, times) {
+      if (!times || times < 1) return normalizeDiceExpression(baseExpression);
+      const baseTerms = parseDiceExpressionTerms(baseExpression);
+      const incrementTerms = parseDiceExpressionTerms(incrementExpression);
+      if (!baseTerms || !incrementTerms) return normalizeDiceExpression(baseExpression);
+      const scaledTerms = incrementTerms.map((term) => (
+        term.type === "dice"
+          ? { ...term, count: term.count * times }
+          : { ...term, value: term.value * times }
+      ));
+      return formatDiceExpression([...baseTerms, ...scaledTerms]);
+    }
+
+    function higherLevelDamageScaleForSpell(spell) {
+      const description = cleanSpellDescription(spell);
+      const match = description.match(/(?:At Higher Levels|Using a Higher-Level Spell Slot)\.?\s*.*?damage increases by\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)(?:\|[^.\s]+)?\s+for\s+(?:each|every)\s+(?:spell\s+)?slot\s+level\s+above\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)?/i);
+      if (!match) return null;
+      return {
+        increment: normalizeDiceExpression(match[1]),
+        baseLevel: Number.parseInt(match[2], 10) || spell?.level || 0
+      };
+    }
+
+    function ensureSpellCastLevelState() {
+      if (!sheetMeta.spellCastLevels || typeof sheetMeta.spellCastLevels !== "object") sheetMeta.spellCastLevels = {};
+      return sheetMeta.spellCastLevels;
+    }
+
+    function spellCastLevelStateKey(spell, baseLevelOverride = null) {
+      return normalizeName(`${spell?.sourceName || spell?.name || ""}|${baseLevelOverride ?? spell?.level ?? 0}`);
+    }
+
+    function castLevelOptionsForSpell(spell, baseLevelOverride = null) {
+      const baseLevel = baseLevelOverride ?? spell?.level ?? 0;
+      if (!spell || baseLevel <= 0) return [baseLevel];
+      if (!higherLevelDamageScaleForSpell(spell)) return [baseLevel];
+      const maxLevel = maxSpellLevelForCharacter();
+      const options = [];
+      for (let level = baseLevel; level <= maxLevel; level += 1) {
+        if (spellSlotTotal(level) > 0) options.push(level);
+      }
+      return options.length ? options : [baseLevel];
+    }
+
+    function selectedCastLevelForSpell(spell, baseLevelOverride = null) {
+      const baseLevel = baseLevelOverride ?? spell?.level ?? 0;
+      if (baseLevel <= 0) return baseLevel;
+      const options = castLevelOptionsForSpell(spell, baseLevel);
+      const stored = Number.parseInt(String(ensureSpellCastLevelState()[spellCastLevelStateKey(spell, baseLevel)] || ""), 10);
+      return options.includes(stored) ? stored : options[0];
+    }
+
+    function setSelectedCastLevelForSpell(spell, castLevel, baseLevelOverride = null) {
+      const baseLevel = baseLevelOverride ?? spell?.level ?? 0;
+      if (baseLevel <= 0) return;
+      const options = castLevelOptionsForSpell(spell, baseLevel);
+      const nextLevel = options.includes(castLevel) ? castLevel : options[0];
+      const state = ensureSpellCastLevelState();
+      const key = spellCastLevelStateKey(spell, baseLevel);
+      if (nextLevel === baseLevel) delete state[key];
+      else state[key] = nextLevel;
+      showStatus(`${spell.name}: nivel de casteo L${nextLevel}`);
+      updatePreparedSpellsPanel();
+      scheduleSave();
+    }
+
+    function damageDiceForSpell(spell, castLevel = null) {
       if (!spell?.description) return null;
       const spellName = normalizeName(spell.name || "");
       if (spellName === "true strike") {
         const diceCount = trueStrikeExtraDiceCount();
         return diceCount ? `${diceCount}d6` : null;
       }
-      const hitMatch = spell.description.match(/on a hit[^.]*?takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
-      const damageMatch = spell.description.match(/takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
-      const expression = hitMatch?.[1] || damageMatch?.[1] || spell.description.match(/\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i)?.[0] || null;
+      const description = spellBaseDamageDescription(spell);
+      const hitMatch = description.match(/on a hit[^.]*?takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
+      const damageMatch = description.match(/takes?\s+(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
+      const expression = hitMatch?.[1] || damageMatch?.[1] || description.match(/\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i)?.[0] || null;
       if (!expression) return null;
-      if (spellName === "eldritch blast") return expression.replace(/\s+/g, "");
-      return spell.level === 0 ? scaledCantripDice(expression.replace(/\s+/g, "")) : expression.replace(/\s+/g, "");
+      if (spellName === "eldritch blast") return normalizeDiceExpression(expression);
+      if (spell.level === 0) return scaledCantripDice(normalizeDiceExpression(expression));
+      const targetLevel = Math.max(spell.level || 0, Number.parseInt(String(castLevel ?? spell.level ?? 0), 10) || 0);
+      const scaleInfo = higherLevelDamageScaleForSpell(spell);
+      const normalizedBase = normalizeDiceExpression(expression);
+      if (!scaleInfo || targetLevel <= scaleInfo.baseLevel) return normalizedBase;
+      return addScaledDiceExpression(normalizedBase, scaleInfo.increment, targetLevel - scaleInfo.baseLevel);
     }
 
     function damageTypeForSpell(spell) {
@@ -1380,6 +1656,8 @@
     function spellAttackSelections(spellName, levelOverride = null) {
       const spell = findSpellByName(spellName);
       const level = levelOverride ?? spell?.level ?? 1;
+      const castLevel = level > 0 ? selectedCastLevelForSpell({ ...spell, sourceName: spellName }, level) : level;
+      const castLevelOptions = level > 0 ? castLevelOptionsForSpell({ ...spell, sourceName: spellName }, level) : [];
       const magicInitiateGrant = magicInitiateGrantForSpell(spellName);
       const magicInitiateAbility = magicInitiateGrant?.ability || "";
       const attackBonus = magicInitiateAbility ? spellAttackBonusForAbilityKey(magicInitiateAbility) : getSpellAttackBonus();
@@ -1392,10 +1670,12 @@
         description: `${descriptionForSpell(spell)}${abilityNote}`,
         attackBonus,
         attackLabel: magicInitiateAbility ? `Magic Initiate spell attack (${magicInitiateAbility})` : "spell attack",
-        level
+        level,
+        castLevel,
+        castLevelOptions
       };
       if (normalizeName(spellName) !== "eldritch blast") {
-        const damage = damageDiceForSpell(spell);
+        const damage = damageDiceForSpell(spell, castLevel);
         const trueStrikeDice = normalizeName(spellName) === "true strike" ? trueStrikeExtraDiceCount() : null;
         const damageLabel = trueStrikeDice == null ? damage : trueStrikeDice ? `+${trueStrikeDice}d6` : "+0";
         return [{ name: spellName, damage, damageLabel, ...base }];
@@ -1567,6 +1847,30 @@
       return translated;
     }
 
+    function ensureFeatureTranslationCache() {
+      if (!sheetMeta.featureDescriptionTranslations || typeof sheetMeta.featureDescriptionTranslations !== "object") {
+        sheetMeta.featureDescriptionTranslations = {};
+      }
+      return sheetMeta.featureDescriptionTranslations;
+    }
+
+    function featureTranslationKey(...parts) {
+      return parts
+        .map((item) => normalizeName(String(item || "")))
+        .filter(Boolean)
+        .join("|");
+    }
+
+    async function translateFeatureDescription(cacheKey, description) {
+      const cache = ensureFeatureTranslationCache();
+      if (cache[cacheKey]) return cache[cacheKey];
+      const translated = decodeTranslationEntities(await translateLongTextToSpanish(description)).trim();
+      if (!translated) throw new Error("No se recibio traduccion");
+      cache[cacheKey] = translated;
+      scheduleSave();
+      return translated;
+    }
+
     function spellDescriptionsInSpanish() {
       return sheetMeta.spellDescriptionsLanguage === "es";
     }
@@ -1579,6 +1883,65 @@
     function renderSpellDescriptionSections(container, description) {
       container.textContent = "";
       appendItemSection(container, "Descripcion", splitDescriptionLines(description).join("\n"));
+    }
+
+    function renderPlainTextDescriptionSections(container, description) {
+      container.textContent = "";
+      splitDescriptionLines(String(description || "").replace(/\n{2,}/g, "\n"))
+        .forEach((paragraph) => {
+          const section = document.createElement("section");
+          section.className = "item-section";
+          appendText(section, "item-section-body", paragraph, "p");
+          container.appendChild(section);
+        });
+    }
+
+    function buildFeatureTranslationToolbar({
+      cacheKey = "",
+      description = "",
+      detailBody = null,
+      renderOriginal = null,
+      labelText = "La traduccion aplica solo al texto examinado.",
+      translateDescription = null
+    } = {}) {
+      const sourceText = String(description || "").trim();
+      if (!cacheKey || !sourceText || typeof renderOriginal !== "function" || !detailBody) return null;
+      const toolbar = document.createElement("div");
+      toolbar.className = "spell-translation-tools";
+      const label = document.createElement("span");
+      label.className = "spell-translation-status";
+      label.textContent = labelText;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "spell-picker-button secondary";
+      button.textContent = "Traducir texto";
+      let translated = false;
+      const rerender = (translatedText = "") => {
+        if (translated) renderPlainTextDescriptionSections(detailBody, translatedText);
+        else renderOriginal(detailBody);
+        button.textContent = translated ? "Ver original" : "Traducir texto";
+      };
+      button.addEventListener("click", () => {
+        if (translated) {
+          translated = false;
+          rerender();
+          showStatus("Texto original");
+          return;
+        }
+        showStatus("Traduciendo texto examinado...");
+        (typeof translateDescription === "function" ? translateDescription(sourceText) : translateFeatureDescription(cacheKey, sourceText))
+          .then((translatedText) => {
+            translated = true;
+            rerender(translatedText);
+            showStatus("Texto traducido");
+          })
+          .catch((error) => {
+            console.error(error);
+            showStatus("No se pudo traducir el texto.");
+          });
+      });
+      toolbar.append(label, button);
+      return toolbar;
     }
 
     function weaponAbilityModifier(item) {
@@ -1646,10 +2009,13 @@
       const damageExpression = `${damageDice}${damageBonus ? formatModifier(damageBonus) : ""}`;
       return {
         name: `${item.name || entry.displayName}${record?.twoHanded ? " (2M)" : slot === "offHand" ? " (Off)" : ""}`,
+        item,
         damage: damageExpression,
         damageLabel: damageExpression,
         damageType: (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase(),
         description: itemDescriptionText(item),
+        actionType: slot === "offHand" ? ACTION_TYPES.bonus : ACTION_TYPES.action,
+        actionCostLabel: slot === "offHand" ? "Consume: Accion Bonus (two-weapon fighting)." : "Consume: Accion.",
         attackBonus: ability + prof + fightingStyleAttackBonus(item),
         attackLabel: [
           proficient ? "weapon attack" : "sin prof",
@@ -1696,6 +2062,7 @@
           rows.push({
             kind: "feature",
             key: resourceKey,
+            sourceEntry: entry,
             name: title,
             damage,
             damageLabel: damage,
@@ -1715,6 +2082,7 @@
           rows.push({
             kind: "feature",
             key: resourceKey,
+            sourceEntry: entry,
             name: title,
             damage,
             damageLabel: `1 + ${damage.replace(/\+1$/, "")}`,
@@ -1732,6 +2100,7 @@
           rows.push({
             kind: "feature",
             key: resourceKey,
+            sourceEntry: entry,
             name: title || "Spellcasting",
             damage: "",
             damageLabel: "--",
@@ -1751,6 +2120,7 @@
         rows.push({
           kind: "feature",
           key: resourceKey,
+          sourceEntry: entry,
           name: title,
           damage: damageMatch[1].replace(/\s+/g, ""),
           damageLabel: damageMatch[1].replace(/\s+/g, ""),
@@ -1787,9 +2157,34 @@
       return key ? abilityModifier(getFieldByKey(key)?.value || "") : null;
     }
 
+    function rageUsesForCharacter() {
+      const level = getCharacterLevel();
+      if (level >= 17) return 6;
+      if (level >= 12) return 5;
+      if (level >= 6) return 4;
+      if (level >= 3) return 3;
+      return 2;
+    }
+
+    function channelDivinityUsesForCharacter() {
+      const level = getCharacterLevel();
+      if (level >= 18) return 3;
+      if (level >= 6) return 2;
+      return 1;
+    }
+
+    function wildShapeUsesForCharacter() {
+      return 2;
+    }
+
     function featureUseMaximum(title, description) {
       const text = `${title}\n${description}`;
       const normalizedTitle = normalizeName(title);
+      if (normalizedTitle === "rage") return rageUsesForCharacter();
+      if (normalizedTitle === "channel divinity") return channelDivinityUsesForCharacter();
+      if (normalizedTitle === "sorcery points") return Math.max(1, getCharacterLevel());
+      if (normalizedTitle === "ki" || normalizedTitle === "ki points" || normalizedTitle === "focus points") return Math.max(1, getCharacterLevel());
+      if (normalizedTitle === "wild shape") return wildShapeUsesForCharacter();
       if (normalizedTitle.includes("bardic inspiration")) {
         return Math.max(1, abilityModifier(getFieldByKey("CHA")?.value || "") ?? 0);
       }
@@ -1810,6 +2205,8 @@
       }
       const numericMatch = text.match(/\byou can use (?:this feature|this benefit|this reaction|this bonus action)[^.]{0,80}\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten) times\b/i);
       if (numericMatch) return countWordToNumber(numericMatch[1]);
+      const genericPoolMatch = text.match(/\byou have\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+[a-z' -]{0,40}?(?:point|points|use|uses)\b/i);
+      if (genericPoolMatch) return countWordToNumber(genericPoolMatch[1]);
       const poolMatch = text.match(/\byou have a pool of (\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+d\d+s\b/i);
       if (poolMatch) return countWordToNumber(poolMatch[1]);
       if (/\bonce (?:you(?:'ve| have)? )?(?:use|used|cast|expend)[^.]{0,140}\b(?:can't|can(?:not)?t|regain|must finish)/i.test(text)
@@ -1862,7 +2259,7 @@
       if (normalizeName(title).includes("arcane recovery")) return false;
       const hasAttackDamage = /\battack\b/i.test(text) && /\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i.test(text);
       if (/\bspellcasting\b|\bpact magic\b|\bspell attack\b/i.test(text) || hasAttackDamage) return false;
-      return /\b(action|bonus action|reaction)\b|\bwhile active\b|\bactivate\b|\benter (?:it|your)\b|\buse this feature\b|\bexpend\b/i.test(text);
+      return /\b(action|magic action|bonus action|reaction)\b|\bwhile active\b|\bactivate\b|\benter (?:it|your)\b|\buse this feature\b|\bexpend\b/i.test(text);
     }
 
     function featureActivationSelections() {
@@ -1875,6 +2272,7 @@
           return {
             kind: "activation",
             key,
+            sourceEntry: entry,
             name: title.replace(/^Level \d+:\s*/i, ""),
             damage: "",
             damageLabel: "--",
@@ -1888,15 +2286,17 @@
     }
 
     function featResourceSelections() {
-      return activeFeatData()
-        .map((feat) => {
-          if (isMagicInitiateFeat(feat)) return null;
+      return activeFeatEntriesForEffects()
+        .map((entry) => {
+          const feat = entry.feat || findFeatData(entry.featName || entry.title);
+          if (!feat || isMagicInitiateFeat(feat)) return null;
           const description = flattenEntryText(feat.entries || "");
           const usesMax = featureUseMaximum(feat.name, description);
           if (!usesMax) return null;
           return {
             kind: "activation",
             resourceOnly: true,
+            sourceEntry: entry,
             key: ["feat", feat.source || "", "", feat.name || ""].map((item) => normalizeName(String(item))).join("|"),
             name: feat.name,
             damage: "",
@@ -1942,15 +2342,16 @@
         showStatus(`${spell.name}: cantrip, no gasta spell slot`);
         return;
       }
+      const castLevel = Math.max(spell.level, spell.castLevel || spell.level);
       const sourceName = spell.sourceName || spell.name;
-      if (magicInitiateFreeUseInfo(sourceName)?.remaining > 0 && spendMagicInitiateFreeUse(sourceName)) return;
-      if (!spendSpellSlot(spell.level)) {
-        showStatus(`Sin slots nivel ${spell.level}`);
+      if (castLevel === spell.level && magicInitiateFreeUseInfo(sourceName)?.remaining > 0 && spendMagicInitiateFreeUse(sourceName)) return;
+      if (!spendSpellSlot(castLevel)) {
+        showStatus(`Sin slots nivel ${castLevel}`);
         return;
       }
-      const remaining = spellSlotRemaining(spell.level);
-      const total = spellSlotTotal(spell.level);
-      showStatus(`${spell.name} casteada. Slots nivel ${spell.level}: ${remaining}/${total}`);
+      const remaining = spellSlotRemaining(castLevel);
+      const total = spellSlotTotal(castLevel);
+      showStatus(`${spell.name} casteada a nivel ${castLevel}. Slots nivel ${castLevel}: ${remaining}/${total}`);
       updatePreparedSpellsPanel();
       scheduleSave();
     }
@@ -1960,15 +2361,29 @@
     }
 
     function rollDiceExpression(expression) {
-      const match = expression.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
-      if (!match) return null;
-      const count = Number.parseInt(match[1], 10);
-      const sides = Number.parseInt(match[2], 10);
-      const bonus = Number.parseInt(match[3] || "0", 10);
-      if (!Number.isFinite(count) || !Number.isFinite(sides) || count < 1 || count > 40 || sides < 2) return null;
-      const rolls = Array.from({ length: count }, () => rollDie(sides));
-      const total = rolls.reduce((sum, roll) => sum + roll, bonus);
-      return { total, rolls, bonus };
+      const terms = parseDiceExpressionTerms(expression);
+      if (!terms?.length) return null;
+      const result = { total: 0, terms: [] };
+      for (const term of terms) {
+        if (term.type === "bonus") {
+          result.total += term.value;
+          result.terms.push({ type: "bonus", value: term.value });
+          continue;
+        }
+        const count = term.count;
+        const sides = term.sides;
+        if (!Number.isFinite(count) || !Number.isFinite(sides) || count < 1 || count > 40 || sides < 2) return null;
+        const rolls = Array.from({ length: count }, () => rollDie(sides));
+        const subtotal = rolls.reduce((sum, roll) => sum + roll, 0);
+        result.total += subtotal;
+        result.terms.push({
+          type: "dice",
+          expression: `${count}d${sides}`,
+          rolls,
+          subtotal
+        });
+      }
+      return result;
     }
 
     function formatDiceLines(lines = []) {
@@ -2049,11 +2464,15 @@
         showDiceTray(`${attackName}: danio`, "N/A", "No encontre dados de danio en la descripcion.");
         return;
       }
+      const diceTerms = roll.terms.filter((term) => term.type === "dice");
+      const bonusTerms = roll.terms.filter((term) => term.type === "bonus");
+      const diceTotal = diceTerms.reduce((sum, term) => sum + term.subtotal, 0);
+      const bonusTotal = bonusTerms.reduce((sum, term) => sum + term.value, 0);
       showDiceTray(`${attackName}: danio`, String(roll.total), formatDiceLines([
         `Dados: ${expression}`,
-        `Tiradas: ${roll.rolls.join(" + ")} = ${roll.rolls.reduce((sum, value) => sum + value, 0)}`,
-        roll.bonus ? `Bonus fijo: ${formatModifier(roll.bonus)}` : "",
-        `Total: ${roll.rolls.reduce((sum, value) => sum + value, 0)}${roll.bonus ? ` ${formatModifier(roll.bonus)}` : ""} = ${roll.total}`,
+        ...diceTerms.map((term) => `Tiradas ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
+        ...bonusTerms.map((term) => `Bonus fijo: ${formatModifier(term.value)}`),
+        `Total: ${diceTotal}${bonusTotal ? ` ${formatModifier(bonusTotal)}` : ""} = ${roll.total}`,
         damageType ? `Tipo: ${damageType}` : ""
       ]));
     }
@@ -2100,6 +2519,32 @@
       return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...featureActivationSelections(), ...featResourceSelections(), ...allPreparedSpells];
     }
 
+    function preparedAttackDrawerMetaForItem(item) {
+      return [sourceLabel(item?.source), item?.page ? `p${item.page}` : ""].filter(Boolean).join(" - ");
+    }
+
+    function openPreparedAttackDetail(row) {
+      if (!row) return;
+      if (row.kind === "spell") {
+        showSpellDrawer(row.sourceName || row.name);
+        return;
+      }
+      if (row.sourceEntry) {
+        openFeatureEntry(row.sourceEntry, turnActionEntriesForLookups());
+        return;
+      }
+      const item = row.item || findItemData(row.name || "");
+      if (item) {
+        showDrawer(item.name || row.name || "Item", preparedAttackDrawerMetaForItem(item), buildItemDrawerContent(item));
+        return;
+      }
+      showDrawer(
+        row.name || "Attack",
+        row.kind === "activation" || row.kind === "feature" ? "Feature" : (row.attackLabel || "Attack"),
+        buildTextFeatureDrawerContent(row.name || "Attack", row.description || "Sin descripcion disponible.", row.attackLabel || "")
+      );
+    }
+
     function updatePreparedSpellsPanel() {
       if (!preparedSpellsPanel) return;
       preparedSpellsPanel.textContent = "";
@@ -2114,11 +2559,11 @@
         name.title = spell.description;
         name.tabIndex = 0;
         name.setAttribute("role", "button");
-        name.addEventListener("click", () => showSpellDrawer(spell.sourceName || spell.name));
+        name.addEventListener("click", () => openPreparedAttackDetail(spell));
         name.addEventListener("keydown", (event) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
-          showSpellDrawer(spell.sourceName || spell.name);
+          openPreparedAttackDetail(spell);
         });
 
         const damageType = document.createElement("div");
@@ -2130,6 +2575,34 @@
         damageType.addEventListener("mouseleave", hideDamageTooltip);
         damageType.addEventListener("focus", () => showDamageTooltip(damageType, spell.damageType));
         damageType.addEventListener("blur", hideDamageTooltip);
+
+        const levelButton = document.createElement("button");
+        levelButton.type = "button";
+        levelButton.className = "dice-button";
+        if (spell.kind !== "spell") {
+          levelButton.textContent = "-";
+          levelButton.title = "Sin nivel de casteo";
+          levelButton.disabled = true;
+        } else if (spell.level <= 0) {
+          levelButton.textContent = "Can";
+          levelButton.title = `${spell.name} es cantrip`;
+          levelButton.disabled = true;
+        } else {
+          const options = Array.isArray(spell.castLevelOptions) && spell.castLevelOptions.length ? spell.castLevelOptions : [spell.castLevel || spell.level];
+          const selectedCastLevel = spell.castLevel || spell.level;
+          levelButton.textContent = `L${selectedCastLevel}`;
+          levelButton.title = options.length > 1
+            ? `Nivel de casteo actual: L${selectedCastLevel}. Click para cambiar. Opciones: ${options.map((level) => `L${level} (${spellSlotRemaining(level)}/${spellSlotTotal(level)})`).join(", ")}`
+            : `Nivel de casteo: L${selectedCastLevel}`;
+          levelButton.disabled = options.length <= 1;
+          if (!levelButton.disabled) {
+            levelButton.addEventListener("click", () => {
+              const currentIndex = Math.max(0, options.indexOf(selectedCastLevel));
+              const nextLevel = options[(currentIndex + 1) % options.length];
+              setSelectedCastLevelForSpell(spell, nextLevel, spell.level);
+            });
+          }
+        }
 
         const attackButton = document.createElement("button");
         attackButton.type = "button";
@@ -2158,7 +2631,8 @@
         castButton.className = "dice-button";
         if (spell.kind === "spell") {
           const sourceName = spell.sourceName || spell.name;
-          const magicInitiateUse = spell.level > 0 ? magicInitiateFreeUseInfo(sourceName) : null;
+          const selectedCastLevel = spell.castLevel || spell.level;
+          const magicInitiateUse = spell.level > 0 && selectedCastLevel === spell.level ? magicInitiateFreeUseInfo(sourceName) : null;
           const hasFreeUse = Boolean(magicInitiateUse && magicInitiateUse.remaining > 0);
           castButton.textContent = spell.level > 0
             ? hasFreeUse ? `Gratis ${magicInitiateUse.remaining}/${magicInitiateUse.max}` : "Cast"
@@ -2166,9 +2640,9 @@
           castButton.title = spell.level > 0
             ? hasFreeUse
               ? `Castear ${spell.name} con el uso gratis de Magic Initiate`
-              : `Castear ${spell.name} y gastar 1 slot nivel ${spell.level}`
+              : `Castear ${spell.name} a nivel ${selectedCastLevel} y gastar 1 slot nivel ${selectedCastLevel}`
             : `${spell.name} es cantrip y no gasta slots`;
-          castButton.disabled = spell.level > 0 && !hasFreeUse && spellSlotRemaining(spell.level) <= 0;
+          castButton.disabled = spell.level > 0 && !hasFreeUse && spellSlotRemaining(selectedCastLevel) <= 0;
           castButton.addEventListener("click", () => castPreparedSpell(spell));
         } else if ((spell.kind === "activation" || spell.kind === "feature") && featureUseInfo(spell)) {
           const uses = featureUseInfo(spell);
@@ -2185,14 +2659,845 @@
         damageButton.type = "button";
         damageButton.className = "dice-button";
         damageButton.textContent = spell.damageLabel || "--";
-        damageButton.title = spell.damageLabel ? `Tirar danio ${spell.damageLabel} ${spell.damageType}`.trim() : "Sin dados de danio detectados";
+        damageButton.title = spell.damageLabel
+          ? `Tirar danio ${spell.damageLabel} ${spell.damageType} ${spell.kind === "spell" && spell.level > 0 ? `a nivel ${spell.castLevel || spell.level}` : ""}`.trim()
+          : "Sin dados de danio detectados";
         if (spell.kind === "activation") damageButton.disabled = true;
         else if (!spell.damage) damageButton.disabled = true;
         else damageButton.addEventListener("click", () => rollDamage(spell.name, spell.damage || "", spell.damageType));
 
-        row.append(name, damageType, castButton, attackButton, damageButton);
+        row.append(name, damageType, levelButton, castButton, attackButton, damageButton);
         preparedSpellsPanel.appendChild(row);
       });
+      refreshTurnActionsPanelIfVisible();
+    }
+
+    function turnActionEntryName(entry) {
+      return (entry?.feature?.name || entry?.optionalFeature?.name || entry?.feat?.name || entry?.title || "Feature")
+        .replace(/^Level \d+:\s*/i, "")
+        .replace(/^Race:\s*/i, "")
+        .replace(/^Background Feat:\s*/i, "")
+        .replace(/^Background Feature:\s*/i, "")
+        .trim();
+    }
+
+    function turnActionEntryDescription(entry) {
+      return String(entry?.description || flattenEntryText(entry?.feature?.entries || entry?.optionalFeature?.entries || entry?.feat?.entries || "") || "").trim();
+    }
+
+    function turnActionShortDescription(text) {
+      const clean = String(text || "").replace(/\s+/g, " ").trim();
+      if (!clean) return "";
+      const firstSentence = clean.match(/^(.+?[.!?])(?:\s|$)/);
+      return (firstSentence?.[1] || clean).trim();
+    }
+
+    function turnActionTypesFromText(text) {
+      const value = String(text || "");
+      if (!value.trim()) return [];
+      const hasBonus = /\bbonus action\b/i.test(value);
+      const hasReaction = /\breaction\b/i.test(value);
+      const hasAction = /\bmagic action\b|\btake the attack action\b|\bas an action\b|\buse an action\b|\byou can take the attack action\b|(?<!bonus )(?<!re)action\b/i.test(value);
+      const hasMovement = /\bmovement\b|\bmove up to your speed\b|\bmove up to \d+ feet\b|\bwithout provoking opportunity attacks\b|\bclimb speed\b|\bfly speed\b|\bswim speed\b/i.test(value);
+      if (hasBonus) return [ACTION_TYPES.bonus];
+      if (hasReaction) return [ACTION_TYPES.reaction];
+      if (hasAction) return [ACTION_TYPES.action];
+      if (hasMovement) return [ACTION_TYPES.movement];
+      return [];
+    }
+
+    function formatRemainingResourceText(remaining, total) {
+      if (!Number.isFinite(remaining) || !Number.isFinite(total)) return "";
+      return `${remaining}/${total}`;
+    }
+
+    function currentSpeedFeet() {
+      const parsed = Number.parseInt(fieldValue("Speed") || "", 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 30;
+    }
+
+    function unarmedTurnActionSelection() {
+      const strengthModifier = getStrengthModifier();
+      return {
+        name: "Ataque desarmado",
+        damage: "unarmed",
+        damageLabel: `1${formatModifier(strengthModifier)}`,
+        damageType: "bludgeoning",
+        attackBonus: getUnarmedAttackBonus(),
+        attackLabel: "unarmed strike"
+      };
+    }
+
+    function turnActionWeaponSelections() {
+      return mainHandUsesTwoHands()
+        ? equippedWeaponAttackSelections()
+        : [unarmedTurnActionSelection(), ...equippedWeaponAttackSelections()];
+    }
+
+    function turnActionRowStats(row) {
+      const parts = [];
+      if (Number.isFinite(row?.attackBonus)) parts.push(`${formatModifier(row.attackBonus)} al ataque`);
+      if (row?.kind === "spell" && Number.isFinite(row?.castLevel) && row.castLevel > row.level) parts.push(`slot L${row.castLevel}`);
+      if (row?.damageLabel && row.damageLabel !== "--") {
+        parts.push(`${row.damageLabel}${row.damageType ? ` ${row.damageType}` : ""}`.trim());
+      }
+      return parts.join(", ");
+    }
+
+    function castableSpellFieldSelections() {
+      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+        .filter((field) => field.value.trim())
+        .filter((field) => {
+          if (Number(field.dataset.spellLevel) === 0) return true;
+          const checkbox = getFieldByKey(field.dataset.preparedKey);
+          return checkbox ? checkbox.checked : true;
+        })
+        .map((field) => {
+          const spellName = field.value.trim();
+          const spell = findSpellByName(spellName);
+          return {
+            name: spellName,
+            spell: spell || { name: spellName, level: Number(field.dataset.spellLevel) || 0, time: [] },
+            level: spell?.level ?? Number(field.dataset.spellLevel) ?? 0
+          };
+        });
+    }
+
+    function castableSpellSelections() {
+      const selected = castableSpellFieldSelections();
+      const seen = new Set(selected.map((entry) => normalizeName(entry.name)));
+      autoAlwaysPreparedSpellNames().forEach((spellName) => {
+        if (seen.has(normalizeName(spellName))) return;
+        const spell = findSpellByName(spellName);
+        selected.push({
+          name: spellName,
+          spell: spell || { name: spellName, level: 1, time: [] },
+          level: spell?.level ?? 1
+        });
+      });
+      const deduped = [];
+      const emitted = new Set();
+      selected.forEach((entry) => {
+        const key = normalizeName(entry.name);
+        if (!key || emitted.has(key)) return;
+        emitted.add(key);
+        deduped.push(entry);
+      });
+      return deduped.sort((left, right) => left.level - right.level || left.name.localeCompare(right.name));
+    }
+
+    function spellActionTypes(spell) {
+      const firstTime = Array.isArray(spell?.time) ? spell.time[0] : null;
+      const unit = normalizeName(firstTime?.unit || "");
+      if (unit === "bonus") return [ACTION_TYPES.bonus];
+      if (unit === "reaction") return [ACTION_TYPES.reaction];
+      if (unit === "action" || !unit) return [ACTION_TYPES.action];
+      return [];
+    }
+
+    function spellAvailabilityInfo(spellEntry) {
+      if ((spellEntry?.level || 0) <= 0) {
+        return { available: true, shortLabel: "cantrip", detail: "Cantrip" };
+      }
+      const spellName = spellEntry?.spell?.name || spellEntry?.name || "";
+      const freeUse = magicInitiateFreeUseInfo(spellName);
+      if (freeUse?.remaining > 0) {
+        return {
+          available: true,
+          shortLabel: "uso gratis",
+          detail: `Uso gratis ${freeUse.remaining}/${freeUse.max}`
+        };
+      }
+      const remaining = spellSlotRemaining(spellEntry.level);
+      const total = spellSlotTotal(spellEntry.level);
+      if (remaining <= 0) return { available: false };
+      return {
+        available: true,
+        shortLabel: `slot nivel ${spellEntry.level}`,
+        detail: `Slot nivel ${spellEntry.level}: ${remaining}/${total}`
+      };
+    }
+
+    function spellActionCombatDetail(spellEntry) {
+      const rows = spellAttackSelections(spellEntry.name, spellEntry.level);
+      if (!rows.length) return "";
+      const first = rows[0];
+      const parts = [];
+      if (rows.length > 1) parts.push(`${rows.length} ataques`);
+      const stats = turnActionRowStats(first);
+      if (stats) parts.push(stats);
+      return parts.join(", ");
+    }
+
+    function featureAttackRowsByName() {
+      return featureGrantedAttackSelections().reduce((map, row) => {
+        const key = normalizeName(row.name || "");
+        if (!key) return map;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(row);
+        return map;
+      }, new Map());
+    }
+
+    function featureActionItemsFromEntries(entries = [], sourceLabel = "", context = {}) {
+      const attackRows = context.featureAttackRowsByName || featureAttackRowsByName();
+      return entries.flatMap((entry) => {
+        const name = turnActionEntryName(entry);
+        if (shouldSkipGenericTurnActionEntry(name, sourceLabel)) return [];
+        const description = turnActionEntryDescription(entry);
+        const attackRow = attackRows.get(normalizeName(name))?.[0] || null;
+        const actionable = isActivatableFeature(entry) || attackRow;
+        if (!actionable) return [];
+        const types = turnActionTypesFromText(`${name}\n${description}`);
+        const actionTypes = types.length ? types : isActivatableFeature(entry) ? [ACTION_TYPES.action] : [];
+        if (!actionTypes.length) return [];
+        const usesMax = featureUseMaximum(name, description);
+        const resourceRow = { key: activationKeyForEntry(entry), name, usesMax };
+        const uses = featureUseInfo(resourceRow);
+        if (uses && uses.remaining <= 0) return [];
+        const detailParts = [
+          attackRow ? turnActionRowStats(attackRow) : "",
+          uses ? `${uses.remaining}/${uses.max} usos` : Number.isFinite(usesMax) ? `${usesMax} usos` : "",
+          turnActionShortDescription(description)
+        ].filter(Boolean);
+        return actionTypes.map((type) => ({
+          key: `${sourceLabel}:${type}:${normalizeName(name)}`,
+          type,
+          title: `Usar ${name}`,
+          detail: detailParts.join("\n"),
+          source: sourceLabel
+        }));
+      });
+    }
+
+    function shouldSkipGenericTurnActionEntry(name, sourceLabel = "") {
+      const normalizedSource = normalizeName(sourceLabel || "");
+      const normalizedName = normalizeName(name || "");
+      if (normalizedSource !== "class") return false;
+      return ["cunning action", "step of the wind", "flexible casting"].includes(normalizedName);
+    }
+
+    function turnActionEntriesForLookups() {
+      return [...generatedFeaturesAndTraitsEntries(), ...activeFeatEntriesForEffects()];
+    }
+
+    function findTurnActionEntryByNames(names = [], entries = turnActionEntriesForLookups()) {
+      const targets = (Array.isArray(names) ? names : [names])
+        .map((name) => normalizeName(String(name || "")))
+        .filter(Boolean);
+      if (!targets.length) return null;
+      return entries.find((entry) => {
+        const entryNames = [
+          turnActionEntryName(entry),
+          entry?.feature?.name,
+          entry?.optionalFeature?.name,
+          entry?.feat?.name,
+          entry?.title
+        ]
+          .map((value) => normalizeName(String(value || "")))
+          .filter(Boolean);
+        return entryNames.some((value) => targets.includes(value));
+      }) || null;
+    }
+
+    function turnActionResourceInfoFromEntry(entry) {
+      if (!entry) return null;
+      const name = turnActionEntryName(entry);
+      const description = turnActionEntryDescription(entry);
+      const usesMax = featureUseMaximum(name, description);
+      if (!Number.isFinite(usesMax) || usesMax <= 0) return null;
+      return {
+        key: activationKeyForEntry(entry),
+        name,
+        info: featureUseInfo({ key: activationKeyForEntry(entry), name, usesMax })
+      };
+    }
+
+    function turnActionResourceInfoByNames(names = [], entries = turnActionEntriesForLookups()) {
+      return turnActionResourceInfoFromEntry(findTurnActionEntryByNames(names, entries));
+    }
+
+    function castableSpellByName(name, context = {}) {
+      const normalized = normalizeName(name || "");
+      return (context.castableSpells || castableSpellSelections())
+        .find((spellEntry) => normalizeName(spellEntry.name || spellEntry.spell?.name || "") === normalized) || null;
+    }
+
+    function buildDerivedTurnAction(definition, context = {}) {
+      const entries = context.turnActionEntries || turnActionEntriesForLookups();
+      if (definition.feature && !findTurnActionEntryByNames(definition.feature, entries)) return null;
+      if (definition.feat && !hasActiveFeat(definition.feat)) return null;
+      if (definition.spell && !castableSpellByName(definition.spell, context)) return null;
+
+      const resource = definition.resource ? turnActionResourceInfoByNames(definition.resource, entries) : null;
+      if (definition.hideWhenResourceEmpty !== false && resource?.info && resource.info.remaining <= 0) return null;
+
+      const detailParts = [definition.detail];
+      if (resource?.info) {
+        const consume = definition.resourceCost ? ` | Consume: ${definition.resourceCost}` : "";
+        detailParts.push(`Recurso: ${resource.info.remaining}/${resource.info.max} ${resource.name}${consume}`);
+      } else if (definition.consume) {
+        detailParts.push(`Consume: ${definition.consume}`);
+      }
+
+      return {
+        key: definition.key,
+        type: definition.type || ACTION_TYPES.bonus,
+        title: definition.title,
+        detail: detailParts.filter(Boolean).join("\n"),
+        source: definition.source || "derived"
+      };
+    }
+
+    function derivedBonusActionDefinitions() {
+      return [
+        {
+          key: "class:bonus:rage",
+          title: "Rage",
+          source: "class",
+          feature: "Rage",
+          resource: "Rage",
+          resourceCost: "1 uso de Rage",
+          detail: "Que haces: entras en Rage por hasta 1 minuto.\nSuma: habilitas los beneficios ofensivos y defensivos de tu Rage.\nResta: consume tu Accion Bonus y depende de las restricciones normales de Rage."
+        },
+        {
+          key: "class:bonus:frenzy",
+          title: "Frenzy Attack",
+          source: "class",
+          feature: "Frenzy",
+          detail: "Que haces: haces un ataque extra como parte de tu Frenzy.\nSuma: agregas un golpe adicional en el turno.\nResta: consume tu Accion Bonus y requiere que Frenzy aplique."
+        },
+        {
+          key: "class:bonus:bardic inspiration",
+          title: "Bardic Inspiration",
+          source: "class",
+          feature: "Bardic Inspiration",
+          resource: "Bardic Inspiration",
+          resourceCost: "1 uso de Bardic Inspiration",
+          detail: "Que haces: inspiras a una criatura a 60 pies que pueda verte u oirte.\nSuma: le das un dado de Bardic Inspiration para mejorar una tirada.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:mantle of inspiration",
+          title: "Mantle of Inspiration",
+          source: "class",
+          feature: "Mantle of Inspiration",
+          resource: "Bardic Inspiration",
+          resourceCost: "1 uso de Bardic Inspiration",
+          detail: "Que haces: repartes Temporary Hit Points y permites reposicionamiento a aliados.\nSuma: defensa y movimiento sin opportunity attacks para los aliados elegidos.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:unsettling words",
+          title: "Unsettling Words",
+          source: "class",
+          feature: "Unsettling Words",
+          resource: "Bardic Inspiration",
+          resourceCost: "1 uso de Bardic Inspiration",
+          detail: "Que haces: debilitas mentalmente a una criatura que ves.\nSuma: resta tu dado de Bardic Inspiration a su proximo saving throw.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:war priest",
+          title: "War Priest Attack",
+          source: "class",
+          feature: "War Priest",
+          resource: "War Priest",
+          resourceCost: "1 uso de War Priest",
+          detail: "Que haces: haces un ataque adicional con arma o Unarmed Strike.\nSuma: agregas un golpe extra en el turno.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:wild shape",
+          title: "Wild Shape",
+          source: "class",
+          feature: "Wild Shape",
+          resource: "Wild Shape",
+          resourceCost: "1 uso de Wild Shape",
+          detail: "Que haces: te transformas en una forma bestial disponible.\nSuma: cambias tu bloque fisico segun la forma elegida.\nResta: consume tu Accion Bonus y un uso de Wild Shape."
+        },
+        {
+          key: "class:bonus:combat wild shape",
+          title: "Combat Wild Shape",
+          source: "class",
+          feature: "Combat Wild Shape",
+          resource: "Wild Shape",
+          resourceCost: "1 uso de Wild Shape",
+          detail: "Que haces: usas Wild Shape en combate con el ritmo que permite tu subclase.\nSuma: acceso rapido a la transformacion.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:starry form",
+          title: "Starry Form",
+          source: "class",
+          feature: "Starry Form",
+          resource: "Wild Shape",
+          resourceCost: "1 uso de Wild Shape",
+          detail: "Que haces: activas tu constelacion de Circle of Stars.\nSuma: habilitas los beneficios de Archer, Chalice o Dragon.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:second wind",
+          title: "Second Wind",
+          source: "class",
+          feature: "Second Wind",
+          resource: "Second Wind",
+          resourceCost: "1 uso de Second Wind",
+          detail: "Que haces: recuperas vida con Second Wind.\nSuma: curacion inmediata.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:commander's strike",
+          title: "Commander's Strike",
+          source: "class",
+          feature: "Commander's Strike",
+          detail: "Que haces: ordenas a un aliado atacar usando su Reaction.\nSuma: conviertes tu Accion Bonus en ataque coordinado.\nResta: requiere que el maniobra este disponible y recursos de superiority segun corresponda."
+        },
+        {
+          key: "class:bonus:feinting attack",
+          title: "Feinting Attack",
+          source: "class",
+          feature: "Feinting Attack",
+          detail: "Que haces: amagas para ganar ventaja en tu siguiente ataque del turno.\nSuma: mejora la chance de impactar y agrega el dado del maniobra al danio si pega.\nResta: consume tu Accion Bonus y recursos de superiority segun corresponda."
+        },
+        {
+          key: "class:bonus:quick toss",
+          title: "Quick Toss",
+          source: "class",
+          feature: "Quick Toss",
+          detail: "Que haces: haces un ataque rapido con arma arrojadiza.\nSuma: ataque extra como Accion Bonus.\nResta: consume tu Accion Bonus y recursos de superiority segun corresponda."
+        },
+        {
+          key: "class:bonus:martial arts",
+          title: "Martial Arts Attack",
+          source: "class",
+          feature: "Martial Arts",
+          detail: "Que haces: despues de atacar con Unarmed Strike o Monk Weapon, haces un Unarmed Strike adicional.\nSuma: un golpe extra.\nResta: consume tu Accion Bonus y requiere cumplir el disparador de Martial Arts."
+        },
+        {
+          key: "class:bonus:flurry of blows",
+          title: "Flurry of Blows",
+          source: "class",
+          feature: "Flurry of Blows",
+          resource: ["Ki", "Ki Points", "Focus Points"],
+          resourceCost: "1 Ki Point",
+          detail: "Que haces: despues de Attack action, haces dos Unarmed Strikes extra.\nSuma: maxima cantidad de golpes del monk.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:patient defense",
+          title: "Patient Defense",
+          source: "class",
+          feature: "Patient Defense",
+          resource: ["Ki", "Ki Points", "Focus Points"],
+          resourceCost: "1 Ki Point",
+          detail: "Que haces: tomas Dodge como Accion Bonus.\nSuma: disadvantage a ataques contra ti y advantage en Dex saves visibles.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:step of the wind:dash",
+          title: "Step of the Wind: Dash",
+          source: "class",
+          feature: "Step of the Wind",
+          resource: ["Ki", "Ki Points", "Focus Points"],
+          resourceCost: "1 Ki Point",
+          detail: "Que haces: tomas Dash como Accion Bonus.\nSuma: ganas movimiento extra igual a tu Speed.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:step of the wind:disengage",
+          title: "Step of the Wind: Disengage",
+          source: "class",
+          feature: "Step of the Wind",
+          resource: ["Ki", "Ki Points", "Focus Points"],
+          resourceCost: "1 Ki Point",
+          detail: "Que haces: tomas Disengage como Accion Bonus.\nSuma: te mueves sin provocar opportunity attacks por tu movimiento.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:ki-fueled attack",
+          title: "Ki-Fueled Attack",
+          source: "class",
+          feature: "Ki-Fueled Attack",
+          detail: "Que haces: haces un ataque con arma o Unarmed Strike como seguimiento tras gastar Ki con tu Action.\nSuma: recuperas presion ofensiva.\nResta: consume tu Accion Bonus y requiere haber gastado Ki con tu Action."
+        },
+        {
+          key: "class:bonus:planar warrior",
+          title: "Planar Warrior",
+          source: "class",
+          feature: "Planar Warrior",
+          detail: "Que haces: marcas un objetivo para cargar tu siguiente golpe con energia planar.\nSuma: convierte el danio en force y agrega danio extra segun la feature.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:slayer's prey",
+          title: "Slayer's Prey",
+          source: "class",
+          feature: "Slayer's Prey",
+          detail: "Que haces: marcas una presa para hostigarla.\nSuma: agregas danio extra la primera vez que le pegas en el turno.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:cunning action:dash",
+          title: "Cunning Action: Dash",
+          source: "class",
+          feature: "Cunning Action",
+          detail: "Que haces: tomas Dash como Accion Bonus.\nSuma: ganas otro bloque de movimiento igual a tu Speed.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:cunning action:disengage",
+          title: "Cunning Action: Disengage",
+          source: "class",
+          feature: "Cunning Action",
+          detail: "Que haces: tomas Disengage como Accion Bonus.\nSuma: te mueves sin provocar opportunity attacks por tu movimiento.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:cunning action:hide",
+          title: "Cunning Action: Hide",
+          source: "class",
+          feature: "Cunning Action",
+          detail: "Que haces: intentas ocultarte como Accion Bonus.\nSuma: puedes romper linea de vision u obtener ventaja tactica si el entorno lo permite.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "class:bonus:steady aim",
+          title: "Steady Aim",
+          source: "class",
+          feature: "Steady Aim",
+          detail: "Que haces: te quedas quieto para apuntar mejor.\nSuma: advantage en tu siguiente ataque del turno.\nResta: consume tu Accion Bonus y no puedes moverte ese turno."
+        },
+        {
+          key: "class:bonus:flexible casting:create spell slot",
+          title: "Create Spell Slot",
+          source: "class",
+          feature: "Flexible Casting",
+          resource: "Sorcery Points",
+          detail: "Que haces: conviertes Sorcery Points en un Spell Slot.\nSuma: recuperas capacidad de casteo.\nResta: consume tu Accion Bonus y gasta Sorcery Points."
+        },
+        {
+          key: "class:bonus:flexible casting:convert spell slot",
+          title: "Convert Spell Slot",
+          source: "class",
+          feature: "Flexible Casting",
+          resource: "Sorcery Points",
+          hideWhenResourceEmpty: false,
+          detail: "Que haces: conviertes un Spell Slot en Sorcery Points.\nSuma: rellenas tu pool de metamagia.\nResta: consume tu Accion Bonus y gastas un Spell Slot."
+        },
+        {
+          key: "class:bonus:healing light",
+          title: "Healing Light",
+          source: "class",
+          feature: "Healing Light",
+          resource: "Healing Light",
+          resourceCost: "dados de Healing Light",
+          detail: "Que haces: curas a una criatura visible dentro del alcance de la feature.\nSuma: curacion flexible a distancia.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "feat:bonus:polearm master",
+          title: "Polearm Master Attack",
+          source: "feat",
+          feat: "Polearm Master",
+          detail: "Que haces: despues de Attack action con el arma valida, haces un golpe con el extremo opuesto.\nSuma: un ataque melee extra.\nResta: consume tu Accion Bonus y requiere arma compatible."
+        },
+        {
+          key: "feat:bonus:crossbow expert",
+          title: "Crossbow Expert Attack",
+          source: "feat",
+          feat: "Crossbow Expert",
+          detail: "Que haces: despues de atacar con un arma de una mano, haces un disparo adicional con hand crossbow.\nSuma: un ataque extra.\nResta: consume tu Accion Bonus y requiere el arma adecuada."
+        },
+        {
+          key: "feat:bonus:great weapon master",
+          title: "Great Weapon Master Attack",
+          source: "feat",
+          feat: "Great Weapon Master",
+          detail: "Que haces: tras critico o bajar a 0 HP a una criatura, haces un ataque melee extra.\nSuma: capitalizas un remate o critico.\nResta: consume tu Accion Bonus y requiere cumplir el disparador."
+        },
+        {
+          key: "feat:bonus:telekinetic",
+          title: "Telekinetic Shove",
+          source: "feat",
+          feat: "Telekinetic",
+          detail: "Que haces: intentas empujar o atraer 5 pies a una criatura visible a 30 pies.\nSuma: control de posicion sin gastar tu Action.\nResta: consume tu Accion Bonus."
+        },
+        {
+          key: "feat:bonus:shield master",
+          title: "Shield Master Shove",
+          source: "feat",
+          feat: "Shield Master",
+          detail: "Que haces: intentas shovear a una criatura con el escudo.\nSuma: control de posicion o derribo.\nResta: consume tu Accion Bonus y normalmente requiere haber tomado Attack action."
+        },
+        {
+          key: "feat:bonus:charger",
+          title: "Charger Attack",
+          source: "feat",
+          feat: "Charger",
+          detail: "Que haces: conviertes un Dash en presion ofensiva inmediata.\nSuma: ataque o empuje adicional al cerrar distancia.\nResta: consume tu Accion Bonus y requiere haber usado Dash."
+        },
+        {
+          key: "feat:bonus:tavern brawler",
+          title: "Tavern Brawler Grapple",
+          source: "feat",
+          feat: "Tavern Brawler",
+          detail: "Que haces: tras pegar con unarmed strike o improvisada, intentas grapplear al objetivo.\nSuma: pasas de danio a control en el mismo turno.\nResta: consume tu Accion Bonus y requiere haber impactado primero."
+        }
+      ];
+    }
+
+    function derivedBonusActions(context = {}) {
+      return derivedBonusActionDefinitions()
+        .map((definition) => buildDerivedTurnAction(definition, context))
+        .filter(Boolean);
+    }
+
+    function turnActionResourceSummaries() {
+      const resources = [];
+      for (let level = 1; level <= 9; level += 1) {
+        const total = spellSlotTotal(level);
+        if (total <= 0) continue;
+        resources.push({
+          key: `spell-slots:${level}`,
+          title: `Slots nivel ${level}`,
+          remaining: spellSlotRemaining(level),
+          total,
+          detail: "Spell Slots",
+          source: "spells"
+        });
+      }
+
+      const seen = new Set();
+      generatedFeaturesAndTraitsEntries()
+        .concat(activeFeatEntriesForEffects())
+        .forEach((entry) => {
+          const name = turnActionEntryName(entry);
+          const description = turnActionEntryDescription(entry);
+          const usesMax = featureUseMaximum(name, description);
+          if (!Number.isFinite(usesMax) || usesMax <= 0) return;
+          const resourceRow = { key: activationKeyForEntry(entry), name, usesMax };
+          const uses = featureUseInfo(resourceRow);
+          const key = resourceRow.key;
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          resources.push({
+            key,
+            title: name,
+            remaining: uses?.remaining ?? usesMax,
+            total: uses?.max ?? usesMax,
+            detail: entry.meta || "Feature",
+            source: "features"
+          });
+        });
+
+      return resources;
+    }
+
+    function buildTurnActionContext() {
+      return {
+        featureAttackRowsByName: featureAttackRowsByName(),
+        castableSpells: castableSpellSelections(),
+        turnActionEntries: turnActionEntriesForLookups()
+      };
+    }
+
+    function collectCurrentTurnActions() {
+      return turnActionRegistry.collect(buildTurnActionContext());
+    }
+
+    function combatTurnState() {
+      if (!sheetMeta.combatTurn || typeof sheetMeta.combatTurn !== "object") {
+        sheetMeta.combatTurn = {
+          active: true,
+          turn: 1,
+          spent: { action: 0, bonus: 0 }
+        };
+      }
+      if (!sheetMeta.combatTurn.spent || typeof sheetMeta.combatTurn.spent !== "object") {
+        sheetMeta.combatTurn.spent = { action: 0, bonus: 0 };
+      }
+      return sheetMeta.combatTurn;
+    }
+
+    function turnActionTotals(actions = []) {
+      const hasActions = actions.some((action) => action.type === ACTION_TYPES.action);
+      return {
+        action: hasActions ? 1 : 0,
+        bonus: 1
+      };
+    }
+
+    function turnActionBudget(actions = []) {
+      const state = combatTurnState();
+      const totals = turnActionTotals(actions);
+      const spentAction = Math.max(0, Number.parseInt(state.spent.action || 0, 10) || 0);
+      const spentBonus = Math.max(0, Number.parseInt(state.spent.bonus || 0, 10) || 0);
+      return {
+        totals,
+        remaining: {
+          action: Math.max(0, totals.action - spentAction),
+          bonus: Math.max(0, totals.bonus - spentBonus)
+        },
+        optionCounts: {
+          action: actions.filter((action) => action.type === ACTION_TYPES.action).length,
+          bonus: actions.filter((action) => action.type === ACTION_TYPES.bonus).length
+        }
+      };
+    }
+
+    function updateTurnActionCounters(actions = []) {
+      const budget = turnActionBudget(actions);
+      if (turnActionsActionOrb) {
+        turnActionsActionOrb.textContent = `${budget.remaining.action}/${budget.totals.action}`;
+        turnActionsActionOrb.classList.toggle("empty", budget.remaining.action <= 0);
+        turnActionsActionOrb.closest(".turn-actions-counter")?.setAttribute("title", `${budget.optionCounts.action} acciones disponibles`);
+      }
+      if (turnActionsActionLabel) turnActionsActionLabel.textContent = `Acciones (${budget.optionCounts.action})`;
+      if (turnActionsBonusOrb) {
+        turnActionsBonusOrb.textContent = `${budget.remaining.bonus}/${budget.totals.bonus}`;
+        turnActionsBonusOrb.classList.toggle("empty", budget.remaining.bonus <= 0);
+        turnActionsBonusOrb.closest(".turn-actions-counter")?.setAttribute("title", `${budget.optionCounts.bonus} acciones bonus disponibles`);
+      }
+      if (turnActionsBonusLabel) turnActionsBonusLabel.textContent = `Acciones bonus (${budget.optionCounts.bonus})`;
+    }
+
+    function startNewCombatTurn() {
+      const state = combatTurnState();
+      sheetMeta.combatTurn = {
+        ...state,
+        active: true,
+        turn: (Number.parseInt(state.turn || 1, 10) || 1) + 1,
+        spent: { action: 0, bonus: 0 }
+      };
+      refreshTurnActionsPanel();
+      scheduleSave();
+      showStatus("Nuevo turno: acciones restauradas");
+    }
+
+    function turnActionSpendType(action) {
+      if (action?.type === ACTION_TYPES.action) return "action";
+      if (action?.type === ACTION_TYPES.bonus) return "bonus";
+      return "";
+    }
+
+    function canSpendTurnAction(action, budget) {
+      const spendType = turnActionSpendType(action);
+      if (!spendType) return true;
+      return (budget.remaining[spendType] || 0) > 0;
+    }
+
+    function spendTurnAction(action) {
+      const summary = collectCurrentTurnActions();
+      const budget = turnActionBudget(summary.actions);
+      const spendType = turnActionSpendType(action);
+      if (!spendType) {
+        showStatus(`${action.title}: no consume Accion ni Accion Bonus`);
+        return;
+      }
+      if (!canSpendTurnAction(action, budget)) {
+        showStatus(spendType === "action" ? "Sin acciones disponibles este turno" : "Sin acciones bonus disponibles este turno");
+        return;
+      }
+      const state = combatTurnState();
+      state.spent[spendType] = (Number.parseInt(state.spent[spendType] || 0, 10) || 0) + 1;
+      refreshTurnActionsPanel();
+      scheduleSave();
+      showStatus(`${action.title}: ${spendType === "action" ? "Accion" : "Accion Bonus"} gastada`);
+    }
+
+    function renderTurnActionResources(resources = []) {
+      if (!resources.length) return null;
+      const section = document.createElement("section");
+      section.className = "turn-actions-resources";
+      const title = document.createElement("h3");
+      title.className = "turn-actions-section-title";
+      title.textContent = "Recursos";
+      const grid = document.createElement("div");
+      grid.className = "turn-actions-resource-grid";
+      resources.forEach((resource) => {
+        const card = document.createElement("div");
+        card.className = "turn-actions-resource-card";
+        const name = document.createElement("div");
+        name.className = "turn-actions-resource-name";
+        name.textContent = resource.title;
+        const detail = document.createElement("div");
+        detail.className = "turn-actions-resource-detail";
+        const remaining = formatRemainingResourceText(resource.remaining, resource.total);
+        detail.textContent = [remaining, resource.detail].filter(Boolean).join(" | ");
+        card.append(name, detail);
+        grid.appendChild(card);
+      });
+      section.append(title, grid);
+      return section;
+    }
+
+    function renderTurnActionGroups(actions = []) {
+      const container = document.createElement("section");
+      container.className = "turn-actions-groups";
+      const grouped = groupActionsByType(actions);
+      const budget = turnActionBudget(actions);
+      ACTION_TYPE_ORDER.forEach((type) => {
+        const items = grouped.get(type) || [];
+        if (!items.length) return;
+        const group = document.createElement("div");
+        group.className = "turn-actions-group";
+        const title = document.createElement("h3");
+        title.className = "turn-actions-section-title";
+        title.textContent = `${TURN_ACTION_GROUP_GUIDE[type]?.title || ACTION_TYPE_LABELS[type] || type} (${items.length})`;
+        group.appendChild(title);
+        const subtitleText = TURN_ACTION_GROUP_GUIDE[type]?.subtitle || "";
+        if (subtitleText) {
+          const subtitle = document.createElement("div");
+          subtitle.className = "turn-actions-group-subtitle";
+          subtitle.textContent = subtitleText;
+          group.appendChild(subtitle);
+        }
+        const list = document.createElement("div");
+        list.className = "turn-actions-list";
+        items.forEach((action) => {
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "turn-actions-row";
+          const disabled = !canSpendTurnAction(action, budget);
+          row.disabled = disabled;
+          row.classList.toggle("disabled", disabled);
+          row.addEventListener("click", () => spendTurnAction(action));
+          const rowTitle = document.createElement("div");
+          rowTitle.className = "turn-actions-row-title";
+          rowTitle.textContent = action.title;
+          row.appendChild(rowTitle);
+          if (action.detail) {
+            const detail = document.createElement("div");
+            detail.className = "turn-actions-row-detail";
+            detail.textContent = action.detail;
+            row.appendChild(detail);
+          }
+          list.appendChild(row);
+        });
+        group.appendChild(list);
+        container.appendChild(group);
+      });
+      return container;
+    }
+
+    function refreshTurnActionsPanel() {
+      if (!turnActionsBody) return;
+      turnActionsBody.textContent = "";
+      const summary = collectCurrentTurnActions();
+      updateTurnActionCounters(summary.actions);
+      const resourceSection = renderTurnActionResources(summary.resources);
+      const actionGroups = renderTurnActionGroups(summary.actions);
+      if (resourceSection) turnActionsBody.appendChild(resourceSection);
+      if (summary.actions.length) turnActionsBody.appendChild(actionGroups);
+      if (!summary.resources.length && !summary.actions.length) {
+        const empty = document.createElement("div");
+        empty.className = "turn-actions-empty";
+        empty.textContent = "No encontre acciones utilizables con el estado actual de la ficha.";
+        turnActionsBody.appendChild(empty);
+      }
+    }
+
+    function openTurnActionsPanel() {
+      if (!turnActionsBackdrop) return;
+      refreshTurnActionsPanel();
+      turnActionsBackdrop.classList.add("visible");
+      turnActionsBackdrop.setAttribute("aria-hidden", "false");
+      turnActionsClose?.focus();
+    }
+
+    function closeTurnActionsPanel() {
+      if (!turnActionsBackdrop) return;
+      turnActionsBackdrop.classList.remove("visible");
+      turnActionsBackdrop.setAttribute("aria-hidden", "true");
+    }
+
+    function refreshTurnActionsPanelIfVisible() {
+      if (!turnActionsBackdrop?.classList.contains("visible")) return;
+      refreshTurnActionsPanel();
     }
 
     function pruneUnavailableSpellSelections() {
@@ -2890,11 +4195,13 @@
       if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
       if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
+      if (!sheetMeta.spellCastLevels || typeof sheetMeta.spellCastLevels !== "object") sheetMeta.spellCastLevels = {};
       if (!sheetMeta.spellDescriptionTranslations || typeof sheetMeta.spellDescriptionTranslations !== "object") sheetMeta.spellDescriptionTranslations = {};
       if (!["en", "es"].includes(sheetMeta.spellDescriptionsLanguage)) sheetMeta.spellDescriptionsLanguage = "en";
       if (!sheetMeta.generatedSkillProficiencies || typeof sheetMeta.generatedSkillProficiencies !== "object") sheetMeta.generatedSkillProficiencies = {};
       sheetMeta.characterReady = Boolean(sheetMeta.characterReady);
       sheetMeta.longRestActive = Boolean(sheetMeta.longRestActive);
+      sheetMeta.shortRestActive = Boolean(sheetMeta.shortRestActive);
       document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
         if (!data || !(key in data)) return;
@@ -2920,6 +4227,10 @@
       return Boolean(sheetMeta.longRestActive);
     }
 
+    function isShortRestActive() {
+      return Boolean(sheetMeta.shortRestActive);
+    }
+
     function canModifyCharacterSheet() {
       return !isCharacterReady();
     }
@@ -2935,6 +4246,7 @@
       if (key === "equipment") return true;
       if (["cp", "sp", "ep", "gp", "pp"].includes(key)) return true;
       if (isCurrentHitPointsField(field)) return true;
+      if (isShortRestActive() && isHitDiceField(field)) return true;
       if (field?.dataset?.optionType === "spell") return canModifySpells();
       if (field?.dataset?.spellKey || field?.dataset?.preparedKey) return canModifySpells();
       return false;
@@ -2979,6 +4291,10 @@
       if (longRestButton) {
         longRestButton.textContent = isLongRestActive() ? "Terminar long rest" : "Iniciar long rest";
       }
+      shortRestButton?.classList.toggle("active", isShortRestActive());
+      if (shortRestButton) {
+        shortRestButton.textContent = isShortRestActive() ? "Terminar short rest" : "Iniciar short rest";
+      }
       document.querySelectorAll(".field").forEach((field) => {
         const locked = isCharacterReady() && !fieldCanChangeWhenReady(field);
         field.classList.toggle("locked-field", locked);
@@ -3004,7 +4320,10 @@
 
     function toggleCharacterReady() {
       sheetMeta.characterReady = !isCharacterReady();
-      if (!sheetMeta.characterReady) sheetMeta.longRestActive = false;
+      if (!sheetMeta.characterReady) {
+        sheetMeta.longRestActive = false;
+        sheetMeta.shortRestActive = false;
+      }
       updateInteractionState();
       scheduleSave();
       showStatus(sheetMeta.characterReady ? "Personaje listo: planilla bloqueada" : "Edicion de personaje habilitada");
@@ -3475,7 +4794,9 @@
       if (!body) return;
       const section = document.createElement("section");
       section.className = "item-section";
-      appendText(section, "item-section-title", title);
+      if (!["descripcion", "descripción", "description"].includes(normalizeName(title))) {
+        appendText(section, "item-section-title", title);
+      }
       appendText(section, "item-section-body", body, "p");
       root.appendChild(section);
     }
@@ -3532,7 +4853,7 @@
     }
 
     // INLINE SPELL UI: spell drawers, pickers, translation tools, and spellbook management remain in index.html for now.
-    function buildSpellDrawerContent(spell, translatedDescription = "") {
+    function buildSpellDrawerContent(spell, translatedDescription = "", options = {}) {
       const root = document.createElement("div");
       root.className = "item-sheet";
 
@@ -3564,7 +4885,19 @@
       const description = cleanSpellDescription(spell);
       const descriptionContainer = document.createElement("div");
       descriptionContainer.className = "spell-description-blocks";
+      const renderSpellDescription = (target) => renderSpellDescriptionSections(target, description);
       renderSpellDescriptionSections(descriptionContainer, translatedDescription || description);
+      if (options.includeTranslationToolbar) {
+        const translationToolbar = buildFeatureTranslationToolbar({
+          cacheKey: spellTranslationKey(spell),
+          description,
+          detailBody: descriptionContainer,
+          renderOriginal: renderSpellDescription,
+          labelText: "La traduccion aplica solo a la spell examinada.",
+          translateDescription: () => translateSpellDescription(spell, description)
+        });
+        if (translationToolbar) root.appendChild(translationToolbar);
+      }
       root.appendChild(descriptionContainer);
       appendText(root, "item-source", spellSourceLabel(spell) ? `Source: ${spellSourceLabel(spell)}.` : "");
       return root;
@@ -3575,7 +4908,7 @@
       showDrawer(
         spell?.name || String(spellOrName || "Spell"),
         spell ? [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell)].filter(Boolean).join(" - ") : "Spell",
-        buildSpellDrawerContent(spell)
+        buildSpellDrawerContent(spell, "", { includeTranslationToolbar: true })
       );
     }
 
@@ -4390,6 +5723,44 @@
       itemDrawer.classList.add("spell-picker-drawer");
     }
 
+    function itemDrawerDescriptionText(item) {
+      if (!item) return "";
+      const details = [];
+      if (item.entries) details.push(flattenEntryText(item.entries));
+      if (item.additionalEntries) details.push(flattenEntryText(item.additionalEntries));
+      (item.property || []).forEach((ref) => {
+        const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
+        const description = propertyDescription(ref);
+        if (description) details.push(`${name}. ${description.replace(new RegExp(`^${name}\\.\\s*`, "i"), "")}`);
+      });
+      (item.mastery || []).forEach((ref) => {
+        const mastery = masteryData(ref);
+        const name = mastery?.name || splitRef(ref).abbreviation;
+        const description = mastery ? flattenEntryText(mastery.entries) : "";
+        if (description) details.push(`Mastery: ${name}. ${description}`);
+      });
+      return details.filter(Boolean).join("\n\n");
+    }
+
+    function renderItemDrawerDescriptionSections(container, item) {
+      container.textContent = "";
+      if (item.entries) appendItemSection(container, "Descripcion", flattenEntryText(item.entries));
+      if (item.additionalEntries) appendItemSection(container, "Uso", flattenEntryText(item.additionalEntries));
+
+      (item.property || []).forEach((ref) => {
+        const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
+        const description = propertyDescription(ref);
+        if (description) appendItemSection(container, name, description.replace(new RegExp(`^${name}\\.\\s*`, "i"), ""));
+      });
+
+      (item.mastery || []).forEach((ref) => {
+        const mastery = masteryData(ref);
+        const name = mastery?.name || splitRef(ref).abbreviation;
+        const description = mastery ? flattenEntryText(mastery.entries) : "";
+        if (description) appendItemSection(container, `Mastery: ${name}`, description);
+      });
+    }
+
     function buildItemDrawerContent(item) {
       const root = document.createElement("div");
       root.className = "item-sheet";
@@ -4418,21 +5789,18 @@
         root.appendChild(chips);
       }
 
-      if (item.entries) appendItemSection(root, "Descripción", flattenEntryText(item.entries));
-      if (item.additionalEntries) appendItemSection(root, "Uso", flattenEntryText(item.additionalEntries));
-
-      (item.property || []).forEach((ref) => {
-        const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
-        const description = propertyDescription(ref);
-        if (description) appendItemSection(root, name, description.replace(new RegExp(`^${name}\\.\\s*`, "i"), ""));
+      const descriptionContainer = document.createElement("div");
+      descriptionContainer.className = "spell-description-blocks";
+      const renderItemDescription = (target) => renderItemDrawerDescriptionSections(target, item);
+      renderItemDescription(descriptionContainer);
+      const translationToolbar = buildFeatureTranslationToolbar({
+        cacheKey: featureTranslationKey("item", item.name, item.source, item.page),
+        description: itemDrawerDescriptionText(item),
+        detailBody: descriptionContainer,
+        renderOriginal: renderItemDescription
       });
-
-      (item.mastery || []).forEach((ref) => {
-        const mastery = masteryData(ref);
-        const name = mastery?.name || splitRef(ref).abbreviation;
-        const description = mastery ? flattenEntryText(mastery.entries) : "";
-        if (description) appendItemSection(root, `Mastery: ${name}`, description);
-      });
+      if (translationToolbar) root.appendChild(translationToolbar);
+      root.appendChild(descriptionContainer);
 
       appendText(root, "item-source", sourceLine(item));
       return root;
@@ -4643,7 +6011,18 @@
         .forEach((value) => appendText(chips, "item-chip", value, "span"));
       if (chips.childElementCount) root.appendChild(chips);
 
-      appendEntryBlocks(root, feat.entries, "Beneficios");
+      const descriptionContainer = document.createElement("div");
+      descriptionContainer.className = "spell-description-blocks";
+      const renderFeatDescription = (target) => appendEntryBlocks(target, feat.entries, "Beneficios");
+      renderFeatDescription(descriptionContainer);
+      const translationToolbar = buildFeatureTranslationToolbar({
+        cacheKey: featureTranslationKey("feat", feat.name, feat.source, feat.page),
+        description: flattenEntryText(feat.entries || ""),
+        detailBody: descriptionContainer,
+        renderOriginal: renderFeatDescription
+      });
+      if (translationToolbar) root.appendChild(translationToolbar);
+      root.appendChild(descriptionContainer);
       appendFeatureChoiceControls(root, featureOverride || {
         name: feat.name,
         source: feat.source,
@@ -4734,11 +6113,18 @@
       root.className = "item-sheet";
       appendText(root, "item-sheet-title", title || "Feature", "h2");
       appendText(root, "item-sheet-subtitle", meta);
-      String(description || "")
-        .split(/\n{2,}|(?<=[.!?])\s+(?=[A-Z])/)
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .forEach((paragraph, index) => appendItemSection(root, index === 0 ? "Descripcion" : "Detalle", paragraph));
+      const descriptionContainer = document.createElement("div");
+      descriptionContainer.className = "spell-description-blocks";
+      const renderDescription = (target) => renderPlainTextDescriptionSections(target, description);
+      renderDescription(descriptionContainer);
+      const translationToolbar = buildFeatureTranslationToolbar({
+        cacheKey: featureTranslationKey("text-feature", title, meta, String(description || "").slice(0, 120)),
+        description,
+        detailBody: descriptionContainer,
+        renderOriginal: renderDescription
+      });
+      if (translationToolbar) root.appendChild(translationToolbar);
+      root.appendChild(descriptionContainer);
       return root;
     }
 
@@ -5671,7 +7057,18 @@
         sourceLabel(feature?.source),
         feature?.page ? `p${feature.page}` : ""
       ].filter(Boolean).join(" - "));
-      appendEntryBlocks(root, feature?.entries || feature?.entry || [], "Descripcion");
+      const descriptionContainer = document.createElement("div");
+      descriptionContainer.className = "spell-description-blocks";
+      const renderFeatureDescription = (target) => appendEntryBlocks(target, feature?.entries || feature?.entry || [], "Descripcion");
+      renderFeatureDescription(descriptionContainer);
+      const translationToolbar = buildFeatureTranslationToolbar({
+        cacheKey: featureTranslationKey("class-feature", feature?.className, feature?.level, feature?.name, feature?.source, feature?.page),
+        description: flattenEntryText(feature?.entries || feature?.entry || ""),
+        detailBody: descriptionContainer,
+        renderOriginal: renderFeatureDescription
+      });
+      if (translationToolbar) root.appendChild(translationToolbar);
+      root.appendChild(descriptionContainer);
       appendFeatureChoiceControls(root, feature);
       appendText(root, "item-source", [
         feature?.source ? `Source: ${sourceLabel(feature.source)}${feature.page ? `, page ${feature.page}` : ""}.` : "",
@@ -9993,6 +11390,221 @@
       updateDerivedStats();
     }
 
+    function registerTurnActionProviders() {
+      turnActionRegistry.register({
+        id: "core:actions",
+        order: 10,
+        getActions() {
+          return {
+            actions: [
+              {
+                key: "core:dash",
+                type: ACTION_TYPES.action,
+                title: "Dash",
+                detail: `Que haces: ganas movimiento extra igual a tu Speed actual (${currentSpeedFeet()} pies).\nConsume: tu Action.\nSuma: otro bloque completo de movimiento este turno.\nResta: ya no puedes usar tu Action para atacar, castear con Action, Dodge, etc.`,
+                source: "core"
+              },
+              {
+                key: "core:disengage",
+                type: ACTION_TYPES.action,
+                title: "Disengage",
+                detail: "Que haces: te mueves sin provocar opportunity attacks por tu propio movimiento durante este turno.\nConsume: tu Action.\nSuma: salir de melee con mas seguridad.\nResta: no te da movimiento extra y gastas tu Action.",
+                source: "core"
+              },
+              {
+                key: "core:dodge",
+                type: ACTION_TYPES.action,
+                title: "Dodge",
+                detail: "Que haces: te enfocas en defenderte hasta el inicio de tu proximo turno.\nConsume: tu Action.\nSuma: los ataques contra ti tienen disadvantage y haces Dex saves con advantage si puedes ver el efecto.\nResta: no atacas ni casteas con tu Action.",
+                source: "core"
+              },
+              {
+                key: "core:help",
+                type: ACTION_TYPES.action,
+                title: "Help",
+                detail: "Que haces: ayudas a un aliado en una tarea o distraes a un enemigo para ayudar a un aliado a atacarlo.\nConsume: tu Action.\nSuma: normalmente le das advantage al siguiente intento relevante del aliado, segun el caso.\nResta: gastas tu Action y el beneficio depende de tener objetivo/aliado valido.",
+                source: "core"
+              },
+              {
+                key: "core:hide",
+                type: ACTION_TYPES.action,
+                title: "Hide",
+                detail: "Que haces: intentas ocultarte usando cobertura, oscuridad o terreno que lo permita.\nConsume: tu Action.\nSuma: si sale bien, enemigos pueden perderte de vista y puedes obtener ventaja tactica.\nResta: requiere contexto valido para esconderse y gasta tu Action.",
+                source: "core"
+              },
+              {
+                key: "core:ready",
+                type: ACTION_TYPES.action,
+                title: "Ready",
+                detail: "Que haces: preparas una accion con un trigger para usarla despues.\nConsume: tu Action ahora y, si el trigger ocurre, tu Reaction.\nSuma: actuar fuera de tu turno cuando pase la condicion.\nResta: si el trigger no ocurre, perdiste la Action; ademas te quedas sin Reaction si la ejecutas.",
+                source: "core"
+              },
+              {
+                key: "core:search",
+                type: ACTION_TYPES.action,
+                title: "Search",
+                detail: "Que haces: buscas una criatura, objeto, trampa, pista o detalle oculto.\nConsume: tu Action.\nSuma: puedes descubrir informacion que no era visible.\nResta: no hace danio ni te mueve mas; gastas tu Action.",
+                source: "core"
+              },
+              {
+                key: "core:use-object",
+                type: ACTION_TYPES.action,
+                title: "Use an Object",
+                detail: "Que haces: manipulas un objeto que requiere mas que la interaccion gratis del turno.\nConsume: tu Action.\nSuma: usar, activar o manipular equipo/objetos del entorno cuando corresponda.\nResta: gastas tu Action; algunos objetos igual pueden tener reglas propias.",
+                source: "core"
+              },
+              {
+                key: "core:movement",
+                type: ACTION_TYPES.movement,
+                title: `Mover hasta ${currentSpeedFeet()} pies`,
+                detail: `Que haces: puedes desplazarte hasta tu Speed actual (${currentSpeedFeet()} pies), repartido antes o despues de tu Action.\nConsume: tu Movement del turno.\nSuma: reposicionamiento, acercarte, alejarte, rodear, levantarte, trepar, etc.\nResta: salir del alcance de un enemigo puede provocar opportunity attack si no usaste Disengage.`,
+                source: "core"
+              }
+            ]
+          };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "core:reactions",
+        order: 15,
+        getActions() {
+          const meleeOption = equippedEntries()
+            .filter(({ item, record }) => isWeaponItem(item) && record.slot === "mainHand" && itemTypeAbbreviation(item) !== "R")
+            .map(({ entry, item, record }) => weaponAttackSelection(entry, item, record.slot))[0] || unarmedTurnActionSelection();
+          return {
+            actions: [{
+              key: "core:opportunity-attack",
+              type: ACTION_TYPES.reaction,
+              title: "Opportunity Attack",
+              detail: `Que haces: si una criatura sale de tu alcance, puedes hacer un ataque melee contra ella.\nConsume: tu Reaction.\nSuma: ${turnActionRowStats(meleeOption) || "un ataque cuerpo a cuerpo"}.\nResta: si gastas la Reaction aqui, no la tienes para otras reacciones hasta tu proximo turno.`,
+              source: "core"
+            }]
+          };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "equipment:attacks",
+        order: 20,
+        getActions() {
+          return {
+            actions: turnActionWeaponSelections().map((row) => ({
+              key: `equipment:${normalizeName(row.name)}`,
+              type: row.actionType || ACTION_TYPES.action,
+              title: row.name.startsWith("Ataque ") ? row.name : `Atacar con ${row.name}`,
+              detail: [turnActionRowStats(row), row.actionCostLabel].filter(Boolean).join("\n"),
+              source: "equipment"
+            }))
+          };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "spells:castable",
+        order: 30,
+        getActions(context) {
+          return {
+            actions: (context.castableSpells || []).flatMap((spellEntry) => {
+              const types = spellActionTypes(spellEntry.spell);
+              const availability = spellAvailabilityInfo(spellEntry);
+              if (!availability.available || !types.length) return [];
+              const detail = [availability.detail, spellActionCombatDetail(spellEntry)].filter(Boolean).join(" | ");
+              return types.map((type) => ({
+                key: `spell:${type}:${normalizeName(spellEntry.name)}`,
+                type,
+                title: `Lanzar ${spellEntry.name} (${availability.shortLabel})`,
+                detail,
+                source: "spells"
+              }));
+            })
+          };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "derived:bonus-actions",
+        order: 35,
+        getActions(context) {
+          return { actions: derivedBonusActions(context) };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "class:features",
+        order: 40,
+        getActions(context) {
+          return { actions: featureActionItemsFromEntries(classFeatureEntriesForCharacter(), "class", context) };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "race:features",
+        order: 41,
+        getActions(context) {
+          return { actions: featureActionItemsFromEntries(raceFeatureEntriesForCharacter(), "race", context) };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "background:features",
+        order: 42,
+        getActions(context) {
+          return { actions: featureActionItemsFromEntries(backgroundFeatureEntries(), "background", context) };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "feat:features",
+        order: 43,
+        getActions(context) {
+          return {
+            actions: [
+              ...featureActionItemsFromEntries(activeFeatEntriesForEffects(), "feat", context),
+              ...featResourceSelections().flatMap((row) => {
+                const text = `${row.name}\n${row.description || ""}`;
+                const types = turnActionTypesFromText(text);
+                const actionTypes = types.length ? types : [ACTION_TYPES.action];
+                const uses = featureUseInfo(row);
+                if (uses && uses.remaining <= 0) return [];
+                return actionTypes.map((type) => ({
+                  key: `feat-resource:${type}:${normalizeName(row.name)}`,
+                  type,
+                  title: `Usar ${row.name}`,
+                  detail: [uses ? `${uses.remaining}/${uses.max} usos` : "", row.description].filter(Boolean).join("\n"),
+                  source: "feat"
+                }));
+              })
+            ]
+          };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "resources:summary",
+        order: 90,
+        getActions() {
+          return { resources: turnActionResourceSummaries() };
+        }
+      });
+
+      globalThis.dndTurnActionAdvisor = {
+        registerProvider(provider) {
+          return turnActionRegistry.register(provider);
+        },
+        unregisterProvider(id) {
+          turnActionRegistry.unregister(id);
+        },
+        listProviders() {
+          return turnActionRegistry.list();
+        },
+        collect() {
+          return collectCurrentTurnActions();
+        }
+      };
+    }
+
+    registerTurnActionProviders();
 
     init().catch((error) => {
       console.error(error);

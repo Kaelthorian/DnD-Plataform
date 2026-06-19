@@ -68,6 +68,15 @@
     };
   }
 
+  function recoverResourceState({ state, keys = [] } = {}) {
+    const resourceState = ensureResourceState(state);
+    const uniqueKeys = [...new Set((Array.isArray(keys) ? keys : []).map((key) => String(key || "").trim()).filter(Boolean))];
+    if (!uniqueKeys.length) return { ...resourceState };
+    const nextState = { ...resourceState };
+    uniqueKeys.forEach((key) => delete nextState[key]);
+    return nextState;
+  }
+
   function resetResourceState() {
     return {};
   }
@@ -78,6 +87,7 @@
     spendResourceUse,
     getMagicInitiateUseInfo,
     spendMagicInitiateUse,
+    recoverResourceState,
     resetResourceState
   };
 });

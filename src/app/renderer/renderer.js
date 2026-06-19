@@ -12,7 +12,18 @@
     const status = document.getElementById("status");
     const clearFieldsButton = document.getElementById("clearFieldsButton");
     const longRestButton = document.getElementById("longRestButton");
+    const shortRestButton = document.getElementById("shortRestButton");
     const characterReadyButton = document.getElementById("characterReadyButton");
+    const turnActionsButton = document.getElementById("turnActionsButton");
+    const turnActionsBackdrop = document.getElementById("turnActionsBackdrop");
+    const turnActionsPanel = document.getElementById("turnActionsPanel");
+    const turnActionsClose = document.getElementById("turnActionsClose");
+    const turnActionsBody = document.getElementById("turnActionsBody");
+    const turnActionsNewTurn = document.getElementById("turnActionsNewTurn");
+    const turnActionsActionOrb = document.getElementById("turnActionsActionOrb");
+    const turnActionsBonusOrb = document.getElementById("turnActionsBonusOrb");
+    const turnActionsActionLabel = document.getElementById("turnActionsActionLabel");
+    const turnActionsBonusLabel = document.getElementById("turnActionsBonusLabel");
     const optionMenu = document.getElementById("optionMenu");
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
@@ -136,6 +147,34 @@
       if (desktopStore?.loadSpells) return dedupeModernByName(await desktopStore.loadSpells(), (spell) => spell?.name || "", (spell) => spell?.source || "");
       const response = await fetch("../../data/spells/spells.json");
       return dedupeModernByName(await response.json(), (spell) => spell?.name || "", (spell) => spell?.source || "");
+    }
+
+    async function loadSpellActionMetadata() {
+      const indexResponse = await fetch("../../../vendor/5etools-src-main/data/spells/index.json");
+      if (!indexResponse.ok) return [];
+      const spellIndex = await indexResponse.json();
+      const files = Object.values(spellIndex).filter((file) => /^spells-.*\.json$/i.test(file));
+      const responses = await Promise.all(files.map((file) => fetch(`../../../vendor/5etools-src-main/data/spells/${file}`).catch(() => null)));
+      const loaded = await Promise.all(responses.map(async (response) => response?.ok ? response.json() : null));
+      return loaded.flatMap((payload) => Array.isArray(payload?.spell) ? payload.spell : []);
+    }
+
+    function spellMetadataKey(spell) {
+      return `${normalizeName(spell?.name || "")}|${normalizeName(spell?.source || "")}`;
+    }
+
+    function mergeSpellActionMetadata(spellOptions, spellDetails) {
+      const detailsByKey = new Map(
+        (Array.isArray(spellDetails) ? spellDetails : [])
+          .filter(Boolean)
+          .map((spell) => [spellMetadataKey(spell), spell])
+      );
+      return dedupeModernByName(spellOptions, (spell) => spell?.name || "", (spell) => spell?.source || "")
+        .map((spell) => {
+          const detail = detailsByKey.get(spellMetadataKey(spell));
+          if (!detail?.time) return spell;
+          return { ...spell, time: detail.time };
+        });
     }
 
     async function loadFeatOptions() {
@@ -403,7 +442,7 @@
 
     async function init() {
       await loadPdfJs();
-      const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, featData, optionalFeatureData, itemData, languageData] = await Promise.all([
+      const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, spellActionMetadata, featData, optionalFeatureData, itemData, languageData] = await Promise.all([
         loadRaceOptions(),
         loadRaceDetails(),
         loadBackgroundOptions(),
@@ -411,6 +450,7 @@
         loadClassOptions(),
         loadClassDetails(),
         loadSpellOptions(),
+        loadSpellActionMetadata(),
         loadFeatOptions(),
         loadOptionalFeatureOptions(),
         loadItemOptions(),
@@ -425,7 +465,7 @@
         ["alignment", alignmentOptions()],
         ["level", levelOptions()]
       ]);
-      spells = dedupeModernByName(spellOptions, (spell) => spell?.name || "", (spell) => spell?.source || "");
+      spells = mergeSpellActionMetadata(spellOptions, spellActionMetadata);
       classDetails = classDetailData;
       feats = dedupeModernByName(Array.isArray(featData?.feat) ? featData.feat : [], (feat) => feat?.name || "", (feat) => feat?.source || "");
       optionalFeatures = dedupeModernByName(Array.isArray(optionalFeatureData?.optionalfeature) ? optionalFeatureData.optionalfeature : [], (feature) => feature?.name || "", (feature) => feature?.source || "");
@@ -459,7 +499,14 @@
         clearAllFields().catch(console.error);
       });
       longRestButton?.addEventListener("click", longRestSpellResources);
+      shortRestButton?.addEventListener("click", shortRestResources);
       characterReadyButton?.addEventListener("click", toggleCharacterReady);
+      turnActionsButton?.addEventListener("click", openTurnActionsPanel);
+      turnActionsClose?.addEventListener("click", closeTurnActionsPanel);
+      turnActionsNewTurn?.addEventListener("click", startNewCombatTurn);
+      turnActionsBackdrop?.addEventListener("click", (event) => {
+        if (event.target === turnActionsBackdrop) closeTurnActionsPanel();
+      });
       app.addEventListener("pointerdown", handleLockedSheetEvent, true);
       app.addEventListener("keydown", handleLockedSheetEvent, true);
       app.addEventListener("beforeinput", handleLockedSheetEvent, true);
@@ -477,6 +524,8 @@
       app.addEventListener("change", updateEquipmentPanel);
       app.addEventListener("input", renderAlertsPanel);
       app.addEventListener("change", renderAlertsPanel);
+      app.addEventListener("input", refreshTurnActionsPanelIfVisible);
+      app.addEventListener("change", refreshTurnActionsPanelIfVisible);
       app.addEventListener("change", handleSpellAvailabilityChange);
       itemDrawerClose.addEventListener("click", closeItemDrawer);
       itemPickerClose?.addEventListener("click", closeItemPicker);
@@ -511,6 +560,7 @@
           closeOptionMenu();
           closeItemPicker();
           closeItemDrawer();
+          closeTurnActionsPanel();
         }
       });
       loading.style.display = "none";
