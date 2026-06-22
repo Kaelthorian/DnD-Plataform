@@ -67,6 +67,18 @@ ipcMain.handle("sheet:clear", async () => {
   return saveService.clearSheet(app.getPath("userData"));
 });
 
+ipcMain.handle("sheet:store:load", async () => {
+  return saveService.loadSaveStore(app.getPath("userData"));
+});
+
+ipcMain.handle("sheet:store:save", async (_event, store) => {
+  return saveService.saveSaveStore(app.getPath("userData"), store);
+});
+
+ipcMain.handle("sheet:slot:clear", async (_event, slotId) => {
+  return saveService.clearActiveSlot(app.getPath("userData"), slotId);
+});
+
 ipcMain.handle("pdf:load", async () => {
   return dataLoader.loadPdfBase64();
 });

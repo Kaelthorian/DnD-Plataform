@@ -2215,12 +2215,12 @@
       if (normalizedTitle.includes("bardic inspiration")) {
         return Math.max(1, abilityModifier(getFieldByKey("CHA")?.value || "") ?? 0);
       }
-      if (/\bluck points?\b/i.test(text) && /\bequal to your .*proficiency bonus\b/i.test(text)) {
+      if (/\bluck points?\b/i.test(text) && /\bequal to your .*proficiency(?: bonus)?\b/i.test(text)) {
         return proficiencyBonus();
       }
       const luckPointMatch = text.match(/\byou have\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+luck points?\b/i);
       if (luckPointMatch) return countWordToNumber(luckPointMatch[1]);
-      if (/\bnumber of times equal to your (?:variantrule )?proficiency\b|\btimes equal to your proficiency bonus\b/i.test(text)) {
+      if (/\bnumber of times equal to your (?:variantrule )?proficiency(?: bonus)?\b|\btimes equal to your proficiency bonus\b/i.test(text)) {
         return proficiencyBonus();
       }
       const abilityMatch = text.match(/\bnumber of times equal to your (Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) modifier(?:\s*\(minimum of once\))?/i)
@@ -10691,7 +10691,8 @@
     function strip5eTags(value) {
       return String(value || "")
         .replace(/{@(?:dice|damage|dc|chance)\s+([^}|]+)(?:\|[^}]*)?}/g, "$1")
-        .replace(/{@(?:feat|spell|item|filter|book|variantrule|condition|skill|creature|class|background|action|itemProperty|quickref|status|sense|hazard)\s+([^}|]+)(?:\|[^}]*)?}/g, "$1")
+        .replace(/{@variantrule\s+([^}|]+)(?:\|[^}|]+)?(?:\|([^}]+))?}/g, (_, label, displayText) => displayText || label)
+        .replace(/{@(?:feat|spell|item|filter|book|condition|skill|creature|class|background|action|itemProperty|quickref|status|sense|hazard)\s+([^}|]+)(?:\|[^}]*)?}/g, "$1")
         .replace(/{@b\s+([^}]+)}/g, "$1")
         .replace(/{@i\s+([^}]+)}/g, "$1")
         .replace(/{@[^}]+\s+([^}]+)}/g, "$1")
