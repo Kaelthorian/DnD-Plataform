@@ -11,15 +11,24 @@
     <span class="download-release-text" id="downloadReleaseText">Buscando ultima version...</span>
     <a class="download-release-button" id="downloadReleaseButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" target="_blank" rel="noopener">Descargar</a>
   </div>
-  <div class="save-slot-control" id="saveSlotControl">
-    <label class="save-slot-label" id="saveSlotLabel" for="saveSlotSelect">Personaje</label>
-    <select class="save-slot-select" id="saveSlotSelect"></select>
-  </div>
-  <button class="clear-fields-button" id="clearFieldsButton" type="button">Limpiar campos</button>
-  <button class="long-rest-button" id="longRestButton" type="button">Long rest</button>
-  <button class="long-rest-button short-rest-button" id="shortRestButton" type="button">Short rest</button>
+  <div class="top-controls-menu" id="topControlsMenu">
+    <button class="top-controls-launcher" id="topControlsLauncher" type="button" aria-label="Abrir controles" aria-expanded="false" aria-controls="topControlsPanel">
+      <span class="top-controls-launcher-line"></span>
+      <span class="top-controls-launcher-line"></span>
+      <span class="top-controls-launcher-line"></span>
+    </button>
+    <div class="top-controls-panel" id="topControlsPanel" hidden>
+      <div class="save-slot-control" id="saveSlotControl">
+        <label class="save-slot-label" id="saveSlotLabel" for="saveSlotSelect">Personaje</label>
+        <select class="save-slot-select" id="saveSlotSelect"></select>
+      </div>
+      <button class="clear-fields-button" id="clearFieldsButton" type="button">Limpiar campos</button>
+      <button class="long-rest-button" id="longRestButton" type="button">Long rest</button>
+      <button class="long-rest-button short-rest-button" id="shortRestButton" type="button">Short rest</button>
   <button class="character-ready-button" id="characterReadyButton" type="button">🔓 Personaje Listo</button>
-  <button class="turn-actions-button" id="turnActionsButton" type="button">Empezar combate</button>
+      <button class="turn-actions-button" id="turnActionsButton" type="button">Empezar combate</button>
+    </div>
+  </div>
   <aside class="alerts-panel empty" id="alertsPanel" aria-live="polite">
     <div class="alerts-trigger" id="alertsTrigger" tabindex="0" role="button" aria-label="Ver alertas pendientes">
       <span class="alert-icon" id="alertsIcon">!</span>
@@ -717,9 +726,46 @@
       return Boolean(field) && field === getCurrentHitPointsField();
     }
 
+    function getTemporaryHitPointsField() {
+      const keys = [
+        "HPTemp",
+        "TempHP",
+        "Temporary Hit Points",
+        "TemporaryHitPoints",
+        "HP Temp",
+        "Hit Points Temp",
+        "HitPointsTemp"
+      ];
+      for (const key of keys) {
+        const field = getFieldByKey(key);
+        if (field) return field;
+      }
+      return sheetFieldElements()
+        .find((field) => {
+          const key = normalizeName(field.dataset.key || "");
+          return key.includes("hp") && key.includes("temp");
+        }) || null;
+    }
+
+    function isTemporaryHitPointsField(field) {
+      return Boolean(field) && field === getTemporaryHitPointsField();
+    }
+
     function isHitDiceField(field) {
       const key = normalizeName(field?.dataset?.key || "");
       return key === "hd";
+    }
+
+    function isDeathSaveField(field) {
+      const key = normalizeName(field?.dataset?.key || "");
+      return [
+        "check box 12",
+        "check box 13",
+        "check box 14",
+        "check box 15",
+        "check box 16",
+        "check box 17"
+      ].includes(key);
     }
 
     function applyShortRestRecovery(recovery) {
@@ -735,7 +781,12 @@
       applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
       sheetMeta.featureUses = recovery.nextResourceState;
       if (currentHpField && fieldValue("HPMax")) currentHpField.value = recovery.currentHitPoints;
+      setFieldValue("Inspiration", longRestInspirationValue());
       updatePreparedSpellsPanel();
+    }
+
+    function longRestInspirationValue() {
+      return normalizeName(selectedRaceBaseName()) === "human" ? "1" : "0";
     }
 
     function restoreLongRestResources() {
@@ -4144,6 +4195,9 @@
       element.title = annotation.fieldName || key;
       element.className = `field ${isCheckbox ? "checkbox" : ""} ${isMultiline ? "textarea" : ""} ${isSelect ? "select" : ""}`;
       if (normalizedKey === "proficiencieslang") element.classList.add("proficiencies-box");
+      if (["attacksspellcasting", "proficiencieslang", "equipment"].includes(normalizedKey)) {
+        element.classList.add("transparent-sheet-box");
+      }
       setPdfRectDataset(element, annotation.rect, pageNumber);
       if (!isCheckbox && isCenteredNumberField(normalizedKey)) element.classList.add("number");
       if (isCheckbox) element.type = "checkbox";
@@ -4522,7 +4576,7 @@
       equipmentField.classList.add("equipment-storage");
 
       const panel = document.createElement("div");
-      panel.className = "equipment-panel";
+      panel.className = "equipment-panel transparent-sheet-box";
       panel.style.left = equipmentField.style.left;
       panel.style.top = equipmentField.style.top;
       panel.style.width = equipmentField.style.width;
@@ -4938,7 +4992,9 @@
       if (!key) return false;
       if (key === "equipment") return true;
       if (["cp", "sp", "ep", "gp", "pp"].includes(key)) return true;
+      if (isDeathSaveField(field)) return true;
       if (isCurrentHitPointsField(field)) return true;
+      if (isTemporaryHitPointsField(field)) return true;
       if (isShortRestActive() && isHitDiceField(field)) return true;
       if (field?.dataset?.optionType === "spell") return canModifySpells();
       if (field?.dataset?.spellKey || field?.dataset?.preparedKey) return canModifySpells();
@@ -5170,8 +5226,77 @@
       return getFieldByKey(key)?.value?.trim() || "";
     }
 
-    function addAlert(alerts, severity, title, detail, choice = null) {
-      alerts.push({ severity, title, detail, choice });
+    function focusFieldFromAlert(field, { activate = true } = {}) {
+      if (!field) return false;
+      field.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      try {
+        field.focus({ preventScroll: true });
+      } catch (_error) {
+        field.focus?.();
+      }
+      const canInteract = !isCharacterReady() || fieldCanChangeWhenReady(field);
+      if (!activate || !canInteract) {
+        if (activate && !canInteract) showStatus("Personaje listo: esa parte de la planilla esta bloqueada.");
+        return true;
+      }
+      if (field.dataset.optionType === "spell") {
+        showSpellSelectionDrawer(field);
+        return true;
+      }
+      if (field.classList.contains("select")) {
+        openOptionMenu(field);
+        return true;
+      }
+      if (typeof field.select === "function" && field.type !== "checkbox") field.select();
+      return true;
+    }
+
+    function alertFieldAction(key, label = "Ir al campo") {
+      return {
+        label,
+        handler: () => {
+          const field = getFieldByKey(key);
+          if (!field) {
+            showStatus(`No encontre el campo ${key}.`);
+            return;
+          }
+          focusFieldFromAlert(field);
+        }
+      };
+    }
+
+    function alertFeaturesAction(label = "Abrir Features & Traits") {
+      return {
+        label,
+        handler: () => {
+          const field = getFeaturesTraitsField();
+          if (!field) {
+            showStatus("No encontre el campo Features & Traits.");
+            return;
+          }
+          focusFieldFromAlert(field, { activate: false });
+          showFeatureDrawer(field);
+        }
+      };
+    }
+
+    function alertSpellsAction(label = "Abrir spells") {
+      return {
+        label,
+        handler: () => {
+          const field = sheetSpellFieldElements()[0] || null;
+          if (!field) {
+            showStatus("No encontre campos de spells.");
+            return;
+          }
+          focusFieldFromAlert(field, { activate: false });
+          showSpellSelectionDrawer(field);
+        }
+      };
+    }
+
+    function addAlert(alerts, severity, title, detail, choice = null, action = null) {
+      alerts.push({ severity, title, detail, choice, action });
     }
 
     const ALERT_SEVERITY_LABELS = {
@@ -9675,19 +9800,19 @@
       const cantripRequired = requiredSpellCountForLevel(0);
       const cantripSelected = selectedSpellCountForLevel(0);
       if (cantripRequired > 0 && cantripSelected < cantripRequired) {
-        addAlert(alerts, "important", "Elegir cantrips", `Faltan ${cantripRequired - cantripSelected} cantrip(s). Tu clase permite ${cantripRequired}; seleccionaste ${cantripSelected}.`);
+        addAlert(alerts, "important", "Elegir cantrips", `Faltan ${cantripRequired - cantripSelected} cantrip(s). Tu clase permite ${cantripRequired}; seleccionaste ${cantripSelected}.`, null, alertSpellsAction());
       }
 
       if (isWizardCharacter()) {
         const maxKnown = wizardMaxSpellbookSpells();
         const known = wizardSpellbookNames().length;
         if (known < maxKnown) {
-          addAlert(alerts, "important", "Completar spellbook", `Tu Wizard puede tener ${maxKnown} spell(s) en el libro para este nivel; tiene ${known}.`);
+          addAlert(alerts, "important", "Completar spellbook", `Tu Wizard puede tener ${maxKnown} spell(s) en el libro para este nivel; tiene ${known}.`, null, alertSpellsAction("Abrir spellbook"));
         }
         const preparedLimit = wizardPreparedSpellLimit();
         const prepared = selectedWizardPreparedSpellCount();
         if (prepared > preparedLimit) {
-          addAlert(alerts, "critical", "Demasiados prepared spells", `Preparaste ${prepared}; tu limite actual es ${preparedLimit}.`);
+          addAlert(alerts, "critical", "Demasiados prepared spells", `Preparaste ${prepared}; tu limite actual es ${preparedLimit}.`, null, alertSpellsAction("Revisar spellbook"));
         }
         return;
       }
@@ -9696,7 +9821,7 @@
         const maxKnown = bardKnownSpellLimit();
         const known = selectedKnownSpellNames().length;
         if (known < maxKnown) {
-          addAlert(alerts, "important", "Elegir spells conocidos", `Tu Bard puede conocer ${maxKnown} spell(s) para este nivel; conoce ${known}.`);
+          addAlert(alerts, "important", "Elegir spells conocidos", `Tu Bard puede conocer ${maxKnown} spell(s) para este nivel; conoce ${known}.`, null, alertSpellsAction());
         }
         return;
       }
@@ -9706,7 +9831,7 @@
         if (required <= 0) continue;
         const selected = selectedSpellCountForLevel(level);
         if (selected < required) {
-          addAlert(alerts, "important", `Elegir spells nivel ${level}`, `Faltan ${required - selected} spell(s) de nivel ${level}. Slots disponibles: ${required}; seleccionaste ${selected}.`);
+          addAlert(alerts, "important", `Elegir spells nivel ${level}`, `Faltan ${required - selected} spell(s) de nivel ${level}. Slots disponibles: ${required}; seleccionaste ${selected}.`, null, alertSpellsAction());
         }
       }
     }
@@ -9714,7 +9839,7 @@
     function addMissingFeatureChoiceAlerts(alerts) {
       choosableFeatureEntriesForCharacter().forEach((entry) => {
         missingFeatureChoiceSpecs(entry.feature).forEach(({ spec, missing }) => {
-          addAlert(alerts, "important", `Elegir ${entry.feature.name}`, `Faltan ${missing} opcion(es) en ${spec.label}. Abrí Features & Traits para elegir.`);
+          addAlert(alerts, "important", `Elegir ${entry.feature.name}`, `Faltan ${missing} opcion(es) en ${spec.label}. Abrí Features & Traits para elegir.`, null, alertFeaturesAction());
         });
       });
     }
@@ -9723,7 +9848,7 @@
       findSelectedRaceChoices()
         .filter((choice) => !isBackgroundChoiceComplete(choice))
         .forEach((choice) => {
-          addAlert(alerts, "important", choice.label, "La raza tiene una opcion pendiente. Abri Features & Traits para elegir.");
+          addAlert(alerts, "important", choice.label, "La raza tiene una opcion pendiente. Abrí Features & Traits para elegir.", choice, alertFeaturesAction());
         });
     }
 
@@ -9738,15 +9863,15 @@
     function buildSheetAlerts() {
       const alerts = [];
       REQUIRED_CORE_FIELDS.forEach(([key, label]) => {
-        if (!fieldValue(key)) addAlert(alerts, "critical", `Completar ${label}`, `Falta llenar el campo ${label}.`);
+        if (!fieldValue(key)) addAlert(alerts, "critical", `Completar ${label}`, `Falta llenar el campo ${label}.`, null, alertFieldAction(key));
       });
 
-      if (!fieldValue("HPMax")) addAlert(alerts, "critical", "Completar HP max", "Falta el maximo de hit points.");
-      if (!fieldValue("HDTotal")) addAlert(alerts, "important", "Completar Hit Dice", "Falta el total de hit dice.");
-      if (!fieldValue("Equipment")) addAlert(alerts, "important", "Completar Equipment", "Agrega equipo o elige el paquete inicial.");
-      if (!fieldValue("ProficienciesLang")) addAlert(alerts, "important", "Revisar proficiencies/languages", "Faltan proficiencies o languages derivados de clase, raza y background.");
+      if (!fieldValue("HPMax")) addAlert(alerts, "critical", "Completar HP max", "Falta el maximo de hit points.", null, alertFieldAction("HPMax"));
+      if (!fieldValue("HDTotal")) addAlert(alerts, "important", "Completar Hit Dice", "Falta el total de hit dice.", null, alertFieldAction("HDTotal"));
+      if (!fieldValue("Equipment")) addAlert(alerts, "important", "Completar Equipment", "Agrega equipo o elige el paquete inicial.", null, alertFieldAction("Equipment"));
+      if (!fieldValue("ProficienciesLang")) addAlert(alerts, "important", "Revisar proficiencies/languages", "Faltan proficiencies o languages derivados de clase, raza y background.", null, alertFieldAction("ProficienciesLang"));
       if (hasChoiceLanguageOrToolText()) {
-        addAlert(alerts, "important", "Elegir proficiencies/languages", "Hay opciones como 'of your choice' que requieren decision manual.");
+        addAlert(alerts, "important", "Elegir proficiencies/languages", "Hay opciones como 'of your choice' que requieren decision manual.", null, alertFeaturesAction());
       }
 
       addMissingSpellAlerts(alerts);
@@ -9764,15 +9889,15 @@
       findSelectedBackgroundChoices()
         .filter((choice) => !isBackgroundChoiceComplete(choice))
         .forEach((choice) => {
-          addAlert(alerts, "important", choice.label, "El background tiene una opcion pendiente.", choice);
+          addAlert(alerts, "important", choice.label, "El background tiene una opcion pendiente.", choice, alertFeaturesAction());
         });
 
       ["PersonalityTraits ", "Ideals", "Bonds", "Flaws"].forEach((key) => {
-        if (!fieldValue(key)) addAlert(alerts, "optional", `Completar ${key.trim()}`, "Ayuda a definir roleplay, pero no bloquea la ficha.");
+        if (!fieldValue(key)) addAlert(alerts, "optional", `Completar ${key.trim()}`, "Ayuda a definir roleplay, pero no bloquea la ficha.", null, alertFieldAction(key));
       });
 
       PAGE_TWO_OPTIONAL_FIELDS.forEach(([key, label]) => {
-        if (!fieldValue(key)) addAlert(alerts, "optional", `Completar ${label}`, "Dato de pagina 2 opcional.");
+        if (!fieldValue(key)) addAlert(alerts, "optional", `Completar ${label}`, "Dato de pagina 2 opcional.", null, alertFieldAction(key));
       });
 
       return alerts.sort((a, b) => {
@@ -9875,6 +10000,23 @@
       return group;
     }
 
+    function renderAlertAction(alert) {
+      if (!alert.action?.handler) return null;
+      const actions = document.createElement("div");
+      actions.className = "alert-actions";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "alert-action-button";
+      button.textContent = alert.action.label || "Abrir";
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        alert.action.handler();
+      });
+      actions.appendChild(button);
+      return actions;
+    }
+
     function renderAlertsPanel() {
       if (!alertsList || !alertsCounts || !alertsPanel || !alertsTrigger || !alertsIcon || !alertsBadge) return;
       const alerts = buildSheetAlerts();
@@ -9921,6 +10063,8 @@
         body.append(title, detail);
         const choice = renderAlertChoice(alert);
         if (choice) body.appendChild(choice);
+        const action = renderAlertAction(alert);
+        if (action) body.appendChild(action);
         item.appendChild(body);
         alertsList.appendChild(item);
       });

@@ -10,6 +10,9 @@
     const app = document.getElementById("app");
     const loading = document.getElementById("loading");
     const status = document.getElementById("status");
+    const topControlsMenu = document.getElementById("topControlsMenu");
+    const topControlsLauncher = document.getElementById("topControlsLauncher");
+    const topControlsPanel = document.getElementById("topControlsPanel");
     const saveSlotControl = document.getElementById("saveSlotControl");
     const saveSlotSelect = document.getElementById("saveSlotSelect");
     const saveSlotLabel = document.getElementById("saveSlotLabel");
@@ -76,6 +79,7 @@
     let activeSaveStore = null;
     let activeSaveSlotId = "slot-1";
     let isSwitchingSaveSlot = false;
+    let sheetBackgroundImageUrl = "./assets/Background.png";
     const collapsibleSectionState = {};
     let fieldLookupCache = null;
 
@@ -113,6 +117,17 @@
 
     if (app && typeof MutationObserver !== "undefined") {
       new MutationObserver(invalidateFieldLookupCache).observe(app, { childList: true, subtree: true });
+    }
+
+    function isTopControlsMenuOpen() {
+      return Boolean(topControlsMenu?.classList.contains("open"));
+    }
+
+    function setTopControlsMenuOpen(open) {
+      if (!topControlsMenu || !topControlsLauncher || !topControlsPanel) return;
+      topControlsMenu.classList.toggle("open", Boolean(open));
+      topControlsLauncher.setAttribute("aria-expanded", open ? "true" : "false");
+      topControlsPanel.hidden = !open;
     }
 
     async function loadPdfJs() {
@@ -175,6 +190,15 @@
     async function loadPdfBytes() {
       if (desktopStore?.loadPdf) return base64ToBytes(await desktopStore.loadPdf());
       return new Uint8Array(await fetchLocalResource("./assets/DnD_5E_CharacterSheet_FormFillable.pdf", { responseType: "arraybuffer" }));
+    }
+
+    async function resolveSheetBackgroundImageUrl() {
+      try {
+        const customUrl = await desktopStore?.getBackgroundImageUrl?.();
+        return customUrl || "./assets/Background.png";
+      } catch (_error) {
+        return "./assets/Background.png";
+      }
     }
 
     async function loadRaceOptions() {
@@ -538,7 +562,18 @@
 
       const pageNode = document.createElement("section");
       pageNode.className = "sheet-page";
+      pageNode.classList.add("sheet-page-back-art");
       pageNode.style.aspectRatio = `${viewport.width} / ${viewport.height}`;
+
+      const artLayer = document.createElement("div");
+      artLayer.className = "sheet-page-art-layer";
+      const artImage = document.createElement("img");
+      artImage.className = "sheet-page-art-image";
+      artImage.src = sheetBackgroundImageUrl;
+      artImage.alt = "";
+      artImage.setAttribute("aria-hidden", "true");
+      artLayer.appendChild(artImage);
+      pageNode.appendChild(artLayer);
 
       const canvas = document.createElement("canvas");
       canvas.width = viewport.width;
@@ -569,6 +604,8 @@
 
     async function init() {
       await loadPdfJs();
+      sheetBackgroundImageUrl = await resolveSheetBackgroundImageUrl();
+      document.documentElement.style.setProperty("--sheet-background-image", `url("${sheetBackgroundImageUrl}")`);
       const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, spellActionMetadata, featData, optionalFeatureData, itemData, languageData] = await Promise.all([
         loadRaceOptions(),
         loadRaceDetails(),
@@ -624,12 +661,24 @@
       renderAlertsPanel();
       updateEquipmentPanel();
       updateInteractionState();
+      topControlsLauncher?.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+      topControlsLauncher?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setTopControlsMenuOpen(!isTopControlsMenuOpen());
+      });
       clearFieldsButton?.addEventListener("click", () => {
         clearAllFields().catch(console.error);
       });
       saveSlotSelect?.addEventListener("change", (event) => {
+        setTopControlsMenuOpen(false);
         switchSaveSlot(event.target.value).catch(console.error);
       });
+      [clearFieldsButton, longRestButton, shortRestButton, characterReadyButton, turnActionsButton]
+        .filter(Boolean)
+        .forEach((button) => button.addEventListener("click", () => setTopControlsMenuOpen(false)));
       longRestButton?.addEventListener("click", longRestSpellResources);
       shortRestButton?.addEventListener("click", shortRestResources);
       characterReadyButton?.addEventListener("click", toggleCharacterReady);
@@ -656,6 +705,14 @@
       app.addEventListener("change", scheduleEquipmentPanelRefresh);
       app.addEventListener("input", scheduleAlertsPanelRefresh);
       app.addEventListener("change", scheduleAlertsPanelRefresh);
+      document.addEventListener("pointerdown", (event) => {
+        if (!isTopControlsMenuOpen() || topControlsMenu?.contains(event.target)) return;
+        setTopControlsMenuOpen(false);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || !isTopControlsMenuOpen()) return;
+        setTopControlsMenuOpen(false);
+      });
       app.addEventListener("input", scheduleTurnActionsPanelRefresh);
       app.addEventListener("change", scheduleTurnActionsPanelRefresh);
       app.addEventListener("change", handleSpellAvailabilityChange);

@@ -11,6 +11,10 @@
       font-family: Arial, sans-serif;
     }
 
+    :root {
+      --sheet-background-image: none;
+    }
+
     .app {
       width: min(100vw - 24px, 1120px);
       margin: 0 auto;
@@ -26,6 +30,32 @@
       overflow: hidden;
     }
 
+    .sheet-page.sheet-page-back-art {
+      background: #182332;
+    }
+
+    .sheet-page-art-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .sheet-page-art-image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .sheet-page.sheet-page-back-art canvas {
+      position: relative;
+      z-index: 1;
+      opacity: 0.62;
+    }
+
     canvas {
       display: block;
       width: 100%;
@@ -35,6 +65,7 @@
     .field-layer {
       position: absolute;
       inset: 0;
+      z-index: 2;
     }
 
     .field {
@@ -73,6 +104,18 @@
       padding: 5px 6px;
     }
 
+    .field.transparent-sheet-box {
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .field.transparent-sheet-box:hover,
+    .field.transparent-sheet-box:focus {
+      border-color: transparent;
+      background: transparent;
+      box-shadow: none;
+    }
+
     .field.select {
       caret-color: transparent;
       cursor: pointer;
@@ -100,6 +143,12 @@
       color: #111;
       font: 10px/1.2 "Segoe UI", Arial, sans-serif;
       overflow: hidden;
+    }
+
+    .equipment-panel.transparent-sheet-box,
+    .equipment-panel.transparent-sheet-box .equipment-header,
+    .equipment-panel.transparent-sheet-box .equipment-list {
+      background: transparent;
     }
 
     .equipment-header,
@@ -659,6 +708,27 @@
 
     .item-drawer.spell-picker-drawer {
       width: min(920px, calc(100vw - 28px));
+      background-color: #182332;
+      background-image: var(--sheet-background-image);
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    .item-drawer.spell-picker-drawer .item-drawer-header,
+    .item-drawer.spell-picker-drawer .spell-picker-current,
+    .item-drawer.spell-picker-drawer .spell-picker-row,
+    .item-drawer.spell-picker-drawer .collapsible-trigger,
+    .item-drawer.spell-picker-drawer .spell-translation-tools,
+    .item-drawer.spell-picker-drawer .spell-picker-detail,
+    .item-drawer.spell-picker-drawer .spell-picker-detail-header,
+    .item-drawer.spell-picker-drawer .list-search {
+      background: rgba(255, 248, 240, 0.86);
+    }
+
+    .item-drawer.spell-picker-drawer .item-drawer-body,
+    .item-drawer.spell-picker-drawer .spell-picker-detail-body {
+      background: transparent;
     }
 
     .item-drawer.feat-readable-drawer {
@@ -1320,6 +1390,100 @@
       outline: none;
     }
 
+    .top-controls-menu {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 40;
+    }
+
+    .top-controls-launcher {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      padding: 0;
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #111;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+      cursor: pointer;
+    }
+
+    .top-controls-launcher:hover,
+    .top-controls-launcher:focus {
+      background: #111;
+      color: #fff;
+      outline: none;
+    }
+
+    .top-controls-launcher-line {
+      width: 16px;
+      height: 2px;
+      display: block;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .top-controls-panel {
+      position: absolute;
+      top: 52px;
+      left: 0;
+      width: min(240px, calc(100vw - 24px));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.24);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.22);
+    }
+
+    .top-controls-panel[hidden] {
+      display: none;
+    }
+
+    .top-controls-menu.open .top-controls-launcher {
+      background: #111;
+      color: #fff;
+    }
+
+    .top-controls-panel > .save-slot-control,
+    .top-controls-panel > .clear-fields-button,
+    .top-controls-panel > .long-rest-button,
+    .top-controls-panel > .character-ready-button,
+    .top-controls-panel > .turn-actions-button {
+      position: static;
+      left: auto;
+      top: auto;
+      z-index: auto;
+      width: 100%;
+      box-shadow: none;
+    }
+
+    .top-controls-panel > .save-slot-control {
+      width: 100%;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      gap: 6px;
+    }
+
+    .top-controls-panel > .clear-fields-button,
+    .top-controls-panel > .long-rest-button,
+    .top-controls-panel > .character-ready-button,
+    .top-controls-panel > .turn-actions-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
     .save-slot-control {
       position: fixed;
       top: 12px;
@@ -1469,8 +1633,8 @@
       gap: 3px;
       padding: 4px 5px;
       overflow-y: auto;
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid rgba(0, 0, 0, 0.34);
+      background: transparent;
+      border: 1px solid transparent;
       border-radius: 3px;
       font: 10px/1.15 "Segoe UI", Arial, sans-serif;
     }
@@ -1522,11 +1686,15 @@
       min-width: 22px;
       height: 18px;
       place-items: center;
+      justify-content: center;
+      align-content: center;
+      padding: 0;
       border: 1px solid rgba(0, 0, 0, 0.36);
       border-radius: 3px;
       background: #f7f7f7;
       color: #111;
       font: 700 9px/1 "Segoe UI", Arial, sans-serif;
+      text-align: center;
       cursor: pointer;
     }
 
@@ -2087,6 +2255,31 @@
       overflow-wrap: anywhere;
     }
 
+    .alert-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .alert-action-button {
+      min-height: 28px;
+      padding: 0 10px;
+      border: 1px solid rgba(0, 0, 0, 0.22);
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      font: 700 11px/1.2 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .alert-action-button:hover,
+    .alert-action-button:focus {
+      background: #111;
+      color: #fff;
+      outline: none;
+    }
+
     @media (max-width: 720px) {
       .app {
         width: 100vw;
@@ -2101,13 +2294,16 @@
       .download-release {
         top: 8px;
         right: 8px;
+        left: 60px;
+      }
+
+      .top-controls-menu {
+        top: 8px;
         left: 8px;
       }
 
-      .save-slot-control {
-        top: 56px;
-        left: 8px;
-        width: 172px;
+      .top-controls-panel {
+        width: min(220px, calc(100vw - 16px));
       }
 
       .clear-fields-button {

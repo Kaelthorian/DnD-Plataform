@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("dndSheet", {
   saveStore: (store) => ipcRenderer.invoke("sheet:store:save", store),
   clearSlot: (slotId) => ipcRenderer.invoke("sheet:slot:clear", slotId),
   loadPdf: () => ipcRenderer.invoke("pdf:load"),
+  getBackgroundImageUrl: () => ipcRenderer.invoke("background:image-url"),
   loadRaces: () => ipcRenderer.invoke("races:load"),
   loadBackgrounds: () => ipcRenderer.invoke("backgrounds:load"),
   loadClasses: () => ipcRenderer.invoke("classes:load"),

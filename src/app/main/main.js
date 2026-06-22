@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const fs = require("fs");
 const path = require("path");
+const { pathToFileURL } = require("url");
 
 const dataLoader = require("../../services/data-loader");
 const saveService = require("../../services/save-service");
@@ -81,6 +83,15 @@ ipcMain.handle("sheet:slot:clear", async (_event, slotId) => {
 
 ipcMain.handle("pdf:load", async () => {
   return dataLoader.loadPdfBase64();
+});
+
+ipcMain.handle("background:image-url", async () => {
+  const candidatePaths = [
+    path.join(process.cwd(), "Background.png"),
+    path.join(path.dirname(app.getPath("exe")), "Background.png")
+  ];
+  const existing = candidatePaths.find((candidatePath) => fs.existsSync(candidatePath));
+  return existing ? pathToFileURL(existing).toString() : null;
 });
 
 ipcMain.handle("races:load", async () => {
