@@ -55,4 +55,7 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
 
 - Data loading: `src/services/data-loader.js`
 - Save state: `src/services/save-service.js`
+  - Character sheets use the existing `character-sheet.json` path with a versioned multi-slot store.
+  - Store format is `version: 2`, `activeSlotId`, and six fixed slots containing `{ id, name, updatedAt, data }`.
+  - Old single-sheet saves are migrated into `slot-1` without deleting player data.
 - Translation: `src/services/translation-service.js`

@@ -10,6 +10,9 @@
     const app = document.getElementById("app");
     const loading = document.getElementById("loading");
     const status = document.getElementById("status");
+    const saveSlotControl = document.getElementById("saveSlotControl");
+    const saveSlotSelect = document.getElementById("saveSlotSelect");
+    const saveSlotLabel = document.getElementById("saveSlotLabel");
     const clearFieldsButton = document.getElementById("clearFieldsButton");
     const longRestButton = document.getElementById("longRestButton");
     const shortRestButton = document.getElementById("shortRestButton");
@@ -70,7 +73,47 @@
     let selectedPickerItem = null;
     let sheetMeta = { choices: {} };
     let activeItemFilter = "all";
+    let activeSaveStore = null;
+    let activeSaveSlotId = "slot-1";
+    let isSwitchingSaveSlot = false;
     const collapsibleSectionState = {};
+    let fieldLookupCache = null;
+
+    function invalidateFieldLookupCache() {
+      fieldLookupCache = null;
+    }
+
+    function fieldLookup() {
+      if (fieldLookupCache) return fieldLookupCache;
+      const fields = [...document.querySelectorAll(".field")];
+      const byKey = new Map();
+      fields.forEach((field) => {
+        const key = field.dataset.key?.trim().toLowerCase();
+        if (key && !byKey.has(key)) byKey.set(key, field);
+      });
+      fieldLookupCache = {
+        fields,
+        spellFields: fields.filter((field) => field.matches(".field.select[data-option-type='spell']")),
+        byKey
+      };
+      return fieldLookupCache;
+    }
+
+    function allFieldElements() {
+      return fieldLookup().fields;
+    }
+
+    function allSpellFieldElements() {
+      return fieldLookup().spellFields;
+    }
+
+    function getFieldElementByNormalizedKey(normalizedKey) {
+      return fieldLookup().byKey.get(String(normalizedKey || "").trim().toLowerCase()) || null;
+    }
+
+    if (app && typeof MutationObserver !== "undefined") {
+      new MutationObserver(invalidateFieldLookupCache).observe(app, { childList: true, subtree: true });
+    }
 
     async function loadPdfJs() {
       try {
@@ -433,7 +476,7 @@
     }
 
     function getFieldValueByNormalizedKey(normalizedKey) {
-      const field = [...document.querySelectorAll(".field")].find((element) => element.dataset.key?.trim().toLowerCase() === normalizedKey);
+      const field = getFieldElementByNormalizedKey(normalizedKey);
       return field?.value?.trim() || "";
     }
 
@@ -454,6 +497,37 @@
     function scheduleSave() {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => saveData().catch(console.error), 220);
+    }
+
+    let panelRefreshFrame = 0;
+    const pendingPanelRefreshes = new Set();
+
+    function schedulePanelRefresh(callback) {
+      if (typeof callback !== "function") return;
+      pendingPanelRefreshes.add(callback);
+      if (panelRefreshFrame) return;
+      panelRefreshFrame = requestAnimationFrame(() => {
+        panelRefreshFrame = 0;
+        const callbacks = [...pendingPanelRefreshes];
+        pendingPanelRefreshes.clear();
+        callbacks.forEach((refresh) => refresh());
+      });
+    }
+
+    function schedulePreparedSpellsPanelRefresh() {
+      schedulePanelRefresh(updatePreparedSpellsPanel);
+    }
+
+    function scheduleEquipmentPanelRefresh() {
+      schedulePanelRefresh(updateEquipmentPanel);
+    }
+
+    function scheduleAlertsPanelRefresh() {
+      schedulePanelRefresh(renderAlertsPanel);
+    }
+
+    function scheduleTurnActionsPanelRefresh() {
+      schedulePanelRefresh(refreshTurnActionsPanelIfVisible);
     }
 
     async function renderPage(pdf, pageNumber) {
@@ -548,8 +622,13 @@
       updateSpellSlots();
       updatePreparedSpellsPanel();
       renderAlertsPanel();
+      updateEquipmentPanel();
+      updateInteractionState();
       clearFieldsButton?.addEventListener("click", () => {
         clearAllFields().catch(console.error);
+      });
+      saveSlotSelect?.addEventListener("change", (event) => {
+        switchSaveSlot(event.target.value).catch(console.error);
       });
       longRestButton?.addEventListener("click", longRestSpellResources);
       shortRestButton?.addEventListener("click", shortRestResources);
@@ -571,14 +650,14 @@
       app.addEventListener("change", handleWizardPreparedLimitChange);
       app.addEventListener("input", scheduleSave);
       app.addEventListener("change", scheduleSave);
-      app.addEventListener("input", updatePreparedSpellsPanel);
-      app.addEventListener("change", updatePreparedSpellsPanel);
-      app.addEventListener("input", updateEquipmentPanel);
-      app.addEventListener("change", updateEquipmentPanel);
-      app.addEventListener("input", renderAlertsPanel);
-      app.addEventListener("change", renderAlertsPanel);
-      app.addEventListener("input", refreshTurnActionsPanelIfVisible);
-      app.addEventListener("change", refreshTurnActionsPanelIfVisible);
+      app.addEventListener("input", schedulePreparedSpellsPanelRefresh);
+      app.addEventListener("change", schedulePreparedSpellsPanelRefresh);
+      app.addEventListener("input", scheduleEquipmentPanelRefresh);
+      app.addEventListener("change", scheduleEquipmentPanelRefresh);
+      app.addEventListener("input", scheduleAlertsPanelRefresh);
+      app.addEventListener("change", scheduleAlertsPanelRefresh);
+      app.addEventListener("input", scheduleTurnActionsPanelRefresh);
+      app.addEventListener("change", scheduleTurnActionsPanelRefresh);
       app.addEventListener("change", handleSpellAvailabilityChange);
       itemDrawerClose.addEventListener("click", closeItemDrawer);
       itemPickerClose?.addEventListener("click", closeItemPicker);

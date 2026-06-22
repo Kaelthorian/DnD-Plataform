@@ -17,7 +17,8 @@ Start with app-owned folders. Avoid `vendor/5etools-src-main` unless source/refe
 - Fix long rest: inspect `src/engine/rests/long-rest.js`, `src/engine/resources/resource-state.js`, `src/services/save-service.js`, then search `src/app/renderer/index.html` for `INLINE SPELL/REST MECHANICS`, `applyLongRestRecovery`, and `longRestSpellResources`.
 - Fix character sheet UI: inspect `src/ui/sheet`, `src/app/renderer/styles.css`, `src/app/renderer/renderer.js`, and only then any relevant inline renderer mechanics.
 - Fix Electron startup or file loading: inspect `src/app/main`, `src/app/preload`, and `src/services/data-loader.js`.
-- Fix save/load behavior: inspect `src/services/save-service.js`, `src/app/renderer/renderer.js`, and renderer calls to `window.dndSheet`.
+- Fix save/load behavior: inspect `src/services/save-service.js`, `src/app/main/main.js`, `src/app/preload/preload.js`, `src/app/renderer/renderer.js`, and the save-slot helpers in `src/app/renderer/index.html`.
+- Slot-aware persistence uses `window.dndSheet.loadStore()`, `saveStore(store)`, and `clearSlot(slotId)` when running in Electron; keep `sheet:load`, `sheet:save`, and `sheet:clear` compatible for old renderer calls.
 - Fix translation behavior: inspect `src/services/translation-service.js`.
 - Change packaged files: inspect `package.json` build `files`.
 

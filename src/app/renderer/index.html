@@ -11,6 +11,10 @@
     <span class="download-release-text" id="downloadReleaseText">Buscando ultima version...</span>
     <a class="download-release-button" id="downloadReleaseButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" target="_blank" rel="noopener">Descargar</a>
   </div>
+  <div class="save-slot-control" id="saveSlotControl">
+    <label class="save-slot-label" id="saveSlotLabel" for="saveSlotSelect">Personaje</label>
+    <select class="save-slot-select" id="saveSlotSelect"></select>
+  </div>
   <button class="clear-fields-button" id="clearFieldsButton" type="button">Limpiar campos</button>
   <button class="long-rest-button" id="longRestButton" type="button">Long rest</button>
   <button class="long-rest-button short-rest-button" id="shortRestButton" type="button">Short rest</button>
@@ -642,7 +646,7 @@
     }
 
     function getSelectedSpellCount(level, exceptField) {
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .filter((field) => field !== exceptField && Number(field.dataset.spellLevel) === level && field.value.trim())
         .filter((field) => !isAutoGrantedSpellField(field))
         .length;
@@ -702,7 +706,7 @@
         const field = getFieldByKey(key);
         if (field) return field;
       }
-      return [...document.querySelectorAll(".field")]
+      return sheetFieldElements()
         .find((field) => {
           const key = normalizeName(field.dataset.key || "");
           return key.includes("hp") && key.includes("current") && !key.includes("max") && !key.includes("temp");
@@ -860,7 +864,7 @@
     function isSpellAlreadySelected(spellName, exceptField = null) {
       const normalized = normalizeName(spellName);
       if (!normalized) return false;
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .some((field) => field !== exceptField && normalizeName(field.value || "") === normalized);
     }
 
@@ -959,7 +963,7 @@
     }
 
     function selectedWizardPreparedSpellCount(exceptCheckbox = null) {
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .filter((field) => Number(field.dataset.spellLevel) > 0 && field.value.trim())
         .filter((field) => {
           const checkbox = getFieldByKey(field.dataset.preparedKey || "");
@@ -1013,7 +1017,7 @@
 
     function syncPreparedWizardSpellsToSpellbook() {
       if (!isWizardCharacter()) return;
-      [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      sheetSpellFieldElements()
         .map((field) => field.value.trim())
         .filter(Boolean)
         .map(findSpellByName)
@@ -1024,7 +1028,7 @@
     function pruneWizardSpellSelectionsFromSpellbook() {
       if (!isWizardCharacter()) return;
       const known = wizardSpellbookSet();
-      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => {
+      sheetSpellFieldElements().forEach((field) => {
         const level = Number(field.dataset.spellLevel);
         if (level <= 0 || !field.value.trim() || isAutoGrantedSpellField(field)) return;
         if (known.has(normalizeName(field.value))) return;
@@ -1101,17 +1105,17 @@
     }
 
     function selectedSpellFieldsForLevel(level) {
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .filter((field) => Number(field.dataset.spellLevel) === level);
     }
 
     function wizardSpellFields() {
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .filter((field) => Number(field.dataset.spellLevel) > 0);
     }
 
     function cantripFields() {
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .filter((field) => Number(field.dataset.spellLevel) === 0);
     }
 
@@ -1328,7 +1332,7 @@
     }
 
     function syncAutoPreparedSpellCheckboxes(preparedSet) {
-      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => syncAutoPreparedSpellCheckbox(field, preparedSet));
+      sheetSpellFieldElements().forEach((field) => syncAutoPreparedSpellCheckbox(field, preparedSet));
     }
 
     function featPreparedSpellMatches(field) {
@@ -1356,11 +1360,11 @@
     }
 
     function syncFeatPreparedSpellCheckboxes() {
-      document.querySelectorAll(".field.select[data-option-type='spell']").forEach(syncFeatPreparedSpellCheckbox);
+      sheetSpellFieldElements().forEach(syncFeatPreparedSpellCheckbox);
     }
 
     function syncAutoCantrips() {
-      const fields = [...document.querySelectorAll(".field.select[data-option-type='spell']")];
+      const fields = sheetSpellFieldElements();
       if (!fields.length) return;
       const autoNames = autoCantripNames();
       const nextSet = new Set(autoNames.map(normalizeName));
@@ -1418,9 +1422,31 @@
       return name.trim().toLowerCase();
     }
 
+    function sheetFieldElements() {
+      return typeof allFieldElements === "function" ? allFieldElements() : [...document.querySelectorAll(".field")];
+    }
+
+    function sheetSpellFieldElements() {
+      return typeof allSpellFieldElements === "function" ? allSpellFieldElements() : [...document.querySelectorAll(".field.select[data-option-type='spell']")];
+    }
+
+    let spellLookupSource = null;
+    let spellLookupByName = new Map();
+
+    function spellLookup() {
+      if (spellLookupSource === spells) return spellLookupByName;
+      spellLookupSource = spells;
+      spellLookupByName = new Map();
+      (Array.isArray(spells) ? spells : []).forEach((spell) => {
+        const key = normalizeName(spell?.name || "");
+        if (key && !spellLookupByName.has(key)) spellLookupByName.set(key, spell);
+      });
+      return spellLookupByName;
+    }
+
     function findSpellByName(name) {
       const normalized = normalizeName(name);
-      return spells.find((spell) => normalizeName(spell.name) === normalized) || null;
+      return spellLookup().get(normalized) || null;
     }
 
     function parseSignedNumber(value) {
@@ -2691,7 +2717,7 @@
         attackLabel: "unarmed strike",
         level: -1
       };
-      const preparedSpells = [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      const preparedSpells = sheetSpellFieldElements()
         .filter((field) => {
           if (!field.value.trim()) return false;
           if (Number(field.dataset.spellLevel) === 0) return true;
@@ -2703,7 +2729,7 @@
           const spellName = field.value.trim();
           return spellAttackSelections(spellName, Number(field.dataset.spellLevel));
         });
-      const preparedSpellNames = new Set([...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      const preparedSpellNames = new Set(sheetSpellFieldElements()
         .map((field) => field.value.trim())
         .filter(Boolean)
         .map(normalizeName));
@@ -2949,7 +2975,7 @@
     }
 
     function castableSpellFieldSelections() {
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .filter((field) => field.value.trim())
         .filter((field) => {
           if (Number(field.dataset.spellLevel) === 0) return true;
@@ -3735,7 +3761,7 @@
     }
 
     function pruneUnavailableSpellSelections() {
-      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => {
+      sheetSpellFieldElements().forEach((field) => {
         const level = Number(field.dataset.spellLevel);
         if (isAutoGrantedSpellField(field)) return;
         if (!field.value.trim() || canUseSpellLevel(level)) return;
@@ -3745,7 +3771,7 @@
     }
 
     function pruneInvalidSpellSourceSelections() {
-      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => {
+      sheetSpellFieldElements().forEach((field) => {
         if (!field.value.trim() || isAutoGrantedSpellField(field)) return;
         const spell = findSpellByName(field.value);
         const level = Number(field.dataset.spellLevel);
@@ -3757,7 +3783,7 @@
 
     function pruneDuplicateSpellSelections() {
       const seen = new Set();
-      [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      sheetSpellFieldElements()
         .sort((a, b) => Number(isAutoGrantedSpellField(b)) - Number(isAutoGrantedSpellField(a)))
         .forEach((field) => {
         const normalized = normalizeName(field.value || "");
@@ -3774,7 +3800,7 @@
     function pruneOverLimitSpellSelections() {
       if (isWizardCharacter() || isBardCharacter()) return;
       const usedByLevel = new Map();
-      document.querySelectorAll(".field.select[data-option-type='spell']").forEach((field) => {
+      sheetSpellFieldElements().forEach((field) => {
         const level = Number(field.dataset.spellLevel);
         if (!field.value.trim()) return;
         if (isAutoGrantedSpellField(field)) return;
@@ -3903,11 +3929,18 @@
       return { search, list, empty };
     }
 
-    function appendCollapsibleSection(parent, title, { collapsed = false, stateKey = "" } = {}) {
+    function appendCollapsibleSection(parent, title, { collapsed = false, stateKey = "", renderContent = null } = {}) {
       const section = document.createElement("section");
       section.className = "collapsible-section";
       const startsCollapsed = stateKey in collapsibleSectionState ? collapsibleSectionState[stateKey] : collapsed;
       section.classList.toggle("collapsed", startsCollapsed);
+      let contentRendered = false;
+
+      const renderIfNeeded = () => {
+        if (contentRendered || typeof renderContent !== "function") return;
+        contentRendered = true;
+        renderContent(body);
+      };
 
       const trigger = document.createElement("button");
       trigger.type = "button";
@@ -3924,6 +3957,7 @@
       trigger.addEventListener("click", () => {
         section.classList.toggle("collapsed");
         if (stateKey) collapsibleSectionState[stateKey] = section.classList.contains("collapsed");
+        if (!section.classList.contains("collapsed")) renderIfNeeded();
         syncIcon();
       });
       trigger.append(label, icon);
@@ -3932,6 +3966,7 @@
       body.className = "collapsible-body";
       section.append(trigger, body);
       parent.appendChild(section);
+      if (!startsCollapsed) renderIfNeeded();
       syncIcon();
       return body;
     }
@@ -3948,17 +3983,17 @@
         .sort(([a], [b]) => a - b)
         .forEach(([level, levelSpells]) => {
           const title = level === 0 ? `Cantrips (${levelSpells.length})` : `Nivel ${level} (${levelSpells.length})`;
-          const body = appendCollapsibleSection(parent, title, {
+          appendCollapsibleSection(parent, title, {
             collapsed: level !== 1,
-            stateKey: `${statePrefix}:level-${level}`
+            stateKey: `${statePrefix}:level-${level}`,
+            renderContent: (target) => appendSearchableList(
+              target,
+              levelSpells
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(rowFactory),
+              `${searchPrefix} nivel ${level}...`
+            )
           });
-          appendSearchableList(
-            body,
-            levelSpells
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map(rowFactory),
-            `${searchPrefix} nivel ${level}...`
-          );
         });
     }
 
@@ -4635,6 +4670,201 @@
       updateInteractionState();
     }
 
+    const SAVE_STORE_VERSION = 2;
+    const SAVE_SLOT_COUNT = 6;
+    const DEFAULT_ACTIVE_SLOT_ID = "slot-1";
+
+    function isPlainObject(value) {
+      return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+    }
+
+    function normalizeFieldKey(key) {
+      return String(key || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "");
+    }
+
+    function characterNameFromData(data) {
+      if (!isPlainObject(data)) return "";
+
+      for (const key of ["CharacterName", "Character Name", "charactername"]) {
+        const value = data[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+
+      for (const [key, value] of Object.entries(data)) {
+        if (normalizeFieldKey(key) !== "charactername") continue;
+        const text = String(value || "").trim();
+        if (text) return text;
+      }
+
+      return "";
+    }
+
+    function slotIdForNumber(slotNumber) {
+      return `slot-${slotNumber}`;
+    }
+
+    function createEmptySaveSlot(slotNumber) {
+      return {
+        id: slotIdForNumber(slotNumber),
+        name: "",
+        updatedAt: "",
+        data: null
+      };
+    }
+
+    function slotNumberFromId(slotId) {
+      const match = String(slotId || "").match(/^slot-(\d+)$/);
+      return match ? Number.parseInt(match[1], 10) : 0;
+    }
+
+    function ensureSaveSlots(store) {
+      const normalized = {
+        version: SAVE_STORE_VERSION,
+        activeSlotId: DEFAULT_ACTIVE_SLOT_ID,
+        slots: Array.from({ length: SAVE_SLOT_COUNT }, (_item, index) => createEmptySaveSlot(index + 1))
+      };
+
+      if (isPlainObject(store) && Array.isArray(store.slots)) {
+        const rawSlotsById = new Map(store.slots.filter(Boolean).map((slot) => [String(slot.id || "").trim(), slot]));
+        normalized.slots = normalized.slots.map((fallback, index) => {
+          const rawSlot = rawSlotsById.get(fallback.id) || store.slots[index] || {};
+          const data = isPlainObject(rawSlot.data) ? rawSlot.data : null;
+          const explicitName = typeof rawSlot.name === "string" ? rawSlot.name.trim() : "";
+          return {
+            id: fallback.id,
+            name: characterNameFromData(data) || explicitName,
+            updatedAt: typeof rawSlot.updatedAt === "string" ? rawSlot.updatedAt : "",
+            data
+          };
+        });
+        const activeSlotId = String(store.activeSlotId || "").trim();
+        if (normalized.slots.some((slot) => slot.id === activeSlotId)) normalized.activeSlotId = activeSlotId;
+      } else if (isPlainObject(store)) {
+        normalized.slots[0] = {
+          ...normalized.slots[0],
+          name: characterNameFromData(store) || "Slot 1",
+          data: store
+        };
+      }
+
+      return normalized;
+    }
+
+    function activeSaveSlot() {
+      return activeSaveStore?.slots?.find((slot) => slot.id === activeSaveSlotId) || null;
+    }
+
+    function saveSlotLabelText(slot, index) {
+      const slotNumber = index + 1;
+      const name = characterNameFromData(slot?.data) || String(slot?.name || "").trim();
+      if (name) return name;
+      return slot?.data ? `Slot ${slotNumber}` : `Empty Slot ${slotNumber}`;
+    }
+
+    function renderSaveSlotSelect() {
+      if (!saveSlotSelect || !activeSaveStore) return;
+      const previousValue = saveSlotSelect.value || activeSaveSlotId;
+      saveSlotSelect.innerHTML = "";
+      activeSaveStore.slots.forEach((slot, index) => {
+        const option = document.createElement("option");
+        option.value = slot.id;
+        option.textContent = saveSlotLabelText(slot, index);
+        saveSlotSelect.appendChild(option);
+      });
+      saveSlotSelect.value = activeSaveStore.slots.some((slot) => slot.id === previousValue) ? previousValue : activeSaveSlotId;
+      if (saveSlotLabel) saveSlotLabel.textContent = "Personaje";
+    }
+
+    function resetVisibleSheetFields() {
+      document.querySelectorAll(".field").forEach((element) => {
+        if (element.type === "checkbox") element.checked = false;
+        else element.value = "";
+        Object.keys(element.dataset)
+          .filter((key) => key.startsWith("generated") || key === "manualRaceBase")
+          .forEach((key) => delete element.dataset[key]);
+      });
+    }
+
+    function updateActiveSlotFromCurrentData() {
+      if (!activeSaveStore) return;
+      const data = collectData();
+      const savedAt = new Date().toISOString();
+      activeSaveStore.slots = activeSaveStore.slots.map((slot) => {
+        if (slot.id !== activeSaveSlotId) return slot;
+        return {
+          ...slot,
+          name: characterNameFromData(data),
+          updatedAt: savedAt,
+          data
+        };
+      });
+    }
+
+    async function saveActiveStore() {
+      if (!activeSaveStore) return null;
+      activeSaveStore.activeSlotId = activeSaveSlotId || DEFAULT_ACTIVE_SLOT_ID;
+      if (desktopStore?.saveStore) {
+        const result = await desktopStore.saveStore(activeSaveStore);
+        activeSaveStore = ensureSaveSlots(result?.store || activeSaveStore);
+        activeSaveSlotId = activeSaveStore.activeSlotId;
+        return result;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(activeSaveStore));
+      return { store: activeSaveStore };
+    }
+
+    async function loadSaveStore() {
+      if (desktopStore?.loadStore) activeSaveStore = ensureSaveSlots(await desktopStore.loadStore());
+      else if (desktopStore?.load) activeSaveStore = ensureSaveSlots(await desktopStore.load());
+      else {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        activeSaveStore = ensureSaveSlots(raw ? JSON.parse(raw) : null);
+      }
+      activeSaveSlotId = activeSaveStore.activeSlotId || DEFAULT_ACTIVE_SLOT_ID;
+      renderSaveSlotSelect();
+      return activeSaveStore;
+    }
+
+    function refreshAfterApplyingSlotData() {
+      syncAutoCantrips();
+      pruneInvalidSpellSourceSelections();
+      pruneDuplicateSpellSelections();
+      pruneOverLimitSpellSelections();
+      updateDerivedStats();
+      updateSpellcastingFields({ syncClass: true });
+      updateSpellSlots();
+      updatePreparedSpellsPanel();
+      renderAlertsPanel();
+      updateEquipmentPanel();
+      updateInteractionState();
+    }
+
+    function blankSheetData() {
+      return { __sheetMeta: { choices: {} } };
+    }
+
+    async function switchSaveSlot(nextSlotId) {
+      if (!activeSaveStore || !nextSlotId || nextSlotId === activeSaveSlotId) return;
+      isSwitchingSaveSlot = true;
+      try {
+        clearTimeout(saveTimer);
+        updateActiveSlotFromCurrentData();
+        activeSaveSlotId = nextSlotId;
+        activeSaveStore.activeSlotId = nextSlotId;
+        await saveActiveStore();
+        renderSaveSlotSelect();
+        resetVisibleSheetFields();
+        applyData(activeSaveSlot()?.data || blankSheetData());
+        refreshAfterApplyingSlotData();
+        showStatus("Personaje cargado");
+      } finally {
+        isSwitchingSaveSlot = false;
+      }
+    }
+
     let statusTimer;
     function showStatus(text) {
       status.textContent = text;
@@ -4733,6 +4963,7 @@
       if (!isCharacterReady()) return;
       const target = event.target;
       if (!target || target.closest?.(".field")) return;
+      if (target.closest?.("#saveSlotControl")) return;
       if (target.closest?.("#itemPickerBackdrop")) return;
       if (target.closest?.(".spell-picker")) return;
       if (!target.matches?.("input[type='checkbox'], input[type='radio'], select")) return;
@@ -4755,7 +4986,7 @@
       if (shortRestButton) {
         shortRestButton.textContent = isShortRestActive() ? "Terminar short rest" : "Iniciar short rest";
       }
-      document.querySelectorAll(".field").forEach((field) => {
+      sheetFieldElements().forEach((field) => {
         const locked = isCharacterReady() && !fieldCanChangeWhenReady(field);
         field.classList.toggle("locked-field", locked);
         if (field.type === "checkbox") {
@@ -4790,16 +5021,17 @@
     }
 
     async function saveData() {
-      const data = collectData();
-      if (desktopStore) await desktopStore.save(data);
-      else localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (isSwitchingSaveSlot) return;
+      if (!activeSaveStore) await loadSaveStore();
+      updateActiveSlotFromCurrentData();
+      await saveActiveStore();
+      renderSaveSlotSelect();
       showStatus("Guardado automatico");
     }
 
     async function loadData() {
-      if (desktopStore) return desktopStore.load();
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      await loadSaveStore();
+      return activeSaveSlot()?.data || null;
     }
 
     async function clearAllFields() {
@@ -4814,19 +5046,25 @@
       if (itemPickerQuantity) itemPickerQuantity.value = "1";
       if (itemPickerSearch) itemPickerSearch.value = "";
 
-      document.querySelectorAll(".field").forEach((element) => {
-        if (element.type === "checkbox") element.checked = false;
-        else element.value = "";
-        Object.keys(element.dataset)
-          .filter((key) => key.startsWith("generated") || key === "manualRaceBase")
-          .forEach((key) => delete element.dataset[key]);
-      });
+      resetVisibleSheetFields();
 
       applyData({ __sheetMeta: { choices: {} } });
       updateEquipmentPanel();
       updatePreparedSpellsPanel();
       renderAlertsPanel();
-      await saveData();
+      if (!activeSaveStore) await loadSaveStore();
+      activeSaveStore.slots = activeSaveStore.slots.map((slot) => (
+        slot.id === activeSaveSlotId ? createEmptySaveSlot(slotNumberFromId(slot.id) || 1) : slot
+      ));
+      activeSaveStore.activeSlotId = activeSaveSlotId;
+      if (desktopStore?.clearSlot) {
+        const result = await desktopStore.clearSlot(activeSaveSlotId);
+        activeSaveStore = ensureSaveSlots(result?.store || activeSaveStore);
+        activeSaveSlotId = activeSaveStore.activeSlotId;
+      } else {
+        await saveActiveStore();
+      }
+      renderSaveSlotSelect();
       showStatus("Campos limpiados");
     }
 
@@ -4850,7 +5088,8 @@
 
     function getFieldByKey(key) {
       const normalizedKey = key.trim().toLowerCase();
-      return [...document.querySelectorAll(".field")].find((element) => element.dataset.key?.trim().toLowerCase() === normalizedKey) || null;
+      if (typeof getFieldElementByNormalizedKey === "function") return getFieldElementByNormalizedKey(normalizedKey);
+      return sheetFieldElements().find((element) => element.dataset.key?.trim().toLowerCase() === normalizedKey) || null;
     }
 
     function setFieldValue(key, value) {
@@ -4881,7 +5120,7 @@
         const field = getFieldByKey(key);
         if (field && field.dataset.pageNumber === "1") return field;
       }
-      return [...document.querySelectorAll(".field")]
+      return sheetFieldElements()
         .find((field) => {
           const key = field.dataset.key?.trim().toLowerCase() || "";
           return field.dataset.pageNumber === "1" && key.includes("feature") && key.includes("trait");
@@ -5816,14 +6055,17 @@
         );
       }
 
-      const cantripBody = appendCollapsibleSection(main, "Aprender cantrips", { collapsed: true, stateKey: "wizard:learn-cantrips" });
-      appendSearchableList(
-        cantripBody,
-        getAccessibleCantripOptions()
-        .sort((a, b) => a.name.localeCompare(b.name))
-          .map((spell) => cantripManagerRow(spell, detailBody, field)),
-        "Buscar cantrip..."
-      );
+      appendCollapsibleSection(main, "Aprender cantrips", {
+        collapsed: true,
+        stateKey: "wizard:learn-cantrips",
+        renderContent: (target) => appendSearchableList(
+          target,
+          getAccessibleCantripOptions()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((spell) => cantripManagerRow(spell, detailBody, field)),
+          "Buscar cantrip..."
+        )
+      });
 
       const spellbookBody = appendCollapsibleSection(main, "Spellbook", { collapsed: false, stateKey: "wizard:spellbook" });
 
@@ -5843,14 +6085,17 @@
         );
       }
 
-      const wizardBody = appendCollapsibleSection(main, "Aprender spells", { collapsed: true, stateKey: "wizard:learn-spells" });
-      appendSpellLevelGroups(
-        wizardBody,
-        getAllWizardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
-        (spell) => wizardSpellListRow(field, spell, detailBody),
-        "wizard:learn-spells",
-        "Buscar spell"
-      );
+      appendCollapsibleSection(main, "Aprender spells", {
+        collapsed: true,
+        stateKey: "wizard:learn-spells",
+        renderContent: (target) => appendSpellLevelGroups(
+          target,
+          getAllWizardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
+          (spell) => wizardSpellListRow(field, spell, detailBody),
+          "wizard:learn-spells",
+          "Buscar spell"
+        )
+      });
 
       showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || getAccessibleCantripOptions()[0] || getAllWizardAccessibleSpellOptions()[0] || null);
       root.append(main, detail);
@@ -5912,14 +6157,17 @@
         );
       }
 
-      const cantripBody = appendCollapsibleSection(main, "Aprender cantrips", { collapsed: true, stateKey: "bard:learn-cantrips" });
-      appendSearchableList(
-        cantripBody,
-        getAccessibleCantripOptions()
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((spell) => cantripManagerRow(spell, detailBody, field)),
-        "Buscar cantrip..."
-      );
+      appendCollapsibleSection(main, "Aprender cantrips", {
+        collapsed: true,
+        stateKey: "bard:learn-cantrips",
+        renderContent: (target) => appendSearchableList(
+          target,
+          getAccessibleCantripOptions()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((spell) => cantripManagerRow(spell, detailBody, field)),
+          "Buscar cantrip..."
+        )
+      });
 
       const knownSpells = selectedKnownSpellNames()
         .map(findSpellByName)
@@ -5938,14 +6186,17 @@
         );
       }
 
-      const learnBody = appendCollapsibleSection(main, "Aprender spells", { collapsed: true, stateKey: "bard:learn-spells" });
-      appendSpellLevelGroups(
-        learnBody,
-        getAllBardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
-        (spell) => bardLearnSpellRow(field, spell, detailBody),
-        "bard:learn-spells",
-        "Buscar spell"
-      );
+      appendCollapsibleSection(main, "Aprender spells", {
+        collapsed: true,
+        stateKey: "bard:learn-spells",
+        renderContent: (target) => appendSpellLevelGroups(
+          target,
+          getAllBardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
+          (spell) => bardLearnSpellRow(field, spell, detailBody),
+          "bard:learn-spells",
+          "Buscar spell"
+        )
+      });
 
       showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || getAccessibleCantripOptions()[0] || getAllBardAccessibleSpellOptions()[0] || null);
       root.append(main, detail);
@@ -6125,14 +6376,17 @@
         );
       }
 
-      const cantripBody = appendCollapsibleSection(main, "Aprender cantrips", { collapsed: true, stateKey: "managed:learn-cantrips" });
-      appendSearchableList(
-        cantripBody,
-        getAccessibleCantripOptions()
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((spell) => cantripManagerRow(spell, detailBody, field)),
-        "Buscar cantrip..."
-      );
+      appendCollapsibleSection(main, "Aprender cantrips", {
+        collapsed: true,
+        stateKey: "managed:learn-cantrips",
+        renderContent: (target) => appendSearchableList(
+          target,
+          getAccessibleCantripOptions()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((spell) => cantripManagerRow(spell, detailBody, field)),
+          "Buscar cantrip..."
+        )
+      });
 
       const knownSpells = selectedKnownSpellNames()
         .map(findSpellByName)
@@ -6151,14 +6405,17 @@
         );
       }
 
-      const learnBody = appendCollapsibleSection(main, "Aprender spells", { collapsed: true, stateKey: "managed:learn-spells" });
-      appendSpellLevelGroups(
-        learnBody,
-        getAllManagedSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
-        (spell) => managedLearnSpellRow(field, spell, detailBody),
-        "managed:learn-spells",
-        "Buscar spell"
-      );
+      appendCollapsibleSection(main, "Aprender spells", {
+        collapsed: true,
+        stateKey: "managed:learn-spells",
+        renderContent: (target) => appendSpellLevelGroups(
+          target,
+          getAllManagedSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
+          (spell) => managedLearnSpellRow(field, spell, detailBody),
+          "managed:learn-spells",
+          "Buscar spell"
+        )
+      });
 
       showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || getAccessibleCantripOptions()[0] || getAllManagedSpellOptions()[0] || null);
       root.append(main, detail);
@@ -9399,7 +9656,7 @@
           .filter((spell) => spell?.level === level)
           .length;
       }
-      return [...document.querySelectorAll(".field.select[data-option-type='spell']")]
+      return sheetSpellFieldElements()
         .filter((field) => Number(field.dataset.spellLevel) === level && field.value.trim())
         .filter((field) => !isAutoGrantedSpellField(field))
         .length;
@@ -10344,7 +10601,7 @@
     }
 
     function equipmentText() {
-      return [...document.querySelectorAll(".field")]
+      return sheetFieldElements()
         .filter((field) => field.dataset.key?.trim().toLowerCase().includes("equipment"))
         .map((field) => field.value || "")
         .join(" ")
@@ -12145,15 +12402,21 @@
       const level = getCharacterLevel();
       const constitutionModifier = abilityModifier(getFieldByKey("CON")?.value || "") ?? 0;
       if (!Number.isFinite(hitDieFaces) || hitDieFaces <= 0 || !Number.isFinite(level) || level <= 0) return null;
-      return Math.max(1, level * (hitDieFaces + constitutionModifier));
+      const firstLevelHitPoints = hitDieFaces + constitutionModifier;
+      const averageHitPointsPerLevel = Math.floor(hitDieFaces / 2) + 1 + constitutionModifier;
+      return Math.max(1, firstLevelHitPoints + Math.max(0, level - 1) * averageHitPointsPerLevel);
     }
 
-    function legacyMaximumHitPointsBase() {
+    function legacyMaximumHitPointBases() {
       const detail = classDetailByName(getMainClassName() || getSelectedClassName());
       const hitDieFaces = Number.parseInt(detail?.classItem?.hd?.faces, 10);
       const level = getCharacterLevel();
+      const constitutionModifier = abilityModifier(getFieldByKey("CON")?.value || "") ?? 0;
       if (!Number.isFinite(hitDieFaces) || hitDieFaces <= 0 || !Number.isFinite(level) || level <= 0) return null;
-      return Math.max(1, level * hitDieFaces);
+      return [
+        Math.max(1, level * hitDieFaces),
+        Math.max(1, level * (hitDieFaces + constitutionModifier))
+      ];
     }
 
     function updateHitPointMaximum() {
@@ -12162,7 +12425,7 @@
       const generated = sheetMeta.generatedHitPointMaximum || {};
       const previousValue = String(generated.value || "");
       const base = calculateMaximumHitPointsBase();
-      const legacyBase = legacyMaximumHitPointsBase();
+      const legacyBases = legacyMaximumHitPointBases();
       if (base == null) {
         if (field.value === previousValue) field.value = "";
         sheetMeta.generatedHitPointMaximum = {};
@@ -12173,13 +12436,13 @@
       const toughBonus = hasActiveFeat("Tough") ? getCharacterLevel() * 2 : 0;
       const next = base + toughBonus;
       const currentValue = Number.parseInt(String(field.value || "").trim(), 10);
-      const legacyValue = legacyBase == null ? null : legacyBase + toughBonus;
-      const hasLegacyGeneratedValue = Number.isFinite(currentValue) && currentValue === legacyValue && currentValue !== next;
+      const legacyValues = legacyBases == null ? [] : legacyBases.map((legacyBase) => legacyBase + toughBonus);
+      const hasLegacyGeneratedValue = Number.isFinite(currentValue) && legacyValues.includes(currentValue) && currentValue !== next;
       if (!field.value.trim() || field.value === previousValue || field.dataset.generatedHitPointMaximum === "true" || hasLegacyGeneratedValue) {
         field.value = String(next);
         field.dataset.generatedHitPointMaximum = "true";
       }
-      field.title = `${field.dataset.key || "HPMax"}: ${getMainClassName() || getSelectedClassName()} d${classDetailByName(getMainClassName() || getSelectedClassName())?.classItem?.hd?.faces || "?"} max x nivel ${getCharacterLevel()}, CON ${formatModifier(abilityModifier(getFieldByKey("CON")?.value || "") ?? 0)}${toughBonus ? `, Tough ${formatModifier(toughBonus)}` : ""}`;
+      field.title = `${field.dataset.key || "HPMax"}: ${getMainClassName() || getSelectedClassName()} d${classDetailByName(getMainClassName() || getSelectedClassName())?.classItem?.hd?.faces || "?"} max nivel 1, promedio despues, CON ${formatModifier(abilityModifier(getFieldByKey("CON")?.value || "") ?? 0)}${toughBonus ? `, Tough ${formatModifier(toughBonus)}` : ""}`;
       sheetMeta.generatedHitPointMaximum = { base, bonus: toughBonus, value: String(next) };
       sheetMeta.generatedHitPointMaximumFromFeats = toughBonus ? { base, bonus: toughBonus, value: String(next) } : {};
     }

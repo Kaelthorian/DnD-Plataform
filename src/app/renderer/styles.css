@@ -1320,9 +1320,42 @@
       outline: none;
     }
 
-    .clear-fields-button {
+    .save-slot-control {
       position: fixed;
       top: 12px;
+      left: 12px;
+      z-index: 40;
+      display: flex;
+      width: 176px;
+      flex-direction: column;
+      gap: 3px;
+      padding: 7px 8px;
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #111;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+      font: 700 11px/1.2 "Segoe UI", Arial, sans-serif;
+    }
+
+    .save-slot-label {
+      color: rgba(17, 17, 17, 0.72);
+      text-transform: uppercase;
+    }
+
+    .save-slot-select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      border-radius: 4px;
+      background: #fff;
+      color: #111;
+      font: 700 12px/1.25 "Segoe UI", Arial, sans-serif;
+    }
+
+    .clear-fields-button {
+      position: fixed;
+      top: 70px;
       left: 12px;
       z-index: 40;
       min-height: 34px;
@@ -1345,7 +1378,7 @@
 
     .long-rest-button {
       position: fixed;
-      top: 54px;
+      top: 112px;
       left: 12px;
       z-index: 40;
       min-height: 34px;
@@ -1360,7 +1393,7 @@
     }
 
     .short-rest-button {
-      top: 96px;
+      top: 154px;
     }
 
     .long-rest-button:hover,
@@ -1372,7 +1405,7 @@
 
     .character-ready-button {
       position: fixed;
-      top: 138px;
+      top: 196px;
       left: 12px;
       z-index: 40;
       min-height: 34px;
@@ -1388,7 +1421,7 @@
 
     .turn-actions-button {
       position: fixed;
-      top: 180px;
+      top: 238px;
       left: 12px;
       z-index: 40;
       min-height: 34px;
@@ -2071,28 +2104,34 @@
         left: 8px;
       }
 
-      .clear-fields-button {
+      .save-slot-control {
         top: 56px;
+        left: 8px;
+        width: 172px;
+      }
+
+      .clear-fields-button {
+        top: 114px;
         left: 8px;
       }
 
       .long-rest-button {
-        top: 98px;
+        top: 156px;
         left: 8px;
       }
 
       .short-rest-button {
-        top: 140px;
+        top: 198px;
         left: 8px;
       }
 
       .character-ready-button {
-        top: 182px;
+        top: 240px;
         left: 8px;
       }
 
       .turn-actions-button {
-        top: 224px;
+        top: 282px;
         left: 8px;
       }
 
