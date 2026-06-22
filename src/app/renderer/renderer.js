@@ -91,87 +91,139 @@
       return bytes;
     }
 
+    function isFileProtocol() {
+      return window.location.protocol === "file:";
+    }
+
+    async function fetchLocalResource(resourcePath, { responseType = "json" } = {}) {
+      const absoluteUrl = new URL(resourcePath, window.location.href).toString();
+      if (!isFileProtocol()) {
+        const response = await fetch(absoluteUrl);
+        if (!response.ok) throw new Error(`No se encontro ${resourcePath} (${response.status})`);
+        if (responseType === "arraybuffer") return response.arrayBuffer();
+        if (responseType === "text") return response.text();
+        return response.json();
+      }
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", absoluteUrl, true);
+        xhr.responseType = responseType === "arraybuffer" ? "arraybuffer" : "text";
+        xhr.onload = () => {
+          if (!(xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300))) {
+            reject(new Error(`No se encontro ${resourcePath} (${xhr.status})`));
+            return;
+          }
+          try {
+            if (responseType === "arraybuffer") {
+              resolve(xhr.response);
+              return;
+            }
+            const text = xhr.responseText;
+            resolve(responseType === "json" ? JSON.parse(text) : text);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        xhr.onerror = () => reject(new Error(`No se pudo cargar ${resourcePath}`));
+        xhr.send();
+      });
+    }
+
     async function loadPdfBytes() {
       if (desktopStore?.loadPdf) return base64ToBytes(await desktopStore.loadPdf());
-      const response = await fetch("./assets/DnD_5E_CharacterSheet_FormFillable.pdf");
-      if (!response.ok) {
-        throw new Error(`No se encontro DnD_5E_CharacterSheet_FormFillable.pdf (${response.status})`);
-      }
-      return new Uint8Array(await response.arrayBuffer());
+      return new Uint8Array(await fetchLocalResource("./assets/DnD_5E_CharacterSheet_FormFillable.pdf", { responseType: "arraybuffer" }));
     }
 
     async function loadRaceOptions() {
       if (desktopStore?.loadRaces) return dedupeModernByName(await desktopStore.loadRaces(), optionName, optionSource);
-      const response = await fetch("../../data/races/races.json");
-      return dedupeModernByName(await response.json(), optionName, optionSource);
+      return dedupeModernByName(await fetchLocalResource("../../data/races/races.json"), optionName, optionSource);
     }
 
     async function loadRaceDetails() {
-      const localResponse = await fetch("../../data/races/race-details.json");
-      if (localResponse.ok) return localResponse.json();
-      const response = await fetch("../../../vendor/5etools-src-main/data/races.json");
-      if (!response.ok) return {};
-      return response.json();
+      try {
+        return await fetchLocalResource("../../data/races/race-details.json");
+      } catch (_error) {
+        try {
+          return await fetchLocalResource("../../../vendor/5etools-src-main/data/races.json");
+        } catch (_vendorError) {
+          return {};
+        }
+      }
     }
 
     async function loadBackgroundOptions() {
       if (desktopStore?.loadBackgrounds) return dedupeModernByName(await desktopStore.loadBackgrounds(), optionName, optionSource);
-      const response = await fetch("../../data/backgrounds/backgrounds.json");
-      return dedupeModernByName(await response.json(), optionName, optionSource);
+      return dedupeModernByName(await fetchLocalResource("../../data/backgrounds/backgrounds.json"), optionName, optionSource);
     }
 
     async function loadBackgroundDetails() {
-      const response = await fetch("../../../vendor/5etools-src-main/data/backgrounds.json");
-      if (!response.ok) return {};
-      return response.json();
+      try {
+        return await fetchLocalResource("../../../vendor/5etools-src-main/data/backgrounds.json");
+      } catch (_error) {
+        return {};
+      }
     }
 
     async function loadClassOptions() {
       const withoutSidekicks = (options) => (options || []).filter((option) => !/sidekick/i.test(optionName(option)));
       if (desktopStore?.loadClasses) return dedupeModernByName(withoutSidekicks(await desktopStore.loadClasses()), optionName, optionSource);
-      const response = await fetch("../../data/classes/classes.json");
-      return dedupeModernByName(withoutSidekicks(await response.json()), optionName, optionSource);
+      return dedupeModernByName(withoutSidekicks(await fetchLocalResource("../../data/classes/classes.json")), optionName, optionSource);
     }
 
     async function loadClassDetails() {
-      const indexResponse = await fetch("../../../vendor/5etools-src-main/data/class/index.json");
-      if (!indexResponse.ok) return [];
-      const classIndex = await indexResponse.json();
+      let classIndex;
+      try {
+        classIndex = await fetchLocalResource("../../../vendor/5etools-src-main/data/class/index.json");
+      } catch (_error) {
+        return [];
+      }
       const files = Object.values(classIndex).filter((file) => /^class-.*\.json$/i.test(file));
-      const responses = await Promise.all(files.map((file) => fetch(`../../../vendor/5etools-src-main/data/class/${file}`).catch(() => null)));
-      const loaded = await Promise.all(responses.map(async (response) => response?.ok ? response.json() : null));
+      const loaded = await Promise.all(files.map((file) => fetchLocalResource(`../../../vendor/5etools-src-main/data/class/${file}`).catch(() => null)));
       return loaded.filter(Boolean);
     }
 
     async function loadSpellOptions() {
       if (desktopStore?.loadSpells) return dedupeModernByName(await desktopStore.loadSpells(), (spell) => spell?.name || "", (spell) => spell?.source || "");
-      const response = await fetch("../../data/spells/spells.json");
-      return dedupeModernByName(await response.json(), (spell) => spell?.name || "", (spell) => spell?.source || "");
+      return dedupeModernByName(await fetchLocalResource("../../data/spells/spells.json"), (spell) => spell?.name || "", (spell) => spell?.source || "");
     }
 
     async function loadSpellActionMetadata() {
-      const indexResponse = await fetch("../../../vendor/5etools-src-main/data/spells/index.json");
-      if (!indexResponse.ok) return [];
-      const spellIndex = await indexResponse.json();
+      let spellIndex;
+      try {
+        spellIndex = await fetchLocalResource("../../../vendor/5etools-src-main/data/spells/index.json");
+      } catch (_error) {
+        return [];
+      }
       const files = Object.values(spellIndex).filter((file) => /^spells-.*\.json$/i.test(file));
-      const responses = await Promise.all(files.map((file) => fetch(`../../../vendor/5etools-src-main/data/spells/${file}`).catch(() => null)));
-      const loaded = await Promise.all(responses.map(async (response) => response?.ok ? response.json() : null));
+      const loaded = await Promise.all(files.map((file) => fetchLocalResource(`../../../vendor/5etools-src-main/data/spells/${file}`).catch(() => null)));
       return loaded.flatMap((payload) => Array.isArray(payload?.spell) ? payload.spell : []);
     }
 
     function spellMetadataKey(spell) {
-      return `${normalizeName(spell?.name || "")}|${normalizeName(spell?.source || "")}`;
+      return `${normalizeName(spell?.name || "")}|${sourceKey(spell?.source || optionSource(spell) || "")}`;
     }
 
     function mergeSpellActionMetadata(spellOptions, spellDetails) {
-      const detailsByKey = new Map(
-        (Array.isArray(spellDetails) ? spellDetails : [])
-          .filter(Boolean)
-          .map((spell) => [spellMetadataKey(spell), spell])
-      );
+      const detailsByKey = new Map();
+      const detailsByName = new Map();
+      (Array.isArray(spellDetails) ? spellDetails : [])
+        .filter(Boolean)
+        .forEach((spell) => {
+          detailsByKey.set(spellMetadataKey(spell), spell);
+          const nameKey = normalizeName(spell?.name || "");
+          if (!nameKey) return;
+          if (!detailsByName.has(nameKey)) detailsByName.set(nameKey, []);
+          detailsByName.get(nameKey).push(spell);
+        });
       return dedupeModernByName(spellOptions, (spell) => spell?.name || "", (spell) => spell?.source || "")
         .map((spell) => {
-          const detail = detailsByKey.get(spellMetadataKey(spell));
+          const detail = detailsByKey.get(spellMetadataKey(spell))
+            || detailsByName.get(normalizeName(spell?.name || ""))?.find((candidate) => {
+              const candidateSource = sourceKey(candidate?.source || "");
+              const spellSource = sourceKey(spell?.source || optionSource(spell) || "");
+              return spellSource ? candidateSource === spellSource : true;
+            })
+            || detailsByName.get(normalizeName(spell?.name || ""))?.[0];
           if (!detail?.time) return spell;
           return { ...spell, time: detail.time };
         });
@@ -179,32 +231,32 @@
 
     async function loadFeatOptions() {
       if (desktopStore?.loadFeats) return desktopStore.loadFeats();
-      const response = await fetch("../../../vendor/5etools-src-main/data/feats.json");
-      return response.json();
+      return fetchLocalResource("../../../vendor/5etools-src-main/data/feats.json");
     }
 
     async function loadOptionalFeatureOptions() {
-      const response = await fetch("../../../vendor/5etools-src-main/data/optionalfeatures.json");
-      if (!response.ok) return {};
-      return response.json();
+      try {
+        return await fetchLocalResource("../../../vendor/5etools-src-main/data/optionalfeatures.json");
+      } catch (_error) {
+        return {};
+      }
     }
 
     async function loadItemOptions() {
       if (desktopStore?.loadItems) return desktopStore.loadItems();
       const [itemsResponse, baseItemsResponse] = await Promise.all([
-        fetch("../../../vendor/5etools-src-main/data/items.json"),
-        fetch("../../../vendor/5etools-src-main/data/items-base.json")
+        fetchLocalResource("../../../vendor/5etools-src-main/data/items.json"),
+        fetchLocalResource("../../../vendor/5etools-src-main/data/items-base.json")
       ]);
       return {
-        items: await itemsResponse.json(),
-        baseItems: await baseItemsResponse.json()
+        items: itemsResponse,
+        baseItems: baseItemsResponse
       };
     }
 
     async function loadLanguageOptions() {
       if (desktopStore?.loadLanguages) return desktopStore.loadLanguages();
-      const response = await fetch("../../../vendor/5etools-src-main/data/languages.json");
-      return response.json();
+      return fetchLocalResource("../../../vendor/5etools-src-main/data/languages.json");
     }
 
     const MODERN_SOURCE_REPLACEMENTS = {

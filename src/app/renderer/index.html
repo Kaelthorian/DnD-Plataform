@@ -2417,6 +2417,24 @@
       return lines.filter(Boolean).join("\n");
     }
 
+    function clickRollModeOverride(event) {
+      return mergeRollModes([
+        event?.shiftKey ? "advantage" : "normal",
+        event?.ctrlKey ? "disadvantage" : "normal"
+      ]);
+    }
+
+    function clickRollModeNote(event) {
+      if (event?.shiftKey && event?.ctrlKey) return "Macro click: Shift + Ctrl se cancelan entre si.";
+      if (event?.shiftKey) return "Macro click: Shift = advantage.";
+      if (event?.ctrlKey) return "Macro click: Ctrl = disadvantage.";
+      return "";
+    }
+
+    function resolveRollMode(baseMode, event) {
+      return mergeRollModes([baseMode, clickRollModeOverride(event)]);
+    }
+
     function rollD20WithMode(mode = "normal") {
       if (mode === "advantage" || mode === "disadvantage") {
         const first = rollDie(20);
@@ -2591,16 +2609,18 @@
       diceTimer = setTimeout(() => diceTray.classList.remove("visible"), 12000);
     }
 
-    function rollAttack(attackName, bonus, label) {
+    function rollAttack(attackName, bonus, label, event = null) {
       const statusContext = attackRollStatusContext();
-      const roll = rollD20WithMode(statusContext.mode);
+      const roll = rollD20WithMode(resolveRollMode(statusContext.mode, event));
       const isCriticalHit = roll.selected === 20;
+      const shortcutNote = clickRollModeNote(event);
       const summary = summarizeD20Roll({
         roll,
         parts: attackRollParts(bonus, label),
         bonusDice: statusContext.bonusDice,
         label,
         notes: [
+          shortcutNote,
           ...statusContext.notes,
           isCriticalHit ? "Natural 20: Critical Hit. Impacta sin importar modificadores o AC." : ""
         ]
@@ -2611,13 +2631,13 @@
       showDiceTray(`${attackName}: ataque`, String(summary.total), summary.detail);
     }
 
-    function rollD20Check(label, modifier) {
+    function rollD20Check(label, modifier, event = null) {
       const statusContext = d20CheckStatusContext(label);
       const summary = summarizeD20Roll({
-        roll: rollD20WithMode(statusContext.mode),
+        roll: rollD20WithMode(resolveRollMode(statusContext.mode, event)),
         parts: [{ label: "Modificador", value: modifier }],
         bonusDice: statusContext.bonusDice,
-        notes: statusContext.notes
+        notes: [clickRollModeNote(event), ...statusContext.notes]
       });
       showDiceTray(label, String(summary.total), summary.detail);
     }
@@ -2804,8 +2824,8 @@
           attackButton.disabled = true;
         } else {
           attackButton.textContent = "d20";
-          attackButton.title = `Tirar ataque para ${spell.name}`;
-          attackButton.addEventListener("click", () => rollAttack(spell.name, spell.attackBonus, spell.attackLabel));
+          attackButton.title = `Tirar ataque para ${spell.name}. Shift+click: ventaja. Ctrl+click: desventaja.`;
+          attackButton.addEventListener("click", (event) => rollAttack(spell.name, spell.attackBonus, spell.attackLabel, event));
         }
 
         const castButton = document.createElement("button");
@@ -4191,8 +4211,8 @@
       button.type = "button";
       button.className = "roll-hotspot";
       button.setAttribute("aria-label", `Tirar ${label}`);
-      button.title = `Tirar ${label}`;
-      button.addEventListener("click", () => rollD20Check(label, rollModifierFromField(modifierFieldKey)));
+      button.title = `Tirar ${label}. Shift+click: ventaja. Ctrl+click: desventaja.`;
+      button.addEventListener("click", (event) => rollD20Check(label, rollModifierFromField(modifierFieldKey), event));
       placeFromPdfRect(button, viewport, rect);
       layer.appendChild(button);
     }
@@ -6256,6 +6276,14 @@
       cha: "CHA"
     };
     const ABILITY_KEYS = Object.values(ABILITY_LABELS);
+    const ABILITY_FULL_LABELS = {
+      STR: "Strength",
+      DEX: "Dexterity",
+      CON: "Constitution",
+      INT: "Intelligence",
+      WIS: "Wisdom",
+      CHA: "Charisma"
+    };
     const ASI_CHOICE_VALUE = "Ability Score Improvement";
 
     const FEAT_CATEGORY_LABELS = {
@@ -6826,17 +6854,8 @@
     }
 
     function toolChoiceOptionsFromFeat(feat) {
-      return (Array.isArray(feat?.toolProficiencies) ? feat.toolProficiencies : [])
-        .flatMap((group) => {
-          if (group?.choose?.from?.length) return group.choose.from;
-          if (Number.isFinite(group?.anyMusicalInstrument)) return BACKGROUND_CHOICE_OPTION_SETS["musical instrument"] || [];
-          if (Number.isFinite(group?.any)) return toolChoiceOptions().map((option) => option.value);
-          return [];
-        })
-        .map((tool) => titleCaseWords([String(tool).split("|")[0].replace(/([a-z])([A-Z])/g, "$1 $2")])[0])
-        .filter(Boolean)
-        .filter((tool, index, list) => list.findIndex((item) => normalizeName(item) === normalizeName(tool)) === index)
-        .map((tool) => ({ value: `tool:${tool}`, label: tool, type: "tool", description: `${feat.name}: tool proficiency.` }));
+      return toolChoiceOptionsFromValues(toolChoiceValuesFromGroups(feat?.toolProficiencies))
+        .map((tool) => ({ value: `tool:${tool.value}`, label: tool.label, type: "tool", description: `${feat.name}: tool proficiency.` }));
     }
 
     function skillChoiceSpecFromFeat(feat) {
@@ -7089,6 +7108,11 @@
       if (feature?.isClassStartingSkillChoice) {
         const options = skillChoiceOptions(feature.skillOptions || SKILL_NAMES);
         if (options.length) specs.push({ label: "Skill Proficiencies", count: feature.skillCount || 1, options });
+      }
+      if (feature?.isClassStartingToolChoice) {
+        const options = toolChoiceOptionsFromValues(feature.toolOptions || [])
+          .map((tool) => ({ value: `tool:${tool.value}`, label: tool.label, type: "tool", description: `${feature.className}: tool proficiency.` }));
+        if (options.length) specs.push({ label: "Tool Proficiencies", count: feature.toolCount || 1, options });
       }
       if (feature?.isRaceFeature && /proficiency in one skill of your choice|one skill of your choice/.test(text)) {
         const options = SKILL_NAMES.map((skill) => ({ value: skill, label: skill, type: "skill", description: "" }));
@@ -7546,7 +7570,7 @@
         );
         return;
       }
-      if (entry.type === "classFeature" || entry.type === "classSkillChoice") {
+      if (entry.type === "classFeature" || entry.type === "classSkillChoice" || entry.type === "classToolChoice") {
         const body = buildClassFeatureDrawerContent(entry.feature);
         appendFeatureBackButton(body, entries);
         showDrawer(entry.feature?.name || entry.title, entry.meta, body, featureUsesChoicePicker(entry.feature) ? "spell-picker-drawer" : "");
@@ -7754,6 +7778,61 @@
       ].join(" ").toLowerCase();
     }
 
+    function itemHasWeaponPropertyName(item, property) {
+      const target = normalizeName(property);
+      if (!target) return false;
+      return (item?.property || []).some((ref) => {
+        const abbreviation = normalizeName(splitRef(ref).abbreviation || "");
+        const name = normalizeName(String(propertyName(ref, item) || "").replace(/\s*\([^)]*\)\s*$/, ""));
+        return abbreviation === target || name === target;
+      });
+    }
+
+    function itemMatchesWeaponFilter(item, fromFilter) {
+      const filters = String(fromFilter || "").split("|").map((part) => part.trim()).filter(Boolean);
+      if (!filters.length) return false;
+      return filters.every((part) => {
+        const [rawKey, rawValue] = part.split("=");
+        const key = normalizeName(rawKey);
+        const value = String(rawValue || "").trim();
+        if (!key || !value) return true;
+        if (key === "type") {
+          const category = normalizeName(item?.weaponCategory || "");
+          if (normalizeName(value).includes("martial weapon")) return category === "martial";
+          if (normalizeName(value).includes("simple weapon")) return category === "simple";
+          return true;
+        }
+        if (key === "property") {
+          return value.split(";").some((property) => itemHasWeaponPropertyName(item, property));
+        }
+        return true;
+      });
+    }
+
+    function itemMatchesWeaponProficiencyGroup(item, group) {
+      if (!item || !group || typeof group !== "object") return false;
+      const category = normalizeName(item.weaponCategory || "");
+      const itemName = normalizeItemLookupName(item.name || "");
+      if (group.simple === true && category === "simple") return true;
+      if (group.martial === true && category === "martial") return true;
+      if (group.all?.fromFilter && itemMatchesWeaponFilter(item, group.all.fromFilter)) return true;
+      return Object.entries(group).some(([key, value]) => {
+        if (!value || ["simple", "martial", "all", "choose", "any"].includes(key)) return false;
+        return normalizeItemLookupName(key) === itemName;
+      });
+    }
+
+    function hasStructuredWeaponProficiency(item) {
+      if (!item || !isWeaponItem(item)) return false;
+      const classGroups = Array.isArray(classDetailByName(getMainClassName() || getSelectedClassName())?.classItem?.startingProficiencies?.weaponProficiencies)
+        ? classDetailByName(getMainClassName() || getSelectedClassName()).classItem.startingProficiencies.weaponProficiencies
+        : [];
+      const raceGroups = Array.isArray(selectedRaceDetail()?.weaponProficiencies)
+        ? selectedRaceDetail().weaponProficiencies
+        : [];
+      return [...classGroups, ...raceGroups].some((group) => itemMatchesWeaponProficiencyGroup(item, group));
+    }
+
     function hasEquipmentProficiency(item) {
       const text = combinedProficiencyText();
       if (!item) return false;
@@ -7767,9 +7846,18 @@
       }
       if (isWeaponItem(item)) {
         const category = normalizeName(item.weaponCategory || "");
-        const name = normalizeItemLookupName(item.name || "");
-        if (category && new RegExp(`\\b${category}\\b`).test(text)) return true;
-        if (text.includes(name)) return true;
+        const itemName = String(item.name || "").toLowerCase();
+        if (hasStructuredWeaponProficiency(item)) return true;
+        if (itemName && text.includes(itemName)) return true;
+        if (category === "simple" && /\bsimple weapons?\b|\bweapons?:[^.]*\bsimple\b/.test(text)) return true;
+        if (category === "martial") {
+          const restrictedMatches = [...text.matchAll(/\bmartial weapons? that have the ([^.]+?) property\b/g)];
+          if (restrictedMatches.length) {
+            if (restrictedMatches.some((match) => String(match[1] || "").split(/\s+or\s+|\s*,\s*/).some((property) => itemHasWeaponPropertyName(item, property)))) return true;
+          } else if (/\bmartial weapons?\b|\bweapons?:[^.]*\bmartial\b/.test(text)) {
+            return true;
+          }
+        }
         return /\ball weapons\b|\bsimple, martial\b|\bmartial, simple\b/.test(text);
       }
       return true;
@@ -8162,12 +8250,12 @@
       return sheetMeta.choices?.[key] || "";
     }
 
-    function setSelectedChoice(key, value) {
+    function setSelectedChoice(key, value, { statusMessage = "Eleccion guardada" } = {}) {
       sheetMeta.choices[key] = value;
       updateDerivedStats();
       scheduleSave();
       renderAlertsPanel();
-      showStatus("Eleccion guardada");
+      if (statusMessage) showStatus(statusMessage);
     }
 
     const BACKGROUND_CHOICE_LABELS = [
@@ -8233,6 +8321,7 @@
 
     function backgroundChoiceAlertTitle(label) {
       if (/equipment/i.test(label)) return "Elegir equipo inicial del background";
+      if (/ability scores/i.test(label)) return "Elegir ability scores del background";
       return `Elegir ${label.toLowerCase()} del background`;
     }
 
@@ -8342,11 +8431,37 @@
       });
     }
 
+    function toolLabelFromKey(key) {
+      const clean = strip5eTags(String(key || "")).split("|")[0].replace(/([a-z])([A-Z])/g, "$1 $2");
+      return titleCaseWords([clean])[0];
+    }
+
+    function toolChoiceOptionsFromValues(values = []) {
+      const unique = new Map();
+      values.forEach((value) => {
+        const label = toolLabelFromKey(value);
+        if (!label) return;
+        const key = normalizeName(label);
+        if (!unique.has(key)) unique.set(key, label);
+      });
+      return [...unique.values()].map((value) => ({ value, text: value, label: value }));
+    }
+
     function toolChoiceOptions() {
       const tools = Object.values(BACKGROUND_CHOICE_OPTION_SETS).flat();
       return [...new Set(tools)]
         .sort((a, b) => a.localeCompare(b))
         .map((value) => ({ value, text: value, label: value }));
+    }
+
+    function toolChoiceValuesFromGroups(groups = []) {
+      return (Array.isArray(groups) ? groups : []).flatMap((group) => {
+        if (group?.choose?.from?.length) return group.choose.from;
+        if (Number.isFinite(group?.anyMusicalInstrument)) return BACKGROUND_CHOICE_OPTION_SETS["musical instrument"] || [];
+        if (Number.isFinite(group?.anyArtisansTool)) return BACKGROUND_CHOICE_OPTION_SETS["artisan's tools"] || [];
+        if (Number.isFinite(group?.any)) return toolChoiceOptions().map((option) => option.value);
+        return [];
+      });
     }
 
     function raceSizeLabel(value) {
@@ -8551,6 +8666,7 @@
     }
 
     function backgroundChoiceSelectionCount(choice) {
+      if (choice?.type === "abilityScores") return backgroundAbilityScoreChoiceState(choice).complete ? 1 : 0;
       return selectedChoiceValues(choice).filter(Boolean).length;
     }
 
@@ -8574,6 +8690,85 @@
       return true;
     }
 
+    function backgroundAbilityScoreChoiceSpec(backgroundName, description) {
+      const abilitySection = extractColonSection(
+        description,
+        ["Ability Scores"],
+        BACKGROUND_CHOICE_LABELS.filter((label) => label !== "Ability Scores")
+      );
+      if (!abilitySection) return null;
+      const allowedAbilities = ABILITY_KEYS.filter((ability) => textIncludesPhrase(abilitySection, ABILITY_FULL_LABELS[ability]));
+      if (!allowedAbilities.length && !/starting ability scores?/i.test(abilitySection)) return null;
+      const allowed = allowedAbilities.length ? allowedAbilities : [...ABILITY_KEYS];
+      return {
+        key: backgroundChoiceKey(backgroundName, `Ability Scores:${allowed.join("|")}`),
+        label: "Ability Scores: distribuir puntos",
+        sectionLabel: "Ability Scores",
+        type: "abilityScores",
+        allowedAbilities: allowed
+      };
+    }
+
+    function normalizedAbilityScoreChoiceValue(rawValue, allowedAbilities = ABILITY_KEYS) {
+      if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) return {};
+      const allowed = new Set(allowedAbilities);
+      return Object.entries(rawValue).reduce((acc, [ability, amount]) => {
+        const key = ABILITY_LABELS[normalizeName(ability)] || String(ability || "").toUpperCase();
+        const parsed = Number.parseInt(String(amount || "").trim(), 10);
+        if (!allowed.has(key) || !Number.isFinite(parsed) || parsed <= 0) return acc;
+        acc[key] = Math.max(0, Math.min(2, parsed));
+        return acc;
+      }, {});
+    }
+
+    function backgroundAbilityScoreChoiceState(choice, rawValue = selectedChoice(choice?.key)) {
+      const allowedAbilities = Array.isArray(choice?.allowedAbilities) && choice.allowedAbilities.length
+        ? choice.allowedAbilities
+        : [...ABILITY_KEYS];
+      const selected = normalizedAbilityScoreChoiceValue(rawValue, allowedAbilities);
+      const entries = allowedAbilities
+        .map((ability) => [ability, selected[ability] || 0])
+        .filter(([, amount]) => amount > 0);
+      const values = entries.map(([, amount]) => amount).sort((a, b) => b - a);
+      const total = values.reduce((sum, amount) => sum + amount, 0);
+      const pattern = values.length === 2 && values[0] === 2 && values[1] === 1
+        ? "2-1"
+        : values.length === 3 && values.every((amount) => amount === 1)
+          ? "1-1-1"
+          : "";
+      return {
+        allowedAbilities,
+        selected,
+        entries,
+        total,
+        pattern,
+        complete: total === 3 && Boolean(pattern),
+        summary: entries.map(([ability, amount]) => `${ability} +${amount}`).join(", ")
+      };
+    }
+
+    function backgroundAbilityScoreChoiceStatusText(choice) {
+      const state = backgroundAbilityScoreChoiceState(choice);
+      const allowed = state.allowedAbilities.join(", ");
+      if (state.complete) return `Asignado: ${state.summary}.`;
+      if (!state.total) return `Reparti 3 puntos entre ${allowed}. Patrones validos: +2/+1 o +1/+1/+1.`;
+      return `Actual: ${state.summary || "sin asignar"} (${state.total}/3). Usa +2/+1 o +1/+1/+1 dentro de ${allowed}.`;
+    }
+
+    function selectedBackgroundAbilityScoreBonuses() {
+      const bonuses = Object.fromEntries(ABILITY_KEYS.map((ability) => [ability, 0]));
+      findSelectedBackgroundChoices()
+        .filter((choice) => choice?.type === "abilityScores")
+        .forEach((choice) => {
+          const state = backgroundAbilityScoreChoiceState(choice);
+          if (!state.complete) return;
+          state.entries.forEach(([ability, amount]) => {
+            bonuses[ability] += amount;
+          });
+        });
+      return bonuses;
+    }
+
     function findBackgroundChoicesForOption(option) {
       const backgroundName = optionName(option);
       const description = optionDescriptionText(option);
@@ -8581,6 +8776,9 @@
       const backgroundDetail = selectedBackgroundDetail(backgroundName);
       const structuredSkillChoices = backgroundSkillChoiceSpecs(backgroundDetail);
       if (!description) return structuredSkillChoices;
+      const choices = [];
+      const abilityChoice = backgroundAbilityScoreChoiceSpec(backgroundName, description);
+      if (abilityChoice) choices.push(abilityChoice);
 
       const labelPattern = BACKGROUND_CHOICE_LABELS
         .map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
@@ -8590,7 +8788,7 @@
         "gi"
       );
 
-      const choices = [...description.matchAll(choicePattern)].map((match) => {
+      [...description.matchAll(choicePattern)].map((match) => {
         const label = cleanExtractedProficiencyText(match[1]);
         const optionA = cleanExtractedProficiencyText(match[2]);
         const optionB = cleanExtractedProficiencyText(match[3]);
@@ -8603,7 +8801,7 @@
             { value: "B", text: optionB, label: `B: ${optionB}` }
           ]
         };
-      });
+      }).forEach((choice) => choices.push(choice));
 
       structuredSkillChoices.forEach((choice) => {
         if (!choices.some((existing) => existing.key === choice.key)) choices.push(choice);
@@ -8958,6 +9156,10 @@
       const choice = findSelectedBackgroundChoices()
         .find((item) => normalizeName(item.sectionLabel) === normalizeName(sectionLabel));
       if (!choice) return null;
+      if (choice.type === "abilityScores") {
+        const state = backgroundAbilityScoreChoiceState(choice);
+        return state.complete ? state.summary : "";
+      }
       if (!isBackgroundChoiceComplete(choice)) return "";
       return selectedChoiceValues(choice)
         .map((value) => choice.options.find((option) => option.value === value)?.text || "")
@@ -8985,7 +9187,7 @@
 
     function backgroundSameAsAboveText() {
       return findSelectedBackgroundChoices()
-        .filter((choice) => normalizeName(choice.sectionLabel) !== "equipment")
+        .filter((choice) => !["equipment", "ability scores", "feat"].includes(normalizeName(choice.sectionLabel)))
         .map((choice) => selectedBackgroundChoiceText(choice.sectionLabel))
         .find(Boolean) || "";
     }
@@ -9038,6 +9240,62 @@
         title.textContent = choice.label;
         group.appendChild(title);
 
+        if (choice.type === "abilityScores") {
+          const state = backgroundAbilityScoreChoiceState(choice);
+          const help = document.createElement("div");
+          help.className = "option-choice-text";
+          help.style.display = "block";
+          help.style.marginBottom = "8px";
+          help.textContent = backgroundAbilityScoreChoiceStatusText(choice);
+          group.appendChild(help);
+
+          const grid = document.createElement("div");
+          grid.style.display = "grid";
+          grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(120px, 1fr))";
+          grid.style.gap = "8px";
+
+          state.allowedAbilities.forEach((ability) => {
+            const label = document.createElement("label");
+            label.className = "option-choice";
+            label.style.display = "flex";
+            label.style.alignItems = "center";
+            label.style.justifyContent = "space-between";
+            label.style.gap = "10px";
+
+            const text = document.createElement("span");
+            text.className = "option-choice-text";
+            text.textContent = ABILITY_FULL_LABELS[ability] || ability;
+
+            const input = document.createElement("input");
+            input.type = "number";
+            input.min = "0";
+            input.max = "2";
+            input.step = "1";
+            input.inputMode = "numeric";
+            input.value = String(state.selected[ability] || 0);
+            input.style.width = "56px";
+            input.addEventListener("input", () => {
+              const next = normalizedAbilityScoreChoiceValue(selectedChoice(choice.key), state.allowedAbilities);
+              const parsed = Number.parseInt(String(input.value || "").trim(), 10);
+              if (Number.isFinite(parsed) && parsed > 0) next[ability] = Math.max(0, Math.min(2, parsed));
+              else delete next[ability];
+              const nextState = backgroundAbilityScoreChoiceState(choice, next);
+              setSelectedChoice(
+                choice.key,
+                next,
+                { statusMessage: nextState.complete ? "Ability Scores guardados" : "" }
+              );
+              help.textContent = backgroundAbilityScoreChoiceStatusText({ ...choice, key: choice.key });
+            });
+
+            label.append(text, input);
+            grid.appendChild(label);
+          });
+
+          group.appendChild(grid);
+          return group;
+        }
+
         choice.options.forEach((item) => {
           const isMultiple = (choice.count || 1) > 1;
           const selectedValues = selectedChoiceValues(choice);
@@ -9077,57 +9335,60 @@
     }
 
     function renderClassChoiceControls(option) {
-      const feature = classStartingSkillChoiceFeature(optionName(option));
-      if (!feature) return [];
-      const specs = featureChoiceSpecs(feature);
-      const key = featureChoiceKey(feature);
-      const selected = selectedFeatureChoices(key);
-      return specs.map((spec, specIndex) => {
-        const group = document.createElement("div");
-        group.className = "option-choice-group";
+      return [
+        classStartingSkillChoiceFeature(optionName(option)),
+        classStartingToolChoiceFeature(optionName(option))
+      ].filter(Boolean).flatMap((feature) => {
+        const specs = featureChoiceSpecs(feature);
+        const key = featureChoiceKey(feature);
+        const selected = selectedFeatureChoices(key);
+        return specs.map((spec, specIndex) => {
+          const group = document.createElement("div");
+          group.className = "option-choice-group";
 
-        const title = document.createElement("div");
-        title.className = "option-choice-title";
-        title.textContent = `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`;
-        group.appendChild(title);
+          const title = document.createElement("div");
+          title.className = "option-choice-title";
+          title.textContent = `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`;
+          group.appendChild(title);
 
-        spec.options.forEach((item) => {
-          const isMultiple = (spec.count || 1) > 1;
-          const disabled = isSkillOptionAlreadyProficient(item, selected);
-          const label = document.createElement("label");
-          label.className = "option-choice";
-          label.classList.toggle("disabled", disabled);
+          spec.options.forEach((item) => {
+            const isMultiple = (spec.count || 1) > 1;
+            const disabled = isSkillOptionAlreadyProficient(item, selected);
+            const label = document.createElement("label");
+            label.className = "option-choice";
+            label.classList.toggle("disabled", disabled);
 
-          const input = document.createElement("input");
-          input.type = isMultiple ? "checkbox" : "radio";
-          input.name = `${key}:${specIndex}`;
-          input.value = item.value;
-          input.checked = selected.includes(item.value);
-          input.disabled = disabled;
-          input.addEventListener("change", () => {
-            if (activeSelectField?.dataset.optionType === "class") {
-              activeSelectField.value = optionName(option);
-              activeSelectField.dispatchEvent(new Event("input", { bubbles: true }));
-              activeSelectField.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-            const current = selectedFeatureChoices(key).filter((value) => !spec.options.some((optionItem) => optionItem.value === value));
-            let picked = [...group.querySelectorAll("input:checked")].map((checked) => checked.value);
-            if (picked.length > spec.count) {
-              input.checked = false;
-              picked = picked.filter((value) => value !== item.value);
-              showStatus(`Maximo ${spec.count} opcion(es)`);
-            }
-            setSelectedFeatureChoices(key, [...current, ...picked]);
-            setOptionDescription(option);
+            const input = document.createElement("input");
+            input.type = isMultiple ? "checkbox" : "radio";
+            input.name = `${key}:${specIndex}`;
+            input.value = item.value;
+            input.checked = selected.includes(item.value);
+            input.disabled = disabled;
+            input.addEventListener("change", () => {
+              if (activeSelectField?.dataset.optionType === "class") {
+                activeSelectField.value = optionName(option);
+                activeSelectField.dispatchEvent(new Event("input", { bubbles: true }));
+                activeSelectField.dispatchEvent(new Event("change", { bubbles: true }));
+              }
+              const current = selectedFeatureChoices(key).filter((value) => !spec.options.some((optionItem) => optionItem.value === value));
+              let picked = [...group.querySelectorAll("input:checked")].map((checked) => checked.value);
+              if (picked.length > spec.count) {
+                input.checked = false;
+                picked = picked.filter((value) => value !== item.value);
+                showStatus(`Maximo ${spec.count} opcion(es)`);
+              }
+              setSelectedFeatureChoices(key, [...current, ...picked]);
+              setOptionDescription(option);
+            });
+
+            const text = document.createElement("span");
+            text.className = "option-choice-text";
+            text.textContent = skillOptionLabel(item, disabled);
+            label.append(input, text);
+            group.appendChild(label);
           });
-
-          const text = document.createElement("span");
-          text.className = "option-choice-text";
-          text.textContent = skillOptionLabel(item, disabled);
-          label.append(input, text);
-          group.appendChild(label);
+          return group;
         });
-        return group;
       });
     }
 
@@ -9260,8 +9521,67 @@
       });
     }
 
+    function renderAlertAbilityScoreChoice(choice) {
+      const state = backgroundAbilityScoreChoiceState(choice);
+      const group = document.createElement("div");
+      group.className = "alert-choice-group";
+
+      const help = document.createElement("div");
+      help.className = "alert-choice-text";
+      help.style.display = "block";
+      help.style.marginBottom = "8px";
+      help.textContent = backgroundAbilityScoreChoiceStatusText(choice);
+      group.appendChild(help);
+
+      const grid = document.createElement("div");
+      grid.style.display = "grid";
+      grid.style.gridTemplateColumns = "repeat(auto-fit, minmax(120px, 1fr))";
+      grid.style.gap = "8px";
+
+      state.allowedAbilities.forEach((ability) => {
+        const label = document.createElement("label");
+        label.className = "alert-choice";
+        label.style.display = "flex";
+        label.style.alignItems = "center";
+        label.style.justifyContent = "space-between";
+        label.style.gap = "10px";
+
+        const text = document.createElement("span");
+        text.className = "alert-choice-text";
+        text.textContent = ABILITY_FULL_LABELS[ability] || ability;
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = "2";
+        input.step = "1";
+        input.inputMode = "numeric";
+        input.value = String(state.selected[ability] || 0);
+        input.style.width = "56px";
+        input.addEventListener("input", () => {
+          const next = normalizedAbilityScoreChoiceValue(selectedChoice(choice.key), state.allowedAbilities);
+          const parsed = Number.parseInt(String(input.value || "").trim(), 10);
+          if (Number.isFinite(parsed) && parsed > 0) next[ability] = Math.max(0, Math.min(2, parsed));
+          else delete next[ability];
+          setSelectedChoice(
+            choice.key,
+            next,
+            { statusMessage: backgroundAbilityScoreChoiceState(choice, next).complete ? "Ability Scores guardados" : "" }
+          );
+        });
+
+        label.append(text, input);
+        grid.appendChild(label);
+      });
+
+      group.appendChild(grid);
+      return group;
+    }
+
     function renderAlertChoice(alert) {
       if (!alert.choice) return null;
+      if (alert.choice.type === "abilityScores") return renderAlertAbilityScoreChoice(alert.choice);
+      if (!Array.isArray(alert.choice.options) || !alert.choice.options.length) return null;
       const group = document.createElement("div");
       group.className = "alert-choice-group";
       const isMultiple = (alert.choice.count || 1) > 1;
@@ -9582,9 +9902,59 @@
       }];
     }
 
+    function classStartingToolChoiceFeature(className = getMainClassName() || getSelectedClassName()) {
+      const detail = classDetailByName(className);
+      const groups = Array.isArray(detail?.classItem?.startingProficiencies?.toolProficiencies)
+        ? detail.classItem.startingProficiencies.toolProficiencies
+        : [];
+      const options = toolChoiceValuesFromGroups(groups);
+      if (!options.length) return null;
+      const count = Math.max(1, ...groups.map((group) => group?.choose?.count || group?.anyMusicalInstrument || group?.anyArtisansTool || group?.any || 1));
+      return {
+        name: "Class Tool Proficiencies",
+        source: detail.classItem.source,
+        page: detail.classItem.page,
+        className: detail.classItem.name,
+        level: 1,
+        isClassStartingToolChoice: true,
+        toolCount: count,
+        toolOptions: options,
+        entries: [`Choose ${count} tool proficiencies from your class starting proficiencies.`]
+      };
+    }
+
+    function classStartingToolChoiceEntries(includeSelected = false) {
+      const feature = classStartingToolChoiceFeature();
+      if (!feature) return [];
+      const selected = selectedFeatureChoices(featureChoiceKey(feature));
+      const selectedCount = selected
+        .filter((value) => String(value).startsWith("tool:"))
+        .map((value) => String(value).replace(/^tool:/, ""))
+        .filter((tool) => (feature.toolOptions || []).some((option) => normalizeName(option) === normalizeName(tool)))
+        .length;
+      if (selectedCount >= (feature.toolCount || 1) && !includeSelected) return [];
+      return [{
+        type: "classToolChoice",
+        title: "Class Tool Proficiencies",
+        meta: `${feature.className} choice`,
+        description: flattenEntryText(feature.entries),
+        feature
+      }];
+    }
+
     function selectedClassSkillChoices() {
       const feature = classStartingSkillChoiceFeature();
       return feature ? selectedFeatureChoices(featureChoiceKey(feature)).map(canonicalSkillName).filter(Boolean) : [];
+    }
+
+    function selectedClassToolChoices() {
+      const feature = classStartingToolChoiceFeature();
+      return feature
+        ? selectedFeatureChoices(featureChoiceKey(feature))
+          .filter((value) => String(value).startsWith("tool:"))
+          .map((value) => String(value).replace(/^tool:/, ""))
+          .filter(Boolean)
+        : [];
     }
 
     function fixedClassSkillProficiencies() {
@@ -9596,6 +9966,19 @@
         .filter((group) => typeof group === "string")
         .map(canonicalSkillName)
         .filter(Boolean);
+    }
+
+    function fixedClassToolProficiencies() {
+      const detail = classDetailByName(getMainClassName() || getSelectedClassName());
+      const groups = Array.isArray(detail?.classItem?.startingProficiencies?.toolProficiencies)
+        ? detail.classItem.startingProficiencies.toolProficiencies
+        : [];
+      const fixed = fixedGroupProficiencyValues(groups, toolLabelFromKey);
+      if (fixed.length || Array.isArray(detail?.classItem?.startingProficiencies?.toolProficiencies)) return fixed;
+      return (Array.isArray(detail?.classItem?.startingProficiencies?.tools) ? detail.classItem.startingProficiencies.tools : [])
+        .map((tool) => strip5eTags(tool))
+        .filter((tool) => tool && !/\bchoose\b|\byour choice\b/i.test(tool))
+        .map(toolLabelFromKey);
     }
 
     function updateClassSkillProficiencies() {
@@ -9742,7 +10125,7 @@
         }))
       ].filter((feature, index, list) => list.findIndex((item) => featureChoiceKey(item) === featureChoiceKey(feature)) === index);
       return choiceSources
-        .filter((feature) => !feature?.isClassStartingSkillChoice)
+        .filter((feature) => !feature?.isClassStartingSkillChoice && !feature?.isClassStartingToolChoice)
         .flatMap((feature) => selectedFeatureChoices(featureChoiceKey(feature)))
         .filter((value) => String(value).startsWith("tool:"))
         .map((value) => String(value).replace(/^tool:/, ""));
@@ -9858,9 +10241,10 @@
       const bases = sheetMeta.racialAbilityBases;
       const previousBonuses = sheetMeta.racialAbilityBonuses;
       const asiBonuses = selectedAbilityScoreImprovementBonuses();
+      const backgroundBonuses = selectedBackgroundAbilityScoreBonuses();
       const bonuses = Object.fromEntries(ABILITY_KEYS.map((ability) => [
         ability,
-        asiBonuses[ability] || 0
+        (asiBonuses[ability] || 0) + (backgroundBonuses[ability] || 0)
       ]));
 
       ABILITY_KEYS.forEach((ability) => {
@@ -9886,6 +10270,7 @@
         field.dataset.generatedAbilitySource = "race";
         field.dataset.generatedAbilityValue = String(next);
         const parts = [
+          backgroundBonuses[ability] ? `Background ${formatModifier(backgroundBonuses[ability])}` : "",
           asiBonuses[ability] ? `ASI ${formatModifier(asiBonuses[ability])}` : ""
         ].filter(Boolean);
         field.title = `${field.dataset.key || ability}: base ${base}${parts.length ? `, ${parts.join(", ")}` : ""}`;
@@ -11153,9 +11538,16 @@
     function raceFeatureEntriesForCharacter() {
       const race = raceDetailByName(getSelectedRaceName());
       if (!race?.entries?.length) return [];
+      const selectedChoiceSections = new Set(
+        findSelectedRaceChoices()
+          .filter((choice) => isBackgroundChoiceComplete(choice))
+          .filter((choice) => !["size", "eladrin season", "spellcasting ability", "skill proficiencies", "skill proficiency", "languages", "tool proficiencies"].includes(normalizeName(choice.sectionLabel || "")))
+          .map((choice) => normalizeName(choice.sectionLabel || ""))
+      );
       return race.entries
         .filter((entry) => entry && typeof entry === "object")
         .filter((entry) => !(normalizeName(race.name) === "tiefling" && normalizeName(entry.name || "") === "fiendish legacy"))
+        .filter((entry) => !selectedChoiceSections.has(normalizeName(entry.name || "")))
         .map((entry) => {
           const feature = {
             name: entry.name || "Race Trait",
@@ -11179,6 +11571,7 @@
     function choosableFeatureEntriesForCharacter() {
       return [
         ...classStartingSkillChoiceEntries(true),
+        ...classStartingToolChoiceEntries(true),
         ...backgroundFeatChoiceEntries(true),
         ...backgroundFeatureEntries().filter((entry) => entry.feature && featureChoiceSpecs(entry.feature).length),
         ...raceFeatureEntriesForCharacter(),
@@ -11191,7 +11584,7 @@
       const languageEntry = derivedLanguageSummaryEntry();
       const baseEntries = [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()]
         .filter((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0 || featureChoiceSpecs(entry.feature).length > 0);
-      return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...classStartingSkillChoiceEntries(), ...raceChoiceControlEntries(), ...(languageEntry ? [languageEntry] : []), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
+      return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...classStartingSkillChoiceEntries(), ...classStartingToolChoiceEntries(), ...raceChoiceControlEntries(), ...(languageEntry ? [languageEntry] : []), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
     }
 
     function derivedLanguageSummaryEntry() {
@@ -11445,7 +11838,8 @@
         extractColonSection(backgroundDescription, ["Weapon Proficiencies", "Weapon Proficiency"], stopLabels)
       ]);
       const toolItems = uniqueReadableValues([
-        ...titleCaseWords(Array.isArray(classStartingProficiencies.tools) ? classStartingProficiencies.tools : []),
+        ...fixedClassToolProficiencies(),
+        ...selectedClassToolChoices(),
         ...fixedRaceProficiencyValues(race, "toolProficiencies", proficiencyLabel),
         ...splitChoiceTextValues(selectedRaceChoiceText("Tool Proficiencies")),
         ...fixedGroupProficiencyValues(backgroundDetail?.toolProficiencies, proficiencyLabel),
