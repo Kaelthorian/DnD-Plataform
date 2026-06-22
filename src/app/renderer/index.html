@@ -4354,6 +4354,7 @@
       remove.setAttribute("aria-label", `Quitar ${definition.name}`);
       remove.addEventListener("click", (event) => {
         event.stopPropagation();
+        hideDamageTooltip();
         sheetMeta.activeStatuses = ensureActiveStatusIds().filter((id) => id !== definition.id);
         renderStatusDock();
         updateDerivedStats();
@@ -4398,6 +4399,7 @@
       ["mouseenter", "focus"].forEach((eventName) => button.addEventListener(eventName, () => showFeatureTooltip(button, statusDescriptionText(definition))));
       ["mouseleave", "blur"].forEach((eventName) => button.addEventListener(eventName, hideDamageTooltip));
       button.addEventListener("click", () => {
+        hideDamageTooltip();
         const current = ensureActiveStatusIds();
         sheetMeta.activeStatuses = normalizeStatusIds([definition.id, ...current]);
         statusDock.dataset.menuOpen = "false";
@@ -4414,6 +4416,7 @@
 
     function renderStatusDock() {
       if (!statusDock) return;
+      hideDamageTooltip();
       const open = statusDock.dataset.menuOpen === "true";
       statusDock.textContent = "";
 
