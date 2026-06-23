@@ -370,16 +370,23 @@
 
     function spellSlotsForCharacter() {
       const level = Math.min(20, Math.max(1, getCharacterLevel()));
-      const className = normalizeName(getSelectedClassName());
-      const progression = normalizeName(classDetailByName(getSelectedClassName())?.classItem?.casterProgression || "");
-      if (progression === "full" || ["bard", "cleric", "druid", "sorcerer", "wizard"].includes(className)) {
+      const selectedClassName = getSelectedClassName();
+      const className = normalizeName(selectedClassName);
+      const progression = normalizeName(classDetailByName(selectedClassName)?.classItem?.casterProgression || "");
+      if (progression === "full") {
         return FULL_CASTER_SLOTS[level] || [];
       }
-      if (progression === "artificer" || className === "artificer") {
+      if (progression === "artificer") {
         return ARTIFICER_SLOTS[level - 1] || [];
       }
-      if (progression === "1/2" || className === "paladin" || className === "ranger") {
+      if (progression === "1/2") {
         return HALF_CASTER_SLOTS[level - 1] || [];
+      }
+      if (["bard", "cleric", "druid", "sorcerer", "wizard"].includes(className)) {
+        return FULL_CASTER_SLOTS[level] || [];
+      }
+      if (["artificer", "paladin", "ranger"].includes(className)) {
+        return ARTIFICER_SLOTS[level - 1] || [];
       }
       if (className === "spellcaster sidekick") {
         return ARTIFICER_SLOTS[level - 1] || [];
@@ -1575,6 +1582,86 @@
       return activeFeatSpellGrants().find((grant) => grant.fromMagicInitiate && normalizeName(grant.spellName || "") === normalized) || null;
     }
 
+    function classFreeSpellUseGrants() {
+      const seen = new Set();
+      return classFeatureEntriesForCharacter()
+        .map((entry) => {
+          const feature = entry?.feature;
+          const description = String(entry?.description || flattenEntryText(feature?.entries || feature?.entry || "") || "");
+          const preparedMatch = description.match(/\byou (?:also )?(?:always have|have) the ([A-Za-z' -]+?) spell prepared\b/i);
+          if (!preparedMatch) return null;
+          if (!/\byou can (?:also )?cast (?:the spell|it)(?: once)? without expending a spell slot\b/i.test(description)) return null;
+          if (!/\bfinish a long rest\b/i.test(description)) return null;
+          const spell = findSpellByName(preparedMatch[1]);
+          if (!spell || spell.level <= 0) return null;
+          const key = [
+            "class-spell-free-use",
+            feature?.className || getMainClassName() || getSelectedClassName(),
+            feature?.source || "",
+            feature?.level || "",
+            feature?.name || entry?.title || "",
+            spell.name
+          ].map((item) => normalizeName(String(item))).join("|");
+          if (!key || seen.has(key)) return null;
+          seen.add(key);
+          return {
+            key,
+            spellName: spell.name,
+            level: spell.level,
+            prepared: true,
+            sourceLabel: feature?.name || entry?.title || "Class Feature",
+            fromClassFeature: true
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function classFreeSpellUseGrantForSpell(spellName) {
+      const normalized = normalizeName(spellName || "");
+      if (!normalized) return null;
+      return classFreeSpellUseGrants().find((grant) => normalizeName(grant.spellName || "") === normalized) || null;
+    }
+
+    function freeSpellUseCandidates(spellName) {
+      return [
+        magicInitiateGrantForSpell(spellName),
+        classFreeSpellUseGrantForSpell(spellName)
+      ].filter(Boolean);
+    }
+
+    function freeSpellUseInfo(spellName) {
+      const candidates = freeSpellUseCandidates(spellName)
+        .map((grant) => {
+          if (grant.fromMagicInitiate) {
+            const info = getMagicInitiateUseInfo({ grant, state: featureUseState() });
+            return info ? { ...info, grant, sourceLabel: grant.sourceLabel || "Magic Initiate" } : null;
+          }
+          const info = getResourceUseInfo({ key: grant.key, max: 1, state: featureUseState() });
+          return info ? { ...info, grant, sourceLabel: grant.sourceLabel || "Class Feature" } : null;
+        })
+        .filter(Boolean);
+      return candidates.find((info) => info.remaining > 0) || candidates[0] || null;
+    }
+
+    function spendClassFreeSpellUse(spellName) {
+      const grant = classFreeSpellUseGrantForSpell(spellName);
+      const result = spendResourceUse({ key: grant?.key, max: 1, state: featureUseState() });
+      if (!result.changed) return false;
+      sheetMeta.featureUses = result.state;
+      showStatus(`${spellName}: casteada con uso gratis de ${grant.sourceLabel}. Uso gratis: 0/1`);
+      updatePreparedSpellsPanel();
+      scheduleSave();
+      return true;
+    }
+
+    function spendFreeSpellUse(spellName) {
+      const info = freeSpellUseInfo(spellName);
+      if (!info?.remaining) return false;
+      if (info.grant?.fromMagicInitiate) return spendMagicInitiateFreeUse(spellName);
+      if (info.grant?.fromClassFeature) return spendClassFreeSpellUse(spellName);
+      return false;
+    }
+
     function getCharacterLevel() {
       return Number.parseInt(getFieldValueByNormalizedKey("characterlevel"), 10) || 1;
     }
@@ -2425,8 +2512,17 @@
       return 2;
     }
 
-    function channelDivinityUsesForCharacter() {
+    function channelDivinityUsesForCharacter(feature = null) {
+      const targetFeature = feature || {
+        name: "Channel Divinity",
+        className: getMainClassName() || getSelectedClassName()
+      };
+      const tableValue = classTableValueForFeature(targetFeature, /^channel divinity$/i);
+      if (tableValue != null) return Math.max(0, tableValue);
+      const className = normalizeName(targetFeature.className || getMainClassName() || getSelectedClassName());
       const level = getCharacterLevel();
+      if (className === "paladin") return level >= 11 ? 3 : level >= 3 ? 2 : 0;
+      if (className === "cleric") return level >= 18 ? 3 : level >= 6 ? 2 : level >= 2 ? 1 : 0;
       if (level >= 18) return 3;
       if (level >= 6) return 2;
       return 1;
@@ -2436,11 +2532,17 @@
       return 2;
     }
 
-    function featureUseMaximum(title, description) {
+    function featureUseMaximum(title, description, feature = null) {
       const text = `${title}\n${description}`;
       const normalizedTitle = normalizeName(title);
       if (normalizedTitle === "rage") return rageUsesForCharacter();
-      if (normalizedTitle === "channel divinity") return channelDivinityUsesForCharacter();
+      if (normalizedTitle === "channel divinity") {
+        return channelDivinityUsesForCharacter(feature || {
+          name: title,
+          className: getMainClassName() || getSelectedClassName(),
+          entries: description
+        });
+      }
       if (normalizedTitle === "sorcery points") return Math.max(1, getCharacterLevel());
       if (normalizedTitle === "ki" || normalizedTitle === "ki points" || normalizedTitle === "focus points") return Math.max(1, getCharacterLevel());
       if (normalizedTitle === "wild shape") return wildShapeUsesForCharacter();
@@ -2484,11 +2586,6 @@
       });
     }
 
-    function magicInitiateFreeUseInfo(spellName) {
-      const grant = magicInitiateGrantForSpell(spellName);
-      return getMagicInitiateUseInfo({ grant, state: featureUseState() });
-    }
-
     function spendMagicInitiateFreeUse(spellName) {
       const grant = magicInitiateGrantForSpell(spellName);
       const result = spendMagicInitiateUse({ grant, state: featureUseState() });
@@ -2512,6 +2609,7 @@
 
     function isActivatableFeature(entry) {
       if (entry.type === "raceChoice" || entry.type === "raceChoiceControl") return false;
+      if (isLayOnHandsFeature(entry.feature || entry.optionalFeature)) return false;
       const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "";
       const description = String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "");
       const text = `${title}\n${description}`;
@@ -2623,7 +2721,7 @@
       }
       const castLevel = Math.max(spell.level, spell.castLevel || spell.level);
       const sourceName = spell.sourceName || spell.name;
-      if (castLevel === spell.level && magicInitiateFreeUseInfo(sourceName)?.remaining > 0 && spendMagicInitiateFreeUse(sourceName)) return;
+      if (castLevel === spell.level && freeSpellUseInfo(sourceName)?.remaining > 0 && spendFreeSpellUse(sourceName)) return;
       if (!spendSpellSlot(castLevel)) {
         showStatus(`Sin slots nivel ${castLevel}`);
         return;
@@ -3380,14 +3478,14 @@
         } else if (spell.kind === "spell") {
           const sourceName = spell.sourceName || spell.name;
           const selectedCastLevel = spell.castLevel || spell.level;
-          const magicInitiateUse = spell.level > 0 && selectedCastLevel === spell.level ? magicInitiateFreeUseInfo(sourceName) : null;
-          const hasFreeUse = Boolean(magicInitiateUse && magicInitiateUse.remaining > 0);
+          const spellFreeUse = spell.level > 0 && selectedCastLevel === spell.level ? freeSpellUseInfo(sourceName) : null;
+          const hasFreeUse = Boolean(spellFreeUse && spellFreeUse.remaining > 0);
           castButton.textContent = spell.level > 0
-            ? hasFreeUse ? `Gratis ${magicInitiateUse.remaining}/${magicInitiateUse.max}` : "Cast"
+            ? hasFreeUse ? `Gratis ${spellFreeUse.remaining}/${spellFreeUse.max}` : "Cast"
             : "Libre";
           castButton.title = spell.level > 0
             ? hasFreeUse
-              ? `Castear ${spell.name} con el uso gratis de Magic Initiate`
+              ? `Castear ${spell.name} con el uso gratis de ${spellFreeUse.sourceLabel}`
               : `Castear ${spell.name} a nivel ${selectedCastLevel} y gastar 1 slot nivel ${selectedCastLevel}`
             : `${spell.name} es cantrip y no gasta slots`;
           castButton.disabled = spell.level > 0 && !hasFreeUse && spellSlotRemaining(selectedCastLevel) <= 0;
@@ -3553,12 +3651,12 @@
         return { available: true, shortLabel: "cantrip", detail: "Cantrip" };
       }
       const spellName = spellEntry?.spell?.name || spellEntry?.name || "";
-      const freeUse = magicInitiateFreeUseInfo(spellName);
+      const freeUse = freeSpellUseInfo(spellName);
       if (freeUse?.remaining > 0) {
         return {
           available: true,
           shortLabel: "uso gratis",
-          detail: `Uso gratis ${freeUse.remaining}/${freeUse.max}`
+          detail: `${freeUse.sourceLabel}: uso gratis ${freeUse.remaining}/${freeUse.max}`
         };
       }
       const remaining = spellSlotRemaining(spellEntry.level);
