@@ -34,7 +34,8 @@
       "vendor/5etools-src-main/data/items-base.json",
       "vendor/5etools-src-main/data/languages.json",
       "package.json",
-      "node_modules/pdfjs-dist/**"
+      "node_modules/pdfjs-dist/**",
+      "node_modules/three/**"
     ],
     "win": {
       "icon": "build/icon.ico",
@@ -56,6 +57,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
-    "pdfjs-dist": "^6.0.227"
+    "pdfjs-dist": "^6.0.227",
+    "three": "^0.184.0"
   }
 }
