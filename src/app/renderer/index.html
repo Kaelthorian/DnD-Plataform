@@ -29,6 +29,20 @@
       <button class="turn-actions-button" id="turnActionsButton" type="button">Empezar combate</button>
     </div>
   </div>
+  <div class="app-settings-menu" id="appSettingsMenu">
+    <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Abrir ajustes" aria-expanded="false" aria-controls="appSettingsPanel">&#9881;</button>
+    <div class="app-settings-panel" id="appSettingsPanel" hidden>
+      <div class="app-settings-title">Settings</div>
+      <label class="app-settings-toggle-row" for="diceAnimationToggle">
+        <span>
+          <span class="app-settings-toggle-title">Dados 3D</span>
+          <span class="app-settings-toggle-description">Mostrar dados animados en pantalla</span>
+        </span>
+        <input class="app-settings-toggle-input" id="diceAnimationToggle" type="checkbox">
+        <span class="app-settings-toggle" aria-hidden="true"></span>
+      </label>
+    </div>
+  </div>
   <aside class="alerts-panel empty" id="alertsPanel" aria-live="polite">
     <div class="alerts-trigger" id="alertsTrigger" tabindex="0" role="button" aria-label="Ver alertas pendientes">
       <span class="alert-icon" id="alertsIcon">!</span>
@@ -54,9 +68,28 @@
     <div class="dice-result" id="diceResult"></div>
     <div class="dice-detail" id="diceDetail"></div>
   </div>
+  <div class="free-dice-menu" id="freeDiceMenu" hidden>
+    <div class="free-dice-header">
+      <div>
+        <div class="free-dice-title">Dados libres</div>
+        <div class="free-dice-subtitle">Arma una tirada de d2 a d100</div>
+      </div>
+      <button class="free-dice-close" id="freeDiceClose" type="button" aria-label="Cerrar">X</button>
+    </div>
+    <div class="free-dice-picker">
+      <select class="free-dice-select" id="freeDiceSelect" aria-label="Tipo de dado"></select>
+      <button class="free-dice-step" id="freeDiceMinus" type="button" aria-label="Quitar dado">-</button>
+      <button class="free-dice-step" id="freeDicePlus" type="button" aria-label="Agregar dado">+</button>
+    </div>
+    <div class="free-dice-selection" id="freeDiceSelection"></div>
+    <button class="free-dice-roll" id="freeDiceRoll" type="button" disabled>Roll</button>
+    <div class="dice-log">
+      <div class="dice-log-title">Log</div>
+      <div class="dice-log-list" id="diceLogList"></div>
+    </div>
+  </div>
   <div class="dice-roll-overlay" id="diceRollOverlay" aria-hidden="true">
     <div class="dice-roll-canvas" id="diceRollCanvas"></div>
-    <div class="dice-roll-labels" id="diceRollLabels"></div>
   </div>
   <aside class="item-drawer" id="itemDrawer" aria-hidden="true">
     <div class="item-drawer-header">
@@ -121,6 +154,7 @@
   <script src="../../engine/rests/long-rest.js"></script>
   <script src="../../engine/rests/short-rest.js"></script>
   <script src="./renderer.js"></script>
+  <script src="./dice-roller.js"></script>
   <script>
     "use strict";
 
@@ -784,6 +818,7 @@
       const currentHpField = getCurrentHitPointsField();
       applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
       sheetMeta.featureUses = recovery.nextResourceState;
+      resetLongRestFeaturePools();
       if (currentHpField && fieldValue("HPMax")) currentHpField.value = recovery.currentHitPoints;
       setFieldValue("Inspiration", longRestInspirationValue());
       updatePreparedSpellsPanel();
@@ -1798,7 +1833,8 @@
       psychic: "PSY",
       radiant: "RAD",
       slashing: "SLH",
-      thunder: "THN"
+      thunder: "THN",
+      healing: "HEAL"
     };
 
     function damageTypeSymbol(type) {
@@ -2062,11 +2098,18 @@
 
     function selectedFightingStyleNames() {
       return selectedFeatureChoiceEntries()
-        .filter((entry) => entry.type === "feat")
-        .map((entry) => entry.featName || entry.title || "")
+        .filter((entry) => entry.type === "feat" || entry.type === "optionalfeature")
+        .map((entry) => (
+          entry.type === "optionalfeature"
+            ? (entry.optionalFeature?.name || entry.title || "")
+            : (entry.featName || entry.title || "")
+        ))
         .filter((name) => {
           const feat = findFeatData(name);
-          return feat?.category === "FS" || /^fighting style/i.test(name);
+          const optional = optionalFeatureByName(name);
+          return String(feat?.category || "").startsWith("FS")
+            || (optional?.featureType || []).some((type) => String(type || "").startsWith("FS"))
+            || /^fighting style/i.test(name);
         })
         .map((name) => String(name).replace(/^Fighting Style:\s*/i, ""))
         .map(normalizeName);
@@ -2077,22 +2120,49 @@
       return selectedFightingStyleNames().some((style) => style === target || style.endsWith(` ${target}`));
     }
 
+    function isThrownRangedAttack(item, attackMode = "weapon") {
+      return hasItemProperty(item, "T") && (attackMode === "thrown" || itemTypeAbbreviation(item) === "R");
+    }
+
     function fightingStyleAttackBonus(item) {
       if (hasFightingStyle("archery") && itemTypeAbbreviation(item) === "R") return 2;
       return 0;
     }
 
-    function fightingStyleDamageBonus(item, slot) {
+    function duelingFightingStyleBonus(item, slot, record) {
+      if (!hasFightingStyle("dueling")) return 0;
+      if (slot !== "mainHand") return 0;
+      if (itemTypeAbbreviation(item) === "R") return 0;
+      if (hasItemProperty(item, "2H")) return 0;
+      if (record?.twoHanded) return 0;
+      if (isWeaponItem(equippedInSlot("offHand")?.item)) return 0;
+      return 2;
+    }
+
+    function thrownWeaponFightingBonus(item, attackMode = "weapon") {
+      return hasFightingStyle("thrown weapon fighting") && isThrownRangedAttack(item, attackMode) ? 2 : 0;
+    }
+
+    function greatWeaponFightingApplies(item, slot, record, attackMode = "weapon") {
+      if (!hasFightingStyle("great weapon fighting")) return false;
+      if (slot !== "mainHand") return false;
+      if (attackMode === "thrown") return false;
+      if (itemTypeAbbreviation(item) === "R") return false;
+      return hasItemProperty(item, "2H") || (hasItemProperty(item, "V") && Boolean(record?.twoHanded));
+    }
+
+    function fightingStyleDamageBonus(item, slot, record, attackMode = "weapon") {
       let bonus = 0;
-      if (hasFightingStyle("dueling")
-        && slot === "mainHand"
-        && itemTypeAbbreviation(item) !== "R"
-        && !hasItemProperty(item, "2H")
-        && !isWeaponItem(equippedInSlot("offHand")?.item)) {
-        bonus += 2;
-      }
-      if (hasFightingStyle("thrown weapon fighting") && hasItemProperty(item, "T")) bonus += 2;
+      bonus += duelingFightingStyleBonus(item, slot, record);
+      bonus += thrownWeaponFightingBonus(item, attackMode);
       return bonus;
+    }
+
+    function fightingStyleDamageLabels(item, slot, record, attackMode = "weapon") {
+      const labels = [];
+      if (duelingFightingStyleBonus(item, slot, record)) labels.push("Dueling");
+      if (thrownWeaponFightingBonus(item, attackMode)) labels.push("Thrown Weapon Fighting");
+      return labels;
     }
 
     function equippedArmorWithoutProficiency() {
@@ -2105,18 +2175,24 @@
       return "Armor/shield sin proficiency: tenes desventaja en D20 Tests que usen STR o DEX, y no podes castear spells.";
     }
 
-    function weaponAttackSelection(entry, item, slot) {
+    function weaponAttackSelection(entry, item, slot, attackMode = "weapon") {
       const ability = weaponAbilityModifier(item);
       const proficient = hasEquipmentProficiency(item);
       const armorPenalty = equippedArmorWithoutProficiency();
       const prof = proficient ? proficiencyBonus() : 0;
-      const offHandAbilityBonus = slot === "offHand" && hasFightingStyle("two-weapon fighting") ? ability : 0;
-      const damageBonus = (slot === "offHand" ? offHandAbilityBonus : ability) + fightingStyleDamageBonus(item, slot);
       const record = equippedRecord(equipmentItemKey(entry));
+      const thrownAttack = isThrownRangedAttack(item, attackMode);
+      const offHandAbilityBonus = slot === "offHand" && hasFightingStyle("two-weapon fighting") ? ability : 0;
+      const damageBonus = (slot === "offHand" ? offHandAbilityBonus : ability) + fightingStyleDamageBonus(item, slot, record, attackMode);
       const damageDice = record?.twoHanded && item.dmg2 ? item.dmg2 : item.dmg1 || "1d4";
       const damageExpression = `${damageDice}${damageBonus ? formatModifier(damageBonus) : ""}`;
+      const nameParts = [];
+      if (record?.twoHanded) nameParts.push("2M");
+      else if (slot === "offHand") nameParts.push("Off");
+      if (thrownAttack && itemTypeAbbreviation(item) !== "R") nameParts.push("Lanzada");
+      const styleLabels = fightingStyleDamageLabels(item, slot, record, attackMode);
       return {
-        name: `${item.name || entry.displayName}${record?.twoHanded ? " (2M)" : slot === "offHand" ? " (Off)" : ""}`,
+        name: `${item.name || entry.displayName}${nameParts.length ? ` (${nameParts.join(", ")})` : ""}`,
         item,
         damage: damageExpression,
         damageLabel: damageExpression,
@@ -2125,10 +2201,15 @@
         actionType: slot === "offHand" ? ACTION_TYPES.bonus : ACTION_TYPES.action,
         actionCostLabel: slot === "offHand" ? "Consume: Accion Bonus (two-weapon fighting)." : "Consume: Accion.",
         attackBonus: ability + prof + fightingStyleAttackBonus(item),
+        damageRollOptions: {
+          greatWeaponFighting: greatWeaponFightingApplies(item, slot, record, attackMode)
+        },
         attackLabel: [
           proficient ? "weapon attack" : "sin prof",
+          thrownAttack ? "thrown attack" : "",
           fightingStyleAttackBonus(item) ? "Archery" : "",
-          fightingStyleDamageBonus(item, slot) ? "Dueling" : "",
+          ...styleLabels,
+          greatWeaponFightingApplies(item, slot, record, attackMode) ? "Great Weapon Fighting" : "",
           armorPenalty ? "desventaja por armadura/shield sin prof" : ""
         ].filter(Boolean).join(", "),
         level: 0
@@ -2138,7 +2219,13 @@
     function equippedWeaponAttackSelections() {
       return equippedEntries()
         .filter(({ item, record }) => isWeaponItem(item) && ["mainHand", "offHand"].includes(record.slot))
-        .map(({ entry, item, record }) => weaponAttackSelection(entry, item, record.slot));
+        .flatMap(({ entry, item, record }) => {
+          const rows = [weaponAttackSelection(entry, item, record.slot)];
+          if (hasItemProperty(item, "T") && itemTypeAbbreviation(item) !== "R") {
+            rows.push(weaponAttackSelection(entry, item, record.slot, "thrown"));
+          }
+          return rows;
+        });
     }
 
     function sneakAttackDamageExpression() {
@@ -2251,6 +2338,70 @@
     function featureUseState() {
       sheetMeta.featureUses = ensureResourceState(sheetMeta.featureUses);
       return sheetMeta.featureUses;
+    }
+
+    function featurePoolState() {
+      if (!sheetMeta.featurePools || typeof sheetMeta.featurePools !== "object") sheetMeta.featurePools = {};
+      return sheetMeta.featurePools;
+    }
+
+    function featurePoolKeyForFeature(feature) {
+      if (!feature) return "";
+      return activationKeyForEntry({
+        feature,
+        title: feature.name || "feature",
+        meta: feature.className ? `${feature.className} feature` : "feature"
+      });
+    }
+
+    function isLayOnHandsFeature(feature) {
+      if (!feature) return false;
+      return normalizeName(feature.name || "") === "lay on hands"
+        && normalizeName(feature.className || getMainClassName() || getSelectedClassName()) === "paladin";
+    }
+
+    function layOnHandsPoolMaximum(feature = null) {
+      if (!isLayOnHandsFeature(feature || { name: "Lay on Hands", className: getMainClassName() || getSelectedClassName() })) return 0;
+      return Math.max(0, getCharacterLevel() * 5);
+    }
+
+    function layOnHandsPoolInfo(feature = null) {
+      const targetFeature = feature || { name: "Lay on Hands", className: getMainClassName() || getSelectedClassName(), level: 1, source: "XPHB" };
+      const max = layOnHandsPoolMaximum(targetFeature);
+      if (!max) return null;
+      const key = featurePoolKeyForFeature(targetFeature);
+      const state = featurePoolState();
+      const used = Math.max(0, Math.min(max, Number.parseInt(state[key] || 0, 10) || 0));
+      if (used) state[key] = used;
+      else delete state[key];
+      return {
+        key,
+        max,
+        used,
+        remaining: Math.max(0, max - used)
+      };
+    }
+
+    function setLayOnHandsPoolUsed(feature, nextUsed) {
+      const info = layOnHandsPoolInfo(feature);
+      if (!info) return null;
+      const state = featurePoolState();
+      const used = Math.max(0, Math.min(info.max, Number.parseInt(nextUsed, 10) || 0));
+      if (used) state[info.key] = used;
+      else delete state[info.key];
+      updatePreparedSpellsPanel();
+      scheduleSave();
+      return {
+        ...info,
+        used,
+        remaining: Math.max(0, info.max - used)
+      };
+    }
+
+    function resetLongRestFeaturePools() {
+      const info = layOnHandsPoolInfo();
+      if (!info) return;
+      delete featurePoolState()[info.key];
     }
 
     function abilityModifierByName(name) {
@@ -2393,6 +2544,26 @@
         });
     }
 
+    function layOnHandsPreparedSelection() {
+      const entry = classFeatureEntriesForCharacter().find((item) => isLayOnHandsFeature(item.feature));
+      if (!entry?.feature) return null;
+      const pool = layOnHandsPoolInfo(entry.feature);
+      if (!pool) return null;
+      return {
+        kind: "pool",
+        key: pool.key,
+        sourceEntry: entry,
+        name: "Lay on Hands",
+        damage: "",
+        damageLabel: "Pool",
+        damageType: "healing",
+        description: `Pool de curacion restante: ${pool.remaining}/${pool.max}. Abre el detalle para gastar, deshacer o resetear puntos del pool.`,
+        poolRemaining: pool.remaining,
+        poolMax: pool.max,
+        level: 0
+      };
+    }
+
     function featResourceSelections() {
       return activeFeatEntriesForEffects()
         .map((entry) => {
@@ -2494,6 +2665,31 @@
       return result;
     }
 
+    function applyGreatWeaponFightingToDamageRoll(roll) {
+      if (!roll?.terms?.length) return roll;
+      const terms = roll.terms.map((term) => {
+        if (term?.type !== "dice" || !Array.isArray(term.rolls) || term.sides < 3) return term;
+        const adjustedRolls = term.rolls.map((value) => (value <= 2 ? 3 : value));
+        const changed = adjustedRolls.some((value, index) => value !== term.rolls[index]);
+        if (!changed) return term;
+        return {
+          ...term,
+          originalRolls: [...term.rolls],
+          rolls: adjustedRolls,
+          subtotal: adjustedRolls.reduce((sum, value) => sum + value, 0)
+        };
+      });
+      const total = terms.reduce((sum, term) => sum + (term.type === "dice" ? term.subtotal : term.value), 0);
+      return { ...roll, terms, total };
+    }
+
+    function applyDamageRollOptions(roll, options = {}) {
+      if (!roll) return roll;
+      let next = roll;
+      if (options?.greatWeaponFighting) next = applyGreatWeaponFightingToDamageRoll(next);
+      return next;
+    }
+
     function formatDiceLines(lines = []) {
       return lines.filter(Boolean).join("\n");
     }
@@ -2562,14 +2758,20 @@
       const bonusSummary = rollBonusDiceEntries(bonusDice);
       const subtotal = roll.selected + cleanParts.reduce((sum, part) => sum + part.value, 0);
       const total = subtotal + bonusSummary.total;
+      const subtotalExpression = [roll.selected, ...cleanParts.map((part) => part.value)]
+        .map((value, index) => index === 0 ? String(value) : formatModifier(value))
+        .join(" ");
+      const finalExpression = bonusSummary.total
+        ? `${subtotal} ${formatModifier(bonusSummary.total)}`
+        : String(subtotal);
       return {
         total,
         detail: formatDiceLines([
           d20RollHeader(roll),
           ...cleanParts.map((part) => `${part.label}: ${formatModifier(part.value)}`),
-          `Subtotal: ${[roll.selected, ...cleanParts.map((part) => part.value)].map((value, index) => index === 0 ? String(value) : formatModifier(value)).join(" ")} = ${subtotal}`,
+          `Subtotal: ${subtotalExpression} = ${subtotal}`,
           ...bonusSummary.lines,
-          bonusSummary.total ? `Total final: ${subtotal} + ${bonusSummary.total} = ${total}` : `Total final: ${subtotal}`,
+          `Total final: ${finalExpression} = ${total}`,
           label ? `Nota: ${label}` : "",
           ...notes
         ])
@@ -2681,28 +2883,6 @@
       };
     }
 
-    const DICE_ROLL_LIMIT = 40;
-    let diceRollThreePromise = null;
-    let diceRollRunId = 0;
-    let activeDiceRollScene = null;
-
-    function loadDiceRollThree() {
-      if (!diceRollThreePromise) {
-        diceRollThreePromise = import("../../../node_modules/three/build/three.module.js");
-      }
-      return diceRollThreePromise;
-    }
-
-    function normalizeDiceVisualEntries(entries = []) {
-      return (Array.isArray(entries) ? entries : [])
-        .map((entry) => ({
-          sides: Number.parseInt(entry?.sides, 10),
-          value: Number.parseInt(entry?.value, 10)
-        }))
-        .filter((entry) => Number.isFinite(entry.sides) && entry.sides >= 2 && Number.isFinite(entry.value))
-        .slice(0, DICE_ROLL_LIMIT);
-    }
-
     function d20RollVisualEntries(roll) {
       return (Array.isArray(roll?.rolls) ? roll.rolls : []).map((value) => ({ sides: 20, value }));
     }
@@ -2715,231 +2895,229 @@
       ));
     }
 
-    function createDiceGeometry(THREE, sides) {
-      if (sides === 4) return new THREE.TetrahedronGeometry(0.78, 0);
-      if (sides === 6) return new THREE.BoxGeometry(1.08, 1.08, 1.08);
-      if (sides === 8) return new THREE.OctahedronGeometry(0.84, 0);
-      if (sides === 10) return new THREE.CylinderGeometry(0.48, 0.76, 1.18, 10, 1);
-      if (sides === 12) return new THREE.DodecahedronGeometry(0.88, 0);
-      return new THREE.IcosahedronGeometry(0.88, 0);
+    const FREE_DICE_MIN = 2;
+    const FREE_DICE_MAX = 100;
+    const FREE_DICE_MAX_TOTAL = 40;
+    const DICE_LOG_KEY = "dnd-character-sheet-dice-log-v1";
+    const DICE_LOG_LIMIT = 40;
+    const freeDiceCounts = new Map();
+    let freeDiceMenuInitialized = false;
+    let diceRollLog = loadDiceRollLog();
+
+    function freeDiceMenuElement() {
+      return document.getElementById("freeDiceMenu");
     }
 
-    function diceMaterialColor(sides, index) {
-      const colors = {
-        4: 0xc94c4c,
-        6: 0x2f7ed8,
-        8: 0x2f8f5b,
-        10: 0xd29b2e,
-        12: 0x8b5fd7,
-        20: 0x1f9aa5
-      };
-      const fallback = [0x2f7ed8, 0xc94c4c, 0xd29b2e, 0x2f8f5b, 0x8b5fd7];
-      return colors[sides] || fallback[index % fallback.length];
+    function freeDiceSelectElement() {
+      return document.getElementById("freeDiceSelect");
     }
 
-    function createDiceRollLabel(entry) {
-      const label = document.createElement("div");
-      label.className = "dice-roll-label";
-      const value = document.createElement("span");
-      value.textContent = String(entry.value);
-      const die = document.createElement("small");
-      die.textContent = `d${entry.sides}`;
-      label.append(value, die);
-      return label;
+    function freeDiceSelectionElement() {
+      return document.getElementById("freeDiceSelection");
     }
 
-    function disposeDiceRollScene() {
-      if (!activeDiceRollScene) return;
-      const {
-        animationFrame,
-        resizeHandler,
-        scene,
-        renderer,
-        overlay,
-        canvasRoot,
-        labelLayer
-      } = activeDiceRollScene;
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      if (resizeHandler) window.removeEventListener("resize", resizeHandler);
-      if (scene) {
-        scene.traverse((object) => {
-          object.geometry?.dispose?.();
-          if (Array.isArray(object.material)) object.material.forEach((material) => material?.dispose?.());
-          else object.material?.dispose?.();
-        });
+    function freeDiceRollButton() {
+      return document.getElementById("freeDiceRoll");
+    }
+
+    function freeDiceTotalCount() {
+      return [...freeDiceCounts.values()].reduce((total, count) => total + count, 0);
+    }
+
+    function loadDiceRollLog() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(DICE_LOG_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed.slice(0, DICE_LOG_LIMIT) : [];
+      } catch (_error) {
+        return [];
       }
-      renderer?.dispose?.();
-      renderer?.forceContextLoss?.();
-      if (canvasRoot) canvasRoot.textContent = "";
-      if (labelLayer) labelLayer.textContent = "";
-      overlay?.classList.remove("visible", "fading");
-      activeDiceRollScene = null;
     }
 
-    function updateDiceRollSize(state) {
-      const width = Math.max(1, state.overlay.clientWidth || window.innerWidth);
-      const height = Math.max(1, state.overlay.clientHeight || window.innerHeight);
-      state.renderer.setSize(width, height, false);
-      state.camera.aspect = width / height;
-      state.camera.updateProjectionMatrix();
+    function saveDiceRollLog() {
+      localStorage.setItem(DICE_LOG_KEY, JSON.stringify(diceRollLog.slice(0, DICE_LOG_LIMIT)));
     }
 
-    function updateDiceRollLabels(state) {
-      const width = state.overlay.clientWidth || window.innerWidth;
-      const height = state.overlay.clientHeight || window.innerHeight;
-      state.dice.forEach((die) => {
-        const position = new state.THREE.Vector3();
-        position.setFromMatrixPosition(die.mesh.matrixWorld);
-        position.y += 0.9;
-        position.project(state.camera);
-        die.label.style.left = `${(position.x * 0.5 + 0.5) * width}px`;
-        die.label.style.top = `${(-position.y * 0.5 + 0.5) * height}px`;
+    function recordDiceRollLog(title, result, detail) {
+      diceRollLog = [{
+        title: String(title || "Tirada"),
+        result: String(result || ""),
+        detail: String(detail || ""),
+        timestamp: new Date().toISOString()
+      }, ...diceRollLog].slice(0, DICE_LOG_LIMIT);
+      saveDiceRollLog();
+      renderDiceLog();
+    }
+
+    function renderDiceLog() {
+      const list = document.getElementById("diceLogList");
+      if (!list) return;
+      list.textContent = "";
+      if (!diceRollLog.length) {
+        const empty = document.createElement("div");
+        empty.className = "dice-log-empty";
+        empty.textContent = "Sin tiradas todavia.";
+        list.appendChild(empty);
+        return;
+      }
+      diceRollLog.slice(0, 12).forEach((entry) => {
+        const row = document.createElement("div");
+        row.className = "dice-log-row";
+        const main = document.createElement("div");
+        main.className = "dice-log-main";
+        main.textContent = entry.title;
+        const result = document.createElement("div");
+        result.className = "dice-log-result";
+        result.textContent = entry.result;
+        const detail = document.createElement("div");
+        detail.className = "dice-log-detail";
+        detail.textContent = String(entry.detail || "");
+        row.append(main, result, detail);
+        list.appendChild(row);
       });
     }
 
-    function startDiceRollScene(THREE, entries, runId) {
-      if (runId !== diceRollRunId) return;
-      const overlay = document.getElementById("diceRollOverlay");
-      const canvasRoot = document.getElementById("diceRollCanvas");
-      const labelLayer = document.getElementById("diceRollLabels");
-      if (!overlay || !canvasRoot || !labelLayer) return;
-
-      disposeDiceRollScene();
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-      camera.position.set(0, 4.25, 9.5);
-      camera.lookAt(0, 0, 0);
-
-      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      canvasRoot.appendChild(renderer.domElement);
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.72));
-      const keyLight = new THREE.DirectionalLight(0xffffff, 1.3);
-      keyLight.position.set(-3, 6, 7);
-      scene.add(keyLight);
-      const rimLight = new THREE.DirectionalLight(0x9ec7ff, 0.72);
-      rimLight.position.set(4, 2, -4);
-      scene.add(rimLight);
-
-      const columns = entries.length <= 8 ? entries.length : Math.min(10, Math.ceil(Math.sqrt(entries.length * 1.7)));
-      const rows = Math.ceil(entries.length / Math.max(columns, 1));
-      const dieScale = entries.length > 24 ? 0.58 : entries.length > 14 ? 0.68 : entries.length > 8 ? 0.78 : 1;
-      const gapX = 0.98 * dieScale;
-      const gapY = 1.08 * dieScale;
-      const dice = entries.map((entry, index) => {
-        const geometry = createDiceGeometry(THREE, entry.sides);
-        const material = new THREE.MeshStandardMaterial({
-          color: diceMaterialColor(entry.sides, index),
-          roughness: 0.48,
-          metalness: 0.16,
-          flatShading: true
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.scale.setScalar(dieScale);
-        const column = index % columns;
-        const row = Math.floor(index / columns);
-        const targetX = (column - (columns - 1) / 2) * gapX;
-        const startSide = index % 2 === 0 ? -1 : 1;
-        const startX = targetX + startSide * (4.8 + Math.random() * 2.4);
-        const startY = 1.6 + Math.random() * 1.8;
-        const startZ = -1.2 + Math.random() * 2.4;
-        const targetY = ((rows - 1) / 2 - row) * gapY - 0.18;
-        const targetZ = ((index % 3) - 1) * 0.28;
-        const finalRotation = new THREE.Euler(
-          Math.random() * Math.PI,
-          Math.random() * Math.PI,
-          Math.random() * Math.PI
-        );
-        const spin = new THREE.Vector3(
-          10 + Math.random() * 8,
-          12 + Math.random() * 10,
-          8 + Math.random() * 8
-        );
-        const label = createDiceRollLabel(entry);
-        labelLayer.appendChild(label);
-        mesh.position.set(startX, startY, startZ);
-        scene.add(mesh);
-        return {
-          mesh,
-          label,
-          startX,
-          startY,
-          startZ,
-          targetX,
-          targetY,
-          targetZ,
-          finalRotation,
-          spin
-        };
-      });
-
-      const state = {
-        THREE,
-        runId,
-        scene,
-        camera,
-        renderer,
-        overlay,
-        canvasRoot,
-        labelLayer,
-        dice,
-        animationFrame: null,
-        resizeHandler: null
-      };
-      state.resizeHandler = () => updateDiceRollSize(state);
-      window.addEventListener("resize", state.resizeHandler);
-      activeDiceRollScene = state;
-      updateDiceRollSize(state);
-      overlay.classList.remove("fading");
-      overlay.classList.add("visible");
-
-      const startedAt = performance.now();
-      const duration = 1650;
-      const hold = 950;
-      const fade = 340;
-      const easeOut = (value) => 1 - Math.pow(1 - value, 3);
-
-      const renderFrame = (now) => {
-        if (activeDiceRollScene !== state || state.runId !== diceRollRunId) return;
-        const elapsed = now - startedAt;
-        const progress = Math.min(1, elapsed / duration);
-        const eased = easeOut(progress);
-        const hop = Math.sin(progress * Math.PI) * 1.7;
-        state.dice.forEach((die) => {
-          die.mesh.position.set(
-            die.startX + (die.targetX - die.startX) * eased,
-            die.startY + (die.targetY - die.startY) * eased + hop,
-            die.startZ + (die.targetZ - die.startZ) * eased
-          );
-          const spinLeft = 1 - eased;
-          die.mesh.rotation.set(
-            die.finalRotation.x + die.spin.x * spinLeft,
-            die.finalRotation.y + die.spin.y * spinLeft,
-            die.finalRotation.z + die.spin.z * spinLeft
-          );
-          die.label.style.opacity = progress > 0.42 ? "1" : "0";
-        });
-        state.renderer.render(state.scene, state.camera);
-        updateDiceRollLabels(state);
-        if (elapsed > duration + hold) state.overlay.classList.add("fading");
-        if (elapsed > duration + hold + fade) {
-          disposeDiceRollScene();
-          return;
-        }
-        state.animationFrame = requestAnimationFrame(renderFrame);
-      };
-
-      state.animationFrame = requestAnimationFrame(renderFrame);
+    function populateFreeDiceSelect() {
+      const select = freeDiceSelectElement();
+      if (!select || select.options.length) return;
+      for (let sides = FREE_DICE_MIN; sides <= FREE_DICE_MAX; sides += 1) {
+        const option = document.createElement("option");
+        option.value = String(sides);
+        option.textContent = `d${sides}`;
+        if (sides === 20) option.selected = true;
+        select.appendChild(option);
+      }
     }
 
-    function animateDiceRoll3d(entries = []) {
-      const diceEntries = normalizeDiceVisualEntries(entries);
-      if (!diceEntries.length) return;
-      const runId = ++diceRollRunId;
-      loadDiceRollThree()
-        .then((THREE) => startDiceRollScene(THREE, diceEntries, runId))
-        .catch((error) => console.error("No se pudo cargar Three.js para dados.", error));
+    function selectedFreeDieSides() {
+      const sides = Number.parseInt(freeDiceSelectElement()?.value || "20", 10);
+      return Math.min(FREE_DICE_MAX, Math.max(FREE_DICE_MIN, Number.isFinite(sides) ? sides : 20));
+    }
+
+    function setFreeDieCount(sides, count) {
+      const normalizedSides = Math.min(FREE_DICE_MAX, Math.max(FREE_DICE_MIN, Number.parseInt(sides, 10) || 20));
+      const normalizedCount = Math.max(0, Number.parseInt(count, 10) || 0);
+      if (normalizedCount) freeDiceCounts.set(normalizedSides, normalizedCount);
+      else freeDiceCounts.delete(normalizedSides);
+      renderFreeDiceSelection();
+    }
+
+    function addFreeDie(sides = selectedFreeDieSides()) {
+      if (freeDiceTotalCount() >= FREE_DICE_MAX_TOTAL) {
+        showStatus(`Maximo ${FREE_DICE_MAX_TOTAL} dados por tirada libre.`);
+        return;
+      }
+      setFreeDieCount(sides, (freeDiceCounts.get(sides) || 0) + 1);
+    }
+
+    function removeFreeDie(sides = selectedFreeDieSides()) {
+      setFreeDieCount(sides, Math.max(0, (freeDiceCounts.get(sides) || 0) - 1));
+    }
+
+    function freeDiceExpression() {
+      return [...freeDiceCounts.entries()]
+        .sort(([left], [right]) => left - right)
+        .map(([sides, count]) => `${count}d${sides}`)
+        .join(" + ");
+    }
+
+    function renderFreeDiceSelection() {
+      const container = freeDiceSelectionElement();
+      const rollButton = freeDiceRollButton();
+      if (!container) return;
+      container.textContent = "";
+      const entries = [...freeDiceCounts.entries()].sort(([left], [right]) => left - right);
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "free-dice-empty";
+        empty.textContent = "Selecciona dados con +.";
+        container.appendChild(empty);
+        if (rollButton) rollButton.disabled = true;
+        return;
+      }
+      entries.forEach(([sides, count]) => {
+        const row = document.createElement("div");
+        row.className = "free-dice-row";
+        const label = document.createElement("span");
+        label.className = "free-dice-row-label";
+        label.textContent = `${count}d${sides}`;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "free-dice-row-step";
+        remove.textContent = "-";
+        remove.setAttribute("aria-label", `Quitar d${sides}`);
+        remove.addEventListener("click", () => removeFreeDie(sides));
+        const add = document.createElement("button");
+        add.type = "button";
+        add.className = "free-dice-row-step";
+        add.textContent = "+";
+        add.setAttribute("aria-label", `Agregar d${sides}`);
+        add.addEventListener("click", () => addFreeDie(sides));
+        row.append(label, remove, add);
+        container.appendChild(row);
+      });
+      if (rollButton) rollButton.disabled = false;
+    }
+
+    function rollFreeDice() {
+      const expression = freeDiceExpression();
+      if (!expression) {
+        showStatus("Selecciona al menos un dado.");
+        return;
+      }
+      const roll = rollDiceExpression(expression);
+      if (!roll) {
+        showStatus("No se pudo tirar esa combinacion.");
+        return;
+      }
+      const diceTerms = roll.terms.filter((term) => term.type === "dice");
+      const detail = formatDiceLines([
+        `Dados: ${expression}`,
+        ...diceTerms.map((term) => `Tiradas ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
+        `Total: ${roll.total}`
+      ]);
+      showDiceTray(`Tirada libre: ${expression}`, String(roll.total), detail, diceTermVisualEntries(diceTerms));
+    }
+
+    function isFreeDiceMenuOpen() {
+      return !freeDiceMenuElement()?.hidden;
+    }
+
+    function setFreeDiceMenuOpen(open) {
+      ensureFreeDiceMenuInitialized();
+      const menu = freeDiceMenuElement();
+      if (!menu) return;
+      menu.hidden = !open;
+      menu.classList.toggle("visible", Boolean(open));
+      document.querySelectorAll(".status-dice-button").forEach((button) => button.classList.toggle("active", Boolean(open)));
+      if (open) {
+        renderDiceLog();
+        renderFreeDiceSelection();
+        freeDiceSelectElement()?.focus();
+      }
+    }
+
+    function toggleFreeDiceMenu() {
+      setFreeDiceMenuOpen(!isFreeDiceMenuOpen());
+    }
+
+    function ensureFreeDiceMenuInitialized() {
+      if (freeDiceMenuInitialized) return;
+      freeDiceMenuInitialized = true;
+      populateFreeDiceSelect();
+      renderFreeDiceSelection();
+      renderDiceLog();
+      document.getElementById("freeDicePlus")?.addEventListener("click", () => addFreeDie());
+      document.getElementById("freeDiceMinus")?.addEventListener("click", () => removeFreeDie());
+      document.getElementById("freeDiceRoll")?.addEventListener("click", rollFreeDice);
+      document.getElementById("freeDiceClose")?.addEventListener("click", () => setFreeDiceMenuOpen(false));
+      document.addEventListener("pointerdown", (event) => {
+        if (!isFreeDiceMenuOpen()) return;
+        if (event.target?.closest?.("#freeDiceMenu") || event.target?.closest?.(".status-dice-button")) return;
+        setFreeDiceMenuOpen(false);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && isFreeDiceMenuOpen()) setFreeDiceMenuOpen(false);
+      });
     }
 
     function showDiceTray(title, result, detail, diceVisuals = []) {
@@ -2947,7 +3125,8 @@
       diceResult.textContent = result;
       diceDetail.textContent = detail;
       diceTray.classList.add("visible");
-      animateDiceRoll3d(diceVisuals);
+      recordDiceRollLog(title, result, detail);
+      if (window.isDiceRollAnimationEnabled?.() && typeof animateDiceRoll3d === "function") animateDiceRoll3d(diceVisuals);
       clearTimeout(diceTimer);
       diceTimer = setTimeout(() => diceTray.classList.remove("visible"), 12000);
     }
@@ -2986,9 +3165,14 @@
       showDiceTray(label, String(summary.total), summary.detail, d20RollVisualEntries(roll));
     }
 
-    function rollDamage(attackName, expression, damageType) {
+    function rollDamage(attackOrRow, expression, damageType) {
+      const row = attackOrRow && typeof attackOrRow === "object" ? attackOrRow : null;
+      const attackName = row?.name || attackOrRow;
+      const damageExpression = row?.damage || expression;
+      const resolvedDamageType = row?.damageType || damageType;
+      const damageRollOptions = row?.damageRollOptions || {};
       const isCriticalHit = consumePendingCriticalHit(attackName);
-      if (expression === "unarmed") {
+      if (damageExpression === "unarmed") {
         const strengthModifier = getStrengthModifier();
         const total = Math.max(0, 1 + strengthModifier);
         updatePreparedSpellsPanel();
@@ -2997,12 +3181,12 @@
           `STR mod: ${formatModifier(strengthModifier)}`,
           `Total: max(0, 1 ${formatModifier(strengthModifier)}) = ${total}`,
           isCriticalHit ? "Critico: no hay damage dice base para duplicar en este ataque." : "",
-          damageType ? `Tipo: ${damageType}` : ""
+          resolvedDamageType ? `Tipo: ${resolvedDamageType}` : ""
         ]));
         return;
       }
-      const finalExpression = isCriticalHit ? criticalDamageExpression(expression) || expression : expression;
-      const roll = rollDiceExpression(finalExpression);
+      const finalExpression = isCriticalHit ? criticalDamageExpression(damageExpression) || damageExpression : damageExpression;
+      const roll = applyDamageRollOptions(rollDiceExpression(finalExpression), damageRollOptions);
       if (!roll) {
         updatePreparedSpellsPanel();
         showDiceTray(`${attackName}: danio`, "N/A", "No encontre dados de danio en la descripcion.");
@@ -3014,12 +3198,17 @@
       const bonusTotal = bonusTerms.reduce((sum, term) => sum + term.value, 0);
       updatePreparedSpellsPanel();
       showDiceTray(`${attackName}: danio`, String(roll.total), formatDiceLines([
-        isCriticalHit ? `Critico: ${expression} -> ${finalExpression}` : `Dados: ${expression}`,
+        isCriticalHit ? `Critico: ${damageExpression} -> ${finalExpression}` : `Dados: ${damageExpression}`,
         isCriticalHit ? "Efecto: tiras todos los damage dice dos veces y luego sumas los modificadores." : "",
-        ...diceTerms.map((term) => `Tiradas ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
+        damageRollOptions.greatWeaponFighting ? "Great Weapon Fighting: cada 1 o 2 en los damage dice base cuenta como 3." : "",
+        ...diceTerms.map((term) => (
+          Array.isArray(term.originalRolls)
+            ? `Tiradas ${term.expression}: ${term.originalRolls.join(" + ")} -> ${term.rolls.join(" + ")} = ${term.subtotal}`
+            : `Tiradas ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`
+        )),
         ...bonusTerms.map((term) => `Bonus fijo: ${formatModifier(term.value)}`),
         `Total: ${diceTotal}${bonusTotal ? ` ${formatModifier(bonusTotal)}` : ""} = ${roll.total}`,
-        damageType ? `Tipo: ${damageType}` : ""
+        resolvedDamageType ? `Tipo: ${resolvedDamageType}` : ""
       ]), diceTermVisualEntries(diceTerms));
     }
 
@@ -3062,7 +3251,8 @@
       const attacks = mainHandUsesTwoHands()
         ? []
         : [unarmed];
-      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...featureActivationSelections(), ...featResourceSelections(), ...allPreparedSpells];
+      const layOnHands = layOnHandsPreparedSelection();
+      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...(layOnHands ? [layOnHands] : []), ...featureActivationSelections(), ...featResourceSelections(), ...allPreparedSpells];
     }
 
     function preparedAttackDrawerMetaForItem(item) {
@@ -3125,7 +3315,11 @@
         const levelButton = document.createElement("button");
         levelButton.type = "button";
         levelButton.className = "dice-button";
-        if (spell.kind !== "spell") {
+        if (spell.kind === "pool") {
+          levelButton.textContent = "Pool";
+          levelButton.title = `${spell.name}: recurso de puntos de curacion`;
+          levelButton.disabled = true;
+        } else if (spell.kind !== "spell") {
           levelButton.textContent = "-";
           levelButton.title = "Sin nivel de casteo";
           levelButton.disabled = true;
@@ -3153,7 +3347,11 @@
         const attackButton = document.createElement("button");
         attackButton.type = "button";
         attackButton.className = "dice-button";
-        if (spell.kind === "activation" && spell.resourceOnly) {
+        if (spell.kind === "pool") {
+          attackButton.textContent = "Abrir";
+          attackButton.title = `Abrir ${spell.name}`;
+          attackButton.addEventListener("click", () => openPreparedAttackDetail(spell));
+        } else if (spell.kind === "activation" && spell.resourceOnly) {
           attackButton.textContent = "-";
           attackButton.title = `${spell.name} usa el contador de cargas`;
           attackButton.disabled = true;
@@ -3175,7 +3373,11 @@
         const castButton = document.createElement("button");
         castButton.type = "button";
         castButton.className = "dice-button";
-        if (spell.kind === "spell") {
+        if (spell.kind === "pool") {
+          castButton.textContent = `${spell.poolRemaining}/${spell.poolMax}`;
+          castButton.title = `${spell.name}: ${spell.poolRemaining}/${spell.poolMax} puntos restantes`;
+          castButton.addEventListener("click", () => openPreparedAttackDetail(spell));
+        } else if (spell.kind === "spell") {
           const sourceName = spell.sourceName || spell.name;
           const selectedCastLevel = spell.castLevel || spell.level;
           const magicInitiateUse = spell.level > 0 && selectedCastLevel === spell.level ? magicInitiateFreeUseInfo(sourceName) : null;
@@ -3206,13 +3408,16 @@
         damageButton.className = "dice-button";
         const criticalReady = hasPendingCriticalHit(spell.name);
         damageButton.classList.toggle("active", criticalReady);
-        damageButton.textContent = spell.damageLabel || "--";
-        damageButton.title = spell.damageLabel
+        damageButton.textContent = spell.kind === "pool" ? "Editar" : (spell.damageLabel || "--");
+        damageButton.title = spell.kind === "pool"
+          ? `Editar pool de ${spell.name}`
+          : (spell.damageLabel
           ? `${criticalReady ? "Critico listo. " : ""}Tirar danio ${spell.damageLabel} ${spell.damageType} ${spell.kind === "spell" && spell.level > 0 ? `a nivel ${spell.castLevel || spell.level}` : ""}`.trim()
-          : "Sin dados de danio detectados";
-        if (spell.kind === "activation") damageButton.disabled = true;
+          : "Sin dados de danio detectados");
+        if (spell.kind === "pool") damageButton.addEventListener("click", () => openPreparedAttackDetail(spell));
+        else if (spell.kind === "activation") damageButton.disabled = true;
         else if (!spell.damage) damageButton.disabled = true;
-        else damageButton.addEventListener("click", () => rollDamage(spell.name, spell.damage || "", spell.damageType));
+        else damageButton.addEventListener("click", () => rollDamage(spell));
 
         row.append(name, damageType, levelButton, castButton, attackButton, damageButton);
         preparedSpellsPanel.appendChild(row);
@@ -3799,6 +4004,18 @@
         });
       }
 
+      const layOnHands = layOnHandsPoolInfo();
+      if (layOnHands) {
+        resources.push({
+          key: layOnHands.key,
+          title: "Lay on Hands",
+          remaining: layOnHands.remaining,
+          total: layOnHands.max,
+          detail: "Pool de curacion",
+          source: "features"
+        });
+      }
+
       const seen = new Set();
       generatedFeaturesAndTraitsEntries()
         .concat(activeFeatEntriesForEffects())
@@ -3961,6 +4178,105 @@
         grid.appendChild(card);
       });
       section.append(title, grid);
+      return section;
+    }
+
+    function buildLayOnHandsPoolSection(feature) {
+      const info = layOnHandsPoolInfo(feature);
+      if (!info) return null;
+
+      const section = document.createElement("section");
+      section.className = "item-section lay-on-hands-section";
+      appendText(section, "item-section-title", "Lay on Hands Pool");
+
+      const controls = document.createElement("div");
+      controls.className = "lay-on-hands-controls";
+      const summary = document.createElement("div");
+      summary.className = "lay-on-hands-summary";
+      const note = document.createElement("div");
+      note.className = "lay-on-hands-note";
+      note.textContent = "1 punto = 1 HP curado. Remover Poisoned cuesta 5 puntos.";
+
+      const actionRow = document.createElement("div");
+      actionRow.className = "lay-on-hands-action-row";
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "1";
+      input.step = "1";
+      input.value = "5";
+      input.className = "lay-on-hands-input";
+      input.setAttribute("aria-label", "Puntos a gastar o recuperar");
+
+      const spendButton = document.createElement("button");
+      spendButton.type = "button";
+      spendButton.className = "lay-on-hands-button";
+      spendButton.textContent = "Gastar";
+
+      const restoreButton = document.createElement("button");
+      restoreButton.type = "button";
+      restoreButton.className = "lay-on-hands-button secondary";
+      restoreButton.textContent = "Deshacer";
+
+      const resetButton = document.createElement("button");
+      resetButton.type = "button";
+      resetButton.className = "lay-on-hands-button ghost";
+      resetButton.textContent = "Reset";
+
+      const readAmount = () => Math.max(1, Number.parseInt(input.value || "0", 10) || 1);
+      const render = () => {
+        const current = layOnHandsPoolInfo(feature);
+        if (!current) return;
+        summary.textContent = `Restante ${current.remaining}/${current.max} HP | Gastado ${current.used}`;
+        spendButton.disabled = current.remaining <= 0;
+        restoreButton.disabled = current.used <= 0;
+        resetButton.disabled = current.used <= 0;
+        input.max = String(Math.max(current.max, 1));
+      };
+
+      spendButton.addEventListener("click", () => {
+        const current = layOnHandsPoolInfo(feature);
+        if (!current) return;
+        const amount = Math.min(readAmount(), current.remaining);
+        if (amount <= 0) {
+          showStatus("Lay on Hands: no quedan puntos para gastar");
+          return;
+        }
+        setLayOnHandsPoolUsed(feature, current.used + amount);
+        showStatus(`Lay on Hands: ${amount} punto(s) gastados. Restan ${Math.max(0, current.remaining - amount)}/${current.max}`);
+        render();
+      });
+
+      restoreButton.addEventListener("click", () => {
+        const current = layOnHandsPoolInfo(feature);
+        if (!current) return;
+        const amount = Math.min(readAmount(), current.used);
+        if (amount <= 0) {
+          showStatus("Lay on Hands: no hay gasto para deshacer");
+          return;
+        }
+        setLayOnHandsPoolUsed(feature, current.used - amount);
+        showStatus(`Lay on Hands: ${amount} punto(s) restaurados al pool. Restan ${Math.min(current.max, current.remaining + amount)}/${current.max}`);
+        render();
+      });
+
+      resetButton.addEventListener("click", () => {
+        const current = layOnHandsPoolInfo(feature);
+        if (!current) return;
+        setLayOnHandsPoolUsed(feature, 0);
+        showStatus(`Lay on Hands: pool reiniciado a ${current.max}/${current.max}`);
+        render();
+      });
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        spendButton.click();
+      });
+
+      actionRow.append(input, spendButton, restoreButton, resetButton);
+      controls.append(summary, note, actionRow);
+      section.appendChild(controls);
+      render();
       return section;
     }
 
@@ -4759,6 +5075,18 @@
       });
       launcherRow.appendChild(addButton);
 
+      const diceButton = document.createElement("button");
+      diceButton.type = "button";
+      diceButton.className = `status-dice-button${isFreeDiceMenuOpen() ? " active" : ""}`;
+      diceButton.textContent = "\uD83C\uDFB2";
+      diceButton.title = "Tirar dados libres";
+      diceButton.setAttribute("aria-label", "Tirar dados libres");
+      diceButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        toggleFreeDiceMenu();
+      });
+      launcherRow.appendChild(diceButton);
+
       const picker = document.createElement("div");
       picker.className = `status-picker${open ? " visible" : ""}`;
       const pickerHeader = document.createElement("div");
@@ -5290,6 +5618,8 @@
       const target = event.target;
       if (!target || target.closest?.(".field")) return;
       if (target.closest?.("#saveSlotControl")) return;
+      if (target.closest?.("#appSettingsMenu")) return;
+      if (target.closest?.("#freeDiceMenu")) return;
       if (target.closest?.("#itemPickerBackdrop")) return;
       if (target.closest?.(".spell-picker")) return;
       if (!target.matches?.("input[type='checkbox'], input[type='radio'], select")) return;
@@ -8186,6 +8516,8 @@
       });
       if (translationToolbar) root.appendChild(translationToolbar);
       root.appendChild(descriptionContainer);
+      const layOnHandsSection = buildLayOnHandsPoolSection(feature);
+      if (layOnHandsSection) root.appendChild(layOnHandsSection);
       appendFeatureChoiceControls(root, feature);
       appendText(root, "item-source", [
         feature?.source ? `Source: ${sourceLabel(feature.source)}${feature.page ? `, page ${feature.page}` : ""}.` : "",

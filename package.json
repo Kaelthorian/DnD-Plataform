@@ -1,6 +1,6 @@
 {
   "name": "dnd-character-sheet-desktop",
-  "version": "4.7.3",
+  "version": "4.9.9",
   "description": "Planilla de personaje DnD de escritorio",
   "main": "src/app/main/main.js",
   "author": "WallyCode",

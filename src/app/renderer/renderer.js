@@ -13,6 +13,10 @@
     const topControlsMenu = document.getElementById("topControlsMenu");
     const topControlsLauncher = document.getElementById("topControlsLauncher");
     const topControlsPanel = document.getElementById("topControlsPanel");
+    const appSettingsMenu = document.getElementById("appSettingsMenu");
+    const appSettingsLauncher = document.getElementById("appSettingsLauncher");
+    const appSettingsPanel = document.getElementById("appSettingsPanel");
+    const diceAnimationToggle = document.getElementById("diceAnimationToggle");
     const saveSlotControl = document.getElementById("saveSlotControl");
     const saveSlotSelect = document.getElementById("saveSlotSelect");
     const saveSlotLabel = document.getElementById("saveSlotLabel");
@@ -80,8 +84,40 @@
     let activeSaveSlotId = "slot-1";
     let isSwitchingSaveSlot = false;
     let sheetBackgroundImageUrl = "./assets/Background.png";
+    let platformBackgroundImageUrl = "./assets/BackgroundSheet.png";
     const collapsibleSectionState = {};
     let fieldLookupCache = null;
+    const UI_SETTINGS_KEY = "dnd-character-sheet-ui-settings-v1";
+    const uiSettings = {
+      diceRollAnimations: false
+    };
+
+    function loadUiSettings() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(UI_SETTINGS_KEY) || "{}");
+        uiSettings.diceRollAnimations = Boolean(parsed?.diceRollAnimations);
+      } catch (_error) {
+        uiSettings.diceRollAnimations = false;
+      }
+      window.dndUiSettings = uiSettings;
+    }
+
+    function saveUiSettings() {
+      localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(uiSettings));
+      window.dndUiSettings = uiSettings;
+    }
+
+    function isDiceRollAnimationEnabled() {
+      return Boolean(uiSettings.diceRollAnimations);
+    }
+
+    window.isDiceRollAnimationEnabled = isDiceRollAnimationEnabled;
+
+    function syncSettingsControls() {
+      if (diceAnimationToggle) diceAnimationToggle.checked = Boolean(uiSettings.diceRollAnimations);
+    }
+
+    loadUiSettings();
 
     function invalidateFieldLookupCache() {
       fieldLookupCache = null;
@@ -128,6 +164,17 @@
       topControlsMenu.classList.toggle("open", Boolean(open));
       topControlsLauncher.setAttribute("aria-expanded", open ? "true" : "false");
       topControlsPanel.hidden = !open;
+    }
+
+    function isAppSettingsMenuOpen() {
+      return Boolean(appSettingsMenu?.classList.contains("open"));
+    }
+
+    function setAppSettingsMenuOpen(open) {
+      if (!appSettingsMenu || !appSettingsLauncher || !appSettingsPanel) return;
+      appSettingsMenu.classList.toggle("open", Boolean(open));
+      appSettingsLauncher.setAttribute("aria-expanded", open ? "true" : "false");
+      appSettingsPanel.hidden = !open;
     }
 
     async function loadPdfJs() {
@@ -199,6 +246,20 @@
       } catch (_error) {
         return "./assets/Background.png";
       }
+    }
+
+    async function resolvePlatformBackgroundImageUrl() {
+      try {
+        const customUrl = await desktopStore?.getPlatformBackgroundImageUrl?.();
+        return customUrl || "./assets/BackgroundSheet.png";
+      } catch (_error) {
+        return "./assets/BackgroundSheet.png";
+      }
+    }
+
+    function applyPlatformBackgroundImage(backgroundUrl) {
+      platformBackgroundImageUrl = backgroundUrl || "./assets/BackgroundSheet.png";
+      document.documentElement.style.setProperty("--platform-background-image", `url("${platformBackgroundImageUrl}")`);
     }
 
     async function loadRaceOptions() {
@@ -605,7 +666,20 @@
     async function init() {
       await loadPdfJs();
       sheetBackgroundImageUrl = await resolveSheetBackgroundImageUrl();
+      applyPlatformBackgroundImage(await resolvePlatformBackgroundImageUrl());
       document.documentElement.style.setProperty("--sheet-background-image", `url("${sheetBackgroundImageUrl}")`);
+      if (desktopStore?.onPlatformBackgroundChanged) {
+        const unsubscribePlatformBackground = desktopStore.onPlatformBackgroundChanged((nextUrl) => {
+          applyPlatformBackgroundImage(nextUrl);
+        });
+        window.addEventListener("beforeunload", () => {
+          try {
+            unsubscribePlatformBackground?.();
+          } catch (_error) {
+            // Ignore listener cleanup errors.
+          }
+        }, { once: true });
+      }
       const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, spellActionMetadata, featData, optionalFeatureData, itemData, languageData] = await Promise.all([
         loadRaceOptions(),
         loadRaceDetails(),
@@ -661,13 +735,30 @@
       renderAlertsPanel();
       updateEquipmentPanel();
       updateInteractionState();
+      syncSettingsControls();
       topControlsLauncher?.addEventListener("pointerdown", (event) => {
         event.stopPropagation();
       });
       topControlsLauncher?.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        setAppSettingsMenuOpen(false);
         setTopControlsMenuOpen(!isTopControlsMenuOpen());
+      });
+      appSettingsLauncher?.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+      appSettingsLauncher?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setTopControlsMenuOpen(false);
+        setAppSettingsMenuOpen(!isAppSettingsMenuOpen());
+      });
+      diceAnimationToggle?.addEventListener("change", (event) => {
+        uiSettings.diceRollAnimations = Boolean(event.target.checked);
+        saveUiSettings();
+        if (!uiSettings.diceRollAnimations) window.stopDiceRoll3d?.();
+        showStatus(uiSettings.diceRollAnimations ? "Dados 3D activados" : "Dados 3D desactivados");
       });
       clearFieldsButton?.addEventListener("click", () => {
         clearAllFields().catch(console.error);
@@ -709,9 +800,17 @@
         if (!isTopControlsMenuOpen() || topControlsMenu?.contains(event.target)) return;
         setTopControlsMenuOpen(false);
       });
+      document.addEventListener("pointerdown", (event) => {
+        if (!isAppSettingsMenuOpen() || appSettingsMenu?.contains(event.target)) return;
+        setAppSettingsMenuOpen(false);
+      });
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape" || !isTopControlsMenuOpen()) return;
         setTopControlsMenuOpen(false);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || !isAppSettingsMenuOpen()) return;
+        setAppSettingsMenuOpen(false);
       });
       app.addEventListener("input", scheduleTurnActionsPanelRefresh);
       app.addEventListener("change", scheduleTurnActionsPanelRefresh);

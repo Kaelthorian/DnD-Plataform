@@ -7,6 +7,123 @@ const dataLoader = require("../../services/data-loader");
 const saveService = require("../../services/save-service");
 const translationService = require("../../services/translation-service");
 
+const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
+const platformBackgroundWatchers = new Map();
+let scheduledPlatformBackgroundBroadcast = null;
+let lastPlatformBackgroundUrl = null;
+
+function normalizeBasename(fileName) {
+  return path.parse(String(fileName || "")).name.replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function isImageFile(fileName) {
+  return IMAGE_EXTENSIONS.has(path.extname(String(fileName || "")).toLowerCase());
+}
+
+function uniquePaths(paths) {
+  return [...new Set((paths || []).filter(Boolean).map((value) => path.resolve(value)))];
+}
+
+function toFileUrl(filePath) {
+  return filePath ? pathToFileURL(filePath).toString() : null;
+}
+
+function firstExistingPath(paths = []) {
+  return paths.find((candidatePath) => fs.existsSync(candidatePath)) || null;
+}
+
+function getSheetBackgroundCandidatePaths() {
+  return uniquePaths([
+    path.join(process.cwd(), "Background.png"),
+    path.join(path.dirname(app.getPath("exe")), "Background.png")
+  ]);
+}
+
+function getPlatformBackgroundDirectoryCandidates() {
+  return uniquePaths([
+    path.join(process.cwd(), "src", "app", "renderer", "assets"),
+    path.join(__dirname, "..", "renderer", "assets"),
+    path.join(path.dirname(app.getPath("exe")), "assets")
+  ]);
+}
+
+function scorePlatformBackgroundCandidate(candidate) {
+  const normalized = normalizeBasename(candidate?.name);
+  let score = 0;
+  if (normalized.includes("background")) score += 8;
+  if (normalized.includes("plataform") || normalized.includes("platform")) score += 6;
+  if (normalized.includes("wallpaper") || normalized.includes("backdrop")) score += 3;
+  return score;
+}
+
+function resolvePlatformBackgroundImagePath() {
+  const candidates = [];
+  getPlatformBackgroundDirectoryCandidates().forEach((directoryPath) => {
+    if (!fs.existsSync(directoryPath)) return;
+    const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+    entries.forEach((entry) => {
+      if (!entry.isFile() || !isImageFile(entry.name)) return;
+      const normalized = normalizeBasename(entry.name);
+      if (normalized === "background") return;
+      const filePath = path.join(directoryPath, entry.name);
+      const stats = fs.statSync(filePath);
+      candidates.push({
+        name: entry.name,
+        path: filePath,
+        size: stats.size,
+        score: scorePlatformBackgroundCandidate(entry)
+      });
+    });
+  });
+  candidates.sort((left, right) => {
+    if (right.score !== left.score) return right.score - left.score;
+    if (right.size !== left.size) return right.size - left.size;
+    return left.name.localeCompare(right.name);
+  });
+  return candidates[0]?.path || null;
+}
+
+function getPlatformBackgroundImageUrl() {
+  return toFileUrl(resolvePlatformBackgroundImagePath());
+}
+
+function broadcastPlatformBackgroundChange() {
+  scheduledPlatformBackgroundBroadcast = null;
+  const nextUrl = getPlatformBackgroundImageUrl();
+  if (nextUrl === lastPlatformBackgroundUrl) return;
+  lastPlatformBackgroundUrl = nextUrl;
+  BrowserWindow.getAllWindows().forEach((windowInstance) => {
+    if (!windowInstance.isDestroyed()) windowInstance.webContents.send("platform-background:changed", nextUrl);
+  });
+}
+
+function schedulePlatformBackgroundBroadcast() {
+  if (scheduledPlatformBackgroundBroadcast) clearTimeout(scheduledPlatformBackgroundBroadcast);
+  scheduledPlatformBackgroundBroadcast = setTimeout(broadcastPlatformBackgroundChange, 80);
+}
+
+function ensurePlatformBackgroundWatchers() {
+  getPlatformBackgroundDirectoryCandidates().forEach((directoryPath) => {
+    if (platformBackgroundWatchers.has(directoryPath) || !fs.existsSync(directoryPath)) return;
+    try {
+      const watcher = fs.watch(directoryPath, { persistent: false }, () => {
+        schedulePlatformBackgroundBroadcast();
+      });
+      watcher.on("error", () => {
+        try {
+          watcher.close();
+        } catch (_error) {
+          // Ignore watcher cleanup errors.
+        }
+        platformBackgroundWatchers.delete(directoryPath);
+      });
+      platformBackgroundWatchers.set(directoryPath, watcher);
+    } catch (_error) {
+      // Ignore watcher startup errors; the background still resolves on launch.
+    }
+  });
+}
+
 async function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -44,6 +161,8 @@ async function createWindow() {
     if (level >= 2) console.error(`Renderer: ${message}`);
   });
 
+  ensurePlatformBackgroundWatchers();
+  lastPlatformBackgroundUrl = getPlatformBackgroundImageUrl();
   await win.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
 }
 
@@ -86,12 +205,11 @@ ipcMain.handle("pdf:load", async () => {
 });
 
 ipcMain.handle("background:image-url", async () => {
-  const candidatePaths = [
-    path.join(process.cwd(), "Background.png"),
-    path.join(path.dirname(app.getPath("exe")), "Background.png")
-  ];
-  const existing = candidatePaths.find((candidatePath) => fs.existsSync(candidatePath));
-  return existing ? pathToFileURL(existing).toString() : null;
+  return toFileUrl(firstExistingPath(getSheetBackgroundCandidatePaths()));
+});
+
+ipcMain.handle("platform-background:image-url", async () => {
+  return getPlatformBackgroundImageUrl();
 });
 
 ipcMain.handle("races:load", async () => {
@@ -126,4 +244,16 @@ ipcMain.handle("translate:text", async (_event, { text, from = "en", to = "es" }
   const source = String(text || "").trim();
   if (!source) return "";
   return translationService.translateText(source, from, to);
+});
+
+app.on("before-quit", () => {
+  platformBackgroundWatchers.forEach((watcher) => {
+    try {
+      watcher.close();
+    } catch (_error) {
+      // Ignore watcher cleanup errors.
+    }
+  });
+  platformBackgroundWatchers.clear();
+  if (scheduledPlatformBackgroundBroadcast) clearTimeout(scheduledPlatformBackgroundBroadcast);
 });

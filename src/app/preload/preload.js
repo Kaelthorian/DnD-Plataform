@@ -9,6 +9,13 @@ contextBridge.exposeInMainWorld("dndSheet", {
   clearSlot: (slotId) => ipcRenderer.invoke("sheet:slot:clear", slotId),
   loadPdf: () => ipcRenderer.invoke("pdf:load"),
   getBackgroundImageUrl: () => ipcRenderer.invoke("background:image-url"),
+  getPlatformBackgroundImageUrl: () => ipcRenderer.invoke("platform-background:image-url"),
+  onPlatformBackgroundChanged: (callback) => {
+    if (typeof callback !== "function") return () => {};
+    const listener = (_event, imageUrl) => callback(imageUrl);
+    ipcRenderer.on("platform-background:changed", listener);
+    return () => ipcRenderer.removeListener("platform-background:changed", listener);
+  },
   loadRaces: () => ipcRenderer.invoke("races:load"),
   loadBackgrounds: () => ipcRenderer.invoke("backgrounds:load"),
   loadClasses: () => ipcRenderer.invoke("classes:load"),
