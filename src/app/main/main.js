@@ -12,6 +12,19 @@ const platformBackgroundWatchers = new Map();
 let scheduledPlatformBackgroundBroadcast = null;
 let lastPlatformBackgroundUrl = null;
 
+const WINDOW_ROUTES = {
+  characterSheet: {
+    fileName: "index.html",
+    title: "Planilla DnD",
+    backgroundColor: "#1f1812"
+  },
+  dmScreen: {
+    fileName: "dm-screen.html",
+    title: "DM Screen",
+    backgroundColor: "#ffffff"
+  }
+};
+
 function normalizeBasename(fileName) {
   return path.parse(String(fileName || "")).name.replace(/[^a-z0-9]/gi, "").toLowerCase();
 }
@@ -124,14 +137,15 @@ function ensurePlatformBackgroundWatchers() {
   });
 }
 
-async function createWindow() {
+async function createWindow(routeName = "characterSheet") {
+  const route = WINDOW_ROUTES[routeName] || WINDOW_ROUTES.characterSheet;
   const win = new BrowserWindow({
     width: 1440,
     height: 980,
     minWidth: 1024,
     minHeight: 720,
-    title: "Planilla DnD",
-    backgroundColor: "#1f1812",
+    title: route.title,
+    backgroundColor: route.backgroundColor,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
@@ -163,7 +177,8 @@ async function createWindow() {
 
   ensurePlatformBackgroundWatchers();
   lastPlatformBackgroundUrl = getPlatformBackgroundImageUrl();
-  await win.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
+  await win.loadFile(path.join(__dirname, "..", "renderer", route.fileName));
+  return win;
 }
 
 app.whenReady().then(createWindow);
@@ -200,6 +215,16 @@ ipcMain.handle("sheet:slot:clear", async (_event, slotId) => {
   return saveService.clearActiveSlot(app.getPath("userData"), slotId);
 });
 
+ipcMain.handle("app:navigate", async (event, target) => {
+  const routeName = target === "dm-screen" ? "dmScreen" : "characterSheet";
+  const sourceWindow = BrowserWindow.fromWebContents(event.sender);
+  const nextWindow = await createWindow(routeName);
+  if (sourceWindow && !sourceWindow.isDestroyed() && sourceWindow.id !== nextWindow.id) {
+    sourceWindow.close();
+  }
+  return { ok: true, target: routeName };
+});
+
 ipcMain.handle("pdf:load", async () => {
   return dataLoader.loadPdfBase64();
 });
@@ -234,6 +259,10 @@ ipcMain.handle("feats:load", async () => {
 
 ipcMain.handle("items:load", async () => {
   return dataLoader.loadItems();
+});
+
+ipcMain.handle("conditions-diseases:load", async () => {
+  return dataLoader.loadConditionsDiseases();
 });
 
 ipcMain.handle("languages:load", async () => {

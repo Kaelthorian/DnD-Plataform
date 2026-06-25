@@ -931,6 +931,14 @@
       background-size: cover;
     }
 
+    .item-drawer.wizard-spellbook-drawer {
+      background-color: #2a2119;
+      background-image: url("./assets/Spellbook.png");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
     .item-drawer.spell-picker-drawer .item-drawer-header,
     .item-drawer.spell-picker-drawer .spell-picker-current,
     .item-drawer.spell-picker-drawer .spell-picker-row,
@@ -1802,6 +1810,25 @@
       font-weight: 800;
       letter-spacing: 0;
       text-transform: uppercase;
+    }
+
+    .app-settings-action-button {
+      width: 100%;
+      min-height: 36px;
+      padding: 8px 10px;
+      border: 1px solid rgba(17, 17, 17, 0.18);
+      border-radius: 8px;
+      background: #111;
+      color: #fff;
+      font: 800 12px/1.2 "Segoe UI", Arial, sans-serif;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .app-settings-action-button:hover,
+    .app-settings-action-button:focus {
+      background: #2c2c2c;
+      outline: none;
     }
 
     .app-settings-toggle-row {

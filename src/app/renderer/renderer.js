@@ -5,6 +5,7 @@
 
     const STORAGE_KEY = "dnd-character-sheet-pdf-fields-v2";
     const BASE_WIDTH = 1000;
+    const HIDDEN_PDF_PAGES = new Set([2]);
     const desktopStore = window.dndSheet || null;
 
     const app = document.getElementById("app");
@@ -17,6 +18,8 @@
     const appSettingsLauncher = document.getElementById("appSettingsLauncher");
     const appSettingsPanel = document.getElementById("appSettingsPanel");
     const diceAnimationToggle = document.getElementById("diceAnimationToggle");
+    const dmScreenButton = document.getElementById("dmScreenButton");
+    const generateSheetCodeButton = document.getElementById("generateSheetCodeButton");
     const saveSlotControl = document.getElementById("saveSlotControl");
     const saveSlotSelect = document.getElementById("saveSlotSelect");
     const saveSlotLabel = document.getElementById("saveSlotLabel");
@@ -112,6 +115,25 @@
     }
 
     window.isDiceRollAnimationEnabled = isDiceRollAnimationEnabled;
+
+    async function openDmScreen() {
+      setAppSettingsMenuOpen(false);
+      try {
+        if (saveTimer) {
+          clearTimeout(saveTimer);
+          saveTimer = null;
+        }
+        if (typeof saveData === "function") await saveData();
+        if (desktopStore?.openDmScreen) {
+          await desktopStore.openDmScreen();
+          return;
+        }
+        window.location.href = "./dm-screen.html";
+      } catch (error) {
+        console.error(error);
+        showStatus("No se pudo abrir DM screen");
+      }
+    }
 
     function syncSettingsControls() {
       if (diceAnimationToggle) diceAnimationToggle.checked = Boolean(uiSettings.diceRollAnimations);
@@ -380,6 +402,11 @@
         items: itemsResponse,
         baseItems: baseItemsResponse
       };
+    }
+
+    async function loadConditionOptions() {
+      if (desktopStore?.loadConditionsDiseases) return desktopStore.loadConditionsDiseases();
+      return fetchLocalResource("../../../vendor/5etools-src-main/data/conditionsdiseases.json");
     }
 
     async function loadLanguageOptions() {
@@ -680,7 +707,7 @@
           }
         }, { once: true });
       }
-      const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, spellActionMetadata, featData, optionalFeatureData, itemData, languageData] = await Promise.all([
+      const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, spellActionMetadata, featData, optionalFeatureData, itemData, conditionData, languageData] = await Promise.all([
         loadRaceOptions(),
         loadRaceDetails(),
         loadBackgroundOptions(),
@@ -692,6 +719,7 @@
         loadFeatOptions(),
         loadOptionalFeatureOptions(),
         loadItemOptions(),
+        loadConditionOptions(),
         loadLanguageOptions()
       ]);
       raceDetails = Array.isArray(raceDetailData?.race) ? raceDetailData.race : [];
@@ -714,12 +742,14 @@
       itemProperties = Array.isArray(itemData?.baseItems?.itemProperty) ? itemData.baseItems.itemProperty : [];
       itemTypes = Array.isArray(itemData?.baseItems?.itemType) ? itemData.baseItems.itemType : [];
       itemMasteries = Array.isArray(itemData?.baseItems?.itemMastery) ? itemData.baseItems.itemMastery : [];
+      globalThis.dndConditionEngine?.setExternalConditionEntries?.(conditionData);
       languages = Array.isArray(languageData?.language) ? languageData.language : [];
 
       const pdfBytes = await loadPdfBytes();
       const pdf = await pdfjsLib.getDocument({ data: pdfBytes, disableWorker: true }).promise;
 
       for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+        if (HIDDEN_PDF_PAGES.has(pageNumber)) continue;
         await renderPage(pdf, pageNumber);
       }
 
@@ -759,6 +789,13 @@
         saveUiSettings();
         if (!uiSettings.diceRollAnimations) window.stopDiceRoll3d?.();
         showStatus(uiSettings.diceRollAnimations ? "Dados 3D activados" : "Dados 3D desactivados");
+      });
+      dmScreenButton?.addEventListener("click", openDmScreen);
+      generateSheetCodeButton?.addEventListener("click", () => {
+        generateCharacterSheetCode().catch((error) => {
+          console.error(error);
+          showStatus(error?.message || "No se pudo generar el codigo");
+        });
       });
       clearFieldsButton?.addEventListener("click", () => {
         clearAllFields().catch(console.error);

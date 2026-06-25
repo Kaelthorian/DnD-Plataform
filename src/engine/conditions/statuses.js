@@ -298,14 +298,123 @@
     }
   ];
 
-  const DEFINITIONS_BY_ID = new Map(STATUS_DEFINITIONS.map((definition) => [definition.id, definition]));
+  let externalStatusDefinitions = [];
+  let definitionsById = buildDefinitionsById();
+
+  function buildDefinitionsById() {
+    return new Map(
+      [...STATUS_DEFINITIONS, ...externalStatusDefinitions].map((definition) => [definition.id, definition])
+    );
+  }
+
+  function normalizeText(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function slugText(value) {
+    return normalizeText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  function strip5eTags(value) {
+    return String(value || "")
+      .replace(/{@(?:feat|spell|item|filter|book|condition|skill|creature|class|background|action|itemProperty|quickref|status|sense|hazard|dice|dc)\s+([^}|]+)(?:\|[^}]*)?}/g, "$1")
+      .replace(/{@b\s+([^}]+)}/g, "$1")
+      .replace(/{@i\s+([^}]+)}/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function entryToText(entry) {
+    if (typeof entry === "string") return strip5eTags(entry);
+    if (!entry || typeof entry !== "object") return "";
+    if (entry.type === "list") return (entry.items || []).map(entryToText).filter(Boolean).join(" ");
+    if (entry.type === "entries") {
+      const name = strip5eTags(entry.name || "");
+      const text = (entry.entries || []).map(entryToText).filter(Boolean).join(" ");
+      return [name, text].filter(Boolean).join(": ");
+    }
+    if (entry.type === "table") {
+      const caption = strip5eTags(entry.caption || "");
+      const rows = (entry.rows || [])
+        .map((row) => (Array.isArray(row) ? row.map(entryToText).filter(Boolean).join(": ") : entryToText(row)))
+        .filter(Boolean)
+        .join("; ");
+      return [caption, rows].filter(Boolean).join(": ");
+    }
+    if (Array.isArray(entry.entries)) return entry.entries.map(entryToText).filter(Boolean).join(" ");
+    if (Array.isArray(entry.items)) return entry.items.map(entryToText).filter(Boolean).join(" ");
+    return strip5eTags(entry.name || "");
+  }
+
+  function entriesToText(entries = []) {
+    return (Array.isArray(entries) ? entries : [entries]).map(entryToText).filter(Boolean).join(" ");
+  }
+
+  function symbolForStatusName(name) {
+    const words = String(name || "").match(/[A-Za-z0-9]+/g) || [];
+    if (!words.length) return "STS";
+    if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+    return words.slice(0, 3).map((word) => word[0]).join("").toUpperCase();
+  }
+
+  function externalStatusTone(entry) {
+    const name = normalizeText(entry?.name || "");
+    if (name === "valor") return "positive";
+    return "negative";
+  }
+
+  function createExternalStatusDefinition(entry) {
+    const name = String(entry?.name || "").trim();
+    const source = String(entry?.source || "").trim();
+    const details = entriesToText(entry?.entries) || "Estado importado desde conditionsdiseases.json.";
+    const description = details.length > 220 ? `${details.slice(0, 217).trim()}...` : details;
+    return {
+      id: `condition-${slugText(name)}-${slugText(source) || "custom"}`,
+      name,
+      symbol: symbolForStatusName(name),
+      tone: externalStatusTone(entry),
+      description,
+      details,
+      source,
+      effects: {
+        generalNotes: [description]
+      }
+    };
+  }
+
+  function conditionEntriesFromPayload(payload) {
+    if (Array.isArray(payload)) return payload;
+    return [
+      ...(Array.isArray(payload?.condition) ? payload.condition : []),
+      ...(Array.isArray(payload?.disease) ? payload.disease : []),
+      ...(Array.isArray(payload?.status) ? payload.status : [])
+    ];
+  }
+
+  function setExternalConditionEntries(payload) {
+    const existingNames = new Set(STATUS_DEFINITIONS.map((definition) => normalizeText(definition.name)));
+    const seenIds = new Set(STATUS_DEFINITIONS.map((definition) => definition.id));
+    externalStatusDefinitions = conditionEntriesFromPayload(payload)
+      .filter((entry) => entry?.name && !existingNames.has(normalizeText(entry.name)))
+      .map(createExternalStatusDefinition)
+      .filter((definition) => definition.id && !seenIds.has(definition.id) && seenIds.add(definition.id));
+    definitionsById = buildDefinitionsById();
+    return externalStatusDefinitions.length;
+  }
 
   function getStatusDefinitions() {
-    return STATUS_DEFINITIONS.map((definition) => ({ ...definition, effects: { ...(definition.effects || {}) } }));
+    return [...STATUS_DEFINITIONS, ...externalStatusDefinitions]
+      .map((definition) => ({ ...definition, effects: { ...(definition.effects || {}) } }));
   }
 
   function findStatusDefinition(id) {
-    const definition = DEFINITIONS_BY_ID.get(String(id || "").trim());
+    const definition = definitionsById.get(String(id || "").trim());
     return definition ? { ...definition, effects: { ...(definition.effects || {}) } } : null;
   }
 
@@ -313,7 +422,7 @@
     const seen = new Set();
     return (Array.isArray(ids) ? ids : [])
       .map((id) => String(id || "").trim())
-      .filter((id) => id && DEFINITIONS_BY_ID.has(id) && !seen.has(id) && seen.add(id));
+      .filter((id) => id && definitionsById.has(id) && !seen.has(id) && seen.add(id));
   }
 
   function mergeRollModes(modes = []) {
@@ -353,7 +462,7 @@
 
   function collectStatusEffects(ids = []) {
     const definitions = normalizeStatusIds(ids)
-      .map((id) => DEFINITIONS_BY_ID.get(id))
+      .map((id) => definitionsById.get(id))
       .filter(Boolean);
     const saveModesByAbility = {
       STR: [],
@@ -427,6 +536,7 @@
   return {
     getStatusDefinitions,
     findStatusDefinition,
+    setExternalConditionEntries,
     normalizeStatusIds,
     mergeRollModes,
     collectStatusEffects

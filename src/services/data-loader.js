@@ -53,6 +53,10 @@ async function loadItems() {
   return { items, baseItems };
 }
 
+function loadConditionsDiseases() {
+  return readJson(vendorDataPath("conditionsdiseases.json"));
+}
+
 function loadLanguages() {
   return readJson(vendorDataPath("languages.json"));
 }
@@ -65,6 +69,7 @@ module.exports = {
   loadSpells,
   loadFeats,
   loadItems,
+  loadConditionsDiseases,
   loadLanguages,
   paths: {
     APP_DATA_ROOT,

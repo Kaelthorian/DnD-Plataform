@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld("dndSheet", {
   loadStore: () => ipcRenderer.invoke("sheet:store:load"),
   saveStore: (store) => ipcRenderer.invoke("sheet:store:save", store),
   clearSlot: (slotId) => ipcRenderer.invoke("sheet:slot:clear", slotId),
+  openDmScreen: () => ipcRenderer.invoke("app:navigate", "dm-screen"),
+  openCharacterSheet: () => ipcRenderer.invoke("app:navigate", "character-sheet"),
   loadPdf: () => ipcRenderer.invoke("pdf:load"),
   getBackgroundImageUrl: () => ipcRenderer.invoke("background:image-url"),
   getPlatformBackgroundImageUrl: () => ipcRenderer.invoke("platform-background:image-url"),
@@ -22,6 +24,7 @@ contextBridge.exposeInMainWorld("dndSheet", {
   loadSpells: () => ipcRenderer.invoke("spells:load"),
   loadFeats: () => ipcRenderer.invoke("feats:load"),
   loadItems: () => ipcRenderer.invoke("items:load"),
+  loadConditionsDiseases: () => ipcRenderer.invoke("conditions-diseases:load"),
   loadLanguages: () => ipcRenderer.invoke("languages:load"),
   translateText: (text, from = "en", to = "es") => ipcRenderer.invoke("translate:text", { text, from, to })
 });

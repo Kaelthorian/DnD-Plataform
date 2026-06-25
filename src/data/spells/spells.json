@@ -1418,7 +1418,7 @@
       "Dwarf (Mark of Warding)",
       "Tiefling (Levistus)"
     ],
-    "description": "Source: XPHB. Level: 1. School: A. Protective magical frost surrounds you. You gain 5 Points. If a creature hits you with a melee attack roll before the spell ends, the creature takes 5 Cold damage. The spell ends early if you have no Points. Using a Higher-Level Spell Slot. The Points and the Cold damage both increase by 5 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: A. Protective magical frost surrounds you. You gain 5 Temporary Hit Points. If a creature hits you with a melee attack roll before the spell ends, the creature takes 5 Cold damage. The spell ends early if you have no Temporary Hit Points. Using a Higher-Level Spell Slot. The Temporary Hit Points and the Cold damage both increase by 5 for each spell slot level above 1."
   },
   {
     "name": "Arms of Hadar",
@@ -1565,7 +1565,7 @@
       "Artificer"
     ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: T. Choose one object weighing 1 to 5 pounds within range that isn't being worn or carried. The object flies in a straight line up to 90 feet in a direction you choose before falling to the ground, stopping early if it impacts against a solid surface. If the object would strike a creature, that creature must make a Dexterity saving throw. On a failed save, the object strikes the target and stops moving. When the object strikes something, the object and what it strikes each take 3d8 bludgeoning damage. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the maximum weight of objects that you can target with this spell increases by 5 pounds, and the damage increases by 3d8, for each slot level above 1st."
+    "description": "Source: XGE. Level: 1. School: T. Choose one object weighing 1 to 5 pounds within range that isn't being worn or carried. The object flies in a straight line up to 90 feet in a direction you choose before falling to the ground, stopping early if it impacts against a solid surface. If the object would strike a creature, that creature must make a Dexterity saving throw. On a failed save, the object strikes the target and stops moving. When the object strikes something, the object and what it strikes each take 3d8 bludgeoning damage. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the maximum weight of objects that you can target with this spell increases by 5 pounds, and the damage increases by 1d8, for each slot level above 1st."
   },
   {
     "name": "Cause Fear",
@@ -1607,7 +1607,7 @@
       "Sorcerer"
     ],
     "races": [],
-    "description": "Source: XGE. Level: 1. School: V. You hurl an undulating, warbling mass of chaotic energy at one creature in range. Make a ranged spell attack against the target. On a hit, the target takes + 1d6 damage. Choose one of the d8s. The number rolled on that die determines the attack's damage type, as shown below. d8 Damage Type Acid Cold Fire Force Lightning Poison Psychic Thunder If you roll the same number on both d8s, the chaotic energy leaps from the target to a different creature of your choice within 30 feet of it. Make a new attack roll against the new target, and make a new damage roll, which could cause the chaotic energy to leap again. A creature can be targeted only once by each casting of this spell. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, each target takes 1d6 extra damage of the type rolled for each slot level above 1st."
+    "description": "Source: XGE. Level: 1. School: V. You hurl an undulating, warbling mass of chaotic energy at one creature in range. Make a ranged spell attack against the target. On a hit, the target takes 2d8 + 1d6 damage. Choose one of the d8s. The number rolled on that die determines the attack's damage type, as shown below. Chaos Bolt d8 Damage Type Acid Cold Fire Force Lightning Poison Psychic Thunder If you roll the same number on both d8s, the chaotic energy leaps from the target to a different creature of your choice within 30 feet of it. Make a new attack roll against the new target, and make a new damage roll, which could cause the chaotic energy to leap again. A creature can be targeted only once by each casting of this spell. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, each target takes 1d6 extra damage of the type rolled for each slot level above 1st."
   },
   {
     "name": "Charm Person",
@@ -1657,7 +1657,7 @@
     "races": [
       "Elf"
     ],
-    "description": "Source: XPHB. Level: 1. School: E. You speak a one-word command to a creature you can see within range. The target must succeed on a Wisdom saving throw or follow the command on its next turn. Choose the command from these options: Approach. The target moves toward you by the shortest and most direct route, ending its turn if it moves within 5 feet of you. Drop. The target drops whatever it is holding and then ends its turn. Flee. The target spends its turn moving away from you by the fastest available means. Grovel. The target has the Prone condition and then ends its turn. Halt. On its turn, the target doesn't move and takes no action or Action. Using a Higher-Level Spell Slot. You can affect one additional creature for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: E. You speak a one-word command to a creature you can see within range. The target must succeed on a Wisdom saving throw or follow the command on its next turn. Choose the command from these options: Approach. The target moves toward you by the shortest and most direct route, ending its turn if it moves within 5 feet of you. Drop. The target drops whatever it is holding and then ends its turn. Flee. The target spends its turn moving away from you by the fastest available means. Grovel. The target has the Prone condition and then ends its turn. Halt. On its turn, the target doesn't move and takes no action or Bonus Action. Using a Higher-Level Spell Slot. You can affect one additional creature for each spell slot level above 1."
   },
   {
     "name": "Compelled Duel",
@@ -1769,7 +1769,7 @@
     "races": [
       "Halfling (Mark of Healing)"
     ],
-    "description": "Source: XPHB. Level: 1. School: A. A creature you touch regains a number of Points equal to 2d8 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. The healing increases by 2d8 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: A. A creature you touch regains a number of Hit Points equal to 2d8 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. The healing increases by 2d8 for each spell slot level above 1."
   },
   {
     "name": "Daydream",
@@ -1873,7 +1873,7 @@
       "Tiefling (Dispater)",
       "Tiefling (Glasya)"
     ],
-    "description": "Source: XPHB. Level: 1. School: I. You make yourself-including your clothing, armor, weapons, and other belongings on your person-look different until the spell ends. You can seem 1 foot shorter or taller and can appear heavier or lighter. You must adopt a form that has the same basic arrangement of limbs as you have. Otherwise, the extent of the illusion is up to you. The changes wrought by this spell fail to hold up to physical inspection. For example, if you use this spell to add a hat to your outfit, objects pass through the hat, and anyone who touches it would feel nothing. To discern that you are disguised, a creature must take the Study action to inspect your appearance and succeed on an Intelligence (Investigation) check against your spell save DC."
+    "description": "Source: XPHB. Level: 1. School: I. You make yourself—including your clothing, armor, weapons, and other belongings on your person—look different until the spell ends. You can seem 1 foot shorter or taller and can appear heavier or lighter. You must adopt a form that has the same basic arrangement of limbs as you have. Otherwise, the extent of the illusion is up to you. The changes wrought by this spell fail to hold up to physical inspection. For example, if you use this spell to add a hat to your outfit, objects pass through the hat, and anyone who touches it would feel nothing. To discern that you are disguised, a creature must take the Study action to inspect your appearance and succeed on an Intelligence (Investigation) check against your spell save DC."
   },
   {
     "name": "Dissonant Whispers",
@@ -1958,7 +1958,7 @@
     "races": [
       "Halfling (Lotusden)"
     ],
-    "description": "Source: XPHB. Level: 1. School: C. Grasping plants sprout from the ground in a 20-foot square within range. For the duration, these plants turn the ground in the area into Terrain. They disappear when the spell ends. Each creature (other than you) in the area when you cast the spell must succeed on a Strength saving throw or have the Restrained condition until the spell ends. A Restrained creature can take an action to make a Strength (Athletics) check against your spell save DC. On a success, it frees itself from the grasping plants and is no longer Restrained by them."
+    "description": "Source: XPHB. Level: 1. School: C. Grasping plants sprout from the ground in a 20-foot square within range. For the duration, these plants turn the ground in the area into Difficult Terrain. They disappear when the spell ends. Each creature (other than you) in the area when you cast the spell must succeed on a Strength saving throw or have the Restrained condition until the spell ends. A Restrained creature can take an action to make a Strength (Athletics) check against your spell save DC. On a success, it frees itself from the grasping plants and is no longer Restrained by them."
   },
   {
     "name": "Envenom",
@@ -1985,7 +1985,7 @@
     "races": [
       "Human (Mark of Passage)"
     ],
-    "description": "Source: XPHB. Level: 1. School: T. You take the Dash action, and until the spell ends, you can take that action again as a Action."
+    "description": "Source: XPHB. Level: 1. School: T. You take the Dash action, and until the spell ends, you can take that action again as a Bonus Action."
   },
   {
     "name": "Faerie Fire",
@@ -2005,7 +2005,7 @@
       "Half-Orc (Variant; Mark of Finding)",
       "Human (Variant; Mark of Finding)"
     ],
-    "description": "Source: XPHB. Level: 1. School: V. Objects in a 20-foot Cube within range are outlined in blue, green, or violet light (your choice). Each creature in the Cube is also outlined if it fails a Dexterity saving throw. For the duration, objects and affected creatures shed Light in a 10-foot radius and can't benefit from the Invisible condition. Attack rolls against an affected creature or object have Advantage if the attacker can see it."
+    "description": "Source: XPHB. Level: 1. School: V. Objects in a 20-foot Cube within range are outlined in blue, green, or violet light (your choice). Each creature in the Cube is also outlined if it fails a Dexterity saving throw. For the duration, objects and affected creatures shed Dim Light in a 10-foot radius and can't benefit from the Invisible condition. Attack rolls against an affected creature or object have Advantage if the attacker can see it."
   },
   {
     "name": "False Life",
@@ -2020,7 +2020,7 @@
     "races": [
       "Tiefling"
     ],
-    "description": "Source: XPHB. Level: 1. School: N. You gain + 4 Points. Using a Higher-Level Spell Slot. You gain 5 additional Points for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: N. You gain 2d4 + 4 Temporary Hit Points. Using a Higher-Level Spell Slot. You gain 5 additional Temporary Hit Points for each spell slot level above 1."
   },
   {
     "name": "Feather Fall",
@@ -2046,7 +2046,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: C. You gain the service of a familiar, a spirit that takes an animal form you choose: Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel, or another Beast that has a miscellaneous=!swarm. Appearing in an unoccupied space within range, the familiar has the statistics of the chosen form, though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast. Your familiar acts independently of you, but it obeys your commands. Telepathic Connection. While your familiar is within 100 feet of you, you can communicate with it telepathically. Additionally, as a Action, you can see through the familiar's eyes and hear what it hears until the start of your next turn, gaining the benefits of any special senses it has. Finally, when you cast a spell with a range of touch, your familiar can deliver the touch. Your familiar must be within 100 feet of you, and it must take a Reaction to deliver the touch when you cast the spell. Combat. The familiar is an ally to you and your allies. It rolls its own Initiative and acts on its own turn. A familiar can't attack, but it can take other actions as normal. Disappearance of the Familiar. When the familiar drops to 0 Points, it disappears. It reappears after you cast this spell again. As a Magic action, you can temporarily dismiss the familiar to a pocket dimension. Alternatively, you can dismiss it forever. As a Magic action while it is temporarily dismissed, you can cause it to reappear in an unoccupied space within 30 feet of you. Whenever the familiar drops to 0 Points or disappears into the pocket dimension, it leaves behind in its space anything it was wearing or carrying. One Familiar Only. You can't have more than one familiar at a time. If you cast this spell while you have a familiar, you instead cause it to adopt a new eligible form."
+    "description": "Source: XPHB. Level: 1. School: C. You gain the service of a familiar, a spirit that takes an animal form you choose: Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel, or another Beast that has a Challenge Rating of 0. Appearing in an unoccupied space within range, the familiar has the statistics of the chosen form, though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast. Your familiar acts independently of you, but it obeys your commands. Telepathic Connection. While your familiar is within 100 feet of you, you can communicate with it telepathically. Additionally, as a Bonus Action, you can see through the familiar's eyes and hear what it hears until the start of your next turn, gaining the benefits of any special senses it has. Finally, when you cast a spell with a range of touch, your familiar can deliver the touch. Your familiar must be within 100 feet of you, and it must take a Reaction to deliver the touch when you cast the spell. Combat. The familiar is an ally to you and your allies. It rolls its own Initiative and acts on its own turn. A familiar can't attack, but it can take other actions as normal. Disappearance of the Familiar. When the familiar drops to 0 Hit Points, it disappears. It reappears after you cast this spell again. As a Magic action, you can temporarily dismiss the familiar to a pocket dimension. Alternatively, you can dismiss it forever. As a Magic action while it is temporarily dismissed, you can cause it to reappear in an unoccupied space within 30 feet of you. Whenever the familiar drops to 0 Hit Points or disappears into the pocket dimension, it leaves behind in its space anything it was wearing or carrying. One Familiar Only. You can't have more than one familiar at a time. If you cast this spell while you have a familiar, you instead cause it to adopt a new eligible form."
   },
   {
     "name": "Fixit",
@@ -2087,7 +2087,7 @@
       "Half-Elf (Variant; Mark of Storm)",
       "Triton"
     ],
-    "description": "Source: XPHB. Level: 1. School: C. You create a 20-foot-radius Sphere of fog centered on a point within range. The Sphere is Obscured. It lasts for the duration or until a strong wind (such as one created by Wind) disperses it. Using a Higher-Level Spell Slot. The fog's radius increases by 20 feet for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: C. You create a 20-foot-radius Sphere of fog centered on a point within range. The Sphere is Heavily Obscured. It lasts for the duration or until a strong wind (such as one created by Gust of Wind) disperses it. Using a Higher-Level Spell Slot. The fog's radius increases by 20 feet for each spell slot level above 1."
   },
   {
     "name": "Frost Fingers",
@@ -2138,7 +2138,7 @@
     "races": [
       "Halfling (Mark of Hospitality)"
     ],
-    "description": "Source: XPHB. Level: 1. School: C. Ten berries appear in your hand and are infused with magic for the duration. A creature can take a Action to eat one berry. Eating a berry restores 1 Hit Point, and the berry provides enough nourishment to sustain a creature for one day. Uneaten berries disappear when the spell ends."
+    "description": "Source: XPHB. Level: 1. School: C. Ten berries appear in your hand and are infused with magic for the duration. A creature can take a Bonus Action to eat one berry. Eating a berry restores 1 Hit Point, and the berry provides enough nourishment to sustain a creature for one day. Uneaten berries disappear when the spell ends."
   },
   {
     "name": "Grease",
@@ -2151,7 +2151,7 @@
       "Tamer"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: C. Nonflammable grease covers the ground in a 10-foot square centered on a point within range and turns it into Terrain for the duration. When the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or have the Prone condition. A creature that enters the area or ends its turn there must also succeed on that save or fall Prone."
+    "description": "Source: XPHB. Level: 1. School: C. Nonflammable grease covers the ground in a 10-foot square centered on a point within range and turns it into Difficult Terrain for the duration. When the grease appears, each creature standing in its area must succeed on a Dexterity saving throw or have the Prone condition. A creature that enters the area or ends its turn there must also succeed on that save or fall Prone."
   },
   {
     "name": "Guiding Bolt",
@@ -2184,7 +2184,7 @@
     "races": [
       "Halfling (Mark of Healing)"
     ],
-    "description": "Source: XPHB. Level: 1. School: A. A creature of your choice that you can see within range regains Points equal to 2d4 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. The healing increases by 2d4 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: A. A creature of your choice that you can see within range regains Hit Points equal to 2d4 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. The healing increases by 2d4 for each spell slot level above 1."
   },
   {
     "name": "Hellish Rebuke",
@@ -2197,7 +2197,7 @@
       "Tiefling (Asmodeus)",
       "Tiefling (Variant; Infernal Legacy)"
     ],
-    "description": "Source: XPHB. Level: 1. School: Evocation. The creature that damaged you is momentarily surrounded by green flames. It makes a Dexterity saving throw, taking 2d10 Fire damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot. The damage increases by 1d10 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: V. The creature that damaged you is momentarily surrounded by green flames. It makes a Dexterity saving throw, taking 2d10 Fire damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot. The damage increases by 1d10 for each spell slot level above 1."
   },
   {
     "name": "Heroism",
@@ -2210,7 +2210,7 @@
     "races": [
       "Elf"
     ],
-    "description": "Source: XPHB. Level: 1. School: E. A willing creature you touch is imbued with bravery. Until the spell ends, the creature is immune to the Frightened condition and gains Points equal to your spellcasting ability modifier at the start of each of its turns. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: E. A willing creature you touch is imbued with bravery. Until the spell ends, the creature is immune to the Frightened condition and gains Temporary Hit Points equal to your spellcasting ability modifier at the start of each of its turns. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
   },
   {
     "name": "Hex",
@@ -2222,7 +2222,7 @@
       "Elf (Zendikar; Mul Daya Nation)",
       "Hexblood"
     ],
-    "description": "Source: XPHB. Level: 1. School: E. You place a curse on a creature that you can see within range. Until the spell ends, you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll. Also, choose one ability when you cast the spell. The target has Disadvantage on ability checks made with the chosen ability. If the target drops to 0 Points before this spell ends, you can take a Action on a later turn to curse a new creature. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 2 (up to 4 hours), 3-4 (up to 8 hours), or 5+ (24 hours)."
+    "description": "Source: XPHB. Level: 1. School: E. You place a curse on a creature that you can see within range. Until the spell ends, you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll. Also, choose one ability when you cast the spell. The target has Disadvantage on ability checks made with the chosen ability. If the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action on a later turn to curse a new creature. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 2 (up to 4 hours), 3-4 (up to 8 hours), or 5+ (24 hours)."
   },
   {
     "name": "Hideous Laughter",
@@ -2265,7 +2265,7 @@
       "Half-Orc (Variant; Mark of Finding)",
       "Human (Variant; Mark of Finding)"
     ],
-    "description": "Source: XPHB. Level: 1. School: D. You magically mark one creature you can see within range as your quarry. Until the spell ends, you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll. You also have Advantage on any Wisdom (Perception or Survival) check you make to find it. If the target drops to 0 Points before this spell ends, you can take a Bonus Action to move the mark to a new creature you can see within range. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 3-4 (up to 8 hours) or 5+ (up to 24 hours)."
+    "description": "Source: XPHB. Level: 1. School: D. You magically mark one creature you can see within range as your quarry. Until the spell ends, you deal an extra 1d6 Force damage to the target whenever you hit it with an attack roll. You also have Advantage on any Wisdom (Perception or Survival) check you make to find it. If the target drops to 0 Hit Points before this spell ends, you can take a Bonus Action to move the mark to a new creature you can see within range. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 3-4 (up to 8 hours) or 5+ (up to 24 hours)."
   },
   {
     "name": "Ice Knife",
@@ -2421,14 +2421,14 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: V. You create three glowing darts of magical force. Each dart strikes a creature of your choice that you can see within range. A dart deals + 1 Force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several. Using a Higher-Level Spell Slot. The spell creates one more dart for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: V. You create three glowing darts of magical force. Each dart strikes a creature of your choice that you can see within range. A dart deals 1d4 + 1 Force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several. Using a Higher-Level Spell Slot. The spell creates one more dart for each spell slot level above 1."
   },
   {
     "name": "Magnify Gravity",
     "level": 1,
     "classes": [],
     "races": [],
-    "description": "Source: EGW. Level: 1. School: T. The gravity in a 10-foot-radius sphere centered on a point you can see within range increases for a moment. Each creature in the sphere on the turn when you cast the spell must make a Constitution saving throw. On a failed save, a creature takes 2d8 force damage, and its speed is halved until the end of its next turn. On a successful save, a creature takes half as much damage and suffers no reduction to its speed. Until the start of your next turn, any object that isn't being worn or carried in the sphere requires a successful Strength check against your spell save DC to pick up or move. At Higher Levels When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d8 for each slot level above 1st."
+    "description": "Source: EGW. Level: 1. School: T. The gravity in a 10-foot-radius sphere centered on a point you can see within range increases for a moment. Each creature in the sphere on the turn when you cast the spell must make a Constitution saving throw. On a failed save, a creature takes 2d8 force damage, and its speed is halved until the end of its next turn. On a successful save, a creature takes half as much damage and suffers no reduction to its speed. Until the start of your next turn, any object that isn't being worn or carried in the sphere requires a successful Strength check against your spell save DC to pick up or move. At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d8 for each slot level above 1st."
   },
   {
     "name": "Neutralize Aura",
@@ -2532,7 +2532,7 @@
       "Githzerai",
       "Human (Mark of Sentinel)"
     ],
-    "description": "Source: XPHB. Level: 1. School: A. An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from Missile."
+    "description": "Source: XPHB. Level: 1. School: A. An imperceptible barrier of magical force protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from Magic Missile."
   },
   {
     "name": "Shield of Faith",
@@ -2775,7 +2775,7 @@
     "races": [
       "Halfling (Mark of Hospitality)"
     ],
-    "description": "Source: XPHB. Level: 1. School: C. This spell creates an Invisible, mindless, shapeless, Medium force that performs simple tasks at your command until the spell ends. The servant springs into existence in an unoccupied space on the ground within range. It has AC 10, 1 Hit Point, and a Strength of 2, and it can't attack. If it drops to 0 Points, the spell ends. Once on each of your turns as a Action, you can mentally command the servant to move up to 15 feet and interact with an object. The servant can perform simple tasks that a human could do, such as fetching things, cleaning, mending, folding clothes, lighting fires, serving food, and pouring drinks. Once you give the command, the servant performs the task to the best of its ability until it completes the task, then waits for your next command. If you command the servant to perform a task that would move it more than 60 feet away from you, the spell ends."
+    "description": "Source: XPHB. Level: 1. School: C. This spell creates an Invisible, mindless, shapeless, Medium force that performs simple tasks at your command until the spell ends. The servant springs into existence in an unoccupied space on the ground within range. It has AC 10, 1 Hit Point, and a Strength of 2, and it can't attack. If it drops to 0 Hit Points, the spell ends. Once on each of your turns as a Bonus Action, you can mentally command the servant to move up to 15 feet and interact with an object. The servant can perform simple tasks that a human could do, such as fetching things, cleaning, mending, folding clothes, lighting fires, serving food, and pouring drinks. Once you give the command, the servant performs the task to the best of its ability until it completes the task, then waits for your next command. If you command the servant to perform a task that would move it more than 60 feet away from you, the spell ends."
   },
   {
     "name": "Vampiric Claws",
@@ -2820,7 +2820,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: FRHoF. Level: 1. School: A. You hurl a disorienting magical force toward one creature within range. The target makes a Constitution saving throw; Constructs and Undead automatically succeed on this save. On a failed save, the target takes 2d4 Force damage, its Speed is halved until the start of your next turn, and on its next turn, it can take only an action or a Action (but not both). On a successful save, the target takes half as much damage only. Using a Higher-Level Spell Slot. The damage increases by 2d4 for every spell slot level above 1."
+    "description": "Source: FRHoF. Level: 1. School: A. You hurl a disorienting magical force toward one creature within range. The target makes a Constitution saving throw; Constructs and Undead automatically succeed on this save. On a failed save, the target takes 2d4 Force damage, its Speed is halved until the start of your next turn, and on its next turn, it can take only an action or a Bonus Action (but not both). On a successful save, the target takes half as much damage only. Using a Higher-Level Spell Slot. The damage increases by 2d4 for every spell slot level above 1."
   },
   {
     "name": "Witch Bolt",
@@ -2831,7 +2831,7 @@
       "Wizard"
     ],
     "races": [],
-    "description": "Source: XPHB. Level: 1. School: V. A beam of crackling energy lances toward a creature within range, forming a sustained arc of lightning between you and the target. Make a ranged spell attack against it. On a hit, the target takes 2d12 Lightning damage. On each of your subsequent turns, you can take a Action to deal 1d12 Lightning damage to the target automatically, even if the first attack missed. The spell ends if the target is ever outside the spell's range or if it has Total Cover from you. Using a Higher-Level Spell Slot. The initial damage increases by 1d12 for each spell slot level above 1."
+    "description": "Source: XPHB. Level: 1. School: V. A beam of crackling energy lances toward a creature within range, forming a sustained arc of lightning between you and the target. Make a ranged spell attack against it. On a hit, the target takes 2d12 Lightning damage. On each of your subsequent turns, you can take a Bonus Action to deal 1d12 Lightning damage to the target automatically, even if the first attack missed. The spell ends if the target is ever outside the spell's range or if it has Total Cover from you. Using a Higher-Level Spell Slot. The initial damage increases by 1d12 for each spell slot level above 1."
   },
   {
     "name": "Wrathful Smite",
