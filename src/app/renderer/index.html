@@ -3310,6 +3310,16 @@
       ]), diceTermVisualEntries(diceTerms));
     }
 
+    function isSpellReadyForAttackPanel(field) {
+      if (!field?.value?.trim()) return false;
+      if (Number(field.dataset.spellLevel) === 0) return true;
+      if (isWizardCharacter()) {
+        const checkbox = getFieldByKey(field.dataset.preparedKey || "");
+        return Boolean(checkbox?.checked);
+      }
+      return true;
+    }
+
     function preparedAttackSelections() {
       const strengthModifier = getStrengthModifier();
       const unarmed = {
@@ -3323,13 +3333,7 @@
         level: -1
       };
       const preparedSpells = sheetSpellFieldElements()
-        .filter((field) => {
-          if (!field.value.trim()) return false;
-          if (Number(field.dataset.spellLevel) === 0) return true;
-          if (isBardCharacter()) return true;
-          const checkbox = getFieldByKey(field.dataset.preparedKey);
-          return checkbox?.checked;
-        })
+        .filter(isSpellReadyForAttackPanel)
         .flatMap((field) => {
           const spellName = field.value.trim();
           return spellAttackSelections(spellName, Number(field.dataset.spellLevel));

@@ -2225,6 +2225,15 @@
     "description": "Source: XPHB. Level: 1. School: E. You place a curse on a creature that you can see within range. Until the spell ends, you deal an extra 1d6 Necrotic damage to the target whenever you hit it with an attack roll. Also, choose one ability when you cast the spell. The target has Disadvantage on ability checks made with the chosen ability. If the target drops to 0 Points before this spell ends, you can take a Action on a later turn to curse a new creature. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 2 (up to 4 hours), 3-4 (up to 8 hours), or 5+ (24 hours)."
   },
   {
+    "name": "Hideous Laughter",
+    "level": 1,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 1. School: E. One creature of your choice that you can see within range makes a Wisdom saving throw. On a failed save, it has the Prone and Incapacitated conditions for the duration. During that time, it laughs uncontrollably if it's capable of laughter, and it can't end the Prone condition on itself. At the end of each of its turns and each time it takes damage, it makes another Wisdom saving throw. The target has Advantage on the save if the save is triggered by damage. On a successful save, the spell ends. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 1."
+  },
+  {
     "name": "Humperdink's Halitosis",
     "level": 1,
     "classes": [
@@ -2843,6 +2852,15 @@
     "description": "Source: XGE. Level: 1. School: T. You move like the wind. Until the spell ends, your movement doesn't provoke opportunity attacks. Once before the spell ends, you can give yourself advantage on one weapon attack roll on your turn. That attack deals an extra 1d8 force damage on a hit. Whether you hit or miss, your walking speed increases by 30 feet until the end of that turn."
   },
   {
+    "name": "Acid Arrow",
+    "level": 2,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 2. School: V. A shimmering green arrow streaks toward a target within range and bursts in a spray of acid. Make a ranged spell attack against the target. On a hit, the target takes 4d4 Acid damage and 2d4 Acid damage at the end of its next turn. On a miss, the arrow splashes the target with acid for half as much of the initial damage only. Using a Higher-Level Spell Slot. The damage (both initial and later) increases by 4d4;2d4 for each spell slot level above 2."
+  },
+  {
     "name": "Aganazzar's Scorcher",
     "level": 2,
     "classes": [
@@ -2941,6 +2959,15 @@
     ],
     "races": [],
     "description": "Source: XPHB. Level: 2. School: A. You tap into your life force to heal yourself. Roll one or two of your unexpended Hit Point Dice, and regain a number of Hit Points equal to the roll's total plus your spellcasting ability modifier. Those dice are then expended. Using a Higher-Level Spell Slot. The number of unexpended Hit Dice you can roll increases by one for each spell slot level above 2."
+  },
+  {
+    "name": "Arcanist's Magic Aura",
+    "level": 2,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 2. School: I. With a touch, you place an illusion on a willing creature or an object that isn't being worn or carried. A creature gains the Mask effect below, and an object gains the False Aura effect below. The effect lasts for the duration. If you cast the spell on the same target every day for 30 days, the illusion lasts until dispelled. Mask (Creature). Choose a creature type other than the target's actual type. Spells and other magical effects treat the target as if it were a creature of the chosen type. False Aura (Object). You change the way the target appears to spells and magical effects that detect magical auras, such as Detect Magic. You can make a nonmagical object appear magical, make a magic item appear nonmagical, or change the object's aura so that it appears to belong to a school of magic you choose."
   },
   {
     "name": "Arcanomagnetic Repulsion",
@@ -5933,6 +5960,15 @@
     "description": "Source: HelianasGuidetoMonsterHunting. Level: 3. School: BM. In response to a creature vocalizing, you make a sharp sound and hold a finger up in an attempt to interrupt them The target must succeed on a Constitution saving throw or become silenced as its mouth is fused shut for the duration If you silence a target that is casting a spell with verbal components, the target's spell slot isn't expended, but its action is wasted At the end of each of its turns, the target can make a Strength saving throw it tries to tear open its mouth On a success, the target takes 1d8 slashing damage and is no longer silenced Alternatively, as an action, the target can use a bladed implement to cut open its mouth, taking 1d8 slashing damage and ending the silence At Higher Levels When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d8 for each slot level above 3rd."
   },
   {
+    "name": "Aura of Purity",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: A. An aura radiates from you in a 30-foot Emanation [Area of Effect] for the duration. While in the aura, you and your allies have Resistance to Poison damage and Advantage on saving throws to avoid or end effects that include the Blinded, Charmed, Deafened, Frightened, Paralyzed, Poisoned, or Stunned condition."
+  },
+  {
     "name": "Backlash",
     "level": 4,
     "classes": [
@@ -5943,6 +5979,24 @@
     ],
     "races": [],
     "description": "Source: FRHoF. Level: 4. School: A. You ward yourself against destructive energy, reducing the damage taken by 4d6 plus your spellcasting ability modifier. If the triggering damage was from a creature within range, you can force the creature to make a Constitution saving throw. The creature takes 4d6 Force damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot The damage reduction and Force damage from this spell both increase by 1d6 for every spell slot level above 4."
+  },
+  {
+    "name": "Banishment",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: A. One creature that you can see within range must succeed on a Charisma saving throw or be transported to a harmless demiplane for the duration. While there, the target has the Incapacitated condition. When the spell ends, the target reappears in the space it left or in the nearest unoccupied space if that space is occupied. If the target is an Aberration, a Celestial, an Elemental, a Fey, or a Fiend, the target doesn't return if the spell lasts for 1 minute. The target is instead transported to a random location on a plane (DM's choice) associated with its creature type. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 4."
+  },
+  {
+    "name": "Blight",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: N. A creature that you can see within range makes a Constitution saving throw, taking 8d8 Necrotic damage on a failed save or half as much damage on a successful one. A Plant creature automatically fails the save. Alternatively, target a nonmagical plant that isn't a creature, such as a tree or shrub. It doesn't make a save; it simply withers and dies. Using a Higher-Level Spell Slot. The damage increases by 8d8 for each spell slot level above 4."
   },
   {
     "name": "Charm Monster",
@@ -5956,6 +6010,69 @@
     ],
     "races": [],
     "description": "Source: XGE. Level: 4. School: E. You attempt to charm a creature you can see within range. It must make a Wisdom saving throw, and it does so with advantage if you or your companions are fighting it. If it fails the saving throw, it is charmed by you until the spell ends or until you or your companions do anything harmful to it. The charmed creature is friendly to you. When the spell ends, the creature knows it was charmed by you. At Higher Levels When you cast this spell using a spell slot of 5th level or higher, you can target one additional creature for each slot level above 4th. The creatures must be within 30 feet of each other when you target them."
+  },
+  {
+    "name": "Compulsion",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: E. Each creature of your choice that you can see within range must succeed on a Wisdom saving throw or have the Charmed condition until the spell ends. For the duration, you can take a Bonus Action to designate a direction that is horizontal to you. Each Charmed target must use as much of its movement as possible to move in that direction on its next turn, taking the safest route. After moving in this way, a target repeats the save, ending the spell on itself on a success."
+  },
+  {
+    "name": "Confusion",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: E. Each creature in a 10-foot-radius Sphere [Area of Effect] centered on a point you choose within range must succeed on a Wisdom saving throw, or that target can't take Bonus Actions or Reactions and must roll 1d10 at the start of each of its turns to determine its behavior for that turn, consulting the table below. 1: The target doesn't take an action, and it uses all its movement to move. Roll 1d4 for the direction: 1, north; 2, east; 3, south; or 4, west. 2-6: The target doesn't move or take actions. 7-8: The target doesn't move, and it takes the Attack action to make one melee attack against a random creature within reach. If none are within reach, the target takes no action. 9-10: The target chooses its behavior. At the end of each of its turns, an affected target repeats the save, ending the spell on itself on a success. Using a Higher-Level Spell Slot. The Sphere [Area of Effect]'s radius increases by 5 feet for each spell slot level above 4."
+  },
+  {
+    "name": "Conjure Minor Elementals",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: C. You conjure spirits from the Elemental Planes that flit around you in a 15-foot Emanation [Area of Effect] for the duration. Until the spell ends, any attack you make deals an extra 2d8 damage when you hit a creature in the Emanation [Area of Effect]. This damage is Acid, Cold, Fire, or Lightning (your choice when you make the attack). In addition, the ground in the Emanation [Area of Effect] is Difficult Terrain for your enemies. Using a Higher-Level Spell Slot. The damage increases by 2d8 for each spell slot level above 4."
+  },
+  {
+    "name": "Death Ward",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: A. You touch a creature and grant it a measure of protection from death. The first time the target would drop to 0 Hit Points before the spell ends, the target instead drops to 1 Hit Points, and the spell ends. If the spell is still in effect when the target is subjected to an effect that would kill it instantly without dealing damage, that effect is negated against the target, and the spell ends."
+  },
+  {
+    "name": "Dimension Door",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: C. You teleport to a location within range. You arrive at exactly the spot desired. It can be a place you can see, one you can visualize, or one you can describe by stating distance and direction, such as \"200 feet straight downward\" or \"300 feet upward to the northwest at a 45-degree angle.\" You can also teleport one willing creature. The creature must be within 5 feet of you when you teleport, and it teleports to a space within 5 feet of your destination space. If you, the other creature, or both would arrive in a space occupied by a creature or completely filled by one or more objects, you and any creature traveling with you each take 4d6 Force damage, and the teleportation fails."
+  },
+  {
+    "name": "Divination",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: D. This spell puts you in contact with a god or a god's servants. You ask one question about a specific goal, event, or activity to occur within 7 days. The DM offers a truthful reply, which might be a short phrase or cryptic rhyme. The spell doesn't account for circumstances that might change the answer, such as the casting of other spells. If you cast the spell more than once before finishing a Long Rest, there is a cumulative 25 chance for each casting after the first that you get no answer."
+  },
+  {
+    "name": "Dominate Beast",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: E. One Beast you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success. You have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself. You can command the target to take a Reaction but must take your own Reaction to do so. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 5 (up to 10 minutes), 6 (up to 1 hour), or 7+ (up to 8 hours)."
   },
   {
     "name": "Doomtide",
@@ -6044,6 +6161,15 @@
     "description": "Source: EGW. Level: 4. School: V. A 20-foot-radius sphere of crushing force forms at a point you can see within range and tugs at the creatures there. Each creature in the sphere must make a Constitution saving throw. On a failed save, the creature takes 5d10 force damage and is pulled in a straight line toward the center of the sphere, ending in an unoccupied space as close to the center as possible (even if that space is in the air). On a successful save, the creature takes half as much damage and isn't pulled. At Higher Levels When you cast this spell using a spell slot of 5th level or higher, the damage increases by 1d10 for each slot level above 4th."
   },
   {
+    "name": "Guardian of Faith",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: C. A Large spectral guardian appears and hovers for the duration in an unoccupied space that you can see within range. The guardian occupies that space and is invulnerable, and it appears in a form appropriate for your deity or pantheon. Any enemy that moves to a space within 10 feet of the guardian for the first time on a turn or starts its turn there makes a Dexterity saving throw, taking 20 Radiant damage on a failed save or half as much damage on a successful one. The guardian vanishes when it has dealt a total of 60 damage."
+  },
+  {
     "name": "Guardian of Nature",
     "level": 4,
     "classes": [],
@@ -6063,6 +6189,33 @@
     "description": "Source: XPHB. Level: 4. School: I. You make natural terrain in a 150-foot Cube [Area of Effect] in range look, sound, and smell like another sort of natural terrain. Thus, open fields or a road can be made to resemble a swamp, hill, crevasse, or some other difficult or impassable terrain. A pond can be made to seem like a grassy meadow, a precipice like a gentle slope, or a rock-strewn gully like a wide and smooth road. Manufactured structures, equipment, and creatures within the area aren't changed. The tactile characteristics of the terrain are unchanged, so creatures entering the area are likely to notice the illusion. If the difference isn't obvious by touch, a creature examining the illusion can take the Study action to make an Intelligence (Investigation) check against your spell save DC to disbelieve it. If a creature discerns that the terrain is illusory, the creature sees a vague image superimposed on the real terrain."
   },
   {
+    "name": "Ice Storm",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: V. Hail falls in a 20-foot-radius, 40-foot-high Cylinder [Area of Effect] centered on a point within range. Each creature in the Cylinder [Area of Effect] makes a Dexterity saving throw. A creature takes 2d10 Bludgeoning damage and 4d6 Cold damage on a failed save or half as much damage on a successful one. Hailstones turn ground in the Cylinder [Area of Effect] into Difficult Terrain until the end of your next turn. Using a Higher-Level Spell Slot. The Bludgeoning damage increases by 2d8 for each spell slot level above 4."
+  },
+  {
+    "name": "Locate Creature",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: D. Describe or name a creature that is familiar to you. You sense the direction to the creature's location if that creature is within 1,000 feet of you. If the creature is moving, you know the direction of its movement. The spell can locate a specific creature known to you or the nearest creature of a specific kind (such as a human or a unicorn) if you have seen such a creature up close—within 30 feet—at least once. If the creature you described or named is in a different form, such as under the effects of a Flesh to Stone or Polymorph spell, this spell doesn't locate the creature. This spell can't locate a creature if any thickness of lead blocks a direct path between you and the creature."
+  },
+  {
+    "name": "Otiluke's Resilient Sphere",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: A. A shimmering sphere encloses a Large or smaller creature or object within range. An unwilling creature must succeed on a Dexterity saving throw or be enclosed for the duration. Nothing—not physical objects, energy, or other spell effects—can pass through the barrier, in or out, though a creature in the sphere can breathe there. The sphere is immune to all damage, and a creature or object inside can't be damaged by attacks or effects originating from outside, nor can a creature inside the sphere damage anything outside it. The sphere is weightless and just large enough to contain the creature or object inside. An enclosed creature can take an action to push against the sphere's walls and thus roll the sphere at up to half the creature's Speed. Similarly, the globe can be picked up and moved by other creatures. A Disintegrate spell targeting the globe destroys it without harming anything inside."
+  },
+  {
     "name": "Phantasmal Killer",
     "level": 4,
     "classes": [
@@ -6073,11 +6226,29 @@
     "description": "Source: XPHB. Level: 4. School: I. You tap into the nightmares of a creature you can see within range and create an illusion of its deepest fears, visible only to that creature. The target makes a Wisdom saving throw. On a failed save, the target takes 4d10 Psychic damage and has Disadvantage on ability checks and attack rolls for the duration. On a successful save, the target takes half as much damage, and the spell ends. For the duration, the target makes a Wisdom saving throw at the end of each of its turns. On a failed save, it takes the Psychic damage again. On a successful save, the spell ends. Using a Higher-Level Spell Slot The damage increases by 1d10 for each spell slot level above 4."
   },
   {
+    "name": "Polymorph",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: T. You attempt to transform a creature that you can see within range into a Beast. The target must succeed on a Wisdom saving throw or shape-shift into Beast form for the duration. That form can be any Beast you choose that has a Challenge Rating equal to or less than the target's (or the target's level if it doesn't have a Challenge Rating). The target's game statistics are replaced by the stat block of the chosen Beast, but the target retains its alignment, personality, creature type, Hit Points, and Hit Point Dice. The target gains a number of Temporary Hit Points equal to the Hit Points of the Beast form. These Temporary Hit Points vanish if any remain when the spell ends. The spell ends early on the target if it has no Temporary Hit Points left. The target is limited in the actions it can perform by the anatomy of its new form, and it can't speak or cast spells. The target's gear melds into the new form. The creature can't use or otherwise benefit from any of that equipment."
+  },
+  {
     "name": "Raulothim's Psychic Lance",
     "level": 4,
     "classes": [],
     "races": [],
     "description": "Source: FTD. Level: 4. School: E. You unleash a shimmering lance of psychic power from your forehead at a creature that you can see within range. Alternatively, you can utter a creature's name. If the named target is within range, it becomes the spell's target even if you can't see it. If the named target isn't within range, the lance dissipates without effect. The target must make an Intelligence saving throw. On a failed save, the target takes 7d6 psychic damage and is incapacitated until the start of your next turn. On a successful save, the creature takes half as much damage and isn't incapacitated. At Higher Levels When you cast this spell using a spell slot of 5th level or higher, the damage increases by 1d6 for each slot level above 4th."
+  },
+  {
+    "name": "Resilient Sphere",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: A. A shimmering sphere encloses a Large or smaller creature or object within range. An unwilling creature must succeed on a Dexterity saving throw or be enclosed for the duration. Nothing—not physical objects, energy, or other spell effects—can pass through the barrier, in or out, though a creature in the sphere can breathe there. The sphere is immune to all damage, and a creature or object inside can't be damaged by attacks or effects originating from outside, nor can a creature inside the sphere damage anything outside it. The sphere is weightless and just large enough to contain the creature or object inside. An enclosed creature can take an action to push against the sphere's walls and thus roll the sphere at up to half the creature's Speed. Similarly, the globe can be picked up and moved by other creatures. A Disintegrate spell targeting the globe destroys it without harming anything inside."
   },
   {
     "name": "Shadow of Moil",
@@ -6109,6 +6280,15 @@
     "classes": [],
     "races": [],
     "description": "Source: BMT. Level: 4. School: N. You call forth a spirit that embodies death. The spirit manifests in an unoccupied space you can see within range and uses the reaper spirit stat block. The spirit disappears when it is reduced to 0 hit points or when the spell ends. The spirit is an ally to you and your companions. In combat, the spirit shares your initiative count and takes its turn immediately after yours. It obeys your verbal commands (no action required by you). If you don't issue the spirit any commands, it takes the Dodge action and uses its movement to avoid danger. At Higher Levels When you cast this spell using a spell slot of 5th level or higher, use the higher level wherever the spell's level appears in the reaper spirit stat block."
+  },
+  {
+    "name": "Stoneskin",
+    "level": 4,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 4. School: T. Until the spell ends, one willing creature you touch has Resistance to Bludgeoning, Piercing, and Slashing damage."
   },
   {
     "name": "Storm Sphere",
@@ -6185,6 +6365,42 @@
     "description": "Source: FRHoF. Level: 5. School: A. For the duration, moonlight fills a 20-foot Emanation [Area of Effect] originating from you with Dim Light. While in that area, you and your allies have Cover and Resistance to Cold, Lightning, and Radiant damage. While the spell lasts, you can use one of the following options, ending the spell immediately: Liberation When you fail a saving throw to avoid or end the Frightened, Grappled, or Restrained condition, you can take a Reaction to succeed on the save instead. Respite As a Magic action, you or an ally within the area regains Hit Points equal to 4d10 plus your spellcasting ability modifier."
   },
   {
+    "name": "Banishing Smite",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: C. The target hit by the attack roll takes an extra 5d10 Force damage from the attack. If the attack reduces the target to 50 Hit Points or fewer, the target must succeed on a Charisma saving throw or be transported to a harmless demiplane for the duration. While there, the target has the Incapacitated condition. When the spell ends, the target reappears in the space it left or in the nearest unoccupied space if that space is occupied."
+  },
+  {
+    "name": "Circle of Power",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: A. An aura radiates from you in a 30-foot Emanation [Area of Effect] for the duration. While in the aura, you and your allies have Advantage on saving throws against spells and other magical effects. When an affected creature makes a saving throw against a spell or magical effect that allows a save to take only half damage, it takes no damage if it succeeds on the save."
+  },
+  {
+    "name": "Cloudkill",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: C. You create a 20-foot-radius Sphere [Area of Effect] of yellow-green fog centered on a point within range. The fog lasts for the duration or until strong wind (such as the one created by Gust of Wind) disperses it, ending the spell. Its area is Heavily Obscured. Each creature in the Sphere [Area of Effect] makes a Constitution saving throw, taking 5d8 Poison damage on a failed save or half as much damage on a successful one. A creature must also make this save when the Sphere [Area of Effect] moves into its space and when it enters the Sphere [Area of Effect] or ends its turn there. A creature makes this save only once per turn. The Sphere [Area of Effect] moves 10 feet away from you at the start of each of your turns. Using a Higher-Level Spell Slot. The damage increases by 5d8 for each spell slot level above 5."
+  },
+  {
+    "name": "Commune",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: D. You contact a deity or a divine proxy and ask up to three questions that can be answered with yes or no. You must ask your questions before the spell ends. You receive a correct answer for each question. Divine beings aren't necessarily omniscient, so you might receive \"unclear\" as an answer if a question pertains to information that lies beyond the deity's knowledge. In a case where a one-word answer could be misleading or contrary to the deity's interests, the DM might offer a short phrase as an answer instead. If you cast the spell more than once before finishing a Long Rest, there is a cumulative 25 chance for each casting after the first that you get no answer."
+  },
+  {
     "name": "Commune with Nature",
     "level": 5,
     "classes": [
@@ -6193,6 +6409,24 @@
     ],
     "races": [],
     "description": "Source: XPHB. Level: 5. School: D. You commune with nature spirits and gain knowledge of the surrounding area. In the outdoors, the spell gives you knowledge of the area within 3 miles of you. In caves and other natural underground settings, the radius is limited to 300 feet. The spell doesn't function where nature has been replaced by construction, such as in castles and settlements. Choose three of the following facts; you learn those facts as they pertain to the spell's area: Locations of settlements Locations of portals to other planes of existence Location of one Challenge Rating 10+ creature (DM's choice) that is a Celestial, an Elemental, a Fey, a Fiend, or an Undead The most prevalent kind of plant, mineral, or Beast (you choose which to learn) Locations of bodies of water For example, you could determine the location of a powerful monster in the area, the locations of bodies of water, and the locations of any towns."
+  },
+  {
+    "name": "Contact Other Plane",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: D. You mentally contact a demigod, the spirit of a long-dead sage, or some other knowledgeable entity from another plane. Contacting this otherworldly intelligence can break your mind. When you cast this spell, make a 15 Intelligence saving throw. On a successful save, you can ask the entity up to five questions. You must ask your questions before the spell ends. The DM answers each question with one word, such as \"yes,\" \"no,\" \"maybe,\" \"never,\" \"irrelevant,\" or \"unclear\" (if the entity doesn't know the answer to the question). If a one-word answer would be misleading, the DM might instead offer a short phrase as an answer. On a failed save, you take 6d6 Psychic damage and have the Incapacitated condition until you finish a Long Rest. A Greater Restoration spell cast on you ends this effect."
+  },
+  {
+    "name": "Contagion",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: N. Your touch inflicts a magical contagion. The target must succeed on a Constitution saving throw or take 11d8 Necrotic damage and have the Poisoned condition. Also, choose one ability when you cast the spell. While Poisoned, the target has Disadvantage on saving throws made with the chosen ability. The target must repeat the saving throw at the end of each of its turns until it gets three successes or failures. If the target succeeds on three of these saves, the spell ends on the target. If the target fails three of the saves, the spell lasts for 7 days on it. Whenever the Poisoned target receives an effect that would end the Poisoned condition, the target must succeed on a Constitution saving throw, or the Poisoned condition doesn't end on it."
   },
   {
     "name": "Control Winds",
@@ -6226,6 +6460,24 @@
     "description": "Source: XGE. Level: 5. School: V. The light of dawn shines down on a location you specify within range. Until the spell ends, a 30-foot-radius, 40-foot-high cylinder of bright light glimmers there. This light is sunlight. When the cylinder appears, each creature in it must make a Constitution saving throw, taking 4d10 radiant damage on a failed save, or half as much damage on a successful one. A creature must also make this saving throw whenever it ends its turn in the cylinder. If you're within 60 feet of the cylinder, you can move it up to 60 feet as a bonus action on your turn."
   },
   {
+    "name": "Destructive Wave",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: V. Destructive energy ripples outward from you in a 30-foot Emanation [Area of Effect]. Each creature you choose in the Emanation [Area of Effect] makes a Constitution saving throw. On a failed save, a target takes 5d6 Thunder damage and 5d6 Radiant or Necrotic damage (your choice) and has the Prone condition. On a successful save, a target takes half as much damage only."
+  },
+  {
+    "name": "Dominate Person",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: E. One Humanoid you can see within range must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target has Advantage on the save if you or your allies are fighting it. Whenever the target takes damage, it repeats the save, ending the spell on itself on a success. You have a telepathic link with the Charmed target while the two of you are on the same plane of existence. On your turn, you can use this link to issue commands to the target (no action required), such as \"Attack that creature,\" \"Move over there,\" or \"Fetch that object.\" The target does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, it acts and moves as it likes, focusing on protecting itself. You can command the target to take a Reaction but must take your own Reaction to do so. Using a Higher-Level Spell Slot. Your Concentration can last longer with a spell slot of level 6 (up to 10 minutes), 7 (up to 1 hour), or 8+ (up to 8 hours)."
+  },
+  {
     "name": "Enervation",
     "level": 5,
     "classes": [],
@@ -6238,6 +6490,42 @@
     "classes": [],
     "races": [],
     "description": "Source: XGE. Level: 5. School: C. You teleport up to 60 feet to an unoccupied space you can see. On each of your turns before the spell ends, you can use a bonus action to teleport in this way again."
+  },
+  {
+    "name": "Flame Strike",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: V. A vertical column of brilliant fire roars down from above. Each creature in a 10-foot-radius, 40-foot-high Cylinder [Area of Effect] centered on a point within range makes a Dexterity saving throw, taking 5d6 Fire damage and 5d6 Radiant damage on a failed save or half as much damage on a successful one. Using a Higher-Level Spell Slot. The Fire damage and the Radiant damage increase by 5d6 for each spell slot level above 5."
+  },
+  {
+    "name": "Geas",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: E. You give a verbal command to a creature that you can see within range, ordering it to carry out some service or refrain from an action or a course of activity as you decide. The target must succeed on a Wisdom saving throw or have the Charmed condition for the duration. The target automatically succeeds if it can't understand your command. While Charmed, the creature takes 5d10 Psychic damage if it acts in a manner directly counter to your command. It takes this damage no more than once each day. You can issue any command you choose, short of an activity that would result in certain death. Should you issue a suicidal command, the spell ends. A Remove Curse, Greater Restoration, or Wish spell ends this spell. Using a Higher-Level Spell Slot. If you use a level 7 or 8 spell slot, the duration is 365 days. If you use a level 9 spell slot, the spell lasts until it is ended by one of the spells mentioned above."
+  },
+  {
+    "name": "Greater Restoration",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: A. You touch a creature and magically remove one of the following effects from it: 1 Exhaustion level The Charmed or Petrified condition A curse, including the target's Attunement to a cursed magic item Any reduction to one of the target's ability scores Any reduction to the target's Hit Points maximum"
+  },
+  {
+    "name": "Hold Monster",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: E. Choose a creature that you can see within range. The target must succeed on a Wisdom saving throw or have the Paralyzed condition for the duration. At the end of each of its turns, the target repeats the save, ending the spell on itself on a success. Using a Higher-Level Spell Slot. You can target one additional creature for each spell slot level above 5."
   },
   {
     "name": "Holy Weapon",
@@ -6261,6 +6549,15 @@
     "description": "Source: XGE. Level: 5. School: C. Uttering a dark incantation, you summon a devil from the Nine Hells. You choose the devil's type, which must be one of challenge rating 6 or lower, such as a barbed devil or a bearded devil. The devil appears in an unoccupied space that you can see within range. The devil disappears when it drops to 0 hit points or when the spell ends. The devil is unfriendly toward you and your companions. Roll initiative for the devil, which has its own turns. It is under the Dungeon Master's control and acts according to its nature on each of its turns, which might result in its attacking you if it thinks it can prevail, or trying to tempt you to undertake an evil act in exchange for limited service. The DM has the creature's statistics. On each of your turns, you can try to issue a verbal command to the devil (no action required by you). It obeys the command if the likely outcome is in accordance with its desires, especially if the result would draw you toward evil. Otherwise, you must make a Charisma (Deception, Intimidation, or Persuasion) check contested by its Wisdom (Insight) check. You make the check with advantage if you say the devil's true name. If your check fails, the devil becomes immune to your verbal commands for the duration of the spell, though it can still carry out your commands if it chooses. If your check succeeds, the devil carries out your command—such as \"attack my enemies,\" \"explore the room ahead,\" or \"bear this message to the queen\"—until it completes the activity, at which point it returns to you to report having done so. If your concentration ends before the spell reaches its full duration, the devil doesn't disappear if it has become immune to your verbal commands. Instead, it acts in whatever manner it chooses for 3d6 minutes, and then it disappears. If you possess an individual devil's talisman, you can summon that devil if it is of the appropriate challenge rating plus 1, and it obeys all your commands, with no Charisma checks required. At Higher Levels When you cast this spell using a spell slot of 6th level or higher, the challenge rating increases by 1 for each slot level above 5th."
   },
   {
+    "name": "Insect Plague",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: C. Swarming locusts fill a 20-foot-radius Sphere [Area of Effect] centered on a point you choose within range. The Sphere [Area of Effect] remains for the duration, and its area is Lightly Obscured and Difficult Terrain. When the swarm appears, each creature in it makes a Constitution saving throw, taking 4d10 Piercing damage on a failed save or half as much damage on a successful one. A creature also makes this save when it enters the spell's area for the first time on a turn or ends its turn there. A creature makes this save only once per turn. Using a Higher-Level Spell Slot. The damage increases by 4d10 for each spell slot level above 5."
+  },
+  {
     "name": "Jallarzi's Storm of Radiance",
     "level": 5,
     "classes": [
@@ -6271,6 +6568,15 @@
     "description": "Source: XPHB. Level: 5. School: V. You unleash a storm of flashing light and raging thunder in a 10-foot-radius, 40-foot-high Cylinder [Area of Effect] centered on a point you can see within range. While in this area, creatures have the Blinded and Deafened conditions, and they can't cast spells with a Verbal component. When the storm appears, each creature in it makes a Constitution saving throw, taking 2d10 Radiant damage and 2d10 Thunder damage on a failed save or half as much damage on a successful one. A creature also makes this save when it enters the spell's area for the first time on a turn or ends its turn there. A creature makes this save only once per turn. Using a Higher-Level Spell Slot The Radiant and Thunder damage increase by 1d10 for each spell slot level above 5."
   },
   {
+    "name": "Legend Lore",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: D. Name or describe a famous person, place, or object. The spell brings to your mind a brief summary of the significant lore about that famous thing, as described by the DM. The lore might consist of important details, amusing revelations, or even secret lore that has never been widely known. The more information you already know about the thing, the more precise and detailed the information you receive is. That information is accurate but might be couched in figurative language or poetry, as determined by the DM. If the famous thing you chose isn't actually famous, you hear sad musical notes played on a trombone, and the spell fails."
+  },
+  {
     "name": "Maelstrom",
     "level": 5,
     "classes": [],
@@ -6278,11 +6584,38 @@
     "description": "Source: XGE. Level: 5. School: V. A swirling mass of 5-foot-deep water appears in a 30-foot radius centered on a point you can see within range. The point must be on the ground or in a body of water. Until the spell ends, that area is difficult terrain||3, and any creature that starts its turn there must succeed on a Strength saving throw or take 6d6 bludgeoning damage and be pulled 10 feet toward the center."
   },
   {
+    "name": "Mass Cure Wounds",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: A. A wave of healing energy washes out from a point you can see within range. Choose up to six creatures in a 30-foot-radius Sphere [Area of Effect] centered on that point. Each target regains Hit Points equal to 5d8 plus your spellcasting ability modifier. Using a Higher-Level Spell Slot. The healing increases by 5d8 for each spell slot level above 5."
+  },
+  {
+    "name": "Mislead",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: I. You gain the Invisible condition at the same time that an illusory double of you appears where you are standing. The double lasts for the duration, but the invisibility ends immediately after you make an attack roll, deal damage, or cast a spell. As a Magic action, you can move the illusory double up to twice your Speed and make it gesture, speak, and behave in whatever way you choose. It is intangible and invulnerable. You can see through its eyes and hear through its ears as if you were located where it is."
+  },
+  {
     "name": "Negative Energy Flood",
     "level": 5,
     "classes": [],
     "races": [],
     "description": "Source: XGE. Level: 5. School: N. You send ribbons of negative energy at one creature you can see within range. Unless the target is undead, it must make a Constitution saving throw, taking 5d12 necrotic damage on a failed save, or half as much damage on a successful one. A target killed by this damage rises up as a zombie at the start of your next turn. The zombie pursues whatever creature it can see that is closest to it. Statistics for the zombie are in the Monster Manual. If you target an undead with this spell, the target doesn't make a saving throw. Instead, roll 5d12. The target gains half the total as temporary hit points."
+  },
+  {
+    "name": "Scrying",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: D. You can see and hear a creature you choose that is on the same plane of existence as you. The target makes a Wisdom saving throw, which is modified (see the tables below) by how well you know the target and the sort of physical connection you have to it. The target doesn't know what it is making the save against, only that it feels uneasy. Secondhand (heard of the target): +5 Firsthand (met the target): +0 Extensive (know the target well): -5 Picture or other likeness: -2 Garment or other possession: -4 Body part, lock of hair, or bit of nail: -10 On a successful save, the target isn't affected, and you can't use this spell on it again for 24 hours. On a failed save, the spell creates an Invisible, intangible sensor within 10 feet of the target. You can see and hear through the sensor as if you were there. The sensor moves with the target, remaining within 10 feet of it for the duration. If something can see the sensor, it appears as a luminous orb about the size of your fist. Instead of targeting a creature, you can target a location you have seen. When you do so, the sensor appears at that location and doesn't move."
   },
   {
     "name": "Skill Empowerment",
@@ -6373,6 +6706,15 @@
     ],
     "races": [],
     "description": "Source: XPHB. Level: 5. School: C. You gain the ability to enter a tree and move from inside it to inside another tree of the same kind within 500 feet. Both trees must be living and at least the same size as you. You must use 5 feet of movement to enter a tree. You instantly know the location of all other trees of the same kind within 500 feet and, as part of the move used to enter the tree, can either pass into one of those trees or step out of the tree you're in. You appear in a spot of your choice within 5 feet of the destination tree, using another 5 feet of movement. If you have no movement left, you appear within 5 feet of the tree you entered. You can use this transportation ability only once on each of your turns. You must end each turn outside a tree."
+  },
+  {
+    "name": "Wall of Force",
+    "level": 5,
+    "classes": [
+      "Paladin"
+    ],
+    "races": [],
+    "description": "Source: XPHB. Level: 5. School: V. An Invisible wall of force springs into existence at a point you choose within range. The wall appears in any orientation you choose, as a horizontal or vertical barrier or at an angle. It can be free floating or resting on a solid surface. You can form it into a hemispherical dome or a globe with a radius of up to 10 feet, or you can shape a flat surface made up of ten 10-foot-by-10-foot panels. Each panel must be contiguous with another panel. In any form, the wall is 1/4 inch thick and lasts for the duration. If the wall cuts through a creature's space when it appears, the creature is pushed to one side of the wall (you choose which side). Nothing can physically pass through the wall. It is immune to all damage and can't be dispelled by Dispel Magic. A Disintegrate spell destroys the wall instantly, however. The wall also extends into the Ethereal Plane and blocks ethereal travel through the wall."
   },
   {
     "name": "Wall of Light",
