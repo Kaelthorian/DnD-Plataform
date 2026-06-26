@@ -6,6 +6,11 @@ set "PROJECT_DIR=%CD%"
 set "OUTPUT_DIR=installer-pdf-fields"
 set "BUILD_OUTPUT_DIR=%OUTPUT_DIR%"
 set "BUILDER_CMD=%PROJECT_DIR%\node_modules\.bin\electron-builder.cmd"
+set "BUILDER_JS=%PROJECT_DIR%\node_modules\electron-builder\cli.js"
+set "TAILWIND_CLI=%PROJECT_DIR%\node_modules\tailwindcss\lib\cli.js"
+set "VITE_CLI=%PROJECT_DIR%\node_modules\vite\bin\vite.js"
+set "DM_SCREEN_BUILD_SCRIPT=%PROJECT_DIR%\scripts\ensure-dm-screen-build.js"
+set "PORTABLE_NODE=%PROJECT_DIR%\.tools\node-v20.19.0-win-x64\node.exe"
 
 echo.
 echo === Planilla DnD - Crear instalador ===
@@ -44,8 +49,9 @@ if not defined CURRENT_VERSION (
 )
 
 echo Version actual: %CURRENT_VERSION%
+set "APP_VERSION="
 set /p APP_VERSION=Numero de version para este instalador [Enter = %CURRENT_VERSION%]: 
-if "%APP_VERSION%"=="" set "APP_VERSION=%CURRENT_VERSION%"
+if not defined APP_VERSION set "APP_VERSION=%CURRENT_VERSION%"
 
 call :NormalizeVersion "%APP_VERSION%"
 if errorlevel 1 (
@@ -55,7 +61,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not "%APP_VERSION%"=="%NORMALIZED_VERSION%" (
+if defined APP_VERSION if not "%APP_VERSION%"=="%NORMALIZED_VERSION%" (
   echo Version normalizada: %NORMALIZED_VERSION%
 )
 set "APP_VERSION=%NORMALIZED_VERSION%"
@@ -70,7 +76,14 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist "node_modules" (
+set "NEED_NPM_INSTALL="
+if not exist "node_modules" set "NEED_NPM_INSTALL=1"
+if not exist "%BUILDER_CMD%" set "NEED_NPM_INSTALL=1"
+if not exist "%BUILDER_JS%" set "NEED_NPM_INSTALL=1"
+if not exist "%TAILWIND_CLI%" set "NEED_NPM_INSTALL=1"
+if not exist "%VITE_CLI%" set "NEED_NPM_INSTALL=1"
+
+if defined NEED_NPM_INSTALL (
   echo Instalando dependencias...
   call npm install
   if errorlevel 1 (
@@ -84,6 +97,55 @@ if not exist "node_modules" (
 if not exist "%BUILDER_CMD%" (
   echo ERROR: No se encontro electron-builder en node_modules.
   echo Ejecuta npm install y vuelve a intentar.
+  echo.
+  pause
+  exit /b 1
+)
+
+if not exist "%BUILDER_JS%" (
+  echo ERROR: No se encontro electron-builder\cli.js en node_modules.
+  echo Ejecuta npm install y vuelve a intentar.
+  echo.
+  pause
+  exit /b 1
+)
+
+if not exist "%DM_SCREEN_BUILD_SCRIPT%" (
+  echo ERROR: No se encontro scripts\ensure-dm-screen-build.js.
+  echo.
+  pause
+  exit /b 1
+)
+
+for /f "usebackq delims=" %%v in (`node -p "process.versions.node.split('.')[0]"`) do set "NODE_MAJOR=%%v"
+if not defined NODE_MAJOR (
+  echo ERROR: No se pudo detectar la version de Node.
+  echo.
+  pause
+  exit /b 1
+)
+
+set "BUILD_NODE=node"
+if %NODE_MAJOR% LSS 20 (
+  if exist "%PORTABLE_NODE%" (
+    set "BUILD_NODE=%PORTABLE_NODE%"
+    echo Node del sistema es v%NODE_MAJOR%. Se usara Node portable 20 para compilar y empaquetar.
+  ) else (
+    echo ERROR: Node del sistema es v%NODE_MAJOR%, pero electron-builder requiere Node moderno.
+    echo Instala Node 20+ o deja el portable en ".tools\node-v20.19.0-win-x64".
+    echo.
+    pause
+    exit /b 1
+  )
+)
+
+echo.
+echo Compilando DM Screen...
+call "%BUILD_NODE%" "%DM_SCREEN_BUILD_SCRIPT%" --force
+if errorlevel 1 (
+  echo.
+  echo ERROR: Fallo la compilacion del DM Screen.
+  echo Si el error menciona Node, instala Node 20+ o deja el portable en ".tools\node-v20.19.0-win-x64".
   echo.
   pause
   exit /b 1
@@ -119,10 +181,11 @@ if defined CSC_LINK (
 
 echo.
 echo Creando instalador...
+set "ELECTRON_RUN_AS_NODE="
 if defined CSC_LINK (
-  call "%BUILDER_CMD%" --win nsis -c.directories.output=%BUILD_OUTPUT_DIR%
+  call "%BUILD_NODE%" "%BUILDER_JS%" --win nsis -c.directories.output=%BUILD_OUTPUT_DIR%
 ) else (
-  call "%BUILDER_CMD%" --win nsis -c.directories.output=%BUILD_OUTPUT_DIR% -c.win.signAndEditExecutable=false
+  call "%BUILD_NODE%" "%BUILDER_JS%" --win nsis -c.directories.output=%BUILD_OUTPUT_DIR% -c.win.signAndEditExecutable=false
 )
 if errorlevel 1 (
   echo.
@@ -149,6 +212,8 @@ exit /b 0
 :NormalizeVersion
 setlocal EnableDelayedExpansion
 set "RAW_VERSION=%~1"
+set "RAW_VERSION=!RAW_VERSION: =!"
+if not defined RAW_VERSION set "RAW_VERSION=%CURRENT_VERSION%"
 set "PART1="
 set "PART2="
 set "PART3="
@@ -164,7 +229,15 @@ for /f "tokens=1-4 delims=." %%a in ("!RAW_VERSION!") do (
 if not defined PART1 exit /b 1
 if not defined PART2 exit /b 1
 if defined PART4 exit /b 1
+echo(!PART1!| findstr /R "^[0-9][0-9]*$" >nul
+if errorlevel 1 exit /b 1
+echo(!PART2!| findstr /R "^[0-9][0-9]*$" >nul
+if errorlevel 1 exit /b 1
 if defined PART3 (
-  endlocal & set "NORMALIZED_VERSION=%~1" & exit /b 0
+  echo(!PART3!| findstr /R "^[0-9][0-9]*$" >nul
+  if errorlevel 1 exit /b 1
 )
-endlocal & set "NORMALIZED_VERSION=%~1.0" & exit /b 0
+if defined PART3 (
+  endlocal & set "NORMALIZED_VERSION=%RAW_VERSION%" & exit /b 0
+)
+endlocal & set "NORMALIZED_VERSION=%RAW_VERSION%.0" & exit /b 0

@@ -1,18 +1,21 @@
 {
   "name": "dnd-character-sheet-desktop",
-  "version": "4.9.9",
+  "version": "7.0.0",
   "description": "Planilla de personaje DnD de escritorio",
   "main": "src/app/main/main.js",
   "author": "WallyCode",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "build:dm-screen": "npm run build:dm-screen:css && npm run build:dm-screen:js",
+    "build:dm-screen": "node ./scripts/ensure-dm-screen-build.js --force",
     "build:dm-screen:css": "tailwindcss -c ./src/app/renderer/dm-screen/tailwind.config.cjs -i ./src/app/renderer/dm-screen/styles.css -o ./src/app/renderer/dm-screen/dist/dm-screen.css --minify",
     "build:dm-screen:js": "vite build --config ./src/app/renderer/dm-screen/vite.config.mjs",
+    "prestart": "node ./scripts/ensure-dm-screen-build.js",
     "start": "set ELECTRON_RUN_AS_NODE=& electron .",
     "test:engine": "node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/resource-state.test.js && node tests/engine/long-rest.test.js",
+    "predist": "node ./scripts/ensure-dm-screen-build.js",
     "dist": "set ELECTRON_RUN_AS_NODE=& electron-builder --win nsis",
+    "predist:portable": "node ./scripts/ensure-dm-screen-build.js",
     "dist:portable": "set ELECTRON_RUN_AS_NODE=& electron-builder --win portable"
   },
   "build": {

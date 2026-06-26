@@ -35,6 +35,7 @@
       <div class="app-settings-title">Settings</div>
       <button class="app-settings-action-button" id="dmScreenButton" type="button">DM screen</button>
       <button class="app-settings-action-button" id="generateSheetCodeButton" type="button">Generar codigo</button>
+      <button class="app-settings-action-button" id="importCharacterButton" type="button">Importar character</button>
       <label class="app-settings-toggle-row" for="diceAnimationToggle">
         <span>
           <span class="app-settings-toggle-title">Dados 3D</span>
@@ -149,6 +150,28 @@
       <div class="turn-actions-body" id="turnActionsBody"></div>
     </aside>
   </div>
+  <div class="character-import-backdrop" id="characterImportBackdrop" aria-hidden="true" hidden>
+    <div class="character-import-modal" role="dialog" aria-modal="true" aria-labelledby="characterImportTitle">
+      <div class="character-import-header">
+        <div>
+          <div class="character-import-title" id="characterImportTitle">Importar character</div>
+          <div class="character-import-subtitle">Pega un codigo y elige en que save slot cargarlo.</div>
+        </div>
+        <button class="character-import-close" id="characterImportClose" type="button" aria-label="Cerrar">X</button>
+      </div>
+      <div class="character-import-body">
+        <label class="character-import-label" for="characterImportCode">Codigo de personaje</label>
+        <textarea class="character-import-textarea" id="characterImportCode" placeholder="Pega aqui el codigo del character sheet" spellcheck="false"></textarea>
+        <label class="character-import-label" for="characterImportSlotSelect">Save slot</label>
+        <select class="character-import-slot-select" id="characterImportSlotSelect"></select>
+        <div class="character-import-error" id="characterImportError" hidden></div>
+      </div>
+      <div class="character-import-actions">
+        <button class="character-import-secondary" id="characterImportCancel" type="button">Cancelar</button>
+        <button class="character-import-primary" id="characterImportConfirm" type="button">Importar</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../../engine/conditions/statuses.js"></script>
   <script src="../../engine/actions/action-advisor.js"></script>
@@ -184,6 +207,14 @@
       mergeRollModes,
       collectStatusEffects
     } = globalThis.dndConditionEngine;
+    const importCharacterButton = document.getElementById("importCharacterButton");
+    const characterImportBackdrop = document.getElementById("characterImportBackdrop");
+    const characterImportClose = document.getElementById("characterImportClose");
+    const characterImportCancel = document.getElementById("characterImportCancel");
+    const characterImportConfirm = document.getElementById("characterImportConfirm");
+    const characterImportCode = document.getElementById("characterImportCode");
+    const characterImportSlotSelect = document.getElementById("characterImportSlotSelect");
+    const characterImportError = document.getElementById("characterImportError");
     const {
       ACTION_TYPES,
       ACTION_TYPE_LABELS,
@@ -5536,6 +5567,56 @@
       generate: generateCharacterSheetCode
     };
 
+    function isCharacterImportModalOpen() {
+      return Boolean(characterImportBackdrop && !characterImportBackdrop.hidden);
+    }
+
+    function setCharacterImportError(message = "") {
+      if (!characterImportError) return;
+      const text = String(message || "").trim();
+      characterImportError.textContent = text;
+      characterImportError.hidden = !text;
+    }
+
+    function renderCharacterImportSlotSelect() {
+      if (!characterImportSlotSelect || !activeSaveStore) return;
+      const previousValue = characterImportSlotSelect.value || activeSaveSlotId || DEFAULT_ACTIVE_SLOT_ID;
+      characterImportSlotSelect.innerHTML = "";
+      activeSaveStore.slots.forEach((slot, index) => {
+        const option = document.createElement("option");
+        option.value = slot.id;
+        option.textContent = saveSlotLabelText(slot, index);
+        characterImportSlotSelect.appendChild(option);
+      });
+      characterImportSlotSelect.value = activeSaveStore.slots.some((slot) => slot.id === previousValue)
+        ? previousValue
+        : (activeSaveSlotId || DEFAULT_ACTIVE_SLOT_ID);
+    }
+
+    async function openCharacterImportModal() {
+      if (!activeSaveStore) await loadSaveStore();
+      setCharacterImportError("");
+      renderCharacterImportSlotSelect();
+      if (characterImportCode) characterImportCode.value = "";
+      if (characterImportBackdrop) {
+        characterImportBackdrop.hidden = false;
+        characterImportBackdrop.setAttribute("aria-hidden", "false");
+      }
+      if (typeof setAppSettingsMenuOpen === "function") setAppSettingsMenuOpen(false);
+      requestAnimationFrame(() => {
+        characterImportCode?.focus();
+      });
+    }
+
+    function closeCharacterImportModal() {
+      if (characterImportBackdrop) {
+        characterImportBackdrop.hidden = true;
+        characterImportBackdrop.setAttribute("aria-hidden", "true");
+      }
+      if (characterImportCode) characterImportCode.value = "";
+      setCharacterImportError("");
+    }
+
     function applyData(data) {
       sheetMeta = data?.__sheetMeta && typeof data.__sheetMeta === "object" ? data.__sheetMeta : { choices: {} };
       if (!sheetMeta.choices || typeof sheetMeta.choices !== "object") sheetMeta.choices = {};
@@ -5676,6 +5757,7 @@
       });
       saveSlotSelect.value = activeSaveStore.slots.some((slot) => slot.id === previousValue) ? previousValue : activeSaveSlotId;
       if (saveSlotLabel) saveSlotLabel.textContent = "Personaje";
+      renderCharacterImportSlotSelect();
     }
 
     function resetVisibleSheetFields() {
@@ -5763,6 +5845,56 @@
       } finally {
         isSwitchingSaveSlot = false;
       }
+    }
+
+    async function importCharacterToSelectedSlot() {
+      if (!characterImportCode || !characterImportSlotSelect) return;
+      if (!activeSaveStore) await loadSaveStore();
+
+      const code = characterImportCode.value.trim();
+      if (!code) {
+        setCharacterImportError("Pega un codigo antes de importar.");
+        characterImportCode.focus();
+        return;
+      }
+
+      const targetSlotId = String(characterImportSlotSelect.value || activeSaveSlotId || DEFAULT_ACTIVE_SLOT_ID).trim();
+      if (!targetSlotId) {
+        setCharacterImportError("Elige un save slot valido.");
+        return;
+      }
+
+      let importedData;
+      try {
+        importedData = await decodeCharacterSheetCode(code);
+      } catch (error) {
+        setCharacterImportError(error?.message || "No se pudo leer el codigo del personaje.");
+        return;
+      }
+
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      updateActiveSlotFromCurrentData();
+
+      const savedAt = new Date().toISOString();
+      activeSaveStore.slots = activeSaveStore.slots.map((slot) => {
+        if (slot.id !== targetSlotId) return slot;
+        return {
+          ...slot,
+          name: characterNameFromData(importedData),
+          updatedAt: savedAt,
+          data: importedData
+        };
+      });
+      activeSaveSlotId = targetSlotId;
+      activeSaveStore.activeSlotId = targetSlotId;
+      await saveActiveStore();
+      renderSaveSlotSelect();
+      resetVisibleSheetFields();
+      applyData(importedData);
+      refreshAfterApplyingSlotData();
+      closeCharacterImportModal();
+      showStatus("Personaje importado");
     }
 
     let statusTimer;
@@ -5867,6 +5999,7 @@
       if (!target || target.closest?.(".field")) return;
       if (target.closest?.("#saveSlotControl")) return;
       if (target.closest?.("#appSettingsMenu")) return;
+      if (target.closest?.("#characterImportBackdrop")) return;
       if (target.closest?.("#freeDiceMenu")) return;
       if (target.closest?.("#itemPickerBackdrop")) return;
       if (target.closest?.(".spell-picker")) return;
@@ -13688,6 +13821,39 @@
     }
 
     registerTurnActionProviders();
+
+    importCharacterButton?.addEventListener("click", () => {
+      openCharacterImportModal().catch((error) => {
+        console.error(error);
+        showStatus(error?.message || "No se pudo abrir la importacion");
+      });
+    });
+    characterImportClose?.addEventListener("click", closeCharacterImportModal);
+    characterImportCancel?.addEventListener("click", closeCharacterImportModal);
+    characterImportConfirm?.addEventListener("click", () => {
+      importCharacterToSelectedSlot().catch((error) => {
+        console.error(error);
+        setCharacterImportError(error?.message || "No se pudo importar el character.");
+      });
+    });
+    characterImportBackdrop?.addEventListener("click", (event) => {
+      if (event.target === characterImportBackdrop) closeCharacterImportModal();
+    });
+    characterImportCode?.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.shiftKey) return;
+      event.preventDefault();
+      importCharacterToSelectedSlot().catch((error) => {
+        console.error(error);
+        setCharacterImportError(error?.message || "No se pudo importar el character.");
+      });
+    });
+    characterImportCode?.addEventListener("input", () => {
+      if (!characterImportError?.hidden) setCharacterImportError("");
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !isCharacterImportModalOpen()) return;
+      closeCharacterImportModal();
+    });
 
     init().catch((error) => {
       console.error(error);

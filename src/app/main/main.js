@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
@@ -146,6 +146,7 @@ async function createWindow(routeName = "characterSheet") {
     minHeight: 720,
     title: route.title,
     backgroundColor: route.backgroundColor,
+    autoHideMenuBar: true,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "preload.js"),
@@ -153,6 +154,7 @@ async function createWindow(routeName = "characterSheet") {
       nodeIntegration: false
     }
   });
+  win.setMenu(null);
 
   win.once("ready-to-show", () => {
     win.show();
@@ -181,7 +183,10 @@ async function createWindow(routeName = "characterSheet") {
   return win;
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
+  return createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

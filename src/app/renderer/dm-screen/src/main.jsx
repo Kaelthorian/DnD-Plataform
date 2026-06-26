@@ -68,6 +68,47 @@ const XP_BY_CR = {
   "30": 155000
 };
 const ITEM_LIBRARY = [...(itemsData.item || []), ...(baseItemsData.baseitem || [])];
+const ITEM_PROPERTY_LOOKUP = new Map((baseItemsData.itemProperty || []).map((property) => [`${property.abbreviation}|${property.source}`, property]));
+const ITEM_TYPE_LOOKUP = new Map((baseItemsData.itemType || []).map((type) => [`${type.abbreviation}|${type.source}`, type]));
+const ITEM_MASTERY_LOOKUP = new Map((baseItemsData.itemMastery || []).map((mastery) => [`${mastery.name}|${mastery.source}`, mastery]));
+const DAMAGE_TYPE_LABELS = {
+  A: "Acid",
+  B: "Bludgeoning",
+  C: "Cold",
+  F: "Fire",
+  FC: "Force",
+  L: "Lightning",
+  N: "Necrotic",
+  P: "Piercing",
+  PSN: "Poison",
+  I: "Psychic",
+  R: "Radiant",
+  S: "Slashing",
+  T: "Thunder"
+};
+const SOURCE_SHORT_LABELS = {
+  XPHB: "PHB'24",
+  PHB: "PHB'14",
+  XDMG: "DMG'24",
+  DMG: "DMG'14",
+  XMM: "MM'24",
+  MM: "MM'14"
+};
+const SPELL_SCHOOL_LABELS = {
+  A: "Abjuration",
+  C: "Conjuration",
+  D: "Divination",
+  E: "Enchantment",
+  I: "Illusion",
+  N: "Necromancy",
+  T: "Transmutation",
+  V: "Evocation",
+  BM: "Blood Magic"
+};
+const SPELL_SOURCE_LABELS = {
+  ...SOURCE_SHORT_LABELS,
+  HelianasGuidetoMonsterHunting: "HGtMH"
+};
 const NOTE_MIN_WIDTH = 340;
 const NOTE_MIN_HEIGHT = 280;
 const NOTE_DEFAULT_WIDTH = 560;
@@ -113,6 +154,83 @@ function spellSchool(spell) {
   return String(spell?.description || "").match(/\bSchool:\s*([^.]+)/i)?.[1]?.trim() || "";
 }
 
+function spellSchoolLabel(spell) {
+  const school = spellSchool(spell);
+  return SPELL_SCHOOL_LABELS[school] || titleCase(school);
+}
+
+function abbreviateSourceLabel(source) {
+  const value = String(source || "").trim();
+  if (!value) return "Unknown";
+  if (SPELL_SOURCE_LABELS[value]) return SPELL_SOURCE_LABELS[value];
+  if (/^[A-Z0-9'/-]{2,12}$/.test(value)) return value;
+  const tokens = value.match(/[A-Z]+(?=[A-Z][a-z]|\d|$)|[A-Z]?[a-z]+|\d+/g) || value.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  const acronym = tokens
+    .map((token) => (/^\d+$/.test(token) ? token : token[0]))
+    .join("");
+  return acronym || value;
+}
+
+function spellSourceLabel(spell) {
+  return abbreviateSourceLabel(spellSource(spell));
+}
+
+function formatSpellRank(spell) {
+  const level = Number(spell?.level);
+  if (!Number.isFinite(level)) return "Spell";
+  if (level === 0) return "Cantrip";
+  const suffix = level === 1 ? "st" : level === 2 ? "nd" : level === 3 ? "rd" : "th";
+  return `${level}${suffix}-Level`;
+}
+
+function formatSpellSubtitle(spell) {
+  const school = spellSchoolLabel(spell);
+  const rank = formatSpellRank(spell);
+  return [school, rank].filter(Boolean).join(" ");
+}
+
+function formatSpellDataValue(value) {
+  if (value == null) return "";
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  if (Array.isArray(value)) return value.map(formatSpellDataValue).filter(Boolean).join(", ");
+  if (typeof value === "object") {
+    const rendered = renderEntryText(value);
+    if (rendered) return rendered;
+    return Object.values(value).map(formatSpellDataValue).filter(Boolean).join(", ");
+  }
+  return "";
+}
+
+function extractSpellTaggedField(spell, label) {
+  return String(spell?.description || "").match(new RegExp(`\\b${label}:\\s*([^.]+)`, "i"))?.[1]?.trim() || "";
+}
+
+function spellMetadataRows(spell) {
+  return [
+    ["Casting Time", formatSpellDataValue(spell?.castingTime ?? spell?.time) || extractSpellTaggedField(spell, "Casting Time")],
+    ["Range", formatSpellDataValue(spell?.range) || extractSpellTaggedField(spell, "Range")],
+    ["Components", formatSpellDataValue(spell?.components) || extractSpellTaggedField(spell, "Components")],
+    ["Duration", formatSpellDataValue(spell?.duration) || extractSpellTaggedField(spell, "Duration")]
+  ].filter(([, value]) => value);
+}
+
+function spellDescriptionBody(spell) {
+  return cleanRulesText(spell?.description || "")
+    .replace(/^Source:\s*[^.]+\.?\s*Level:\s*[^.]+\.?\s*School:\s*[^.]+\.?\s*/i, "")
+    .replace(/^\d+\s*Appendix\s+[A-Z]\s*\|\s*Spells/i, "")
+    .trim();
+}
+
+function spellBodyParagraphs(spell) {
+  const body = spellDescriptionBody(spell)
+    .replace(/\s+(Cantrip Upgrade\.|At Higher Levels\.)/g, "\n\n$1")
+    .replace(/([.?!])\s+(?=[A-Z][a-z])/g, "$1\n\n");
+  return body
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
 function formatSpellLevel(spell) {
   const level = Number(spell?.level);
   if (!Number.isFinite(level)) return "Unknown";
@@ -125,6 +243,127 @@ function itemSource(item) {
 
 function itemRarity(item) {
   return item?.rarity || "none";
+}
+
+function splitTaggedValue(value) {
+  const [code = "", source = ""] = String(value || "").split("|");
+  return {
+    code: code.trim(),
+    source: source.trim().toUpperCase()
+  };
+}
+
+function itemLookupByTaggedValue(lookup, value) {
+  const { code, source } = splitTaggedValue(value);
+  if (!code) return null;
+  return lookup.get(`${code}|${source}`) || [...lookup.entries()].find(([key]) => key.startsWith(`${code}|`))?.[1] || null;
+}
+
+function itemTypeMeta(item) {
+  return itemLookupByTaggedValue(ITEM_TYPE_LOOKUP, item?.type);
+}
+
+function itemPropertyMetas(item) {
+  return (Array.isArray(item?.property) ? item.property : [])
+    .map((property) => itemLookupByTaggedValue(ITEM_PROPERTY_LOOKUP, property))
+    .filter(Boolean);
+}
+
+function itemMasteryMetas(item) {
+  return (Array.isArray(item?.mastery) ? item.mastery : [])
+    .map((mastery) => itemLookupByTaggedValue(ITEM_MASTERY_LOOKUP, mastery))
+    .filter(Boolean);
+}
+
+function itemSourceLabel(item) {
+  const source = itemSource(item);
+  return SOURCE_SHORT_LABELS[source] || source;
+}
+
+function itemTypeLabel(item) {
+  const typeName = itemTypeMeta(item)?.name || "";
+  if (item?.weapon || /weapon/i.test(typeName)) return "Weapon";
+  if (/armor/i.test(typeName)) return "Armor";
+  if (/shield/i.test(typeName)) return "Shield";
+  if (/tool/i.test(typeName)) return "Tool";
+  return typeName || "Item";
+}
+
+function itemCategorySummary(item) {
+  const categories = [];
+  if (item?.weaponCategory) categories.push(`${titleCase(item.weaponCategory)} Weapon`);
+  const typeName = itemTypeMeta(item)?.name || "";
+  if (typeName && !categories.includes(typeName)) categories.push(typeName);
+  return categories.join(", ");
+}
+
+function formatItemCurrency(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return "";
+  if (amount % 100 === 0) return `${amount / 100} GP`;
+  if (amount % 10 === 0) return `${amount / 10} SP`;
+  return `${amount} CP`;
+}
+
+function formatItemWeight(weight) {
+  const amount = Number(weight);
+  if (!Number.isFinite(amount) || amount <= 0) return "";
+  return `${amount} lb.`;
+}
+
+function formatItemDamage(item) {
+  if (!item?.dmg1) return "";
+  const damageType = DAMAGE_TYPE_LABELS[item?.dmgType] || item?.dmgType || "";
+  return [item.dmg1, damageType].filter(Boolean).join(" ");
+}
+
+function formatItemPropertyName(propertyMeta, item) {
+  const namedEntry = Array.isArray(propertyMeta?.entries)
+    ? propertyMeta.entries.find((entry) => entry && typeof entry === "object" && entry.name)
+    : null;
+  const baseName = namedEntry?.name || propertyMeta?.name || propertyMeta?.abbreviation || "";
+  switch (propertyMeta?.abbreviation) {
+    case "T":
+      return item?.range ? `${baseName} (${item.range} ft.)` : baseName;
+    case "A":
+    case "AF":
+      return item?.range ? `${baseName} (${item.range} ft.)` : baseName;
+    case "RLD":
+      return item?.reload ? `${baseName} (${item.reload})` : baseName;
+    case "V":
+      return item?.dmg2 ? `${baseName} (${item.dmg2})` : baseName;
+    default:
+      return baseName;
+  }
+}
+
+function extractEntriesBodyText(entries) {
+  const list = Array.isArray(entries) ? entries : [entries].filter(Boolean);
+  if (!list.length) return "";
+  const namedEntry = list.find((entry) => entry && typeof entry === "object" && entry.entries);
+  return renderEntryText(namedEntry?.entries || list);
+}
+
+function itemRuleSections(item) {
+  const propertySections = itemPropertyMetas(item).map((propertyMeta) => ({
+    title: formatItemPropertyName(propertyMeta, item),
+    text: extractEntriesBodyText(propertyMeta?.entries)
+  }));
+  const masterySections = itemMasteryMetas(item).map((masteryMeta) => ({
+    title: `Mastery: ${masteryMeta?.name || "Unknown"}`,
+    text: extractEntriesBodyText(masteryMeta?.entries)
+  }));
+  return [...propertySections, ...masterySections].filter((section) => section.title && section.text);
+}
+
+function itemRulesFooter(item) {
+  const parts = [];
+  const source = itemSourceLabel(item);
+  const page = item?.page ? `page ${item.page}` : "";
+  if (source || page) parts.push([source, page].filter(Boolean).join(", "));
+  if (item?.srd52) parts.push("Available in the SRD 5.2.1");
+  if (item?.basicRules2024) parts.push("Available in the Basic Rules (5.5e/2024)");
+  return parts.join(". ");
 }
 
 function normalizeSearch(value) {
@@ -1103,15 +1342,20 @@ function ResourceNote({
   const entry = note.entry;
   const isSpell = note.kind === "spell";
   const source = isSpell ? spellSource(entry) : itemSource(entry);
+  const spellSourceText = isSpell ? spellSourceLabel(entry) : "";
+  const spellSubtitle = isSpell ? formatSpellSubtitle(entry) : "";
+  const spellMeta = isSpell ? spellMetadataRows(entry) : [];
+  const spellParagraphs = isSpell ? spellBodyParagraphs(entry) : [];
+  const spellClasses = isSpell && Array.isArray(entry.classes) ? entry.classes.filter(Boolean).join(", ") : "";
+  const spellSubclasses = isSpell && Array.isArray(entry.subclasses) ? entry.subclasses.filter(Boolean).join(", ") : "";
+  const spellRaces = isSpell && Array.isArray(entry.races) ? entry.races.filter(Boolean).join(", ") : "";
+  const itemSourceText = isSpell ? "" : itemSourceLabel(entry);
+  const itemPageText = !isSpell && entry?.page ? `P${entry.page}` : "";
   const subtitle = isSpell
     ? `${formatSpellLevel(entry)}${spellSchool(entry) ? ` | ${spellSchool(entry)}` : ""}`
     : `${titleCase(itemRarity(entry))}${entry.type ? ` | ${entry.type}` : ""}`;
   const details = isSpell
-    ? [
-      ["Source", source],
-      ["Classes", Array.isArray(entry.classes) ? entry.classes.join(", ") : ""],
-      ["Races", Array.isArray(entry.races) ? entry.races.join(", ") : ""]
-    ]
+    ? []
     : [
       ["Source", source],
       ["Rarity", titleCase(itemRarity(entry))],
@@ -1119,6 +1363,14 @@ function ResourceNote({
       ["Weight", entry.weight ? `${entry.weight} lb.` : ""]
     ];
   const text = isSpell ? entry.description : renderEntryText(entry.entries);
+  const itemRules = isSpell ? [] : itemRuleSections(entry);
+  const itemPrimaryLabel = isSpell ? "" : itemTypeLabel(entry);
+  const itemCategoryLine = isSpell ? "" : itemCategorySummary(entry);
+  const itemDamage = isSpell ? "" : formatItemDamage(entry);
+  const itemPropertiesLine = isSpell ? "" : itemPropertyMetas(entry).map((propertyMeta) => formatItemPropertyName(propertyMeta, entry)).join(", ");
+  const itemMasteryLine = isSpell ? "" : itemMasteryMetas(entry).map((masteryMeta) => masteryMeta?.name).filter(Boolean).join(", ");
+  const itemValueWeightLine = isSpell ? "" : [formatItemCurrency(entry?.value), formatItemWeight(entry?.weight)].filter(Boolean).join(", ");
+  const itemFooter = isSpell ? "" : itemRulesFooter(entry);
 
   function addRoll(label, roll) {
     onRoll(note.id, label, roll);
@@ -1140,7 +1392,7 @@ function ResourceNote({
           title={`Restaurar ${entry.name}`}
         >
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{entry.name}</span>
-          <span className="block truncate text-[11px] text-neutral-500">{subtitle}</span>
+          <span className="block truncate text-[11px] text-neutral-500">{isSpell ? spellSubtitle : itemCategoryLine || itemPrimaryLabel}</span>
         </button>
         <button
           className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
@@ -1168,10 +1420,14 @@ function ResourceNote({
       >
         <div>
           <h2 className="font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500">{entry.name}</h2>
-          <p className="mt-2 text-sm italic text-neutral-300">{subtitle}</p>
+          <p className="mt-2 text-sm italic text-neutral-300">{isSpell ? spellSubtitle : itemPrimaryLabel}</p>
+          {!isSpell && itemCategoryLine ? <p className="mt-1 text-sm text-neutral-500">{itemCategoryLine}</p> : null}
         </div>
         <div className="flex items-start gap-3">
-          <div className="text-right font-serif text-xl uppercase leading-none text-amber-500">{source}</div>
+          <div className="text-right">
+            <div className="font-serif text-xl uppercase leading-none text-amber-500">{isSpell ? spellSourceText : itemSourceText}</div>
+            {!isSpell && itemPageText ? <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">{itemPageText}</div> : null}
+          </div>
           <div className="flex gap-1">
             <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(note.id)}>-</button>
             <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(note.id)}>⧉</button>
@@ -1180,13 +1436,88 @@ function ResourceNote({
         </div>
       </header>
       <div className="min-h-0 flex-1 overflow-auto px-3 py-2 text-sm">
-        <div className="grid grid-cols-2 gap-2">
-          {details.filter(([, value]) => value).map(([label, value]) => <Stat key={label} label={label} value={value} />)}
-        </div>
-        <section className="mt-3">
-          <h3 className="border-b border-amber-500 pb-0.5 font-serif text-lg uppercase leading-none text-amber-500">{isSpell ? "Spell" : "Item"}</h3>
-          <p className="mt-2 leading-relaxed"><InteractiveRulesText text={text} context={entry.name} onRoll={addRoll} /></p>
-        </section>
+        {isSpell ? (
+          <>
+            {spellMeta.length ? (
+              <div className="space-y-1.5 text-[15px] leading-relaxed">
+                {spellMeta.map(([label, value]) => (
+                  <p key={`${entry.name}-${label}`}>
+                    <span className="font-bold text-neutral-100">{label}:</span>{" "}
+                    <span className="text-neutral-300">{value}</span>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+
+            <div className={`${spellMeta.length ? "mt-4" : ""} border-t-2 border-amber-500/80 pt-3`}>
+              <div className="space-y-3 leading-relaxed text-neutral-300">
+                {spellParagraphs.map((paragraph, index) => (
+                  <p key={`${entry.name}-paragraph-${index}`}>
+                    <InteractiveRulesText text={paragraph} context={entry.name} onRoll={addRoll} />
+                  </p>
+                ))}
+              </div>
+
+              {spellClasses ? (
+                <p className="mt-4 leading-relaxed text-neutral-300">
+                  <span className="font-bold text-neutral-100">Classes:</span>{" "}
+                  <InteractiveRulesText text={spellClasses} context={`${entry.name} classes`} onRoll={addRoll} />
+                </p>
+              ) : null}
+              {spellSubclasses ? (
+                <p className="mt-2 leading-relaxed text-neutral-300">
+                  <span className="font-bold text-neutral-100">Subclasses:</span>{" "}
+                  <InteractiveRulesText text={spellSubclasses} context={`${entry.name} subclasses`} onRoll={addRoll} />
+                </p>
+              ) : null}
+              {spellRaces ? (
+                <p className="mt-2 leading-relaxed text-neutral-300">
+                  <span className="font-bold text-neutral-100">Races:</span>{" "}
+                  <InteractiveRulesText text={spellRaces} context={`${entry.name} races`} onRoll={addRoll} />
+                </p>
+              ) : null}
+              {source ? (
+                <p className="mt-4 text-xs leading-relaxed text-neutral-500">
+                  <span className="font-bold italic text-neutral-200">Source.</span>{" "}
+                  {spellSourceText}
+                </p>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 text-[15px] text-neutral-300">{itemValueWeightLine || "\u00A0"}</div>
+              <div className="min-w-0 flex-1 text-right">
+                {itemDamage ? <div className="text-[22px] font-medium leading-none text-sky-300">{itemDamage}</div> : null}
+                {itemPropertiesLine ? <div className="mt-2 text-[15px] text-neutral-300">{itemPropertiesLine}</div> : null}
+                {itemMasteryLine ? <div className="mt-1 text-[15px] text-amber-500">Mastery: <span className="text-neutral-100">{itemMasteryLine}</span></div> : null}
+              </div>
+            </div>
+
+            <div className="mt-4 border-t-2 border-amber-500/80 pt-3">
+              {String(text || "").trim() ? (
+                <div className="mb-3 leading-relaxed text-neutral-300">
+                  <InteractiveRulesText text={text} context={entry.name} onRoll={addRoll} />
+                </div>
+              ) : null}
+              <div className="space-y-3">
+                {itemRules.map((section) => (
+                  <p key={`${entry.name}-${section.title}`} className="leading-relaxed text-neutral-300">
+                    <span className="font-bold italic text-neutral-100">{section.title}.</span>{" "}
+                    <InteractiveRulesText text={section.text} context={`${entry.name} ${section.title}`} onRoll={addRoll} />
+                  </p>
+                ))}
+              </div>
+              {itemFooter ? (
+                <p className="mt-4 text-xs leading-relaxed text-neutral-500">
+                  <span className="font-bold italic text-neutral-200">Source.</span>{" "}
+                  {itemFooter}
+                </p>
+              ) : null}
+            </div>
+          </>
+        )}
       </div>
       <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, note.id, edge)} />
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
@@ -1784,6 +2115,81 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
   );
 }
 
+function CharacterCodeModal({ isOpen, value, error, onChange, onClose, onSubmit }) {
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/75 p-4"
+      data-character-code-modal="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <section className="w-[min(640px,calc(100vw-32px))] border border-neutral-700 bg-neutral-900 text-neutral-200 shadow-2xl">
+        <header className="border-b-2 border-amber-500 bg-neutral-950 px-5 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add Character Code</h1>
+              <p className="mt-1 text-sm text-neutral-400">Pega el codigo y presiona Enter para crear la nota.</p>
+            </div>
+            <button
+              className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700"
+              type="button"
+              onClick={onClose}
+            >
+              X
+            </button>
+          </div>
+        </header>
+        <form
+          className="space-y-4 p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <textarea
+            ref={inputRef}
+            className="min-h-40 w-full resize-y border border-neutral-700 bg-neutral-950 px-3 py-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || event.shiftKey) return;
+              event.preventDefault();
+              onSubmit();
+            }}
+            placeholder="Pega aqui el codigo del character sheet"
+            spellCheck={false}
+          />
+          {error ? <p className="text-sm text-rose-400">{error}</p> : null}
+          <div className="flex justify-end gap-3">
+            <button
+              className="inline-flex h-10 items-center border border-neutral-700 bg-neutral-900 px-4 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800"
+              type="button"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              className="inline-flex h-10 items-center bg-amber-500 px-4 text-sm font-bold text-neutral-950 hover:bg-amber-400"
+              type="submit"
+            >
+              Add Character
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 function DetailList({ title, items }) {
   const list = Array.isArray(items) ? items : [];
   if (!list.length) return null;
@@ -1820,6 +2226,10 @@ function DmScreenApp() {
   const [selectedSpell, setSelectedSpell] = useState(spells[0] || null);
   const [selectedItem, setSelectedItem] = useState(ITEM_LIBRARY[0] || null);
   const [monsterNotes, setMonsterNotes] = useState([]);
+  const [isCharacterCodeModalOpen, setIsCharacterCodeModalOpen] = useState(false);
+  const [characterCodeValue, setCharacterCodeValue] = useState("");
+  const [characterCodeError, setCharacterCodeError] = useState("");
+  const [characterCodeSpawnPoint, setCharacterCodeSpawnPoint] = useState(null);
   const dragRef = useRef(null);
   const resizeRef = useRef(null);
   const suppressRestoreClickRef = useRef(null);
@@ -1933,12 +2343,30 @@ function DmScreenApp() {
     setNoteSpawnPoint(null);
   }
 
-  async function addCharacterNoteFromCode() {
+  function openCharacterCodeModal() {
     if (!contextMenu) return;
-    const spawnPoint = { x: contextMenu.x, y: contextMenu.y };
+    setCharacterCodeSpawnPoint({ x: contextMenu.x, y: contextMenu.y });
+    setCharacterCodeValue("");
+    setCharacterCodeError("");
+    setIsCharacterCodeModalOpen(true);
     setContextMenu(null);
-    const code = window.prompt("Pega el codigo del character sheet");
-    if (!code) return;
+  }
+
+  function closeCharacterCodeModal() {
+    setIsCharacterCodeModalOpen(false);
+    setCharacterCodeValue("");
+    setCharacterCodeError("");
+    setCharacterCodeSpawnPoint(null);
+  }
+
+  async function addCharacterNoteFromCode() {
+    const code = characterCodeValue.trim();
+    if (!code) {
+      setCharacterCodeError("Pega un codigo antes de continuar.");
+      return;
+    }
+    const spawnPoint = characterCodeSpawnPoint;
+    setContextMenu(null);
     try {
       const sheetData = await decodeCharacterSheetCode(code);
       addBoardNote({
@@ -1947,9 +2375,10 @@ function DmScreenApp() {
         width: 520,
         height: 680
       }, spawnPoint);
+      closeCharacterCodeModal();
     } catch (error) {
       console.error(error);
-      window.alert(error?.message || "No se pudo leer el codigo del personaje.");
+      setCharacterCodeError(error?.message || "No se pudo leer el codigo del personaje.");
     }
   }
 
@@ -2088,7 +2517,7 @@ function DmScreenApp() {
   }
 
   function openBoardContextMenu(event) {
-    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true']")) return;
+    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true']")) return;
     event.preventDefault();
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
@@ -2314,7 +2743,7 @@ function DmScreenApp() {
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
             type="button"
-            onClick={addCharacterNoteFromCode}
+            onClick={openCharacterCodeModal}
           >
             <span>Add Character Code</span>
             <span className="text-neutral-500">+</span>
@@ -2337,6 +2766,18 @@ function DmScreenApp() {
           </button>
         </div>
       ) : null}
+
+      <CharacterCodeModal
+        isOpen={isCharacterCodeModalOpen}
+        value={characterCodeValue}
+        error={characterCodeError}
+        onChange={(nextValue) => {
+          setCharacterCodeValue(nextValue);
+          if (characterCodeError) setCharacterCodeError("");
+        }}
+        onClose={closeCharacterCodeModal}
+        onSubmit={addCharacterNoteFromCode}
+      />
 
       <MonsterPicker
         isOpen={isPickerOpen}
