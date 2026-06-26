@@ -2791,7 +2791,7 @@
       const state = activeFeatureState();
       state[row.key] = !state[row.key];
       showStatus(`${row.name}: ${state[row.key] ? "activo" : "inactivo"}`);
-      updatePreparedSpellsPanel();
+      updateDerivedStats();
       scheduleSave();
     }
 
@@ -3323,6 +3323,7 @@
       diceDetail.textContent = detail;
       diceTray.classList.add("visible");
       recordDiceRollLog(title, result, detail);
+      window.sendLiveSheetRollEvent?.(title, result, detail);
       if (window.isDiceRollAnimationEnabled?.() && typeof animateDiceRoll3d === "function") animateDiceRoll3d(diceVisuals);
       clearTimeout(diceTimer);
       diceTimer = setTimeout(() => diceTray.classList.remove("visible"), 12000);
@@ -3885,6 +3886,7 @@
 
       const resource = definition.resource ? turnActionResourceInfoByNames(definition.resource, entries) : null;
       if (definition.hideWhenResourceEmpty !== false && resource?.info && resource.info.remaining <= 0) return null;
+      const activatedEntry = definition.activatesFeature ? findTurnActionEntryByNames(definition.activatesFeature, entries) : null;
 
       const detailParts = [definition.detail];
       if (resource?.info) {
@@ -3899,6 +3901,8 @@
         type: definition.type || ACTION_TYPES.bonus,
         title: definition.title,
         detail: detailParts.filter(Boolean).join("\n"),
+        activatesFeatureKey: activatedEntry ? activationKeyForEntry(activatedEntry) : "",
+        activatesFeatureName: activatedEntry ? turnActionEntryName(activatedEntry) : "",
         source: definition.source || "derived"
       };
     }
@@ -3912,6 +3916,7 @@
           feature: "Rage",
           resource: "Rage",
           resourceCost: "1 uso de Rage",
+          activatesFeature: "Rage",
           detail: "Que haces: entras en Rage por hasta 1 minuto.\nSuma: habilitas los beneficios ofensivos y defensivos de tu Rage.\nResta: consume tu Accion Bonus y depende de las restricciones normales de Rage."
         },
         {
@@ -4337,6 +4342,13 @@
       return (budget.remaining[spendType] || 0) > 0;
     }
 
+    function activateTurnActionFeature(action) {
+      if (!action?.activatesFeatureKey) return false;
+      const state = activeFeatureState();
+      state[action.activatesFeatureKey] = true;
+      return true;
+    }
+
     function spendTurnAction(action) {
       const summary = collectCurrentTurnActions();
       const budget = turnActionBudget(summary.actions);
@@ -4351,9 +4363,11 @@
       }
       const state = combatTurnState();
       state.spent[spendType] = (Number.parseInt(state.spent[spendType] || 0, 10) || 0) + 1;
+      const activated = activateTurnActionFeature(action);
+      updateDerivedStats();
       refreshTurnActionsPanel();
       scheduleSave();
-      showStatus(`${action.title}: ${spendType === "action" ? "Accion" : "Accion Bonus"} gastada`);
+      showStatus(`${action.title}: ${spendType === "action" ? "Accion" : "Accion Bonus"} gastada${activated ? ", efecto activo" : ""}`);
     }
 
     function renderTurnActionResources(resources = []) {
@@ -13136,47 +13150,74 @@
     function generatedEffectSources() {
       return generatedFeaturesAndTraitsEntries()
         .map((entry) => ({
+          key: activationKeyForEntry(entry),
           source: entry.title || entry.feature?.name || entry.optionalFeature?.name || "Feature",
           text: String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "")
         }))
         .filter((entry) => entry.text);
     }
 
+    function damageTypesFromDefenseSentence(sentence) {
+      const text = String(sentence || "");
+      const lower = text.toLowerCase();
+      const exceptMatch = lower.match(/\bevery damage type except ([^.]+)/i);
+      if (exceptMatch) {
+        const excluded = new Set(DAMAGE_TYPE_LABELS.filter((type) => new RegExp(`\\b${type}\\b`, "i").test(exceptMatch[1])));
+        return DAMAGE_TYPE_LABELS.filter((type) => !excluded.has(type)).map((type) => `${type} damage`);
+      }
+      if (!/\bdamage\b/i.test(text)) return [];
+      return DAMAGE_TYPE_LABELS
+        .filter((type) => new RegExp(`\\b${type}\\b`, "i").test(text))
+        .map((type) => `${type} damage`);
+    }
+
+    function isRageFeatureActive() {
+      return Object.entries(activeFeatureState())
+        .some(([key, active]) => active && String(key || "").split("|").pop() === "rage");
+    }
+
+    function isActiveDefenseSource(key, source, sentence) {
+      if (key && activeFeatureState()[key]) return true;
+      return isRageFeatureActive() && (
+        normalizeName(source || "") === "rage"
+        || /\brag(?:e|ing)\b/i.test(sentence || "")
+      );
+    }
+
     function selectedDefenseSources() {
       const passive = [];
       const conditional = [];
-      generatedEffectSources().forEach(({ source, text }) => {
+      const active = [];
+      generatedEffectSources().forEach(({ key, source, text }) => {
         sentenceList(text).forEach((sentence) => {
-        const lower = sentence.toLowerCase();
+          const lower = sentence.toLowerCase();
           const resistances = [];
           const immunities = [];
-        if (/\bresistan(?:ce|t)\b/.test(lower)) {
-          DAMAGE_TYPE_LABELS.forEach((type) => {
-            if (new RegExp(`\\b${type}\\s+damage\\b`, "i").test(sentence)) resistances.push(`${type} damage`);
-          });
-        }
-        if (/\b(?:immune|immunity|immunities)\b/.test(lower)) {
-          DAMAGE_TYPE_LABELS.forEach((type) => {
-            if (new RegExp(`\\b${type}\\s+damage\\b`, "i").test(sentence)) immunities.push(`${type} damage`);
-          });
-          CONDITION_IMMUNITY_LABELS.forEach((condition) => {
-            if (new RegExp(`\\b${condition}\\b`, "i").test(sentence)) {
-              immunities.push(condition === "poisoned" ? "poisoned condition" : condition);
-            }
-          });
-        }
+          if (/\bresistan(?:ce|t)\b/.test(lower)) {
+            resistances.push(...damageTypesFromDefenseSentence(sentence));
+          }
+          if (/\b(?:immune|immunity|immunities)\b/.test(lower)) {
+            immunities.push(...damageTypesFromDefenseSentence(sentence));
+            CONDITION_IMMUNITY_LABELS.forEach((condition) => {
+              if (new RegExp(`\\b${condition}\\b`, "i").test(sentence)) {
+                immunities.push(condition === "poisoned" ? "poisoned condition" : condition);
+              }
+            });
+          }
           const parts = [];
           if (resistances.length) parts.push(`Resistances: ${uniqueReadableValues(resistances).join(", ")}`);
           if (immunities.length) parts.push(`Immunities: ${uniqueReadableValues(immunities).join(", ")}`);
           if (!parts.length) return;
           const line = `${source}: ${parts.join("; ")}`;
-          if (isConditionalEffectSentence(sentence, source)) conditional.push(`${line} (${cleanExtractedProficiencyText(sentence).replace(/\.$/, "")}.)`);
+          if (isActiveDefenseSource(key, source, sentence)) active.push(line);
+          else if (isConditionalEffectSentence(sentence, source)) conditional.push(`${line} (${cleanExtractedProficiencyText(sentence).replace(/\.$/, "")}.)`);
           else passive.push(line);
         });
       });
 
       return {
         passive: uniqueReadableValues(passive),
+        active: uniqueReadableValues(active),
         conditional: uniqueReadableValues(conditional)
       };
     }
@@ -13254,6 +13295,10 @@
       if (toolItems.length) items.push(`Tools: ${toolItems.join(", ")}`);
       if (languageItems.length) items.push(`Languages: ${languageItems.join(", ")}`);
       appendReadableSection(sections, "Proficiencies", items);
+
+      const defenses = selectedDefenseSources();
+      appendReadableSection(sections, "Active Defenses", defenses.active);
+      appendReadableSection(sections, "Defenses", defenses.passive);
 
       return sections.join("\n\n");
     }

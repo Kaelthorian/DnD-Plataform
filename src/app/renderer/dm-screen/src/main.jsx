@@ -381,6 +381,91 @@ function signNumber(value) {
   return value >= 0 ? `+${value}` : String(value);
 }
 
+function formatNumericInputValue(value) {
+  return value == null ? "" : String(value);
+}
+
+function parseNumericExpression(value) {
+  const source = String(value ?? "").trim().replace(/,/g, ".");
+  if (!source) return "";
+  if (!/^[\d+\-*/().\s]+$/.test(source)) return null;
+
+  let index = 0;
+
+  function skipWhitespace() {
+    while (/\s/.test(source[index] || "")) index += 1;
+  }
+
+  function parseNumber() {
+    skipWhitespace();
+    const match = source.slice(index).match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
+    if (!match) return null;
+    index += match[0].length;
+    return Number(match[0]);
+  }
+
+  function parseFactor() {
+    skipWhitespace();
+    const operator = source[index];
+    if (operator === "+" || operator === "-") {
+      index += 1;
+      const factor = parseFactor();
+      return factor == null ? null : operator === "-" ? -factor : factor;
+    }
+    if (operator === "(") {
+      index += 1;
+      const expression = parseExpression();
+      skipWhitespace();
+      if (source[index] !== ")") return null;
+      index += 1;
+      return expression;
+    }
+    return parseNumber();
+  }
+
+  function parseTerm() {
+    let left = parseFactor();
+    if (left == null) return null;
+    while (true) {
+      skipWhitespace();
+      const operator = source[index];
+      if (operator !== "*" && operator !== "/") break;
+      index += 1;
+      const right = parseFactor();
+      if (right == null || (operator === "/" && right === 0)) return null;
+      left = operator === "*" ? left * right : left / right;
+    }
+    return left;
+  }
+
+  function parseExpression() {
+    let left = parseTerm();
+    if (left == null) return null;
+    while (true) {
+      skipWhitespace();
+      const operator = source[index];
+      if (operator !== "+" && operator !== "-") break;
+      index += 1;
+      const right = parseTerm();
+      if (right == null) return null;
+      left = operator === "+" ? left + right : left - right;
+    }
+    return left;
+  }
+
+  const result = parseExpression();
+  skipWhitespace();
+  if (result == null || index !== source.length || !Number.isFinite(result)) return null;
+  return Number(result.toFixed(6));
+}
+
+function clampNumericInputValue(value, min, max) {
+  let nextValue = value;
+  if (Number.isFinite(min)) nextValue = Math.max(min, nextValue);
+  if (Number.isFinite(max)) nextValue = Math.min(max, nextValue);
+  return nextValue;
+}
+
 function titleCase(value) {
   return String(value || "").replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
 }
@@ -1135,6 +1220,47 @@ function Stat({ label, value }) {
   );
 }
 
+function NumericExpressionInput({ value, onChange, min, max, integer = false, onKeyDown, ...props }) {
+  const inputRef = useRef(null);
+  const [draft, setDraft] = useState(formatNumericInputValue(value));
+
+  useEffect(() => {
+    if (document.activeElement === inputRef.current) return;
+    setDraft(formatNumericInputValue(value));
+  }, [value]);
+
+  function commitDraft() {
+    const parsed = parseNumericExpression(draft);
+    if (parsed === null) {
+      setDraft(formatNumericInputValue(value));
+      return;
+    }
+    const nextValue = parsed === ""
+      ? ""
+      : clampNumericInputValue(integer ? Math.round(parsed) : parsed, Number(min), Number(max));
+    setDraft(formatNumericInputValue(nextValue));
+    onChange(nextValue);
+  }
+
+  return (
+    <input
+      {...props}
+      ref={inputRef}
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commitDraft}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (event.defaultPrevented || event.key !== "Enter") return;
+        event.preventDefault();
+        commitDraft();
+      }}
+    />
+  );
+}
+
 function RollButton({ children, title, onRoll }) {
   return (
     <button
@@ -1387,22 +1513,20 @@ function MonsterStatBlockBody({
               </button>
               <label className="flex items-center gap-1 text-xs text-neutral-500">
                 Current
-                <input
+                <NumericExpressionInput
                   className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
-                  type="number"
                   value={hpState.current}
                   onPointerDown={(event) => event.stopPropagation()}
-                  onChange={(event) => onHpChange("current", event.target.value)}
+                  onChange={(value) => onHpChange("current", value)}
                 />
               </label>
               <label className="flex items-center gap-1 text-xs text-neutral-500">
                 Total
-                <input
+                <NumericExpressionInput
                   className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
-                  type="number"
                   value={hpState.max}
                   onPointerDown={(event) => event.stopPropagation()}
-                  onChange={(event) => onHpChange("max", event.target.value)}
+                  onChange={(value) => onHpChange("max", value)}
                 />
               </label>
             </div>
@@ -1891,22 +2015,20 @@ function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange }
             </span>
             <label className="flex items-center gap-1 text-xs text-neutral-500">
               Current
-              <input
+              <NumericExpressionInput
                 className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
-                type="number"
                 value={note.hpCurrent}
                 onPointerDown={(event) => event.stopPropagation()}
-                onChange={(event) => onHpChange(note.id, "current", event.target.value)}
+                onChange={(value) => onHpChange(note.id, "current", value)}
               />
             </label>
             <label className="flex items-center gap-1 text-xs text-neutral-500">
               Total
-              <input
+              <NumericExpressionInput
                 className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
-                type="number"
                 value={note.hpMax}
                 onPointerDown={(event) => event.stopPropagation()}
-                onChange={(event) => onHpChange(note.id, "max", event.target.value)}
+                onChange={(value) => onHpChange(note.id, "max", value)}
               />
             </label>
           </div>
@@ -2198,7 +2320,7 @@ function LivePlayerCard({ player, onKick }) {
   );
 }
 
-function LivePlayersPanel({ status, port, error, players, onPortChange, onStart, onStop, onKick }) {
+function LivePlayersPanel({ status, port, error, players, rolls, onPortChange, onStart, onStop, onKick }) {
   const running = Boolean(status?.running);
   const addresses = Array.isArray(status?.addresses) ? status.addresses : [];
   const primaryAddress = addresses[0] || "DM_IP";
@@ -2222,14 +2344,14 @@ function LivePlayersPanel({ status, port, error, players, onPortChange, onStart,
         <div className="grid grid-cols-[1fr_auto_auto] gap-2">
           <label className="text-xs font-bold uppercase text-neutral-500">
             Port
-            <input
+            <NumericExpressionInput
               className="mt-1 h-9 w-full border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
-              type="number"
               min="1"
               max="65535"
+              integer
               value={port}
               disabled={running}
-              onChange={(event) => onPortChange(event.target.value)}
+              onChange={(value) => onPortChange(formatNumericInputValue(value))}
             />
           </label>
           <button
@@ -2263,6 +2385,29 @@ function LivePlayersPanel({ status, port, error, players, onPortChange, onStart,
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto p-3">
+        <section className="mb-3 border border-neutral-800 bg-neutral-950/70">
+          <header className="border-b border-neutral-800 px-3 py-2">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-amber-500">Recent Rolls</h3>
+          </header>
+          <div className="grid max-h-48 gap-2 overflow-auto p-2">
+            {rolls.length ? rolls.slice(0, 8).map((roll) => (
+              <article key={roll.id} className="border border-neutral-800 bg-neutral-900 px-2 py-2 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-neutral-100">{sanitizeDisplayText(roll.playerName, "Player")}</p>
+                    <p className="truncate text-neutral-400">{sanitizeDisplayText(roll.title, "Tirada")}</p>
+                  </div>
+                  <span className="shrink-0 text-base font-bold text-sky-300">{sanitizeDisplayText(roll.result, "--")}</span>
+                </div>
+                {roll.detail ? <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] leading-snug text-neutral-500">{sanitizeDisplayText(roll.detail)}</p> : null}
+                <p className="mt-1 text-[10px] uppercase tracking-wide text-neutral-600">{formatLiveTimestamp(roll.receivedAt || roll.timestamp)}</p>
+              </article>
+            )) : (
+              <p className="px-2 py-3 text-center text-xs text-neutral-500">No rolls received yet.</p>
+            )}
+          </div>
+        </section>
+
         {players.length ? (
           <div className="grid gap-3">
             {players.map((player) => (
@@ -2672,6 +2817,7 @@ function DmScreenApp() {
   const [characterCodeSpawnPoint, setCharacterCodeSpawnPoint] = useState(null);
   const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], playerCount: 0 });
   const [livePlayers, setLivePlayers] = useState([]);
+  const [liveRolls, setLiveRolls] = useState([]);
   const [liveHostPort, setLiveHostPort] = useState("8787");
   const [liveHostError, setLiveHostError] = useState("");
   const [boardView, setBoardView] = useState(persistedBoardState.view);
@@ -2785,12 +2931,20 @@ function DmScreenApp() {
         return players.map((entry) => entry.playerId === player.playerId ? { ...entry, ...player, connected: false } : entry);
       });
     });
+    const unsubscribeRoll = liveSheet.onPlayerRoll?.((roll) => {
+      if (!roll) return;
+      setLiveRolls((rolls) => [{
+        id: `${roll.receivedAt || Date.now()}-${roll.playerId || "player"}-${Math.random().toString(16).slice(2)}`,
+        ...roll
+      }, ...rolls].slice(0, 40));
+    });
 
     return () => {
       disposed = true;
       unsubscribeStatus?.();
       unsubscribeUpdated?.();
       unsubscribeDisconnected?.();
+      unsubscribeRoll?.();
     };
   }, []);
 
@@ -2804,7 +2958,11 @@ function DmScreenApp() {
       window.location.href = "./index.html";
     } catch (error) {
       console.error(error);
-      setIsReturning(false);
+      try {
+        window.location.href = "./index.html";
+      } catch (_fallbackError) {
+        setIsReturning(false);
+      }
     }
   }
 
@@ -3277,7 +3435,11 @@ function DmScreenApp() {
       onPointerCancel={stopDrag}
       onWheel={handleBoardWheel}
     >
-      <div className="fixed left-4 top-4 z-40 flex gap-2">
+      <div
+        className="fixed left-4 top-4 z-40 flex gap-2"
+        data-board-control="true"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <button
           className="inline-flex h-10 items-center border border-neutral-700 bg-neutral-900 px-4 text-sm font-semibold text-neutral-100 shadow-sm transition hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:cursor-wait disabled:opacity-70"
           type="button"
@@ -3292,6 +3454,7 @@ function DmScreenApp() {
         port={liveHostPort}
         error={liveHostError}
         players={livePlayers}
+        rolls={liveRolls}
         onPortChange={setLiveHostPort}
         onStart={startLiveHost}
         onStop={stopLiveHost}

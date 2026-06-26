@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld("dndSheet", {
     kickPlayer: (playerId) => ipcRenderer.invoke("live-sheet:kick-player", playerId),
     onPlayerUpdated: (callback) => onRendererEvent("live-sheet:player-updated", callback),
     onPlayerDisconnected: (callback) => onRendererEvent("live-sheet:player-disconnected", callback),
+    onPlayerRoll: (callback) => onRendererEvent("live-sheet:player-roll", callback),
     onServerStatus: (callback) => onRendererEvent("live-sheet:server-status", callback)
   }
 });

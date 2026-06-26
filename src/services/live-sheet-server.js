@@ -5,6 +5,7 @@ const { WebSocket, WebSocketServer } = require("ws");
 const DEFAULT_PORT = 8787;
 const MAX_MESSAGE_BYTES = 512 * 1024;
 const MAX_NAME_LENGTH = 80;
+const MAX_ROLL_TEXT_LENGTH = 600;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -26,6 +27,16 @@ function normalizePort(port) {
   const parsed = Number.parseInt(port, 10);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) return DEFAULT_PORT;
   return parsed;
+}
+
+function sanitizeRollEvent(roll) {
+  if (!isPlainObject(roll)) return null;
+  return {
+    title: sanitizeText(roll.title, 140) || "Tirada",
+    result: sanitizeText(roll.result, 80),
+    detail: sanitizeText(roll.detail, MAX_ROLL_TEXT_LENGTH),
+    timestamp: sanitizeText(roll.timestamp, 40) || new Date().toISOString()
+  };
 }
 
 function localLanAddresses() {
@@ -211,16 +222,28 @@ class LiveSheetServer extends EventEmitter {
       const player = {
         playerId: validated.playerId,
         playerName: validated.playerName,
-        data: validated.data,
+        data: validated.data || previous?.data || {},
         connected: true,
         connectedAt: previous?.connectedAt || now,
         disconnectedAt: null,
-        lastUpdate: now,
+        lastUpdate: validated.messageType === "sheet:update" ? now : previous?.lastUpdate || null,
         remoteAddress: request?.socket?.remoteAddress || "",
         ws: socket
       };
       this.players.set(validated.playerId, player);
-      this.emit("player-updated", this.playerSnapshot(player));
+      if (validated.messageType !== "roll:event" || !previous || !previous.connected || previous.playerName !== validated.playerName) {
+        this.emit("player-updated", this.playerSnapshot(player));
+      }
+      if (validated.messageType === "roll:event") {
+        this.emit("player-roll", {
+          playerId: validated.playerId,
+          playerName: validated.playerName,
+          connected: true,
+          remoteAddress: player.remoteAddress,
+          ...validated.roll,
+          receivedAt: now
+        });
+      }
       this.emitStatus();
     });
 
@@ -242,15 +265,21 @@ class LiveSheetServer extends EventEmitter {
 
   validatePayload(payload) {
     if (!isPlainObject(payload)) return { ok: false, error: "Payload invalido." };
-    if (payload.type !== "sheet:update" || payload.version !== 1) return { ok: false, error: "Tipo de mensaje no compatible." };
+    if (!["player:hello", "sheet:update", "roll:event"].includes(payload.type) || payload.version !== 1) {
+      return { ok: false, error: "Tipo de mensaje no compatible." };
+    }
     const playerId = sanitizePlayerId(payload.playerId);
     if (!playerId) return { ok: false, error: "Falta playerId." };
-    if (!isPlainObject(payload.data)) return { ok: false, error: "Falta data de planilla." };
+    if (payload.type === "sheet:update" && !isPlainObject(payload.data)) return { ok: false, error: "Falta data de planilla." };
+    const roll = payload.type === "roll:event" ? sanitizeRollEvent(payload.roll) : null;
+    if (payload.type === "roll:event" && !roll) return { ok: false, error: "Falta tirada." };
     return {
       ok: true,
+      messageType: payload.type,
       playerId,
       playerName: sanitizeText(payload.playerName) || "Jugador",
-      data: payload.data
+      data: payload.type === "sheet:update" ? payload.data : null,
+      roll
     };
   }
 }

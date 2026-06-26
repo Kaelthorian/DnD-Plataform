@@ -326,6 +326,10 @@ liveSheetServer.on("player-disconnected", (player) => {
   broadcastToRenderers("live-sheet:player-disconnected", player);
 });
 
+liveSheetServer.on("player-roll", (roll) => {
+  broadcastToRenderers("live-sheet:player-roll", roll);
+});
+
 liveSheetServer.on("server-status", (status) => {
   broadcastToRenderers("live-sheet:server-status", status);
 });

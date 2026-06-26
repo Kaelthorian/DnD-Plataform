@@ -205,17 +205,44 @@
       return publicData;
     }
 
-    function sendLiveSheetSnapshot() {
-      if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) return;
-      const payload = {
-        type: "sheet:update",
+    function sendLiveSheetMessage(payload) {
+      if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) return false;
+      liveSheetClientSocket.send(JSON.stringify({
         version: 1,
         playerId: liveSheetPlayerId(),
         playerName: defaultLiveSheetPlayerName(),
-        data: liveSheetPublicData()
-      };
-      liveSheetClientSocket.send(JSON.stringify(payload));
+        ...payload
+      }));
+      return true;
     }
+
+    function sendLiveSheetHello() {
+      sendLiveSheetMessage({ type: "player:hello" });
+    }
+
+    function sendLiveSheetSnapshot() {
+      sendLiveSheetMessage({
+        type: "sheet:update",
+        data: liveSheetPublicData()
+      });
+    }
+
+    function sendLiveSheetRollEvent(title, result, detail) {
+      try {
+        sendLiveSheetMessage({
+          type: "roll:event",
+          roll: {
+            title: String(title || "Tirada"),
+            result: String(result || ""),
+            detail: String(detail || ""),
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    window.sendLiveSheetRollEvent = sendLiveSheetRollEvent;
 
     function scheduleLiveSheetUpdate() {
       if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) return;
@@ -297,7 +324,7 @@
         liveSheetClientSocket = socket;
         socket.addEventListener("open", () => {
           setLiveSheetClientStatus(`Connected to ${url}`, "ok");
-          sendLiveSheetSnapshot();
+          sendLiveSheetHello();
           showStatus("Live sheet conectada");
         });
         socket.addEventListener("close", () => {
