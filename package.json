@@ -12,7 +12,9 @@
     "build:dm-screen:js": "vite build --config ./src/app/renderer/dm-screen/vite.config.mjs",
     "prestart": "node ./scripts/ensure-dm-screen-build.js",
     "start": "set ELECTRON_RUN_AS_NODE=& electron .",
-    "test:engine": "node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/resource-state.test.js && node tests/engine/long-rest.test.js",
+    "test": "npm run test:engine",
+    "test:backgrounds": "node tests/engine/backgrounds.test.js",
+    "test:engine": "node tests/engine/backgrounds.test.js && node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/resource-state.test.js && node tests/engine/long-rest.test.js",
     "predist": "node ./scripts/ensure-dm-screen-build.js",
     "dist": "set ELECTRON_RUN_AS_NODE=& electron-builder --win nsis",
     "predist:portable": "node ./scripts/ensure-dm-screen-build.js",
@@ -42,6 +44,7 @@
       "vendor/5etools-src-main/data/languages.json",
       "package.json",
       "node_modules/pdfjs-dist/**",
+      "node_modules/ws/**",
       "node_modules/three/**"
     ],
     "win": {
@@ -69,6 +72,7 @@
     "pdfjs-dist": "^6.0.227",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "ws": "^8.21.0"
   }
 }

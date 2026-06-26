@@ -1,5 +1,12 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+function onRendererEvent(channel, callback) {
+  if (typeof callback !== "function") return () => {};
+  const listener = (_event, payload) => callback(payload);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
 contextBridge.exposeInMainWorld("dndSheet", {
   load: () => ipcRenderer.invoke("sheet:load"),
   save: (data) => ipcRenderer.invoke("sheet:save", data),
@@ -13,10 +20,7 @@ contextBridge.exposeInMainWorld("dndSheet", {
   getBackgroundImageUrl: () => ipcRenderer.invoke("background:image-url"),
   getPlatformBackgroundImageUrl: () => ipcRenderer.invoke("platform-background:image-url"),
   onPlatformBackgroundChanged: (callback) => {
-    if (typeof callback !== "function") return () => {};
-    const listener = (_event, imageUrl) => callback(imageUrl);
-    ipcRenderer.on("platform-background:changed", listener);
-    return () => ipcRenderer.removeListener("platform-background:changed", listener);
+    return onRendererEvent("platform-background:changed", callback);
   },
   loadRaces: () => ipcRenderer.invoke("races:load"),
   loadBackgrounds: () => ipcRenderer.invoke("backgrounds:load"),
@@ -26,5 +30,15 @@ contextBridge.exposeInMainWorld("dndSheet", {
   loadItems: () => ipcRenderer.invoke("items:load"),
   loadConditionsDiseases: () => ipcRenderer.invoke("conditions-diseases:load"),
   loadLanguages: () => ipcRenderer.invoke("languages:load"),
-  translateText: (text, from = "en", to = "es") => ipcRenderer.invoke("translate:text", { text, from, to })
+  translateText: (text, from = "en", to = "es") => ipcRenderer.invoke("translate:text", { text, from, to }),
+  liveSheet: {
+    startServer: (port) => ipcRenderer.invoke("live-sheet:start", port),
+    stopServer: () => ipcRenderer.invoke("live-sheet:stop"),
+    getStatus: () => ipcRenderer.invoke("live-sheet:status"),
+    getPlayers: () => ipcRenderer.invoke("live-sheet:get-players"),
+    kickPlayer: (playerId) => ipcRenderer.invoke("live-sheet:kick-player", playerId),
+    onPlayerUpdated: (callback) => onRendererEvent("live-sheet:player-updated", callback),
+    onPlayerDisconnected: (callback) => onRendererEvent("live-sheet:player-disconnected", callback),
+    onServerStatus: (callback) => onRendererEvent("live-sheet:server-status", callback)
+  }
 });

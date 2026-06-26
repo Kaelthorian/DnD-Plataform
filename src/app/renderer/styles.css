@@ -1909,6 +1909,165 @@
       display: none;
     }
 
+    .live-sheet-client-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 46;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.34);
+    }
+
+    .live-sheet-client-backdrop[hidden] {
+      display: none;
+    }
+
+    .live-sheet-client-panel {
+      width: min(420px, calc(100vw - 36px));
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.98);
+      color: #111;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+      font: 13px/1.35 "Segoe UI", Arial, sans-serif;
+    }
+
+    .live-sheet-client-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #d8d8d8;
+      background: linear-gradient(180deg, #fafafa 0%, #f1f1f1 100%);
+    }
+
+    .live-sheet-client-title {
+      font-weight: 800;
+    }
+
+    .live-sheet-client-subtitle {
+      margin-top: 3px;
+      color: #555;
+      font-size: 12px;
+    }
+
+    .live-sheet-client-close,
+    .live-sheet-client-secondary,
+    .live-sheet-client-primary {
+      min-height: 32px;
+      border: 1px solid rgba(0, 0, 0, 0.22);
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      font: 700 12px/1.2 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .live-sheet-client-close {
+      width: 32px;
+      padding: 0;
+    }
+
+    .live-sheet-client-close:hover,
+    .live-sheet-client-close:focus,
+    .live-sheet-client-secondary:hover,
+    .live-sheet-client-secondary:focus {
+      background: #111;
+      color: #fff;
+      outline: none;
+    }
+
+    .live-sheet-client-body {
+      display: grid;
+      gap: 8px;
+      padding: 14px 16px;
+    }
+
+    .live-sheet-client-label {
+      color: #444;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .live-sheet-client-input {
+      min-height: 34px;
+      width: 100%;
+      padding: 7px 9px;
+      border: 1px solid #b8b8b8;
+      border-radius: 5px;
+      background: #fff;
+      color: #111;
+      font: inherit;
+    }
+
+    .live-sheet-client-input:focus {
+      border-color: #111;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.08);
+    }
+
+    .live-sheet-client-status {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid #dfdfdf;
+      border-radius: 6px;
+      background: #fafafa;
+      color: #555;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .live-sheet-client-status[data-tone="ok"] {
+      border-color: rgba(18, 115, 56, 0.28);
+      background: #f0faf2;
+      color: #0f5a2b;
+    }
+
+    .live-sheet-client-status[data-tone="error"] {
+      border-color: rgba(139, 30, 36, 0.28);
+      background: #fdf3f3;
+      color: #8b1e24;
+    }
+
+    .live-sheet-client-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid #d8d8d8;
+      background: #fafafa;
+    }
+
+    .live-sheet-client-secondary,
+    .live-sheet-client-primary {
+      padding: 0 12px;
+    }
+
+    .live-sheet-client-primary {
+      background: #111;
+      color: #fff;
+    }
+
+    .live-sheet-client-primary:hover,
+    .live-sheet-client-primary:focus {
+      background: #2d5a2d;
+      outline: none;
+    }
+
+    .live-sheet-client-primary:disabled {
+      cursor: wait;
+      opacity: 0.58;
+    }
+
     .character-import-modal {
       width: min(520px, calc(100vw - 36px));
       display: grid;

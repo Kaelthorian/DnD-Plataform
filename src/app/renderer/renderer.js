@@ -19,6 +19,7 @@
     const appSettingsPanel = document.getElementById("appSettingsPanel");
     const diceAnimationToggle = document.getElementById("diceAnimationToggle");
     const dmScreenButton = document.getElementById("dmScreenButton");
+    const liveSheetClientButton = document.getElementById("liveSheetClientButton");
     const generateSheetCodeButton = document.getElementById("generateSheetCodeButton");
     const saveSlotControl = document.getElementById("saveSlotControl");
     const saveSlotSelect = document.getElementById("saveSlotSelect");
@@ -63,6 +64,14 @@
     const itemPickerQuantity = document.getElementById("itemPickerQuantity");
     const itemPickerAdd = document.getElementById("itemPickerAdd");
     const damageTooltip = document.getElementById("damageTooltip");
+    const liveSheetClientBackdrop = document.getElementById("liveSheetClientBackdrop");
+    const liveSheetClientClose = document.getElementById("liveSheetClientClose");
+    const liveSheetClientCancel = document.getElementById("liveSheetClientCancel");
+    const liveSheetDmIp = document.getElementById("liveSheetDmIp");
+    const liveSheetPort = document.getElementById("liveSheetPort");
+    const liveSheetPlayerName = document.getElementById("liveSheetPlayerName");
+    const liveSheetConnectButton = document.getElementById("liveSheetConnectButton");
+    const liveSheetClientStatus = document.getElementById("liveSheetClientStatus");
     let fieldOptions = new Map();
     let spells = [];
     let feats = [];
@@ -94,6 +103,11 @@
     const uiSettings = {
       diceRollAnimations: false
     };
+    const LIVE_SHEET_CLIENT_SETTINGS_KEY = "dnd-character-sheet-live-client-v1";
+    const LIVE_SHEET_PLAYER_ID_KEY = "dnd-character-sheet-live-player-id-v1";
+    let liveSheetClientSocket = null;
+    let liveSheetClientSendTimer = null;
+    let liveSheetClientManualDisconnect = false;
 
     function loadUiSettings() {
       try {
@@ -132,6 +146,171 @@
       } catch (error) {
         console.error(error);
         showStatus("No se pudo abrir DM screen");
+      }
+    }
+
+    function loadLiveSheetClientSettings() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(LIVE_SHEET_CLIENT_SETTINGS_KEY) || "{}");
+        if (liveSheetDmIp) liveSheetDmIp.value = String(parsed.dmIp || "");
+        if (liveSheetPort) liveSheetPort.value = String(parsed.port || "8787");
+        if (liveSheetPlayerName) liveSheetPlayerName.value = String(parsed.playerName || "");
+      } catch (_error) {
+        if (liveSheetPort) liveSheetPort.value = "8787";
+      }
+    }
+
+    function saveLiveSheetClientSettings() {
+      localStorage.setItem(LIVE_SHEET_CLIENT_SETTINGS_KEY, JSON.stringify({
+        dmIp: liveSheetDmIp?.value?.trim() || "",
+        port: liveSheetPort?.value?.trim() || "8787",
+        playerName: liveSheetPlayerName?.value?.trim() || ""
+      }));
+    }
+
+    function liveSheetPlayerId() {
+      let playerId = localStorage.getItem(LIVE_SHEET_PLAYER_ID_KEY);
+      if (!playerId) {
+        playerId = globalThis.crypto?.randomUUID?.() || `player-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        localStorage.setItem(LIVE_SHEET_PLAYER_ID_KEY, playerId);
+      }
+      return playerId;
+    }
+
+    function setLiveSheetClientStatus(text, tone = "neutral") {
+      if (liveSheetClientStatus) {
+        liveSheetClientStatus.textContent = text;
+        liveSheetClientStatus.dataset.tone = tone;
+      }
+      if (liveSheetConnectButton) {
+        const connected = liveSheetClientSocket?.readyState === WebSocket.OPEN;
+        const connecting = liveSheetClientSocket?.readyState === WebSocket.CONNECTING;
+        liveSheetConnectButton.textContent = connected ? "Disconnect" : (connecting ? "Connecting..." : "Connect");
+        liveSheetConnectButton.disabled = connecting;
+      }
+    }
+
+    function defaultLiveSheetPlayerName() {
+      const explicit = liveSheetPlayerName?.value?.trim();
+      if (explicit) return explicit;
+      const sheetPlayer = getFieldValueByNormalizedKey("playername");
+      const sheetCharacter = getFieldValueByNormalizedKey("charactername");
+      return sheetPlayer || sheetCharacter || "Player";
+    }
+
+    function liveSheetPublicData() {
+      const data = typeof collectData === "function" ? collectData() : {};
+      const publicData = { ...data };
+      delete publicData.__sheetMeta;
+      return publicData;
+    }
+
+    function sendLiveSheetSnapshot() {
+      if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) return;
+      const payload = {
+        type: "sheet:update",
+        version: 1,
+        playerId: liveSheetPlayerId(),
+        playerName: defaultLiveSheetPlayerName(),
+        data: liveSheetPublicData()
+      };
+      liveSheetClientSocket.send(JSON.stringify(payload));
+    }
+
+    function scheduleLiveSheetUpdate() {
+      if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) return;
+      clearTimeout(liveSheetClientSendTimer);
+      liveSheetClientSendTimer = setTimeout(() => {
+        try {
+          sendLiveSheetSnapshot();
+        } catch (error) {
+          console.error(error);
+          setLiveSheetClientStatus("No se pudo enviar la planilla.", "error");
+        }
+      }, 500);
+    }
+
+    function openLiveSheetClientPanel() {
+      loadLiveSheetClientSettings();
+      if (!liveSheetPlayerName?.value?.trim()) liveSheetPlayerName.value = defaultLiveSheetPlayerName();
+      if (!liveSheetPort?.value) liveSheetPort.value = "8787";
+      if (liveSheetClientBackdrop) {
+        liveSheetClientBackdrop.hidden = false;
+        liveSheetClientBackdrop.setAttribute("aria-hidden", "false");
+      }
+      setAppSettingsMenuOpen(false);
+      setLiveSheetClientStatus(liveSheetClientSocket?.readyState === WebSocket.OPEN ? "Connected" : "Disconnected", liveSheetClientSocket?.readyState === WebSocket.OPEN ? "ok" : "neutral");
+      requestAnimationFrame(() => {
+        (liveSheetDmIp?.value ? liveSheetPlayerName : liveSheetDmIp)?.focus?.();
+      });
+    }
+
+    function closeLiveSheetClientPanel() {
+      if (liveSheetClientBackdrop) {
+        liveSheetClientBackdrop.hidden = true;
+        liveSheetClientBackdrop.setAttribute("aria-hidden", "true");
+      }
+      saveLiveSheetClientSettings();
+    }
+
+    function disconnectLiveSheetClient() {
+      liveSheetClientManualDisconnect = true;
+      clearTimeout(liveSheetClientSendTimer);
+      liveSheetClientSendTimer = null;
+      if (liveSheetClientSocket) {
+        try {
+          liveSheetClientSocket.close(1000, "Player disconnected");
+        } catch (_error) {
+          // Ignore close errors from stale sockets.
+        }
+      }
+      liveSheetClientSocket = null;
+      setLiveSheetClientStatus("Disconnected", "neutral");
+      showStatus("Live sheet desconectada");
+    }
+
+    function connectLiveSheetClient() {
+      if (liveSheetClientSocket?.readyState === WebSocket.OPEN || liveSheetClientSocket?.readyState === WebSocket.CONNECTING) {
+        disconnectLiveSheetClient();
+        return;
+      }
+
+      const dmIp = liveSheetDmIp?.value?.trim();
+      const port = Number.parseInt(liveSheetPort?.value || "8787", 10);
+      if (!dmIp) {
+        setLiveSheetClientStatus("Ingresa la IP del DM.", "error");
+        liveSheetDmIp?.focus();
+        return;
+      }
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        setLiveSheetClientStatus("Puerto invalido.", "error");
+        liveSheetPort?.focus();
+        return;
+      }
+
+      saveLiveSheetClientSettings();
+      const url = `ws://${dmIp}:${port}`;
+      liveSheetClientManualDisconnect = false;
+      setLiveSheetClientStatus(`Connecting to ${url}`, "neutral");
+      try {
+        const socket = new WebSocket(url);
+        liveSheetClientSocket = socket;
+        socket.addEventListener("open", () => {
+          setLiveSheetClientStatus(`Connected to ${url}`, "ok");
+          sendLiveSheetSnapshot();
+          showStatus("Live sheet conectada");
+        });
+        socket.addEventListener("close", () => {
+          if (liveSheetClientSocket === socket) liveSheetClientSocket = null;
+          setLiveSheetClientStatus(liveSheetClientManualDisconnect ? "Disconnected" : "Disconnected from DM.", liveSheetClientManualDisconnect ? "neutral" : "error");
+        });
+        socket.addEventListener("error", () => {
+          setLiveSheetClientStatus("No se pudo conectar con el DM.", "error");
+        });
+      } catch (error) {
+        console.error(error);
+        liveSheetClientSocket = null;
+        setLiveSheetClientStatus("Direccion WebSocket invalida.", "error");
       }
     }
 
@@ -302,8 +481,8 @@
     }
 
     async function loadBackgroundOptions() {
-      if (desktopStore?.loadBackgrounds) return dedupeModernByName(await desktopStore.loadBackgrounds(), optionName, optionSource);
-      return dedupeModernByName(await fetchLocalResource("../../data/backgrounds/backgrounds.json"), optionName, optionSource);
+      if (desktopStore?.loadBackgrounds) return dedupeBackgroundOptions(await desktopStore.loadBackgrounds());
+      return dedupeBackgroundOptions(await fetchLocalResource("../../data/backgrounds/backgrounds.json"));
     }
 
     async function loadBackgroundDetails() {
@@ -469,6 +648,16 @@
       return [...byName.values()];
     }
 
+    function dedupeBackgroundOptions(itemsList = []) {
+      const byDisplayName = new Map();
+      itemsList.forEach((item) => {
+        const key = String(optionName(item) || "").trim().toLowerCase();
+        if (!key) return;
+        byDisplayName.set(key, preferModernEntry(byDisplayName.get(key), item, optionSource));
+      });
+      return [...byDisplayName.values()];
+    }
+
     function levelOptions() {
       return Array.from({ length: 20 }, (_item, index) => {
         const level = index + 1;
@@ -609,6 +798,7 @@
     function scheduleSave() {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => saveData().catch(console.error), 220);
+      scheduleLiveSheetUpdate();
     }
 
     let panelRefreshFrame = 0;
@@ -791,6 +981,16 @@
         showStatus(uiSettings.diceRollAnimations ? "Dados 3D activados" : "Dados 3D desactivados");
       });
       dmScreenButton?.addEventListener("click", openDmScreen);
+      liveSheetClientButton?.addEventListener("click", openLiveSheetClientPanel);
+      liveSheetClientClose?.addEventListener("click", closeLiveSheetClientPanel);
+      liveSheetClientCancel?.addEventListener("click", closeLiveSheetClientPanel);
+      liveSheetConnectButton?.addEventListener("click", connectLiveSheetClient);
+      [liveSheetDmIp, liveSheetPort, liveSheetPlayerName]
+        .filter(Boolean)
+        .forEach((input) => input.addEventListener("change", saveLiveSheetClientSettings));
+      liveSheetClientBackdrop?.addEventListener("click", (event) => {
+        if (event.target === liveSheetClientBackdrop) closeLiveSheetClientPanel();
+      });
       generateSheetCodeButton?.addEventListener("click", () => {
         generateCharacterSheetCode().catch((error) => {
           console.error(error);
@@ -827,6 +1027,8 @@
       app.addEventListener("change", handleWizardPreparedLimitChange);
       app.addEventListener("input", scheduleSave);
       app.addEventListener("change", scheduleSave);
+      app.addEventListener("input", scheduleLiveSheetUpdate);
+      app.addEventListener("change", scheduleLiveSheetUpdate);
       app.addEventListener("input", schedulePreparedSpellsPanelRefresh);
       app.addEventListener("change", schedulePreparedSpellsPanelRefresh);
       app.addEventListener("input", scheduleEquipmentPanelRefresh);
@@ -886,6 +1088,13 @@
           closeItemPicker();
           closeItemDrawer();
           closeTurnActionsPanel();
+          closeLiveSheetClientPanel();
+        }
+      });
+      window.addEventListener("beforeunload", () => {
+        if (liveSheetClientSocket) {
+          liveSheetClientManualDisconnect = true;
+          liveSheetClientSocket.close(1000, "Window closed");
         }
       });
       loading.style.display = "none";

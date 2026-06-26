@@ -34,6 +34,7 @@
     <div class="app-settings-panel" id="appSettingsPanel" hidden>
       <div class="app-settings-title">Settings</div>
       <button class="app-settings-action-button" id="dmScreenButton" type="button">DM screen</button>
+      <button class="app-settings-action-button" id="liveSheetClientButton" type="button">Connect to DM</button>
       <button class="app-settings-action-button" id="generateSheetCodeButton" type="button">Generar codigo</button>
       <button class="app-settings-action-button" id="importCharacterButton" type="button">Importar character</button>
       <label class="app-settings-toggle-row" for="diceAnimationToggle">
@@ -44,6 +45,30 @@
         <input class="app-settings-toggle-input" id="diceAnimationToggle" type="checkbox">
         <span class="app-settings-toggle" aria-hidden="true"></span>
       </label>
+    </div>
+  </div>
+  <div class="live-sheet-client-backdrop" id="liveSheetClientBackdrop" aria-hidden="true" hidden>
+    <div class="live-sheet-client-panel" role="dialog" aria-modal="true" aria-labelledby="liveSheetClientTitle">
+      <div class="live-sheet-client-header">
+        <div>
+          <div class="live-sheet-client-title" id="liveSheetClientTitle">Connect to DM</div>
+          <div class="live-sheet-client-subtitle">Local network live sheet sharing</div>
+        </div>
+        <button class="live-sheet-client-close" id="liveSheetClientClose" type="button" aria-label="Cerrar">X</button>
+      </div>
+      <div class="live-sheet-client-body">
+        <label class="live-sheet-client-label" for="liveSheetDmIp">DM IP</label>
+        <input class="live-sheet-client-input" id="liveSheetDmIp" type="text" inputmode="numeric" placeholder="192.168.1.10">
+        <label class="live-sheet-client-label" for="liveSheetPort">Port</label>
+        <input class="live-sheet-client-input" id="liveSheetPort" type="number" min="1" max="65535" step="1" value="8787">
+        <label class="live-sheet-client-label" for="liveSheetPlayerName">Player name</label>
+        <input class="live-sheet-client-input" id="liveSheetPlayerName" type="text" maxlength="80" placeholder="Player">
+        <div class="live-sheet-client-status" id="liveSheetClientStatus" aria-live="polite">Disconnected</div>
+      </div>
+      <div class="live-sheet-client-actions">
+        <button class="live-sheet-client-secondary" id="liveSheetClientCancel" type="button">Cerrar</button>
+        <button class="live-sheet-client-primary" id="liveSheetConnectButton" type="button">Connect</button>
+      </div>
     </div>
   </div>
   <aside class="alerts-panel empty" id="alertsPanel" aria-live="polite">
@@ -6000,6 +6025,7 @@
       if (target.closest?.("#saveSlotControl")) return;
       if (target.closest?.("#appSettingsMenu")) return;
       if (target.closest?.("#characterImportBackdrop")) return;
+      if (target.closest?.("#liveSheetClientBackdrop")) return;
       if (target.closest?.("#freeDiceMenu")) return;
       if (target.closest?.("#itemPickerBackdrop")) return;
       if (target.closest?.(".spell-picker")) return;
@@ -11718,6 +11744,8 @@
       const options = fieldOptions.get(type) || [];
       const matches = options.filter((option) => normalizeName(optionName(option)) === normalized);
       if (type === "background" && matches.length > 1) {
+        const exactMatches = matches.filter((option) => String(optionName(option) || "").trim().toLowerCase() === String(selectedName || "").trim().toLowerCase());
+        if (exactMatches.length === 1) return exactMatches[0];
         return matches.find((option) => normalizeName(rawOptionDescriptionText(option)).includes("source xphb"))
           || matches[0]
           || null;
@@ -11741,8 +11769,18 @@
       const normalizedName = normalizeName(name);
       const normalizedSource = normalizeName(source);
       if (!normalizedName) return null;
-      const matches = backgroundDetails.filter((background) => normalizeName(background.name || "") === normalizedName);
+      const exactName = String(name || "").trim().toLowerCase();
+      const exactMatches = backgroundDetails.filter((background) => String(background.name || "").trim().toLowerCase() === exactName);
+      const looseMatches = backgroundDetails.filter((background) => normalizeName(background.name || "") === normalizedName);
+      const matches = exactMatches.length ? exactMatches : looseMatches;
       if (!matches.length) return null;
+      if (!exactMatches.length) {
+        const optionNames = (fieldOptions.get("background") || [])
+          .filter((option) => normalizeName(optionName(option)) === normalizedName)
+          .map((option) => String(optionName(option) || "").trim().toLowerCase())
+          .filter(Boolean);
+        if (new Set(optionNames).size > 1) return null;
+      }
       if (normalizedSource) return matches.find((background) => normalizeName(background.source || "") === normalizedSource)
         || matches[0]
         || null;

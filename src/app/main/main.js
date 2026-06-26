@@ -4,6 +4,7 @@ const path = require("path");
 const { pathToFileURL } = require("url");
 
 const dataLoader = require("../../services/data-loader");
+const { liveSheetServer } = require("../../services/live-sheet-server");
 const saveService = require("../../services/save-service");
 const translationService = require("../../services/translation-service");
 
@@ -113,6 +114,12 @@ function broadcastPlatformBackgroundChange() {
 function schedulePlatformBackgroundBroadcast() {
   if (scheduledPlatformBackgroundBroadcast) clearTimeout(scheduledPlatformBackgroundBroadcast);
   scheduledPlatformBackgroundBroadcast = setTimeout(broadcastPlatformBackgroundChange, 80);
+}
+
+function broadcastToRenderers(channel, payload) {
+  BrowserWindow.getAllWindows().forEach((windowInstance) => {
+    if (!windowInstance.isDestroyed()) windowInstance.webContents.send(channel, payload);
+  });
 }
 
 function ensurePlatformBackgroundWatchers() {
@@ -280,7 +287,51 @@ ipcMain.handle("translate:text", async (_event, { text, from = "en", to = "es" }
   return translationService.translateText(source, from, to);
 });
 
+ipcMain.handle("live-sheet:start", async (_event, port) => {
+  try {
+    const status = await liveSheetServer.start(port);
+    return { ok: true, status };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error?.message || "No se pudo iniciar el host local.",
+      code: error?.code || "START_FAILED",
+      status: liveSheetServer.status()
+    };
+  }
+});
+
+ipcMain.handle("live-sheet:stop", async () => {
+  const status = await liveSheetServer.stop();
+  return { ok: true, status };
+});
+
+ipcMain.handle("live-sheet:status", async () => {
+  return liveSheetServer.status();
+});
+
+ipcMain.handle("live-sheet:get-players", async () => {
+  return liveSheetServer.getPlayers();
+});
+
+ipcMain.handle("live-sheet:kick-player", async (_event, playerId) => {
+  return liveSheetServer.kickPlayer(playerId);
+});
+
+liveSheetServer.on("player-updated", (player) => {
+  broadcastToRenderers("live-sheet:player-updated", player);
+});
+
+liveSheetServer.on("player-disconnected", (player) => {
+  broadcastToRenderers("live-sheet:player-disconnected", player);
+});
+
+liveSheetServer.on("server-status", (status) => {
+  broadcastToRenderers("live-sheet:server-status", status);
+});
+
 app.on("before-quit", () => {
+  liveSheetServer.stop().catch(() => {});
   platformBackgroundWatchers.forEach((watcher) => {
     try {
       watcher.close();

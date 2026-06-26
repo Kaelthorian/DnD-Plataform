@@ -16,11 +16,24 @@ Start with app-owned folders. Avoid `vendor/5etools-src-main` unless source/refe
 - Fix a spell: inspect `src/data/spells`, `src/engine/spells`, `src/ui/sheet`, then search `src/app/renderer/index.html` for `INLINE SPELL/REST MECHANICS` and `INLINE SPELL UI`.
 - Fix long rest: inspect `src/engine/rests/long-rest.js`, `src/engine/resources/resource-state.js`, `src/services/save-service.js`, then search `src/app/renderer/index.html` for `INLINE SPELL/REST MECHANICS`, `applyLongRestRecovery`, and `longRestSpellResources`.
 - Fix character sheet UI: inspect `src/ui/sheet`, `src/app/renderer/styles.css`, `src/app/renderer/renderer.js`, and only then any relevant inline renderer mechanics.
+- Fix backgrounds: inspect `src/data/backgrounds/backgrounds.json`, `src/services/data-loader.js`, `loadBackgroundOptions()` and `loadBackgroundDetails()` in `src/app/renderer/renderer.js`, then search `src/app/renderer/index.html` for `findBackgroundChoicesForOption`, `applySelectedBackgroundChoices`, `updateBackgroundSkillProficiencies`, `calculateOtherProficienciesAndLanguages`, and `INLINE BACKGROUND FEAT RESOLUTION`.
 - Fix Electron startup or file loading: inspect `src/app/main`, `src/app/preload`, and `src/services/data-loader.js`.
 - Fix save/load behavior: inspect `src/services/save-service.js`, `src/app/main/main.js`, `src/app/preload/preload.js`, `src/app/renderer/renderer.js`, and the save-slot helpers in `src/app/renderer/index.html`.
 - Slot-aware persistence uses `window.dndSheet.loadStore()`, `saveStore(store)`, and `clearSlot(slotId)` when running in Electron; keep `sheet:load`, `sheet:save`, and `sheet:clear` compatible for old renderer calls.
 - Fix translation behavior: inspect `src/services/translation-service.js`.
+- Fix live sheet sharing: inspect `src/services/live-sheet-server.js`, the `live-sheet:*` handlers in `src/app/main/main.js`, `window.dndSheet.liveSheet` in `src/app/preload/preload.js`, the Connect to DM controls in `src/app/renderer/renderer.js`, and the Live Players panel in `src/app/renderer/dm-screen/src/main.jsx`.
+- Live sheet sharing is local LAN only over WebSocket. Do not add cloud relay, accounts, or automatic writes into save slots; remote player data stays memory-only unless a future explicit save feature is designed.
+- Keep player-card parsing centralized through `characterFromSheetData(data)` in the DM Screen. If sheet fields change, update that parser instead of adding a second live-player parser.
 - Change packaged files: inspect `package.json` build `files`.
+
+## Background Safety Notes
+
+- Do not edit `vendor/5etools-src-main` for background fixes unless the task is explicitly a vendor data sync.
+- The selector list comes from `src/data/backgrounds/backgrounds.json`; vendor details only enrich mechanics when an exact structured match exists.
+- Keep save data compatible: background fields store display names, while background choices live under `__sheetMeta.choices`.
+- Names that differ only by punctuation can be distinct backgrounds. Keep exact display-name matching in selector code so `Gate Warden` and `Gate-Warden` do not collapse into one option.
+- Run `node scripts/diagnose-backgrounds.js` after background changes. Use `--list` for the full loaded background inventory and normalized field summary.
+- Known limitation: 110 current backgrounds use local text fallback because no structured vendor detail exists. For those, simple proficiencies/equipment can be parsed from text, but complex mechanics may only appear as generated feature text.
 
 ## Vendor Rules
 

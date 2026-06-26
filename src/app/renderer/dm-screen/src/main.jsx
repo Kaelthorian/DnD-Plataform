@@ -113,6 +113,13 @@ const NOTE_MIN_WIDTH = 340;
 const NOTE_MIN_HEIGHT = 280;
 const NOTE_DEFAULT_WIDTH = 560;
 const NOTE_DEFAULT_HEIGHT = 620;
+const BOARD_WIDTH = 20000;
+const BOARD_HEIGHT = 20000;
+const BOARD_PADDING = 12;
+const BOARD_MIN_ZOOM = 0.35;
+const BOARD_MAX_ZOOM = 1.8;
+const BOARD_ZOOM_STEP = 0.15;
+const DM_BOARD_STORAGE_KEY = "dnd-dm-screen-board-v1";
 const CHARACTER_SHEET_CODE_PREFIX = "DNDCS1";
 const CHARACTER_SHEET_CODE_TYPE = "dnd-character-sheet";
 
@@ -437,6 +444,182 @@ function compareLibraryEntries(left, right, kind, sortField) {
 function libraryEntrySearchText(entry, kind) {
   if (kind === "spell") return [entry.name, formatSpellLevel(entry), spellSource(entry), spellSchool(entry), entry.classes?.join(" ")].map(normalizeSearch).join(" ");
   return [entry.name, itemRarity(entry), itemSource(entry), entry.type, renderEntryText(entry.entries)].map(normalizeSearch).join(" ");
+}
+
+function normalizeResourceName(value) {
+  return cleanRulesText(value)
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b(?:same as above|matching your chosen proficiency)\b/gi, " ")
+    .replace(/^\s*(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+/i, "")
+    .replace(/^\s*(?:one set of|set of|pair of|a|an|the|one)\s+/i, "")
+    .replace(/\bcontaining\b[\s\S]*$/i, "")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function resourceNameVariants(value) {
+  const primary = normalizeResourceName(value);
+  const variants = [primary];
+  if (primary.endsWith("s")) variants.push(primary.slice(0, -1));
+  return variants.filter(Boolean);
+}
+
+function findResourceEntry(kind, name) {
+  const entries = kind === "spell" ? spells : ITEM_LIBRARY;
+  const variants = resourceNameVariants(name);
+  if (!variants.length) return null;
+  return entries.find((entry) => variants.includes(normalizeResourceName(entry.name)))
+    || entries.find((entry) => variants.some((variant) => normalizeResourceName(entry.name).startsWith(`${variant} `)))
+    || entries.find((entry) => variants.some((variant) => normalizeResourceName(entry.name).includes(variant)));
+}
+
+function findLibraryEntryByRef(kind, ref) {
+  if (!ref?.name) return null;
+  const entries = kind === "monster" ? bestiary : kind === "spell" ? spells : ITEM_LIBRARY;
+  return entries.find((entry) => entry.name === ref.name && (!ref.source || entry.source === ref.source))
+    || entries.find((entry) => normalizeResourceName(entry.name) === normalizeResourceName(ref.name) && (!ref.source || entry.source === ref.source))
+    || entries.find((entry) => normalizeResourceName(entry.name) === normalizeResourceName(ref.name))
+    || null;
+}
+
+function libraryRef(entry) {
+  if (!entry?.name) return null;
+  return {
+    name: entry.name,
+    source: entry.source || ""
+  };
+}
+
+function clampBoardPoint(point, width = 0, height = 0) {
+  return {
+    x: clamp(point.x, BOARD_PADDING, BOARD_WIDTH - width - BOARD_PADDING),
+    y: clamp(point.y, BOARD_PADDING, BOARD_HEIGHT - height - BOARD_PADDING)
+  };
+}
+
+function noteStorageSnapshot(note) {
+  return {
+    id: note.id,
+    kind: note.kind,
+    monsterRef: libraryRef(note.monster),
+    entryRef: libraryRef(note.entry),
+    character: note.character || null,
+    x: note.x,
+    y: note.y,
+    width: note.width,
+    height: note.height,
+    z: note.z,
+    rolls: Array.isArray(note.rolls) ? note.rolls.slice(0, 20) : [],
+    dicePanelOpen: Boolean(note.dicePanelOpen),
+    minimized: Boolean(note.minimized),
+    hpCurrent: note.hpCurrent,
+    hpMax: note.hpMax
+  };
+}
+
+function restoreStoredNote(note) {
+  if (!note?.kind || !note.id) return null;
+  const monster = note.kind === "monster" ? findLibraryEntryByRef("monster", note.monsterRef) : null;
+  const entry = note.kind === "spell" || note.kind === "item" ? findLibraryEntryByRef(note.kind, note.entryRef) : null;
+  const character = note.kind === "character" && note.character ? note.character : null;
+  if (note.kind === "monster" && !monster) return null;
+  if ((note.kind === "spell" || note.kind === "item") && !entry) return null;
+  if (note.kind === "character" && !character) return null;
+  const width = clamp(Number(note.width) || NOTE_DEFAULT_WIDTH, NOTE_MIN_WIDTH, BOARD_WIDTH - BOARD_PADDING * 2);
+  const height = clamp(Number(note.height) || NOTE_DEFAULT_HEIGHT, NOTE_MIN_HEIGHT, BOARD_HEIGHT - BOARD_PADDING * 2);
+  const point = clampBoardPoint({
+    x: Number(note.x) || BOARD_PADDING,
+    y: Number(note.y) || BOARD_PADDING
+  }, width, height);
+  const hpAverage = monster?.hp?.average ?? "";
+  const characterHp = character?.hpMax || character?.hpCurrent || "";
+  return {
+    id: String(note.id),
+    kind: note.kind,
+    monster,
+    character,
+    entry,
+    x: point.x,
+    y: point.y,
+    width,
+    height,
+    z: Number(note.z) || 20,
+    rolls: Array.isArray(note.rolls) ? note.rolls.slice(0, 20) : [],
+    dicePanelOpen: Boolean(note.dicePanelOpen),
+    minimized: Boolean(note.minimized),
+    hpCurrent: note.hpCurrent ?? character?.hpCurrent ?? hpAverage,
+    hpMax: note.hpMax ?? characterHp ?? hpAverage
+  };
+}
+
+function defaultBoardState() {
+  return {
+    notes: [],
+    view: { x: 0, y: 0, scale: 1 }
+  };
+}
+
+function loadDmBoardState() {
+  if (typeof localStorage === "undefined") return defaultBoardState();
+  try {
+    const parsed = JSON.parse(localStorage.getItem(DM_BOARD_STORAGE_KEY) || "null");
+    if (!parsed || typeof parsed !== "object") return defaultBoardState();
+    const notes = Array.isArray(parsed.notes)
+      ? parsed.notes.map(restoreStoredNote).filter(Boolean)
+      : [];
+    const view = parsed.view && typeof parsed.view === "object"
+      ? {
+        x: Number(parsed.view.x) || 0,
+        y: Number(parsed.view.y) || 0,
+        scale: clamp(Number(parsed.view.scale) || 1, BOARD_MIN_ZOOM, BOARD_MAX_ZOOM)
+      }
+      : { x: 0, y: 0, scale: 1 };
+    return { notes, view };
+  } catch (error) {
+    console.error("Could not load DM board state", error);
+    return defaultBoardState();
+  }
+}
+
+function saveDmBoardState(notes, view) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(DM_BOARD_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      savedAt: new Date().toISOString(),
+      view,
+      notes: notes.map(noteStorageSnapshot)
+    }));
+  } catch (error) {
+    console.error("Could not save DM board state", error);
+  }
+}
+
+function equipmentResourceCandidates(text) {
+  const seen = new Set();
+  return compactLines(text)
+    .flatMap((line) => line.replace(/^[-*]\s*/, "").split(/\s*,\s*|\s*;\s*/))
+    .flatMap((part) => part.split(/\s+or\s+/i))
+    .map((part) => part.replace(/^[-*]\s*/, "").trim())
+    .map((part) => {
+      const afterLabel = part.includes(":") ? part.split(":").slice(1).join(":").trim() : part;
+      const display = cleanRulesText(afterLabel)
+        .replace(/\([^)]*\)/g, "")
+        .replace(/\bcontaining\b[\s\S]*$/i, "")
+        .replace(/^\s*(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+/i, "")
+        .replace(/^\s*(?:one set of|set of|pair of|a|an|the|one)\s+/i, "")
+        .trim();
+      return display;
+    })
+    .filter((display) => display && !/^\d+\s*(?:cp|sp|ep|gp|pp)\b/i.test(display) && normalizeResourceName(display))
+    .filter((display) => {
+      const key = normalizeResourceName(display);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((display) => ({ display, query: display }));
 }
 
 function searchMatchScore(name, query, fullText = "") {
@@ -814,6 +997,34 @@ function characterFromSheetData(data) {
       .filter(([, value]) => value),
     sections: characterFeatureSections(data),
     rawData: data
+  };
+}
+
+function characterStatBlockEntity(character) {
+  const speedText = /\bft\.?\b|feet/i.test(character.speed) ? character.speed : `${character.speed || "30"} ft.`;
+  return {
+    name: character.name,
+    source: "PC",
+    size: "M",
+    type: character.classLevel || (character.level ? `Level ${character.level} Character` : "Character"),
+    alignment: character.alignment || "Unaligned",
+    ac: character.ac || "Unknown",
+    hp: { average: character.hpMax || character.hpCurrent || "", formula: "" },
+    speed: speedText,
+    passive: character.passive,
+    str: character.abilities?.str,
+    dex: character.abilities?.dex,
+    con: character.abilities?.con,
+    int: character.abilities?.int,
+    wis: character.abilities?.wis,
+    cha: character.abilities?.cha,
+    save: character.saves || {},
+    skill: Object.fromEntries((character.proficientSkills || []).map((skill) => [skill.label, skill.value])),
+    senses: [],
+    languages: character.sections
+      ?.find(([title]) => normalizeSearch(title).includes("proficiencies"))
+      ?.[1]
+      ?.match(/Languages:\s*([^\n]+)/i)?.[1] || ""
   };
 }
 
@@ -1559,7 +1770,24 @@ function CharacterDetailSection({ title, children, defaultOpen = false }) {
   );
 }
 
-function CharacterTextBlock({ text, context, onRoll }) {
+function CharacterResourceButton({ kind, label, onOpenResource }) {
+  if (!onOpenResource) {
+    return <InteractiveRulesText text={label} context={kind} onRoll={() => {}} />;
+  }
+  return (
+    <button
+      className="min-h-10 border border-neutral-800 bg-neutral-900/80 px-3 py-2 text-left leading-relaxed text-neutral-200 transition hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+      type="button"
+      title={`Agregar nota de ${kind === "spell" ? "spell" : "item"}: ${label}`}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => onOpenResource(kind, label, event)}
+    >
+      {label}
+    </button>
+  );
+}
+
+function CharacterTextBlock({ text, context, onRoll, onOpenResource = null }) {
   if (!String(text || "").trim()) return <p className="text-neutral-500">Sin datos.</p>;
   const lines = compactLines(text);
   const normalizedContext = normalizeSearch(context);
@@ -1612,6 +1840,21 @@ function CharacterTextBlock({ text, context, onRoll }) {
   }
 
   if (isEquipment) {
+    const candidates = equipmentResourceCandidates(text);
+    if (candidates.length) {
+      return (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {candidates.map((item, index) => (
+            <CharacterResourceButton
+              key={`${item.query}-${index}`}
+              kind="item"
+              label={item.display}
+              onOpenResource={onOpenResource}
+            />
+          ))}
+        </div>
+      );
+    }
     return (
       <div className="grid gap-2 sm:grid-cols-2">
         {lines.map((line, index) => (
@@ -1630,6 +1873,81 @@ function CharacterTextBlock({ text, context, onRoll }) {
   );
 }
 
+function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange }) {
+  const initiative = abilityModifier(monster.dex);
+  const senses = formatList(monster.senses);
+  const skills = formatKeyValueMap(monster.skill);
+  const languages = formatList(monster.languages) || "--";
+
+  return (
+    <div className="px-3 py-2 text-sm">
+      <div className="grid grid-cols-[1fr_auto] gap-4">
+        <div className="space-y-0.5">
+          <p><strong className="text-neutral-200">AC</strong> {formatAc(monster)}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <strong className="text-neutral-200">HP</strong>
+            <span className="font-semibold text-neutral-200">
+              {note.hpCurrent || 0}/{note.hpMax || character.hpMax || 0}{character.tempHp ? ` +${character.tempHp} temp` : ""}
+            </span>
+            <label className="flex items-center gap-1 text-xs text-neutral-500">
+              Current
+              <input
+                className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
+                type="number"
+                value={note.hpCurrent}
+                onPointerDown={(event) => event.stopPropagation()}
+                onChange={(event) => onHpChange(note.id, "current", event.target.value)}
+              />
+            </label>
+            <label className="flex items-center gap-1 text-xs text-neutral-500">
+              Total
+              <input
+                className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
+                type="number"
+                value={note.hpMax}
+                onPointerDown={(event) => event.stopPropagation()}
+                onChange={(event) => onHpChange(note.id, "max", event.target.value)}
+              />
+            </label>
+          </div>
+          <p><strong className="text-neutral-200">Speed</strong> {formatSpeedCompact(monster)}</p>
+          <p><strong className="text-neutral-200">Passive</strong> {character.passive || "--"}</p>
+        </div>
+        <div className="text-right">
+          <strong className="text-neutral-200">Initiative</strong>{" "}
+          <RollButton title={`Tirar iniciativa d20${signNumber(initiative)}`} onRoll={() => onRoll("Initiative", rollD20(initiative))}>
+            {signNumber(initiative)}
+          </RollButton>
+          <span className="text-neutral-500"> ({10 + initiative})</span>
+        </div>
+      </div>
+
+      <div className="mt-2 grid grid-cols-[1fr_42px_42px] gap-x-1 px-1 text-[10px] uppercase tracking-wide text-neutral-500">
+        <span />
+        <span className="text-center">Mod</span>
+        <span className="text-center">Save</span>
+      </div>
+      <div className="grid gap-1 sm:grid-cols-3">
+        {["str", "dex", "con"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} />)}
+      </div>
+      <div className="mt-1 grid gap-1 sm:grid-cols-3">
+        {["int", "wis", "cha"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} />)}
+      </div>
+
+      {skills ? <p className="mt-2 leading-snug"><strong className="text-neutral-200">Skills</strong> {skills}</p> : null}
+      {senses ? <p className="leading-snug"><strong className="text-neutral-200">Senses</strong> {senses}</p> : null}
+      <p className="leading-snug"><strong className="text-neutral-200">Languages</strong> {languages}</p>
+      <p className="leading-snug">
+        <strong className="text-neutral-200">Character</strong>{" "}
+        {[character.race, character.background, character.profBonus ? `Prof ${character.profBonus}` : "", character.hitDice ? `HD ${character.hitDice}` : ""].filter(Boolean).join(" | ") || "Imported"}
+      </p>
+      {character.money.length ? (
+        <p className="leading-snug"><strong className="text-neutral-200">Money</strong> {character.money.map(([key, value]) => `${value} ${key}`).join(", ")}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function CharacterNote({
   note,
   onClose,
@@ -1641,9 +1959,11 @@ function CharacterNote({
   onMinimize,
   onRestore,
   onDuplicate,
-  onHpChange
+  onHpChange,
+  onOpenResource
 }) {
   const character = note.character;
+  const statBlockCharacter = characterStatBlockEntity(character);
   const subtitle = [
     character.race,
     character.classLevel || (character.level ? `Level ${character.level}` : ""),
@@ -1655,7 +1975,6 @@ function CharacterNote({
     character.spellcasting.saveDc ? `DC ${character.spellcasting.saveDc}` : "",
     character.spellcasting.attackBonus ? `Atk ${character.spellcasting.attackBonus}` : ""
   ].filter(Boolean).join(" | ");
-  const speedLabel = /\bft\.?\b|feet/i.test(character.speed) ? character.speed : `${character.speed} ft.`;
 
   function addRoll(label, roll) {
     onRoll(note.id, label, roll);
@@ -1699,81 +2018,25 @@ function CharacterNote({
       style={{ left: note.x, top: note.y, zIndex: note.z, width: note.width, height: note.height, flexDirection: "column" }}
       onPointerDown={onFocus}
     >
-      <header
-        className="flex cursor-move items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2"
-        onPointerDown={(event) => onDragStart(event, note.id)}
-      >
-        <div>
-          <h2 className="font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500">{character.name}</h2>
-          <p className="mt-2 text-sm italic text-neutral-300">{subtitle || "Imported character"}</p>
-          {character.player ? <p className="mt-1 text-xs text-neutral-500">Player {character.player}</p> : null}
-        </div>
-        <div className="flex items-start gap-3">
-          <div className="text-right font-serif text-xl uppercase leading-none text-amber-500">PC</div>
-          <div className="flex gap-1">
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(note.id)}>-</button>
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(note.id)}>⧉</button>
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onClose(note.id)}>X</button>
-          </div>
-        </div>
-      </header>
+      <MonsterStatBlockHeader
+        monster={statBlockCharacter}
+        onDragStart={(event) => onDragStart(event, note.id)}
+        onMinimize={() => onMinimize(note.id)}
+        onDuplicate={() => onDuplicate(note.id)}
+        onClose={() => onClose(note.id)}
+      />
 
-      <div className="min-h-0 flex-1 overflow-auto px-3 py-2 text-sm">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label="AC" value={character.ac} />
-          <Stat label="HP" value={`${note.hpCurrent || 0}/${note.hpMax || character.hpMax || 0}${character.tempHp ? ` +${character.tempHp} temp` : ""}`} />
-          <Stat label="Speed" value={speedLabel} />
-          <Stat label="Passive" value={character.passive || "--"} />
-        </div>
-
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <strong className="text-neutral-200">HP</strong>
-          <label className="flex items-center gap-1 text-xs text-neutral-500">
-            Current
-            <input
-              className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
-              type="number"
-              value={note.hpCurrent}
-              onPointerDown={(event) => event.stopPropagation()}
-              onChange={(event) => onHpChange(note.id, "current", event.target.value)}
-            />
-          </label>
-          <label className="flex items-center gap-1 text-xs text-neutral-500">
-            Total
-            <input
-              className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
-              type="number"
-              value={note.hpMax}
-              onPointerDown={(event) => event.stopPropagation()}
-              onChange={(event) => onHpChange(note.id, "max", event.target.value)}
-            />
-          </label>
-          {character.profBonus ? <span className="text-xs text-neutral-500">Prof {character.profBonus}</span> : null}
-          {character.hitDice ? <span className="text-xs text-neutral-500">HD {character.hitDice}</span> : null}
-        </div>
-
-        <div className="mt-2 grid grid-cols-[1fr_42px_42px] gap-x-1 px-1 text-[10px] uppercase tracking-wide text-neutral-500">
-          <span />
-          <span className="text-center">Mod</span>
-          <span className="text-center">Save</span>
-        </div>
-        <div className="grid gap-1 sm:grid-cols-3">
-          {["str", "dex", "con"].map((ability) => <CharacterAbilityCell key={ability} character={character} ability={ability} onRoll={addRoll} />)}
-        </div>
-        <div className="mt-1 grid gap-1 sm:grid-cols-3">
-          {["int", "wis", "cha"].map((ability) => <CharacterAbilityCell key={ability} character={character} ability={ability} onRoll={addRoll} />)}
-        </div>
-
-        {character.proficientSkills.length ? (
-          <p className="mt-2 leading-snug">
-            <strong className="text-neutral-200">Skills</strong>{" "}
-            {character.proficientSkills.map((skill) => `${skill.label} ${skill.value}`).join(", ")}
-          </p>
+      <div className="min-h-0 flex-1 overflow-auto text-sm">
+        {character.player ? (
+          <p className="border-b border-neutral-800 px-3 py-2 text-xs text-neutral-500">Player {character.player}</p>
         ) : null}
-        <p className="leading-snug"><strong className="text-neutral-200">Alignment</strong> {character.alignment}</p>
-        {character.money.length ? (
-          <p className="leading-snug"><strong className="text-neutral-200">Money</strong> {character.money.map(([key, value]) => `${value} ${key}`).join(", ")}</p>
-        ) : null}
+        <CharacterMonsterVitals
+          character={character}
+          monster={statBlockCharacter}
+          note={note}
+          onRoll={addRoll}
+          onHpChange={onHpChange}
+        />
 
         {character.actions.length ? (
           <CharacterDetailSection title="Actions" defaultOpen>
@@ -1802,7 +2065,16 @@ function CharacterNote({
             {character.spellcasting.spells.length ? (
               <div className="grid gap-1 sm:grid-cols-2">
                 {character.spellcasting.spells.map((spell) => (
-                  <div key={spell.key} className="truncate border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs" title={spell.name}>{spell.name}</div>
+                  <button
+                    key={spell.key}
+                    className="truncate border border-neutral-800 bg-neutral-900 px-2 py-1 text-left text-xs text-neutral-200 transition hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                    type="button"
+                    title={`Agregar nota de spell: ${spell.name}`}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => onOpenResource?.("spell", spell.name, note, event)}
+                  >
+                    {spell.name}
+                  </button>
                 ))}
               </div>
             ) : null}
@@ -1828,7 +2100,12 @@ function CharacterNote({
             title={title}
             defaultOpen={["features", "proficiencies", "equipment"].some((keyword) => normalizeSearch(title).includes(keyword))}
           >
-            <CharacterTextBlock text={compactParagraph(text)} context={title} onRoll={addRoll} />
+            <CharacterTextBlock
+              text={compactParagraph(text)}
+              context={title}
+              onRoll={addRoll}
+              onOpenResource={(kind, label, event) => onOpenResource?.(kind, label, note, event)}
+            />
           </CharacterDetailSection>
         ))}
       </div>
@@ -1837,6 +2114,168 @@ function CharacterNote({
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
     </article>
+  );
+}
+
+function sanitizeDisplayText(value, fallback = "") {
+  const text = String(value || "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || fallback;
+}
+function formatLiveTimestamp(value) {
+  if (!value) return "Never";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function LivePlayerCard({ player, onKick }) {
+  const character = useMemo(() => {
+    try {
+      return characterFromSheetData(player.data || {});
+    } catch (_error) {
+      return null;
+    }
+  }, [player.data]);
+  const name = sanitizeDisplayText(character?.name, "Unknown character");
+  const playerName = sanitizeDisplayText(player.playerName, "Player");
+  const classLevel = sanitizeDisplayText(character?.classLevel || (character?.level ? `Level ${character.level}` : ""), "No class");
+  const race = sanitizeDisplayText(character?.race, "No race");
+  const hpLabel = `${character?.hpCurrent || 0}/${character?.hpMax || 0}${character?.tempHp ? ` +${character.tempHp} temp` : ""}`;
+  const slots = character?.spellcasting?.slots || [];
+
+  return (
+    <article className={`border bg-neutral-950/80 p-3 shadow-lg ${player.connected ? "border-neutral-700" : "border-neutral-800 opacity-75"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${player.connected ? "bg-emerald-400" : "bg-neutral-600"}`} />
+            <h3 className="truncate font-serif text-lg font-bold uppercase leading-tight text-amber-500">{name}</h3>
+          </div>
+          <p className="mt-1 truncate text-xs text-neutral-400">{playerName} | {classLevel} | {race}</p>
+        </div>
+        <button
+          className="shrink-0 border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-bold text-neutral-300 hover:border-red-500 hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+          type="button"
+          onClick={() => onKick(player.playerId)}
+        >
+          {player.connected ? "Kick" : "Remove"}
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+        <Stat label="AC" value={character?.ac || "--"} />
+        <Stat label="HP" value={hpLabel} />
+        <Stat label="Temp" value={character?.tempHp || "0"} />
+        <Stat label="Passive" value={character?.passive || "--"} />
+      </div>
+
+      <div className="mt-3 grid grid-cols-6 gap-1 text-center text-xs">
+        {ABILITY_KEYS.map((ability) => (
+          <div key={ability} className="border border-neutral-800 bg-neutral-900 px-1 py-1">
+            <div className="font-bold uppercase text-neutral-500">{ABILITY_LABELS[ability]}</div>
+            <div className="text-neutral-100">{character?.abilities?.[ability] ?? "--"}</div>
+          </div>
+        ))}
+      </div>
+
+      {slots.length ? (
+        <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
+          {slots.map((slot) => (
+            <div key={slot.level} className="border border-neutral-800 bg-neutral-900 px-2 py-1">
+              <span className="font-bold text-amber-500">L{slot.level}</span> {slot.remaining || 0}/{slot.total || 0}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-[11px] uppercase tracking-wide text-neutral-500">
+        {player.connected ? "Connected" : "Disconnected"} | Last update {formatLiveTimestamp(player.lastUpdate)}
+      </p>
+    </article>
+  );
+}
+
+function LivePlayersPanel({ status, port, error, players, onPortChange, onStart, onStop, onKick }) {
+  const running = Boolean(status?.running);
+  const addresses = Array.isArray(status?.addresses) ? status.addresses : [];
+  const primaryAddress = addresses[0] || "DM_IP";
+  const effectivePort = status?.port || port || 8787;
+
+  return (
+    <aside className="fixed right-4 top-4 z-40 flex max-h-[calc(100vh-32px)] w-[min(420px,calc(100vw-32px))] flex-col border border-neutral-700 bg-neutral-900/95 text-neutral-200 shadow-2xl">
+      <header className="border-b-2 border-amber-500 p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Live Players</h2>
+            <p className="mt-1 text-xs text-neutral-500">Players connect to ws://{primaryAddress}:{effectivePort} from the Connect to DM panel.</p>
+          </div>
+          <span className={`shrink-0 border px-2 py-1 text-[11px] font-bold uppercase ${running ? "border-emerald-500/40 text-emerald-300" : "border-neutral-700 text-neutral-500"}`}>
+            {running ? "Hosting" : "Stopped"}
+          </span>
+        </div>
+      </header>
+
+      <div className="grid gap-3 border-b border-neutral-800 p-3">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+          <label className="text-xs font-bold uppercase text-neutral-500">
+            Port
+            <input
+              className="mt-1 h-9 w-full border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
+              type="number"
+              min="1"
+              max="65535"
+              value={port}
+              disabled={running}
+              onChange={(event) => onPortChange(event.target.value)}
+            />
+          </label>
+          <button
+            className="mt-5 h-9 border border-neutral-700 bg-neutral-950 px-3 text-sm font-bold text-emerald-300 hover:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            disabled={running}
+            onClick={onStart}
+          >
+            Start Host
+          </button>
+          <button
+            className="mt-5 h-9 border border-neutral-700 bg-neutral-950 px-3 text-sm font-bold text-red-300 hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            disabled={!running}
+            onClick={onStop}
+          >
+            Stop Host
+          </button>
+        </div>
+
+        {addresses.length ? (
+          <div className="grid gap-1 text-xs text-neutral-400">
+            {addresses.map((address) => (
+              <code key={address} className="border border-neutral-800 bg-neutral-950 px-2 py-1 text-amber-200">ws://{address}:{effectivePort}</code>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
+        )}
+        {error ? <p className="border border-red-500/30 bg-red-950/40 px-2 py-1 text-xs text-red-200">{error}</p> : null}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto p-3">
+        {players.length ? (
+          <div className="grid gap-3">
+            {players.map((player) => (
+              <LivePlayerCard key={player.playerId} player={player} onKick={onKick} />
+            ))}
+          </div>
+        ) : (
+          <div className="border border-dashed border-neutral-700 bg-neutral-950/60 p-4 text-center text-sm text-neutral-500">
+            No connected players yet.
+          </div>
+        )}
+      </div>
+    </aside>
   );
 }
 
@@ -2207,6 +2646,7 @@ function DetailList({ title, items }) {
 }
 
 function DmScreenApp() {
+  const [persistedBoardState] = useState(loadDmBoardState);
   const [isReturning, setIsReturning] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -2225,15 +2665,22 @@ function DmScreenApp() {
   const [resourceSortDirection, setResourceSortDirection] = useState("asc");
   const [selectedSpell, setSelectedSpell] = useState(spells[0] || null);
   const [selectedItem, setSelectedItem] = useState(ITEM_LIBRARY[0] || null);
-  const [monsterNotes, setMonsterNotes] = useState([]);
+  const [monsterNotes, setMonsterNotes] = useState(persistedBoardState.notes);
   const [isCharacterCodeModalOpen, setIsCharacterCodeModalOpen] = useState(false);
   const [characterCodeValue, setCharacterCodeValue] = useState("");
   const [characterCodeError, setCharacterCodeError] = useState("");
   const [characterCodeSpawnPoint, setCharacterCodeSpawnPoint] = useState(null);
+  const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], playerCount: 0 });
+  const [livePlayers, setLivePlayers] = useState([]);
+  const [liveHostPort, setLiveHostPort] = useState("8787");
+  const [liveHostError, setLiveHostError] = useState("");
+  const [boardView, setBoardView] = useState(persistedBoardState.view);
   const dragRef = useRef(null);
   const resizeRef = useRef(null);
+  const panRef = useRef(null);
+  const boardViewRef = useRef(boardView);
   const suppressRestoreClickRef = useRef(null);
-  const zRef = useRef(20);
+  const zRef = useRef(Math.max(20, ...persistedBoardState.notes.map((note) => Number(note.z) || 0)));
 
   const editionOptions = useMemo(() => (
     [...new Set(bestiary.map(monsterEdition))].sort(compareText)
@@ -2293,6 +2740,60 @@ function DmScreenApp() {
     else setSelectedItem(filteredResources[0] || null);
   }, [filteredResources, resourcePickerKind, selectedItem, selectedSpell]);
 
+  useEffect(() => {
+    boardViewRef.current = boardView;
+  }, [boardView]);
+
+  useEffect(() => {
+    saveDmBoardState(monsterNotes, boardView);
+  }, [boardView, monsterNotes]);
+
+  useEffect(() => {
+    let disposed = false;
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet) return undefined;
+
+    liveSheet.getStatus()
+      .then((status) => {
+        if (disposed) return;
+        setLiveServerStatus(status);
+        if (status?.port) setLiveHostPort(String(status.port));
+      })
+      .catch(console.error);
+    liveSheet.getPlayers()
+      .then((players) => {
+        if (!disposed) setLivePlayers(Array.isArray(players) ? players : []);
+      })
+      .catch(console.error);
+
+    const unsubscribeStatus = liveSheet.onServerStatus((status) => {
+      setLiveServerStatus(status || { running: false, port: 8787, addresses: [], playerCount: 0 });
+      if (status?.port) setLiveHostPort(String(status.port));
+      if (status?.running) setLiveHostError("");
+    });
+    const unsubscribeUpdated = liveSheet.onPlayerUpdated((player) => {
+      if (!player?.playerId) return;
+      setLivePlayers((players) => {
+        const nextPlayers = players.filter((entry) => entry.playerId !== player.playerId);
+        return [...nextPlayers, player].sort((left, right) => String(left.playerName || "").localeCompare(String(right.playerName || ""), undefined, { sensitivity: "base" }));
+      });
+    });
+    const unsubscribeDisconnected = liveSheet.onPlayerDisconnected((player) => {
+      if (!player?.playerId) return;
+      setLivePlayers((players) => {
+        if (player.removed) return players.filter((entry) => entry.playerId !== player.playerId);
+        return players.map((entry) => entry.playerId === player.playerId ? { ...entry, ...player, connected: false } : entry);
+      });
+    });
+
+    return () => {
+      disposed = true;
+      unsubscribeStatus?.();
+      unsubscribeUpdated?.();
+      unsubscribeDisconnected?.();
+    };
+  }, []);
+
   async function returnToCharacterSheet() {
     setIsReturning(true);
     try {
@@ -2307,6 +2808,67 @@ function DmScreenApp() {
     }
   }
 
+  async function startLiveHost() {
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet) {
+      setLiveHostError("Live sheet API unavailable in this renderer.");
+      return;
+    }
+    setLiveHostError("");
+    const result = await liveSheet.startServer(liveHostPort);
+    if (!result?.ok) {
+      setLiveHostError(result?.error || "No se pudo iniciar el host local.");
+      if (result?.status) setLiveServerStatus(result.status);
+      return;
+    }
+    setLiveServerStatus(result.status);
+    if (result.status?.port) setLiveHostPort(String(result.status.port));
+  }
+
+  async function stopLiveHost() {
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet) return;
+    const result = await liveSheet.stopServer();
+    if (result?.status) setLiveServerStatus(result.status);
+  }
+
+  async function kickLivePlayer(playerId) {
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet) return;
+    await liveSheet.kickPlayer(playerId);
+  }
+
+  function screenToBoardPoint(clientX, clientY, view = boardViewRef.current) {
+    return {
+      x: (clientX - view.x) / view.scale,
+      y: (clientY - view.y) / view.scale
+    };
+  }
+
+  function setBoardZoom(nextScale, origin = null) {
+    const view = boardViewRef.current;
+    const scale = clamp(nextScale, BOARD_MIN_ZOOM, BOARD_MAX_ZOOM);
+    const zoomOrigin = origin || {
+      x: (window.innerWidth || 1200) / 2,
+      y: (window.innerHeight || 800) / 2
+    };
+    const boardPoint = screenToBoardPoint(zoomOrigin.x, zoomOrigin.y, view);
+    setBoardView({
+      x: zoomOrigin.x - boardPoint.x * scale,
+      y: zoomOrigin.y - boardPoint.y * scale,
+      scale
+    });
+  }
+
+  function zoomBoardBy(delta, origin = null) {
+    const view = boardViewRef.current;
+    setBoardZoom(view.scale + delta, origin);
+  }
+
+  function resetBoardView() {
+    setBoardView({ x: 0, y: 0, scale: 1 });
+  }
+
   function openMonsterPicker(spawnPoint = null) {
     setNoteSpawnPoint(spawnPoint);
     setIsPickerOpen(true);
@@ -2314,15 +2876,15 @@ function DmScreenApp() {
     if (!selectedMonster && bestiary[0]) setSelectedMonster(bestiary[0]);
   }
 
-  function openResourcePicker(kind, spawnPoint = null) {
+  function openResourcePicker(kind, spawnPoint = null, { search = "", selectedEntry = null } = {}) {
     setNoteSpawnPoint(spawnPoint);
     setResourcePickerKind(kind);
-    setResourceSearchQuery("");
+    setResourceSearchQuery(search);
     setResourceSortField("name");
     setResourceSortDirection("asc");
     setContextMenu(null);
-    if (kind === "spell" && !selectedSpell && spells[0]) setSelectedSpell(spells[0]);
-    if (kind === "item" && !selectedItem && ITEM_LIBRARY[0]) setSelectedItem(ITEM_LIBRARY[0]);
+    if (kind === "spell") setSelectedSpell(selectedEntry || selectedSpell || spells[0] || null);
+    if (kind === "item") setSelectedItem(selectedEntry || selectedItem || ITEM_LIBRARY[0] || null);
   }
 
   function selectPickerMonster(monster) {
@@ -2337,15 +2899,43 @@ function DmScreenApp() {
     setNoteSpawnPoint(null);
   }
 
-  function addResourceNote(kind, entry) {
-    addBoardNote({ kind, entry });
+  function addResourceNote(kind, entry, positionOverride = null) {
+    addBoardNote({ kind, entry }, positionOverride);
     setResourcePickerKind(null);
     setNoteSpawnPoint(null);
   }
 
+  function addCharacterResourceNote(kind, label, sourceNote, event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const spawnPoint = clampBoardPoint({
+      x: (sourceNote?.x || 96) + 36,
+      y: (sourceNote?.y || 96) + 36
+    }, NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
+    const entry = findResourceEntry(kind, label);
+    if (entry) {
+      addResourceNote(kind, entry, spawnPoint);
+      return;
+    }
+    const entries = kind === "spell" ? spells : ITEM_LIBRARY;
+    const query = String(label || "").trim();
+    const normalizedQuery = normalizeSearch(query);
+    const selectedEntry = entries
+      .filter((item) => !normalizedQuery || libraryEntrySearchText(item, kind).includes(normalizedQuery))
+      .sort((left, right) => {
+        if (normalizedQuery) {
+          const leftScore = searchMatchScore(left.name, normalizedQuery, libraryEntrySearchText(left, kind));
+          const rightScore = searchMatchScore(right.name, normalizedQuery, libraryEntrySearchText(right, kind));
+          if (rightScore !== leftScore) return rightScore - leftScore;
+        }
+        return compareLibraryEntries(left, right, kind, "name");
+      })[0] || null;
+    openResourcePicker(kind, spawnPoint, { search: query, selectedEntry });
+  }
+
   function openCharacterCodeModal() {
     if (!contextMenu) return;
-    setCharacterCodeSpawnPoint({ x: contextMenu.x, y: contextMenu.y });
+    setCharacterCodeSpawnPoint({ x: contextMenu.boardX, y: contextMenu.boardY });
     setCharacterCodeValue("");
     setCharacterCodeError("");
     setIsCharacterCodeModalOpen(true);
@@ -2385,12 +2975,11 @@ function DmScreenApp() {
   function addBoardNote(payload, positionOverride = null) {
     zRef.current += 1;
     const offset = monsterNotes.length % 6;
-    const viewportWidth = window.innerWidth || 1200;
-    const viewportHeight = window.innerHeight || 800;
-    const width = clamp(payload.width || NOTE_DEFAULT_WIDTH, NOTE_MIN_WIDTH, viewportWidth - 24);
-    const height = clamp(payload.height || NOTE_DEFAULT_HEIGHT, NOTE_MIN_HEIGHT, viewportHeight - 96);
+    const width = clamp(payload.width || NOTE_DEFAULT_WIDTH, NOTE_MIN_WIDTH, BOARD_WIDTH - BOARD_PADDING * 2);
+    const height = clamp(payload.height || NOTE_DEFAULT_HEIGHT, NOTE_MIN_HEIGHT, BOARD_HEIGHT - BOARD_PADDING * 2);
     const spawnX = positionOverride?.x ?? noteSpawnPoint?.x ?? (96 + offset * 34);
     const spawnY = positionOverride?.y ?? noteSpawnPoint?.y ?? (96 + offset * 28);
+    const spawnPoint = clampBoardPoint({ x: spawnX, y: spawnY }, width, height);
     const monster = payload.monster || null;
     const character = payload.character || null;
     const hpAverage = monster?.hp?.average ?? "";
@@ -2403,8 +2992,8 @@ function DmScreenApp() {
         monster,
         character,
         entry: payload.entry || null,
-        x: clamp(spawnX, 12, viewportWidth - width - 12),
-        y: clamp(spawnY, 72, viewportHeight - height - 12),
+        x: spawnPoint.x,
+        y: spawnPoint.y,
         width,
         height,
         z: zRef.current,
@@ -2517,13 +3106,16 @@ function DmScreenApp() {
   }
 
   function openBoardContextMenu(event) {
-    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true']")) return;
+    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-board-control='true']")) return;
     event.preventDefault();
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
+    const boardPoint = clampBoardPoint(screenToBoardPoint(event.clientX, event.clientY), NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
     setContextMenu({
       x: clamp(event.clientX, 8, viewportWidth - 180),
-      y: clamp(event.clientY, 8, viewportHeight - 176)
+      y: clamp(event.clientY, 8, viewportHeight - 176),
+      boardX: boardPoint.x,
+      boardY: boardPoint.y
     });
   }
 
@@ -2535,12 +3127,43 @@ function DmScreenApp() {
 
   function openContextMonsterPicker() {
     if (!contextMenu) return;
-    openMonsterPicker({ x: contextMenu.x, y: contextMenu.y });
+    openMonsterPicker({ x: contextMenu.boardX, y: contextMenu.boardY });
   }
 
   function openContextResourcePicker(kind) {
     if (!contextMenu) return;
-    openResourcePicker(kind, { x: contextMenu.x, y: contextMenu.y });
+    openResourcePicker(kind, { x: contextMenu.boardX, y: contextMenu.boardY });
+  }
+
+  function shouldIgnoreBoardPointer(event) {
+    return Boolean(event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-board-control='true']"));
+  }
+
+  function startBoardPan(event) {
+    if (event.button != null && event.button !== 0) return;
+    if (dragRef.current || resizeRef.current || shouldIgnoreBoardPointer(event)) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const view = boardViewRef.current;
+    panRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: view.x,
+      startY: view.y
+    };
+  }
+
+  function handleBoardPointerDown(event) {
+    closeBoardContextMenu(event);
+    startBoardPan(event);
+  }
+
+  function handleBoardWheel(event) {
+    if (shouldIgnoreBoardPointer(event)) return;
+    event.preventDefault();
+    const direction = event.deltaY > 0 ? -1 : 1;
+    zoomBoardBy(direction * BOARD_ZOOM_STEP, { x: event.clientX, y: event.clientY });
   }
 
   function startDrag(event, noteId) {
@@ -2548,8 +3171,8 @@ function DmScreenApp() {
     if (resizeRef.current) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    const noteElement = event.currentTarget.closest("article");
-    const rect = noteElement.getBoundingClientRect();
+    const note = monsterNotes.find((entry) => entry.id === noteId);
+    if (!note) return;
     focusNote(noteId);
     dragRef.current = {
       noteId,
@@ -2557,10 +3180,11 @@ function DmScreenApp() {
       startClientX: event.clientX,
       startClientY: event.clientY,
       moved: false,
-      offsetX: event.clientX - rect.left,
-      offsetY: event.clientY - rect.top,
-      width: rect.width,
-      height: rect.height
+      startNoteX: note.x,
+      startNoteY: note.y,
+      width: note.minimized ? clamp(note.width, 220, 340) : note.width,
+      height: note.minimized ? 44 : note.height,
+      scale: boardViewRef.current.scale
     };
   }
 
@@ -2581,24 +3205,23 @@ function DmScreenApp() {
       startWidth: note.width,
       startHeight: note.height,
       x: note.x,
-      y: note.y
+      y: note.y,
+      scale: boardViewRef.current.scale
     };
   }
 
   function updateDrag(event) {
     const resize = resizeRef.current;
     if (resize && resize.pointerId === event.pointerId) {
-      const viewportWidth = window.innerWidth || 1200;
-      const viewportHeight = window.innerHeight || 800;
-      const maxWidth = Math.max(340, viewportWidth - resize.x - 12);
-      const maxHeight = Math.max(280, viewportHeight - resize.y - 12);
-      const deltaX = event.clientX - resize.startX;
-      const deltaY = event.clientY - resize.startY;
+      const maxWidth = Math.max(NOTE_MIN_WIDTH, BOARD_WIDTH - resize.x - BOARD_PADDING);
+      const maxHeight = Math.max(NOTE_MIN_HEIGHT, BOARD_HEIGHT - resize.y - BOARD_PADDING);
+      const deltaX = (event.clientX - resize.startX) / resize.scale;
+      const deltaY = (event.clientY - resize.startY) / resize.scale;
       const width = resize.edge === "right" || resize.edge === "corner"
-        ? clamp(resize.startWidth + deltaX, 340, maxWidth)
+        ? clamp(resize.startWidth + deltaX, NOTE_MIN_WIDTH, maxWidth)
         : resize.startWidth;
       const height = resize.edge === "bottom" || resize.edge === "corner"
-        ? clamp(resize.startHeight + deltaY, 280, maxHeight)
+        ? clamp(resize.startHeight + deltaY, NOTE_MIN_HEIGHT, maxHeight)
         : resize.startHeight;
       setMonsterNotes((notes) => notes.map((note) => (
         note.id === resize.noteId ? { ...note, width, height } : note
@@ -2607,12 +3230,25 @@ function DmScreenApp() {
     }
 
     const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.pointerId !== event.pointerId) {
+      const pan = panRef.current;
+      if (!pan || pan.pointerId !== event.pointerId) return;
+      setBoardView((view) => ({
+        ...view,
+        x: pan.startX + event.clientX - pan.startClientX,
+        y: pan.startY + event.clientY - pan.startClientY
+      }));
+      return;
+    }
     if (Math.abs(event.clientX - drag.startClientX) > 4 || Math.abs(event.clientY - drag.startClientY) > 4) drag.moved = true;
-    const viewportWidth = window.innerWidth || 1200;
-    const viewportHeight = window.innerHeight || 800;
-    const nextX = clamp(event.clientX - drag.offsetX, 12, Math.max(12, viewportWidth - drag.width - 12));
-    const nextY = clamp(event.clientY - drag.offsetY, 72, Math.max(72, viewportHeight - drag.height - 12));
+    const deltaX = (event.clientX - drag.startClientX) / drag.scale;
+    const deltaY = (event.clientY - drag.startClientY) / drag.scale;
+    const nextPoint = clampBoardPoint({
+      x: drag.startNoteX + deltaX,
+      y: drag.startNoteY + deltaY
+    }, drag.width, drag.height);
+    const nextX = nextPoint.x;
+    const nextY = nextPoint.y;
     setMonsterNotes((notes) => notes.map((note) => note.id === drag.noteId ? { ...note, x: nextX, y: nextY } : note));
   }
 
@@ -2628,16 +3264,18 @@ function DmScreenApp() {
       dragRef.current = null;
     }
     if (resizeRef.current?.pointerId === event.pointerId) resizeRef.current = null;
+    if (panRef.current?.pointerId === event.pointerId) panRef.current = null;
   }
 
   return (
     <main
       className="relative min-h-screen overflow-hidden bg-neutral-950 text-neutral-200"
       onContextMenu={openBoardContextMenu}
-      onPointerDown={closeBoardContextMenu}
+      onPointerDown={handleBoardPointerDown}
       onPointerMove={updateDrag}
       onPointerUp={stopDrag}
       onPointerCancel={stopDrag}
+      onWheel={handleBoardWheel}
     >
       <div className="fixed left-4 top-4 z-40 flex gap-2">
         <button
@@ -2649,12 +3287,115 @@ function DmScreenApp() {
           {isReturning ? "Volviendo..." : "Volver al character sheet"}
         </button>
       </div>
+      <LivePlayersPanel
+        status={liveServerStatus}
+        port={liveHostPort}
+        error={liveHostError}
+        players={livePlayers}
+        onPortChange={setLiveHostPort}
+        onStart={startLiveHost}
+        onStop={stopLiveHost}
+        onKick={kickLivePlayer}
+      />
+      <div
+        className="fixed bottom-4 left-4 z-40 flex items-center gap-1 border border-neutral-700 bg-neutral-900/95 p-1 text-sm text-neutral-100 shadow-2xl"
+        data-board-control="true"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <button
+          className="h-8 w-8 border border-neutral-700 bg-neutral-950 font-bold hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          type="button"
+          aria-label="Zoom out"
+          onClick={() => zoomBoardBy(-BOARD_ZOOM_STEP)}
+        >
+          -
+        </button>
+        <button
+          className="h-8 min-w-16 border border-neutral-700 bg-neutral-950 px-2 text-xs font-bold hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          type="button"
+          aria-label="Reset board view"
+          onClick={resetBoardView}
+        >
+          {Math.round(boardView.scale * 100)}%
+        </button>
+        <button
+          className="h-8 w-8 border border-neutral-700 bg-neutral-950 font-bold hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          type="button"
+          aria-label="Zoom in"
+          onClick={() => zoomBoardBy(BOARD_ZOOM_STEP)}
+        >
+          +
+        </button>
+      </div>
 
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(245,158,11,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.10)_1px,transparent_1px)] bg-[size:32px_32px]" />
-      <div className="absolute inset-0 bg-neutral-950/60" />
+      <div
+        className="absolute left-0 top-0"
+        style={{
+          width: BOARD_WIDTH,
+          height: BOARD_HEIGHT,
+          transform: `translate3d(${boardView.x}px, ${boardView.y}px, 0) scale(${boardView.scale})`,
+          transformOrigin: "0 0"
+        }}
+      >
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(245,158,11,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.10)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 bg-neutral-950/60" />
+
+        {monsterNotes.map((note) => (
+          note.kind === "monster" ? (
+            <MonsterNote
+              key={note.id}
+              note={note}
+              onClose={closeNote}
+              onFocus={() => focusNote(note.id)}
+              onDragStart={startDrag}
+              onRoll={recordMonsterRoll}
+              onToggleDice={toggleMonsterDicePanel}
+              onResizeStart={startResize}
+              onMinimize={minimizeNote}
+              onRestore={restoreNote}
+              onDuplicate={duplicateNote}
+              onHpChange={updateNoteHp}
+              onRollHp={rollNoteHp}
+            />
+          ) : note.kind === "character" ? (
+            <CharacterNote
+              key={note.id}
+              note={note}
+              onClose={closeNote}
+              onFocus={() => focusNote(note.id)}
+              onDragStart={startDrag}
+              onRoll={recordMonsterRoll}
+              onToggleDice={toggleMonsterDicePanel}
+              onResizeStart={startResize}
+              onMinimize={minimizeNote}
+              onRestore={restoreNote}
+              onDuplicate={duplicateNote}
+              onHpChange={updateNoteHp}
+              onOpenResource={addCharacterResourceNote}
+            />
+          ) : (
+            <ResourceNote
+              key={note.id}
+              note={note}
+              onClose={closeNote}
+              onFocus={() => focusNote(note.id)}
+              onDragStart={startDrag}
+              onRoll={recordMonsterRoll}
+              onToggleDice={toggleMonsterDicePanel}
+              onResizeStart={startResize}
+              onMinimize={minimizeNote}
+              onRestore={restoreNote}
+              onDuplicate={duplicateNote}
+            />
+          )
+        ))}
+      </div>
 
       {!monsterNotes.length ? (
-        <section className="absolute left-1/2 top-1/2 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 border border-neutral-700 bg-neutral-900/95 p-5 shadow-2xl">
+        <section
+          className="absolute left-1/2 top-1/2 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 border border-neutral-700 bg-neutral-900/95 p-5 shadow-2xl"
+          data-board-control="true"
+        >
           <div className="border-b-2 border-amber-500 pb-2">
             <h1 className="font-serif text-2xl font-bold uppercase tracking-wide text-amber-500">DM Screen</h1>
             <p className="mt-1 text-sm italic text-neutral-400">Encounter board</p>
@@ -2675,55 +3416,6 @@ function DmScreenApp() {
           </div>
         </section>
       ) : null}
-
-      {monsterNotes.map((note) => (
-        note.kind === "monster" ? (
-          <MonsterNote
-            key={note.id}
-            note={note}
-            onClose={closeNote}
-            onFocus={() => focusNote(note.id)}
-            onDragStart={startDrag}
-            onRoll={recordMonsterRoll}
-            onToggleDice={toggleMonsterDicePanel}
-            onResizeStart={startResize}
-            onMinimize={minimizeNote}
-            onRestore={restoreNote}
-            onDuplicate={duplicateNote}
-            onHpChange={updateNoteHp}
-            onRollHp={rollNoteHp}
-          />
-        ) : note.kind === "character" ? (
-          <CharacterNote
-            key={note.id}
-            note={note}
-            onClose={closeNote}
-            onFocus={() => focusNote(note.id)}
-            onDragStart={startDrag}
-            onRoll={recordMonsterRoll}
-            onToggleDice={toggleMonsterDicePanel}
-            onResizeStart={startResize}
-            onMinimize={minimizeNote}
-            onRestore={restoreNote}
-            onDuplicate={duplicateNote}
-            onHpChange={updateNoteHp}
-          />
-        ) : (
-          <ResourceNote
-            key={note.id}
-            note={note}
-            onClose={closeNote}
-            onFocus={() => focusNote(note.id)}
-            onDragStart={startDrag}
-            onRoll={recordMonsterRoll}
-            onToggleDice={toggleMonsterDicePanel}
-            onResizeStart={startResize}
-            onMinimize={minimizeNote}
-            onRestore={restoreNote}
-            onDuplicate={duplicateNote}
-          />
-        )
-      ))}
 
       {contextMenu ? (
         <div
