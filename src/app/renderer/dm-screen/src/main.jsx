@@ -668,6 +668,36 @@ function libraryRef(entry) {
   };
 }
 
+function noteDisplayName(note) {
+  const titleOverride = String(note?.titleOverride || "").trim();
+  if (titleOverride) return titleOverride;
+  if (note?.kind === "monster") return note?.monster?.name || "Monster";
+  if (note?.kind === "character") return note?.character?.name || "Character";
+  return note?.entry?.name || (note?.kind === "spell" ? "Spell" : note?.kind === "item" ? "Item" : "Note");
+}
+
+function resolveRootNoteId(noteId, notes) {
+  const byId = new Map((notes || []).map((note) => [note.id, note]));
+  let currentId = noteId;
+  let guard = 0;
+  while (currentId && guard < 20) {
+    const current = byId.get(currentId);
+    if (!current?.parentNoteId) return current?.id || currentId;
+    currentId = current.parentNoteId;
+    guard += 1;
+  }
+  return currentId || noteId;
+}
+
+function noteTabIds(note) {
+  return [note?.id, ...(Array.isArray(note?.tabNoteIds) ? note.tabNoteIds : [])].filter(Boolean);
+}
+
+function groupTabNotes(rootNote, notes) {
+  const ids = new Set(noteTabIds(rootNote));
+  return (notes || []).filter((note) => ids.has(note.id));
+}
+
 function clampBoardPoint(point, width = 0, height = 0) {
   return {
     x: clamp(point.x, BOARD_PADDING, BOARD_WIDTH - width - BOARD_PADDING),
@@ -682,6 +712,10 @@ function noteStorageSnapshot(note) {
     monsterRef: libraryRef(note.monster),
     entryRef: libraryRef(note.entry),
     character: note.character || null,
+    titleOverride: note.titleOverride || "",
+    parentNoteId: note.parentNoteId || null,
+    tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.slice() : [],
+    activeTabId: note.activeTabId || null,
     x: note.x,
     y: note.y,
     width: note.width,
@@ -717,6 +751,10 @@ function restoreStoredNote(note) {
     monster,
     character,
     entry,
+    titleOverride: typeof note.titleOverride === "string" ? note.titleOverride : "",
+    parentNoteId: note.parentNoteId ? String(note.parentNoteId) : null,
+    tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.map((entry) => String(entry || "")).filter(Boolean) : [],
+    activeTabId: note.activeTabId ? String(note.activeTabId) : null,
     x: point.x,
     y: point.y,
     width,
@@ -1572,14 +1610,19 @@ function MonsterTextSection({ title, items, onRoll, interactive = false }) {
   );
 }
 
-function MonsterStatBlockHeader({ monster, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null }) {
+function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null }) {
   return (
     <header
       className={`flex items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2 ${onDragStart ? "cursor-move" : ""}`}
       onPointerDown={onDragStart}
     >
       <div>
-        <h2 className="font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500">{monster.name}</h2>
+        <EditableNoteTitle
+          title={title || monster.name}
+          className="font-serif text-left text-xl font-bold uppercase leading-none tracking-wide text-amber-500"
+          inputClassName="w-full border border-amber-500 bg-neutral-950 px-2 py-1 font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500 focus:outline-none"
+          onRename={onRename}
+        />
         <p className="mt-2 text-sm italic text-neutral-300">{formatSize(monster)} {formatType(monster)}, {formatAlignment(monster)}</p>
       </div>
       <div className="flex items-start gap-3">
@@ -1732,8 +1775,114 @@ function ResizeHandle({ edge, className, onResizeStart }) {
   );
 }
 
+function EditableNoteTitle({ title, className = "", inputClassName = "", onRename }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+
+  useEffect(() => {
+    if (!editing) setDraft(title);
+  }, [editing, title]);
+
+  function commitRename() {
+    setEditing(false);
+    onRename?.(draft);
+  }
+
+  if (editing) {
+    return (
+      <input
+        className={inputClassName}
+        type="text"
+        value={draft}
+        autoFocus
+        onPointerDown={(event) => event.stopPropagation()}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commitRename}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            commitRename();
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setDraft(title);
+            setEditing(false);
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <button
+      className={className}
+      type="button"
+      title="Editar titulo"
+      onPointerDown={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        setEditing(true);
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        setEditing(true);
+      }}
+    >
+      {title}
+    </button>
+  );
+}
+
+function NoteTabBar({ notes, activeTabId, onSelectTab, onCloseTab, onStartTabDrag }) {
+  if (!Array.isArray(notes) || notes.length < 2) return null;
+  return (
+    <div className="flex gap-1 overflow-x-auto border-b border-neutral-800 bg-neutral-950/90 px-2 py-1.5">
+      {notes.map((note) => {
+        const isActive = note.id === activeTabId;
+        return (
+          <div
+            key={note.id}
+            className={`flex max-w-44 shrink-0 items-center truncate border px-2 py-1 text-xs font-semibold transition ${
+              isActive
+                ? "border-amber-500 bg-amber-500/10 text-amber-200"
+                : "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+            }`}
+          >
+            <button
+              className="max-w-28 truncate align-middle"
+              type="button"
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                onStartTabDrag?.(event, note.id);
+              }}
+              onClick={() => onSelectTab(note.id)}
+              title={noteDisplayName(note)}
+            >
+              {noteDisplayName(note)}
+            </button>
+            <button
+              className="ml-2 align-middle text-[10px] text-neutral-500 hover:text-red-300"
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => onCloseTab?.(note.id)}
+              title={`Cerrar ${noteDisplayName(note)}`}
+            >
+              x
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function MonsterNote({
   note,
+  shellNote = null,
+  actionNoteId = null,
+  tabBar = null,
+  isDropTarget = false,
+  onRename,
   onClose,
   onDragStart,
   onFocus,
@@ -1746,34 +1895,38 @@ function MonsterNote({
   onHpChange,
   onRollHp
 }) {
+  const frameNote = shellNote || note;
+  const frameNoteId = frameNote.id;
+  const noteActionId = actionNoteId || note.id;
+
   function addRoll(label, roll) {
-    onRoll(note.id, label, roll);
+    onRoll(noteActionId, label, roll);
   }
 
-  if (note.minimized) {
+  if (frameNote.minimized) {
     return (
       <article
-        className="absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border border-amber-500 bg-neutral-900 px-3 text-neutral-300 shadow-2xl"
+        className={`absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border bg-neutral-900 px-3 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-amber-500"}`}
         data-dm-note="true"
-        style={{ left: note.x, top: note.y, zIndex: note.z, width: clamp(note.width, 220, 340) }}
+        style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: clamp(frameNote.width, 220, 340) }}
         onPointerDown={onFocus}
       >
         <button
           className="min-w-0 flex-1 text-left"
           type="button"
-          onPointerDown={(event) => onDragStart(event, note.id)}
-          onClick={() => onRestore(note.id)}
-          title={`Restaurar ${note.monster.name}`}
+          onPointerDown={(event) => onDragStart(event, frameNoteId)}
+          onClick={() => onRestore(frameNoteId)}
+          title={`Restaurar ${noteDisplayName(note)}`}
         >
-          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{note.monster.name}</span>
+          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{noteDisplayName(note)}</span>
           <span className="block truncate text-[11px] text-neutral-500">CR {formatCr(note.monster)} | {monsterEdition(note.monster)}</span>
         </button>
         <button
           className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
           type="button"
-          aria-label={`Cerrar ${note.monster.name}`}
+          aria-label={`Cerrar ${noteDisplayName(note)}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onClose(note.id)}
+          onClick={() => onClose(frameNoteId)}
         >
           X
         </button>
@@ -1783,35 +1936,43 @@ function MonsterNote({
 
   return (
     <article
-      className="absolute flex overflow-hidden border border-neutral-950 bg-neutral-900 text-neutral-300 shadow-2xl"
+      className={`absolute flex overflow-hidden border bg-neutral-900 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-neutral-950"}`}
       data-dm-note="true"
-      style={{ left: note.x, top: note.y, zIndex: note.z, width: note.width, height: note.height, flexDirection: "column" }}
+      style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: frameNote.width, height: frameNote.height, flexDirection: "column" }}
       onPointerDown={onFocus}
     >
       <MonsterStatBlockHeader
         monster={note.monster}
-        onDragStart={(event) => onDragStart(event, note.id)}
-        onMinimize={() => onMinimize(note.id)}
-        onDuplicate={() => onDuplicate(note.id)}
-        onClose={() => onClose(note.id)}
+        title={noteDisplayName(note)}
+        onRename={(value) => onRename?.(noteActionId, value)}
+        onDragStart={(event) => onDragStart(event, frameNoteId)}
+        onMinimize={() => onMinimize(frameNoteId)}
+        onDuplicate={() => onDuplicate(noteActionId)}
+        onClose={() => onClose(frameNoteId)}
       />
+      {tabBar}
       <MonsterStatBlockBody
         monster={note.monster}
         onRoll={addRoll}
         className="min-h-0 flex-1 overflow-auto"
         hpState={{ current: note.hpCurrent, max: note.hpMax }}
-        onHpChange={(field, value) => onHpChange(note.id, field, value)}
-        onRollHp={() => onRollHp(note.id)}
+        onHpChange={(field, value) => onHpChange(noteActionId, field, value)}
+        onRollHp={() => onRollHp(noteActionId)}
       />
-      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, note.id, edge)} />
-      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
-      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
+      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
 
 function ResourceNote({
   note,
+  shellNote = null,
+  actionNoteId = null,
+  tabBar = null,
+  isDropTarget = false,
+  onRename,
   onClose,
   onDragStart,
   onFocus,
@@ -1854,35 +2015,38 @@ function ResourceNote({
   const itemMasteryLine = isSpell ? "" : itemMasteryMetas(entry).map((masteryMeta) => masteryMeta?.name).filter(Boolean).join(", ");
   const itemValueWeightLine = isSpell ? "" : [formatItemCurrency(entry?.value), formatItemWeight(entry?.weight)].filter(Boolean).join(", ");
   const itemFooter = isSpell ? "" : itemRulesFooter(entry);
+  const frameNote = shellNote || note;
+  const frameNoteId = frameNote.id;
+  const noteActionId = actionNoteId || note.id;
 
   function addRoll(label, roll) {
-    onRoll(note.id, label, roll);
+    onRoll(noteActionId, label, roll);
   }
 
-  if (note.minimized) {
+  if (frameNote.minimized) {
     return (
       <article
-        className="absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border border-amber-500 bg-neutral-900 px-3 text-neutral-300 shadow-2xl"
+        className={`absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border bg-neutral-900 px-3 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-amber-500"}`}
         data-dm-note="true"
-        style={{ left: note.x, top: note.y, zIndex: note.z, width: clamp(note.width, 220, 340) }}
+        style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: clamp(frameNote.width, 220, 340) }}
         onPointerDown={onFocus}
       >
         <button
           className="min-w-0 flex-1 text-left"
           type="button"
-          onPointerDown={(event) => onDragStart(event, note.id)}
-          onClick={() => onRestore(note.id)}
-          title={`Restaurar ${entry.name}`}
+          onPointerDown={(event) => onDragStart(event, frameNoteId)}
+          onClick={() => onRestore(frameNoteId)}
+          title={`Restaurar ${noteDisplayName(note)}`}
         >
-          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{entry.name}</span>
+          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{noteDisplayName(note)}</span>
           <span className="block truncate text-[11px] text-neutral-500">{isSpell ? spellSubtitle : itemCategoryLine || itemPrimaryLabel}</span>
         </button>
         <button
           className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
           type="button"
-          aria-label={`Cerrar ${entry.name}`}
+          aria-label={`Cerrar ${noteDisplayName(note)}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onClose(note.id)}
+          onClick={() => onClose(frameNoteId)}
         >
           X
         </button>
@@ -1892,17 +2056,22 @@ function ResourceNote({
 
   return (
     <article
-      className="absolute flex overflow-hidden border border-neutral-950 bg-neutral-900 text-neutral-300 shadow-2xl"
+      className={`absolute flex overflow-hidden border bg-neutral-900 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-neutral-950"}`}
       data-dm-note="true"
-      style={{ left: note.x, top: note.y, zIndex: note.z, width: note.width, height: note.height, flexDirection: "column" }}
+      style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: frameNote.width, height: frameNote.height, flexDirection: "column" }}
       onPointerDown={onFocus}
     >
       <header
         className="flex cursor-move items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2"
-        onPointerDown={(event) => onDragStart(event, note.id)}
+        onPointerDown={(event) => onDragStart(event, frameNoteId)}
       >
         <div>
-          <h2 className="font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500">{entry.name}</h2>
+          <EditableNoteTitle
+            title={noteDisplayName(note)}
+            className="font-serif text-left text-xl font-bold uppercase leading-none tracking-wide text-amber-500"
+            inputClassName="w-full border border-amber-500 bg-neutral-950 px-2 py-1 font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500 focus:outline-none"
+            onRename={(value) => onRename?.(noteActionId, value)}
+          />
           <p className="mt-2 text-sm italic text-neutral-300">{isSpell ? spellSubtitle : itemPrimaryLabel}</p>
           {!isSpell && itemCategoryLine ? <p className="mt-1 text-sm text-neutral-500">{itemCategoryLine}</p> : null}
         </div>
@@ -1912,12 +2081,13 @@ function ResourceNote({
             {!isSpell && itemPageText ? <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">{itemPageText}</div> : null}
           </div>
           <div className="flex gap-1">
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(note.id)}>-</button>
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(note.id)}>⧉</button>
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onClose(note.id)}>X</button>
+            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
+            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>⧉</button>
+            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onClose(frameNoteId)}>X</button>
           </div>
         </div>
       </header>
+      {tabBar}
       <div className="min-h-0 flex-1 overflow-auto px-3 py-2 text-sm">
         {isSpell ? (
           <>
@@ -2002,9 +2172,9 @@ function ResourceNote({
           </>
         )}
       </div>
-      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, note.id, edge)} />
-      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
-      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
+      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -2220,6 +2390,11 @@ function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange }
 
 function CharacterNote({
   note,
+  shellNote = null,
+  actionNoteId = null,
+  tabBar = null,
+  isDropTarget = false,
+  onRename,
   onClose,
   onDragStart,
   onFocus,
@@ -2232,6 +2407,9 @@ function CharacterNote({
   onHpChange,
   onOpenResource
 }) {
+  const frameNote = shellNote || note;
+  const frameNoteId = frameNote.id;
+  const noteActionId = actionNoteId || note.id;
   const character = note.character;
   const statBlockCharacter = characterStatBlockEntity(character);
   const subtitle = [
@@ -2247,33 +2425,33 @@ function CharacterNote({
   ].filter(Boolean).join(" | ");
 
   function addRoll(label, roll) {
-    onRoll(note.id, label, roll);
+    onRoll(noteActionId, label, roll);
   }
 
-  if (note.minimized) {
+  if (frameNote.minimized) {
     return (
       <article
-        className="absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border border-amber-500 bg-neutral-900 px-3 text-neutral-300 shadow-2xl"
+        className={`absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border bg-neutral-900 px-3 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-amber-500"}`}
         data-dm-note="true"
-        style={{ left: note.x, top: note.y, zIndex: note.z, width: clamp(note.width, 220, 340) }}
+        style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: clamp(frameNote.width, 220, 340) }}
         onPointerDown={onFocus}
       >
         <button
           className="min-w-0 flex-1 text-left"
           type="button"
-          onPointerDown={(event) => onDragStart(event, note.id)}
-          onClick={() => onRestore(note.id)}
-          title={`Restaurar ${character.name}`}
+          onPointerDown={(event) => onDragStart(event, frameNoteId)}
+          onClick={() => onRestore(frameNoteId)}
+          title={`Restaurar ${noteDisplayName(note)}`}
         >
-          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{character.name}</span>
+          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{noteDisplayName(note)}</span>
           <span className="block truncate text-[11px] text-neutral-500">{subtitle || "Character"}</span>
         </button>
         <button
           className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
           type="button"
-          aria-label={`Cerrar ${character.name}`}
+          aria-label={`Cerrar ${noteDisplayName(note)}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onClose(note.id)}
+          onClick={() => onClose(frameNoteId)}
         >
           X
         </button>
@@ -2283,18 +2461,21 @@ function CharacterNote({
 
   return (
     <article
-      className="absolute flex overflow-hidden border border-neutral-950 bg-neutral-900 text-neutral-300 shadow-2xl"
+      className={`absolute flex overflow-hidden border bg-neutral-900 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-neutral-950"}`}
       data-dm-note="true"
-      style={{ left: note.x, top: note.y, zIndex: note.z, width: note.width, height: note.height, flexDirection: "column" }}
+      style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: frameNote.width, height: frameNote.height, flexDirection: "column" }}
       onPointerDown={onFocus}
     >
       <MonsterStatBlockHeader
         monster={statBlockCharacter}
-        onDragStart={(event) => onDragStart(event, note.id)}
-        onMinimize={() => onMinimize(note.id)}
-        onDuplicate={() => onDuplicate(note.id)}
-        onClose={() => onClose(note.id)}
+        title={noteDisplayName(note)}
+        onRename={(value) => onRename?.(noteActionId, value)}
+        onDragStart={(event) => onDragStart(event, frameNoteId)}
+        onMinimize={() => onMinimize(frameNoteId)}
+        onDuplicate={() => onDuplicate(noteActionId)}
+        onClose={() => onClose(frameNoteId)}
       />
+      {tabBar}
 
       <div className="min-h-0 flex-1 overflow-auto text-sm">
         {character.player ? (
@@ -2380,9 +2561,9 @@ function CharacterNote({
         ))}
       </div>
 
-      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, note.id, edge)} />
-      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
-      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, note.id, edge)} />
+      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -2468,106 +2649,129 @@ function LivePlayerCard({ player, onKick }) {
   );
 }
 
-function LivePlayersPanel({ status, port, error, players, rolls, onPortChange, onStart, onStop, onKick }) {
+function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onToggleCollapsed, onPortChange, onStart, onStop, onKick }) {
   const running = Boolean(status?.running);
   const addresses = Array.isArray(status?.addresses) ? status.addresses : [];
   const primaryAddress = addresses[0] || "DM_IP";
   const effectivePort = status?.port || port || 8787;
 
   return (
-    <aside className="fixed right-4 top-4 z-40 flex max-h-[calc(100vh-32px)] w-[min(420px,calc(100vw-32px))] flex-col border border-neutral-700 bg-neutral-900/95 text-neutral-200 shadow-2xl">
+    <aside
+      className={`fixed right-4 top-4 z-40 flex flex-col border border-neutral-700 bg-neutral-900/95 text-neutral-200 shadow-2xl ${collapsed ? "w-[min(280px,calc(100vw-32px))]" : "max-h-[calc(100vh-32px)] w-[min(420px,calc(100vw-32px))]"}`}
+      data-board-control="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <header className="border-b-2 border-amber-500 p-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Live Players</h2>
-            <p className="mt-1 text-xs text-neutral-500">Players connect to ws://{primaryAddress}:{effectivePort} from the Connect to DM panel.</p>
+            <p className="mt-1 text-xs text-neutral-500">
+              {collapsed
+                ? `${players.length} players | ws://${primaryAddress}:${effectivePort}`
+                : `Players connect to ws://${primaryAddress}:${effectivePort} from the Connect to DM panel.`}
+            </p>
           </div>
-          <span className={`shrink-0 border px-2 py-1 text-[11px] font-bold uppercase ${running ? "border-emerald-500/40 text-emerald-300" : "border-neutral-700 text-neutral-500"}`}>
-            {running ? "Hosting" : "Stopped"}
-          </span>
+          <div className="flex shrink-0 items-start gap-2">
+            <span className={`border px-2 py-1 text-[11px] font-bold uppercase ${running ? "border-emerald-500/40 text-emerald-300" : "border-neutral-700 text-neutral-500"}`}>
+              {running ? "Hosting" : "Stopped"}
+            </span>
+            <button
+              className="h-7 w-7 border border-neutral-700 bg-neutral-950 text-sm font-bold text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={onToggleCollapsed}
+              aria-label={collapsed ? "Expand live players panel" : "Collapse live players panel"}
+              title={collapsed ? "Expand" : "Collapse"}
+            >
+              {collapsed ? "+" : "-"}
+            </button>
+          </div>
         </div>
       </header>
+      {collapsed ? null : (
+        <>
+          <div className="grid gap-3 border-b border-neutral-800 p-3">
+            <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+              <label className="text-xs font-bold uppercase text-neutral-500">
+                Port
+                <NumericExpressionInput
+                  className="mt-1 h-9 w-full border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
+                  min="1"
+                  max="65535"
+                  integer
+                  value={port}
+                  disabled={running}
+                  onChange={(value) => onPortChange(formatNumericInputValue(value))}
+                />
+              </label>
+              <button
+                className="mt-5 h-9 border border-neutral-700 bg-neutral-950 px-3 text-sm font-bold text-emerald-300 hover:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                disabled={running}
+                onClick={onStart}
+              >
+                Start Host
+              </button>
+              <button
+                className="mt-5 h-9 border border-neutral-700 bg-neutral-950 px-3 text-sm font-bold text-red-300 hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                disabled={!running}
+                onClick={onStop}
+              >
+                Stop Host
+              </button>
+            </div>
 
-      <div className="grid gap-3 border-b border-neutral-800 p-3">
-        <div className="grid grid-cols-[1fr_auto_auto] gap-2">
-          <label className="text-xs font-bold uppercase text-neutral-500">
-            Port
-            <NumericExpressionInput
-              className="mt-1 h-9 w-full border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
-              min="1"
-              max="65535"
-              integer
-              value={port}
-              disabled={running}
-              onChange={(value) => onPortChange(formatNumericInputValue(value))}
-            />
-          </label>
-          <button
-            className="mt-5 h-9 border border-neutral-700 bg-neutral-950 px-3 text-sm font-bold text-emerald-300 hover:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-            type="button"
-            disabled={running}
-            onClick={onStart}
-          >
-            Start Host
-          </button>
-          <button
-            className="mt-5 h-9 border border-neutral-700 bg-neutral-950 px-3 text-sm font-bold text-red-300 hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-            type="button"
-            disabled={!running}
-            onClick={onStop}
-          >
-            Stop Host
-          </button>
-        </div>
-
-        {addresses.length ? (
-          <div className="grid gap-1 text-xs text-neutral-400">
-            {addresses.map((address) => (
-              <code key={address} className="border border-neutral-800 bg-neutral-950 px-2 py-1 text-amber-200">ws://{address}:{effectivePort}</code>
-            ))}
+            {addresses.length ? (
+              <div className="grid gap-1 text-xs text-neutral-400">
+                {addresses.map((address) => (
+                  <code key={address} className="border border-neutral-800 bg-neutral-950 px-2 py-1 text-amber-200">ws://{address}:{effectivePort}</code>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
+            )}
+            {error ? <p className="border border-red-500/30 bg-red-950/40 px-2 py-1 text-xs text-red-200">{error}</p> : null}
           </div>
-        ) : (
-          <p className="text-xs text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
-        )}
-        {error ? <p className="border border-red-500/30 bg-red-950/40 px-2 py-1 text-xs text-red-200">{error}</p> : null}
-      </div>
 
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        <section className="mb-3 border border-neutral-800 bg-neutral-950/70">
-          <header className="border-b border-neutral-800 px-3 py-2">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-amber-500">Recent Rolls</h3>
-          </header>
-          <div className="grid max-h-48 gap-2 overflow-auto p-2">
-            {rolls.length ? rolls.slice(0, 8).map((roll) => (
-              <article key={roll.id} className="border border-neutral-800 bg-neutral-900 px-2 py-2 text-xs">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-neutral-100">{sanitizeDisplayText(roll.playerName, "Player")}</p>
-                    <p className="truncate text-neutral-400">{sanitizeDisplayText(roll.title, "Tirada")}</p>
-                  </div>
-                  <span className="shrink-0 text-base font-bold text-sky-300">{sanitizeDisplayText(roll.result, "--")}</span>
-                </div>
-                {roll.detail ? <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] leading-snug text-neutral-500">{sanitizeDisplayText(roll.detail)}</p> : null}
-                <p className="mt-1 text-[10px] uppercase tracking-wide text-neutral-600">{formatLiveTimestamp(roll.receivedAt || roll.timestamp)}</p>
-              </article>
-            )) : (
-              <p className="px-2 py-3 text-center text-xs text-neutral-500">No rolls received yet.</p>
+          <div className="min-h-0 flex-1 overflow-auto p-3">
+            <section className="mb-3 border border-neutral-800 bg-neutral-950/70">
+              <header className="border-b border-neutral-800 px-3 py-2">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-amber-500">Recent Rolls</h3>
+              </header>
+              <div className="grid max-h-48 gap-2 overflow-auto p-2">
+                {rolls.length ? rolls.slice(0, 8).map((roll) => (
+                  <article key={roll.id} className="border border-neutral-800 bg-neutral-900 px-2 py-2 text-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-neutral-100">{sanitizeDisplayText(roll.playerName, "Player")}</p>
+                        <p className="truncate text-neutral-400">{sanitizeDisplayText(roll.title, "Tirada")}</p>
+                      </div>
+                      <span className="shrink-0 text-base font-bold text-sky-300">{sanitizeDisplayText(roll.result, "--")}</span>
+                    </div>
+                    {roll.detail ? <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] leading-snug text-neutral-500">{sanitizeDisplayText(roll.detail)}</p> : null}
+                    <p className="mt-1 text-[10px] uppercase tracking-wide text-neutral-600">{formatLiveTimestamp(roll.receivedAt || roll.timestamp)}</p>
+                  </article>
+                )) : (
+                  <p className="px-2 py-3 text-center text-xs text-neutral-500">No rolls received yet.</p>
+                )}
+              </div>
+            </section>
+
+            {players.length ? (
+              <div className="grid gap-3">
+                {players.map((player) => (
+                  <LivePlayerCard key={player.playerId} player={player} onKick={onKick} />
+                ))}
+              </div>
+            ) : (
+              <div className="border border-dashed border-neutral-700 bg-neutral-950/60 p-4 text-center text-sm text-neutral-500">
+                No connected players yet.
+              </div>
             )}
           </div>
-        </section>
-
-        {players.length ? (
-          <div className="grid gap-3">
-            {players.map((player) => (
-              <LivePlayerCard key={player.playerId} player={player} onKick={onKick} />
-            ))}
-          </div>
-        ) : (
-          <div className="border border-dashed border-neutral-700 bg-neutral-950/60 p-4 text-center text-sm text-neutral-500">
-            No connected players yet.
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </aside>
   );
 }
@@ -2968,10 +3172,13 @@ function DmScreenApp() {
   const [liveRolls, setLiveRolls] = useState([]);
   const [liveHostPort, setLiveHostPort] = useState("8787");
   const [liveHostError, setLiveHostError] = useState("");
+  const [livePlayersCollapsed, setLivePlayersCollapsed] = useState(false);
+  const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
   const [boardView, setBoardView] = useState(persistedBoardState.view);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const deferredResourceSearchQuery = useDeferredValue(resourceSearchQuery);
   const dragRef = useRef(null);
+  const tabDragRef = useRef(null);
   const resizeRef = useRef(null);
   const panRef = useRef(null);
   const boardViewRef = useRef(boardView);
@@ -3025,6 +3232,11 @@ function DmScreenApp() {
   useEffect(() => {
     boardViewRef.current = boardView;
   }, [boardView]);
+
+  const visibleNotes = useMemo(
+    () => monsterNotes.filter((note) => !note.parentNoteId),
+    [monsterNotes]
+  );
 
   useEffect(() => {
     saveDmBoardState(monsterNotes, boardView);
@@ -3280,6 +3492,10 @@ function DmScreenApp() {
         monster,
         character,
         entry: payload.entry || null,
+        titleOverride: typeof payload.titleOverride === "string" ? payload.titleOverride : "",
+        parentNoteId: null,
+        tabNoteIds: [],
+        activeTabId: null,
         x: spawnPoint.x,
         y: spawnPoint.y,
         width,
@@ -3302,6 +3518,7 @@ function DmScreenApp() {
       monster: source.monster,
       character: source.character,
       entry: source.entry,
+      titleOverride: source.titleOverride || "",
       width: source.width,
       height: source.height,
       hpCurrent: source.hpCurrent,
@@ -3309,27 +3526,220 @@ function DmScreenApp() {
     }, { x: source.x + 28, y: source.y + 28 });
   }
 
+  function renameNote(noteId, nextTitle) {
+    const normalizedTitle = String(nextTitle || "").trim();
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? { ...note, titleOverride: normalizedTitle } : note
+    )));
+  }
+
+  function promoteTabToRoot(notes, rootId, nextRootId) {
+    const root = notes.find((note) => note.id === rootId);
+    const nextRoot = notes.find((note) => note.id === nextRootId);
+    if (!root || !nextRoot || rootId === nextRootId) return notes;
+    const remainingIds = noteTabIds(root).filter((id) => id !== rootId && id !== nextRootId);
+    const nextActiveTabId = root.activeTabId && root.activeTabId !== rootId && root.activeTabId !== nextRootId
+      ? root.activeTabId
+      : nextRootId;
+
+    return notes.map((note) => {
+      if (note.id === nextRootId) {
+        return {
+          ...note,
+          parentNoteId: null,
+          tabNoteIds: remainingIds,
+          activeTabId: nextActiveTabId,
+          x: root.x,
+          y: root.y,
+          width: root.width,
+          height: root.height,
+          z: root.z,
+          minimized: root.minimized
+        };
+      }
+      if (remainingIds.includes(note.id)) return { ...note, parentNoteId: nextRootId };
+      return note;
+    });
+  }
+
+  function closeSingleTab(noteId) {
+    setMonsterNotes((notes) => {
+      const rootId = resolveRootNoteId(noteId, notes);
+      const root = notes.find((note) => note.id === rootId);
+      if (!root) return notes;
+      const groupedIds = noteTabIds(root);
+      if (groupedIds.length <= 1) return notes.filter((note) => note.id !== rootId);
+
+      if (noteId === rootId) {
+        const promotedId = groupedIds.find((id) => id !== rootId);
+        if (!promotedId) return notes.filter((note) => note.id !== rootId);
+        const promotedNotes = promoteTabToRoot(notes, rootId, promotedId);
+        return promotedNotes.filter((note) => note.id !== rootId);
+      }
+
+      const fallbackActiveId = root.activeTabId === noteId
+        ? (groupedIds.find((id) => id !== noteId && id !== rootId) || rootId)
+        : root.activeTabId;
+
+      return notes
+        .filter((note) => note.id !== noteId)
+        .map((note) => (
+          note.id === rootId
+            ? {
+              ...note,
+              tabNoteIds: (note.tabNoteIds || []).filter((id) => id !== noteId),
+              activeTabId: fallbackActiveId
+            }
+            : note
+        ));
+    });
+  }
+
+  function detachTabFromRoot(noteId, rootId, boardPoint = null) {
+    const nextZ = zRef.current + 1;
+    zRef.current = nextZ;
+    setMonsterNotes((notes) => {
+      const root = notes.find((note) => note.id === rootId);
+      if (!root) return notes;
+      const detached = notes.find((note) => note.id === noteId);
+      if (!detached) return notes;
+      const width = detached.minimized ? clamp(detached.width, 220, 340) : detached.width;
+      const height = detached.minimized ? 44 : detached.height;
+      const point = clampBoardPoint(
+        boardPoint || { x: root.x + 32, y: root.y + 32 },
+        width || NOTE_DEFAULT_WIDTH,
+        height || NOTE_DEFAULT_HEIGHT
+      );
+
+      if (noteId === rootId) {
+        const promotedId = noteTabIds(root).find((id) => id !== rootId);
+        if (!promotedId) return notes;
+        return promoteTabToRoot(notes, rootId, promotedId).map((note) => (
+          note.id === rootId
+            ? {
+              ...note,
+              parentNoteId: null,
+              tabNoteIds: [],
+              activeTabId: null,
+              x: point.x,
+              y: point.y,
+              z: nextZ,
+              minimized: false
+            }
+            : note
+        ));
+      }
+
+      const fallbackActiveId = root.activeTabId === noteId
+        ? (noteTabIds(root).find((id) => id !== noteId && id !== rootId) || rootId)
+        : root.activeTabId;
+
+      return notes.map((note) => {
+        if (note.id === rootId) {
+          return {
+            ...note,
+            tabNoteIds: (note.tabNoteIds || []).filter((id) => id !== noteId),
+            activeTabId: fallbackActiveId
+          };
+        }
+        if (note.id === noteId) {
+          return {
+            ...note,
+            parentNoteId: null,
+            x: point.x,
+            y: point.y,
+            z: nextZ,
+            minimized: false
+          };
+        }
+        return note;
+      });
+    });
+  }
+
+  function selectNoteTab(rootNoteId, tabNoteId) {
+    focusNote(rootNoteId);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === rootNoteId ? { ...note, activeTabId: tabNoteId } : note
+    )));
+  }
+
+  function groupNoteIntoRoot(dragNoteId, targetNoteId) {
+    const nextZ = zRef.current + 1;
+    zRef.current = nextZ;
+    setMonsterNotes((notes) => {
+      const dragRootId = resolveRootNoteId(dragNoteId, notes);
+      const targetRootId = resolveRootNoteId(targetNoteId, notes);
+      if (!dragRootId || !targetRootId || dragRootId === targetRootId) return notes;
+      const dragRoot = notes.find((note) => note.id === dragRootId);
+      const targetRoot = notes.find((note) => note.id === targetRootId);
+      if (!dragRoot || dragRoot.parentNoteId || !targetRoot || targetRoot.parentNoteId) return notes;
+
+      const targetTabIds = new Set(noteTabIds(targetRoot));
+      const movedIds = noteTabIds(dragRoot).filter((id) => !targetTabIds.has(id));
+      if (!movedIds.length) return notes;
+      const nextActiveTabId = movedIds.includes(dragRoot.activeTabId) ? dragRoot.activeTabId : dragRootId;
+
+      return notes.map((note) => {
+        if (note.id === targetRootId) {
+          return {
+            ...note,
+            tabNoteIds: [...(note.tabNoteIds || []), ...movedIds],
+            activeTabId: nextActiveTabId,
+            minimized: false,
+            z: nextZ
+          };
+        }
+        if (movedIds.includes(note.id)) {
+          return {
+            ...note,
+            parentNoteId: targetRootId,
+            tabNoteIds: [],
+            activeTabId: null,
+            minimized: false
+          };
+        }
+        return note;
+      });
+    });
+  }
+
   function closeNote(noteId) {
-    setMonsterNotes((notes) => notes.filter((note) => note.id !== noteId));
+    setMonsterNotes((notes) => {
+      const rootId = resolveRootNoteId(noteId, notes);
+      if (!rootId) return notes;
+      const root = notes.find((note) => note.id === rootId);
+      if (!root) return notes;
+      const idsToRemove = new Set(noteTabIds(root));
+      return notes.filter((note) => !idsToRemove.has(note.id));
+    });
   }
 
   function focusNote(noteId) {
+    const rootId = resolveRootNoteId(noteId, monsterNotes);
+    if (!rootId) return;
     zRef.current += 1;
-    setMonsterNotes((notes) => notes.map((note) => note.id === noteId ? { ...note, z: zRef.current } : note));
+    setMonsterNotes((notes) => notes.map((note) => note.id === rootId ? { ...note, z: zRef.current } : note));
   }
 
   function minimizeNote(noteId) {
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? { ...note, minimized: true, dicePanelOpen: false } : note
-    )));
+    setMonsterNotes((notes) => {
+      const rootId = resolveRootNoteId(noteId, notes);
+      return notes.map((note) => (
+        note.id === rootId ? { ...note, minimized: true, dicePanelOpen: false } : note
+      ));
+    });
   }
 
   function restoreNote(noteId) {
     if (suppressRestoreClickRef.current === noteId) return;
     focusNote(noteId);
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? { ...note, minimized: false } : note
-    )));
+    setMonsterNotes((notes) => {
+      const rootId = resolveRootNoteId(noteId, notes);
+      return notes.map((note) => (
+        note.id === rootId ? { ...note, minimized: false } : note
+      ));
+    });
   }
 
   function updateNoteHp(noteId, field, value) {
@@ -3454,20 +3864,53 @@ function DmScreenApp() {
     zoomBoardBy(direction * BOARD_ZOOM_STEP, { x: event.clientX, y: event.clientY });
   }
 
+  function findDragDropTarget(noteId, point, notes) {
+    const rootId = resolveRootNoteId(noteId, notes);
+    return notes
+      .filter((note) => !note.parentNoteId && note.id !== rootId)
+      .sort((left, right) => (right.z || 0) - (left.z || 0))
+      .find((note) => {
+        const width = note.minimized ? clamp(note.width, 220, 340) : note.width;
+        const height = note.minimized ? 44 : note.height;
+        return point.x >= note.x && point.x <= note.x + width && point.y >= note.y && point.y <= note.y + height;
+      })?.id || null;
+  }
+
+  function startTabDrag(event, noteId) {
+    if (event.button != null && event.button !== 0) return;
+    const rootId = resolveRootNoteId(noteId, monsterNotes);
+    if (!rootId) return;
+    const note = monsterNotes.find((entry) => entry.id === noteId);
+    const root = monsterNotes.find((entry) => entry.id === rootId);
+    if (!note || !root) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    tabDragRef.current = {
+      pointerId: event.pointerId,
+      noteId,
+      rootId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      width: note.minimized ? clamp(note.width, 220, 340) : note.width,
+      height: note.minimized ? 44 : note.height
+    };
+  }
+
   function startDrag(event, noteId) {
     if (event.button != null && event.button !== 0) return;
     if (resizeRef.current) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    const note = monsterNotes.find((entry) => entry.id === noteId);
+    const rootId = resolveRootNoteId(noteId, monsterNotes);
+    const note = monsterNotes.find((entry) => entry.id === rootId);
     if (!note) return;
-    focusNote(noteId);
+    focusNote(rootId);
     dragRef.current = {
-      noteId,
+      noteId: rootId,
       pointerId: event.pointerId,
       startClientX: event.clientX,
       startClientY: event.clientY,
       moved: false,
+      dropTargetNoteId: null,
       startNoteX: note.x,
       startNoteY: note.y,
       width: note.minimized ? clamp(note.width, 220, 340) : note.width,
@@ -3481,11 +3924,12 @@ function DmScreenApp() {
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    focusNote(noteId);
-    const note = monsterNotes.find((entry) => entry.id === noteId);
+    const rootId = resolveRootNoteId(noteId, monsterNotes);
+    focusNote(rootId);
+    const note = monsterNotes.find((entry) => entry.id === rootId);
     if (!note) return;
     resizeRef.current = {
-      noteId,
+      noteId: rootId,
       edge,
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -3499,6 +3943,29 @@ function DmScreenApp() {
   }
 
   function updateDrag(event) {
+    const tabDrag = tabDragRef.current;
+    if (tabDrag?.pointerId === event.pointerId) {
+      if (Math.abs(event.clientX - tabDrag.startClientX) > 6 || Math.abs(event.clientY - tabDrag.startClientY) > 6) {
+        const boardPoint = clampBoardPoint(screenToBoardPoint(event.clientX, event.clientY), tabDrag.width, tabDrag.height);
+        detachTabFromRoot(tabDrag.noteId, tabDrag.rootId, boardPoint);
+        dragRef.current = {
+          noteId: tabDrag.noteId,
+          pointerId: event.pointerId,
+          startClientX: event.clientX,
+          startClientY: event.clientY,
+          moved: true,
+          dropTargetNoteId: null,
+          startNoteX: boardPoint.x,
+          startNoteY: boardPoint.y,
+          width: tabDrag.width,
+          height: tabDrag.height,
+          scale: boardViewRef.current.scale
+        };
+        tabDragRef.current = null;
+      }
+      return;
+    }
+
     const resize = resizeRef.current;
     if (resize && resize.pointerId === event.pointerId) {
       const maxWidth = Math.max(NOTE_MIN_WIDTH, BOARD_WIDTH - resize.x - BOARD_PADDING);
@@ -3537,11 +4004,16 @@ function DmScreenApp() {
     }, drag.width, drag.height);
     const nextX = nextPoint.x;
     const nextY = nextPoint.y;
+    const dropTargetId = findDragDropTarget(drag.noteId, { x: nextX + drag.width / 2, y: nextY + drag.height / 2 }, monsterNotes);
+    drag.dropTargetNoteId = dropTargetId;
+    setDropTargetNoteId((current) => current === dropTargetId ? current : dropTargetId);
     setMonsterNotes((notes) => notes.map((note) => note.id === drag.noteId ? { ...note, x: nextX, y: nextY } : note));
   }
 
   function stopDrag(event) {
+    if (tabDragRef.current?.pointerId === event.pointerId) tabDragRef.current = null;
     if (dragRef.current?.pointerId === event.pointerId) {
+      const completedDrag = dragRef.current;
       if (dragRef.current.moved) {
         const suppressedNoteId = dragRef.current.noteId;
         suppressRestoreClickRef.current = suppressedNoteId;
@@ -3550,6 +4022,10 @@ function DmScreenApp() {
         }, 200);
       }
       dragRef.current = null;
+      setDropTargetNoteId(null);
+      if (completedDrag.moved && completedDrag.dropTargetNoteId) {
+        groupNoteIntoRoot(completedDrag.noteId, completedDrag.dropTargetNoteId);
+      }
     }
     if (resizeRef.current?.pointerId === event.pointerId) resizeRef.current = null;
     if (panRef.current?.pointerId === event.pointerId) panRef.current = null;
@@ -3585,6 +4061,8 @@ function DmScreenApp() {
         error={liveHostError}
         players={livePlayers}
         rolls={liveRolls}
+        collapsed={livePlayersCollapsed}
+        onToggleCollapsed={() => setLivePlayersCollapsed((value) => !value)}
         onPortChange={setLiveHostPort}
         onStart={startLiveHost}
         onStop={stopLiveHost}
@@ -3633,58 +4111,57 @@ function DmScreenApp() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(245,158,11,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.10)_1px,transparent_1px)] bg-[size:32px_32px]" />
         <div className="absolute inset-0 bg-neutral-950/60" />
 
-        {monsterNotes.map((note) => (
-          note.kind === "monster" ? (
+        {visibleNotes.map((rootNote) => {
+          const tabs = groupTabNotes(rootNote, monsterNotes);
+          const activeNote = tabs.find((note) => note.id === rootNote.activeTabId) || rootNote;
+          const tabBar = tabs.length > 1 ? (
+            <NoteTabBar
+              notes={tabs}
+              activeTabId={activeNote.id}
+              onSelectTab={(tabId) => selectNoteTab(rootNote.id, tabId)}
+              onCloseTab={closeSingleTab}
+              onStartTabDrag={startTabDrag}
+            />
+          ) : null;
+          const sharedProps = {
+            key: rootNote.id,
+            note: activeNote,
+            shellNote: rootNote,
+            actionNoteId: activeNote.id,
+            tabBar,
+            isDropTarget: dropTargetNoteId === rootNote.id,
+            onRename: renameNote,
+            onClose: closeNote,
+            onFocus: () => focusNote(rootNote.id),
+            onDragStart: startDrag,
+            onRoll: recordMonsterRoll,
+            onToggleDice: toggleMonsterDicePanel,
+            onResizeStart: startResize,
+            onMinimize: minimizeNote,
+            onRestore: restoreNote,
+            onDuplicate: duplicateNote
+          };
+          return activeNote.kind === "monster" ? (
             <MonsterNote
-              key={note.id}
-              note={note}
-              onClose={closeNote}
-              onFocus={() => focusNote(note.id)}
-              onDragStart={startDrag}
-              onRoll={recordMonsterRoll}
-              onToggleDice={toggleMonsterDicePanel}
-              onResizeStart={startResize}
-              onMinimize={minimizeNote}
-              onRestore={restoreNote}
-              onDuplicate={duplicateNote}
+              {...sharedProps}
               onHpChange={updateNoteHp}
               onRollHp={rollNoteHp}
             />
-          ) : note.kind === "character" ? (
+          ) : activeNote.kind === "character" ? (
             <CharacterNote
-              key={note.id}
-              note={note}
-              onClose={closeNote}
-              onFocus={() => focusNote(note.id)}
-              onDragStart={startDrag}
-              onRoll={recordMonsterRoll}
-              onToggleDice={toggleMonsterDicePanel}
-              onResizeStart={startResize}
-              onMinimize={minimizeNote}
-              onRestore={restoreNote}
-              onDuplicate={duplicateNote}
+              {...sharedProps}
               onHpChange={updateNoteHp}
               onOpenResource={addCharacterResourceNote}
             />
           ) : (
             <ResourceNote
-              key={note.id}
-              note={note}
-              onClose={closeNote}
-              onFocus={() => focusNote(note.id)}
-              onDragStart={startDrag}
-              onRoll={recordMonsterRoll}
-              onToggleDice={toggleMonsterDicePanel}
-              onResizeStart={startResize}
-              onMinimize={minimizeNote}
-              onRestore={restoreNote}
-              onDuplicate={duplicateNote}
+              {...sharedProps}
             />
-          )
-        ))}
+          );
+        })}
       </div>
 
-      {!monsterNotes.length ? (
+      {!visibleNotes.length ? (
         <section
           className="absolute left-1/2 top-1/2 w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 border border-neutral-700 bg-neutral-900/95 p-5 shadow-2xl"
           data-board-control="true"
