@@ -100,7 +100,7 @@
     <div class="free-dice-header">
       <div>
         <div class="free-dice-title">Dados libres</div>
-        <div class="free-dice-subtitle">Arma una tirada de d2 a d100</div>
+        <div class="free-dice-subtitle">D2, d3, d4, d6, d10, d10 porcentual, d12, d20, d30, d60 y d100</div>
       </div>
       <button class="free-dice-close" id="freeDiceClose" type="button" aria-label="Cerrar">X</button>
     </div>
@@ -1402,6 +1402,12 @@
       });
     }
 
+    function cleanExtractedSpellName(value) {
+      return cleanExtractedProficiencyText(value)
+        .replace(/^(?:the|a|an)\s+/i, "")
+        .trim();
+    }
+
     function autoGrantedSpellNames() {
       const known = new Set(spells.map((spell) => normalizeName(spell.name)));
       const names = [];
@@ -1427,17 +1433,19 @@
               .replace(/\bor\b/gi, ",")
               .replace(/\band\b/gi, ",")
               .split(",")
+              .map(cleanExtractedSpellName)
+              .filter(Boolean)
               .forEach((name) => names.push(name));
           });
         sentenceList(text).forEach((sentence) => {
           const levelGate = sentence.match(/\bStarting at (\d+)(?:st|nd|rd|th) level\b/i);
           if (levelGate && getCharacterLevel() < (Number.parseInt(levelGate[1], 10) || 1)) return;
           const singleMatch = sentence.match(/\byou (?:also )?know the ([A-Za-z' -]+?) cantrip\b/i);
-          if (singleMatch) names.push(singleMatch[1]);
+          if (singleMatch) names.push(cleanExtractedSpellName(singleMatch[1]));
           const preparedMatch = sentence.match(/\byou (?:also )?(?:always have|have) the ([A-Za-z' -]+?) spell prepared\b/i);
-          if (preparedMatch) names.push(preparedMatch[1]);
+          if (preparedMatch) names.push(cleanExtractedSpellName(preparedMatch[1]));
           const castMatch = sentence.match(/\byou can cast the ([A-Za-z' -]+?) spell\b/i);
-          if (castMatch) names.push(castMatch[1]);
+          if (castMatch) names.push(cleanExtractedSpellName(castMatch[1]));
 
           const listMatch = sentence.match(/\byou know (?:one of the following cantrips of your choice:\s*)?([A-Za-z' ,/-]+?) cantrips?\b/i);
           if (listMatch && !/choice|from the .* spell list/i.test(sentence)) {
@@ -1445,6 +1453,8 @@
               .replace(/\bor\b/gi, ",")
               .replace(/\band\b/gi, ",")
               .split(",")
+              .map(cleanExtractedSpellName)
+              .filter(Boolean)
               .forEach((name) => names.push(name));
           }
         });
@@ -1474,7 +1484,7 @@
           const levelGate = sentence.match(/\bStarting at (\d+)(?:st|nd|rd|th) level\b/i);
           if (levelGate && getCharacterLevel() < (Number.parseInt(levelGate[1], 10) || 1)) return;
           const preparedMatch = sentence.match(/\byou (?:also )?(?:always have|have) the ([A-Za-z' -]+?) spell prepared\b/i);
-          if (preparedMatch) names.push(preparedMatch[1]);
+          if (preparedMatch) names.push(cleanExtractedSpellName(preparedMatch[1]));
         });
       });
 
@@ -1598,6 +1608,10 @@
 
     function normalizeName(name) {
       return name.trim().toLowerCase();
+    }
+
+    function isMageArmorName(name) {
+      return normalizeName(String(name || "")).replace(/\barmour\b/g, "armor") === "mage armor";
     }
 
     function sheetFieldElements() {
@@ -2615,11 +2629,17 @@
 
     function abilityModifierByName(name) {
       const key = {
+        str: "STR",
         strength: "STR",
+        dex: "DEX",
         dexterity: "DEX",
+        con: "CON",
         constitution: "CON",
+        int: "INT",
         intelligence: "INT",
+        wis: "WIS",
         wisdom: "WIS",
+        cha: "CHA",
         charisma: "CHA"
       }[normalizeName(name)];
       return key ? abilityModifier(getFieldByKey(key)?.value || "") : null;
@@ -2843,14 +2863,28 @@
       }
       const castLevel = Math.max(spell.level, spell.castLevel || spell.level);
       const sourceName = spell.sourceName || spell.name;
-      if (castLevel === spell.level && freeSpellUseInfo(sourceName)?.remaining > 0 && spendFreeSpellUse(sourceName)) return;
+      const activateSpellStatus = () => {
+        if (!isMageArmorName(sourceName) && !isMageArmorName(spell.name)) return false;
+        return activateStatusById("mage-armor");
+      };
+      if (castLevel === spell.level && freeSpellUseInfo(sourceName)?.remaining > 0 && spendFreeSpellUse(sourceName)) {
+        const activated = activateSpellStatus();
+        updateDerivedStats();
+        scheduleSave();
+        if (activated) showStatus(`${spell.name}: Mage Armor activo`);
+        return;
+      }
       if (!spendSpellSlot(castLevel)) {
         showStatus(`Sin slots nivel ${castLevel}`);
         return;
       }
       const remaining = spellSlotRemaining(castLevel);
       const total = spellSlotTotal(castLevel);
-      showStatus(`${spell.name} casteada a nivel ${castLevel}. Slots nivel ${castLevel}: ${remaining}/${total}`);
+      const activated = activateSpellStatus();
+      showStatus(activated
+        ? `${spell.name}: Mage Armor activo. Slots nivel ${castLevel}: ${remaining}/${total}`
+        : `${spell.name} casteada a nivel ${castLevel}. Slots nivel ${castLevel}: ${remaining}/${total}`);
+      updateDerivedStats();
       updatePreparedSpellsPanel();
       scheduleSave();
     }
@@ -3115,8 +3149,21 @@
       ));
     }
 
-    const FREE_DICE_MIN = 2;
-    const FREE_DICE_MAX = 100;
+    const FREE_DICE_OPTIONS = [
+      { key: "2", label: "d2", expression: "d2", order: 2 },
+      { key: "3", label: "d3", expression: "d3", order: 3 },
+      { key: "4", label: "d4", expression: "d4", order: 4 },
+      { key: "6", label: "d6", expression: "d6", order: 6 },
+      { key: "10", label: "d10", expression: "d10", order: 10 },
+      { key: "10-percent", label: "d10 porcentual", expression: "d100", order: 11 },
+      { key: "12", label: "d12", expression: "d12", order: 12 },
+      { key: "20", label: "d20", expression: "d20", order: 20 },
+      { key: "30", label: "d30", expression: "d30", order: 30 },
+      { key: "60", label: "d60", expression: "d60", order: 60 },
+      { key: "100", label: "d100", expression: "d100", order: 100 }
+    ];
+    const FREE_DICE_DEFAULT_KEY = "20";
+    const FREE_DICE_OPTION_BY_KEY = new Map(FREE_DICE_OPTIONS.map((option) => [option.key, option]));
     const FREE_DICE_MAX_TOTAL = 40;
     const DICE_LOG_KEY = "dnd-character-sheet-dice-log-v1";
     const DICE_LOG_LIMIT = 40;
@@ -3138,6 +3185,10 @@
 
     function freeDiceRollButton() {
       return document.getElementById("freeDiceRoll");
+    }
+
+    function freeDiceOption(key) {
+      return FREE_DICE_OPTION_BY_KEY.get(String(key || "")) || FREE_DICE_OPTION_BY_KEY.get(FREE_DICE_DEFAULT_KEY);
     }
 
     function freeDiceTotalCount() {
@@ -3199,44 +3250,50 @@
     function populateFreeDiceSelect() {
       const select = freeDiceSelectElement();
       if (!select || select.options.length) return;
-      for (let sides = FREE_DICE_MIN; sides <= FREE_DICE_MAX; sides += 1) {
+      FREE_DICE_OPTIONS.forEach((die) => {
         const option = document.createElement("option");
-        option.value = String(sides);
-        option.textContent = `d${sides}`;
-        if (sides === 20) option.selected = true;
+        option.value = die.key;
+        option.textContent = die.label;
+        if (die.key === FREE_DICE_DEFAULT_KEY) option.selected = true;
         select.appendChild(option);
-      }
+      });
     }
 
-    function selectedFreeDieSides() {
-      const sides = Number.parseInt(freeDiceSelectElement()?.value || "20", 10);
-      return Math.min(FREE_DICE_MAX, Math.max(FREE_DICE_MIN, Number.isFinite(sides) ? sides : 20));
+    function selectedFreeDieKey() {
+      return freeDiceOption(freeDiceSelectElement()?.value).key;
     }
 
-    function setFreeDieCount(sides, count) {
-      const normalizedSides = Math.min(FREE_DICE_MAX, Math.max(FREE_DICE_MIN, Number.parseInt(sides, 10) || 20));
+    function setFreeDieCount(key, count) {
+      const normalizedKey = freeDiceOption(key).key;
       const normalizedCount = Math.max(0, Number.parseInt(count, 10) || 0);
-      if (normalizedCount) freeDiceCounts.set(normalizedSides, normalizedCount);
-      else freeDiceCounts.delete(normalizedSides);
+      if (normalizedCount) freeDiceCounts.set(normalizedKey, normalizedCount);
+      else freeDiceCounts.delete(normalizedKey);
       renderFreeDiceSelection();
     }
 
-    function addFreeDie(sides = selectedFreeDieSides()) {
+    function addFreeDie(key = selectedFreeDieKey()) {
       if (freeDiceTotalCount() >= FREE_DICE_MAX_TOTAL) {
         showStatus(`Maximo ${FREE_DICE_MAX_TOTAL} dados por tirada libre.`);
         return;
       }
-      setFreeDieCount(sides, (freeDiceCounts.get(sides) || 0) + 1);
+      setFreeDieCount(key, (freeDiceCounts.get(key) || 0) + 1);
     }
 
-    function removeFreeDie(sides = selectedFreeDieSides()) {
-      setFreeDieCount(sides, Math.max(0, (freeDiceCounts.get(sides) || 0) - 1));
+    function removeFreeDie(key = selectedFreeDieKey()) {
+      setFreeDieCount(key, Math.max(0, (freeDiceCounts.get(key) || 0) - 1));
     }
 
     function freeDiceExpression() {
       return [...freeDiceCounts.entries()]
-        .sort(([left], [right]) => left - right)
-        .map(([sides, count]) => `${count}d${sides}`)
+        .sort(([left], [right]) => freeDiceOption(left).order - freeDiceOption(right).order)
+        .map(([key, count]) => `${count}${freeDiceOption(key).expression}`)
+        .join(" + ");
+    }
+
+    function freeDiceLabel() {
+      return [...freeDiceCounts.entries()]
+        .sort(([left], [right]) => freeDiceOption(left).order - freeDiceOption(right).order)
+        .map(([key, count]) => `${count}${freeDiceOption(key).label}`)
         .join(" + ");
     }
 
@@ -3245,7 +3302,7 @@
       const rollButton = freeDiceRollButton();
       if (!container) return;
       container.textContent = "";
-      const entries = [...freeDiceCounts.entries()].sort(([left], [right]) => left - right);
+      const entries = [...freeDiceCounts.entries()].sort(([left], [right]) => freeDiceOption(left).order - freeDiceOption(right).order);
       if (!entries.length) {
         const empty = document.createElement("div");
         empty.className = "free-dice-empty";
@@ -3254,24 +3311,25 @@
         if (rollButton) rollButton.disabled = true;
         return;
       }
-      entries.forEach(([sides, count]) => {
+      entries.forEach(([key, count]) => {
+        const die = freeDiceOption(key);
         const row = document.createElement("div");
         row.className = "free-dice-row";
         const label = document.createElement("span");
         label.className = "free-dice-row-label";
-        label.textContent = `${count}d${sides}`;
+        label.textContent = `${count}${die.label}`;
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "free-dice-row-step";
         remove.textContent = "-";
-        remove.setAttribute("aria-label", `Quitar d${sides}`);
-        remove.addEventListener("click", () => removeFreeDie(sides));
+        remove.setAttribute("aria-label", `Quitar ${die.label}`);
+        remove.addEventListener("click", () => removeFreeDie(key));
         const add = document.createElement("button");
         add.type = "button";
         add.className = "free-dice-row-step";
         add.textContent = "+";
-        add.setAttribute("aria-label", `Agregar d${sides}`);
-        add.addEventListener("click", () => addFreeDie(sides));
+        add.setAttribute("aria-label", `Agregar ${die.label}`);
+        add.addEventListener("click", () => addFreeDie(key));
         row.append(label, remove, add);
         container.appendChild(row);
       });
@@ -3280,6 +3338,7 @@
 
     function rollFreeDice() {
       const expression = freeDiceExpression();
+      const label = freeDiceLabel();
       if (!expression) {
         showStatus("Selecciona al menos un dado.");
         return;
@@ -3291,11 +3350,11 @@
       }
       const diceTerms = roll.terms.filter((term) => term.type === "dice");
       const detail = formatDiceLines([
-        `Dados: ${expression}`,
+        `Dados: ${label}`,
         ...diceTerms.map((term) => `Tiradas ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
         `Total: ${roll.total}`
       ]);
-      showDiceTray(`Tirada libre: ${expression}`, String(roll.total), detail, diceTermVisualEntries(diceTerms));
+      showDiceTray(`Tirada libre: ${label}`, String(roll.total), detail, diceTermVisualEntries(diceTerms));
     }
 
     function isFreeDiceMenuOpen() {
@@ -6039,6 +6098,16 @@
 
     function activeStatusEffects() {
       return collectStatusEffects(ensureActiveStatusIds());
+    }
+
+    function activateStatusById(statusId) {
+      const definition = findStatusDefinition(statusId);
+      if (!definition) return false;
+      const current = ensureActiveStatusIds();
+      if (current.includes(definition.id)) return false;
+      sheetMeta.activeStatuses = normalizeStatusIds([definition.id, ...current]);
+      renderStatusDock();
+      return true;
     }
 
     function statusDescriptionText(definition) {
@@ -9699,9 +9768,12 @@
         remove.type = "button";
         remove.className = "equipment-remove";
         remove.textContent = "X";
-        remove.title = "Sacar 1 item";
+        remove.title = "Sacar 1 item. Shift+click saca todo el stock.";
         remove.setAttribute("aria-label", `Sacar ${entry.displayName}`);
-        remove.addEventListener("click", () => removeItemFromEquipment(entry, 1));
+        remove.addEventListener("click", (event) => {
+          event.preventDefault();
+          removeItemFromEquipment(entry, event.shiftKey ? entry.quantity : 1);
+        });
 
         row.append(qty, name, value, equip, remove);
         list.appendChild(row);
@@ -13506,11 +13578,18 @@
       const shieldBonus = equippedShieldArmorClassBonus();
       const raceBonus = armorClassBonusFromRace();
       const featureBonus = armorClassBonusFromFeatures(equippedArmor);
-      const statusBonus = activeStatusEffects().acBonus;
+      const effects = activeStatusEffects();
+      const statusBonus = effects.acBonus;
       const candidates = [{ ac: 10 + dexModifier, allowsShield: true }];
 
       const armor = armorRuleFromItem(equippedArmor);
       if (armor) candidates.push({ ac: armor.base + clampDexModifierForArmor(dexModifier, armor.dexCap) + (armor.bonus || 0), allowsShield: true });
+      effects.baseArmorClassRules.forEach((rule) => {
+        if (rule.requiresNoArmor && armor) return;
+        const modifier = abilityModifierByName(rule.ability);
+        if (modifier == null) return;
+        candidates.push({ ac: rule.base + modifier, allowsShield: rule.allowsShield });
+      });
 
       const className = normalizeName(getMainClassName());
       if (!armor && className === "barbarian" && conModifier != null) candidates.push({ ac: 10 + dexModifier + conModifier, allowsShield: true });

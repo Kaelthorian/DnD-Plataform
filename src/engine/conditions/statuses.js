@@ -105,6 +105,16 @@
       }
     },
     {
+      id: "mage-armor",
+      name: "Mage Armor",
+      symbol: "AC 13",
+      tone: "positive",
+      description: "Tu base AC pasa a 13 + DEX mientras no uses armadura.",
+      effects: {
+        baseArmorClassRules: [{ label: "Mage Armor", base: 13, ability: "DEX", requiresNoArmor: true, allowsShield: true }]
+      }
+    },
+    {
       id: "blinded",
       name: "Blinded",
       symbol: "BLD",
@@ -478,6 +488,7 @@
       speedMultiplier: 1,
       speedOverride: null,
       passivePerceptionModifier: 0,
+      baseArmorClassRules: [],
       attackRollModes: [],
       abilityCheckModes: [],
       saveRollModes: [],
@@ -502,6 +513,18 @@
       }
       if (Number.isFinite(Number(raw.speedOverride))) effects.speedOverride = Number(raw.speedOverride);
       effects.passivePerceptionModifier += Number(raw.passivePerceptionModifier) || 0;
+      if (Array.isArray(raw.baseArmorClassRules)) {
+        raw.baseArmorClassRules.forEach((rule) => {
+          if (!Number.isFinite(Number(rule?.base))) return;
+          effects.baseArmorClassRules.push({
+            label: String(rule.label || definition.name || "Status").trim(),
+            base: Number(rule.base),
+            ability: String(rule.ability || "DEX").trim().toUpperCase(),
+            requiresNoArmor: Boolean(rule.requiresNoArmor),
+            allowsShield: rule.allowsShield !== false
+          });
+        });
+      }
       appendRollMode(effects.attackRollModes, raw.attackRollMode);
       appendRollMode(effects.abilityCheckModes, raw.abilityCheckMode);
       appendRollMode(effects.saveRollModes, raw.saveRollMode);

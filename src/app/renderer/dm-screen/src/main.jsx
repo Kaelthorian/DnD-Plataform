@@ -152,6 +152,19 @@ const CHARACTER_SAVE_FIELDS = {
   wis: ["ST Wisdom", "Check Box 21"],
   cha: ["ST Charisma", "Check Box 22"]
 };
+const FREE_DICE_TYPES = [
+  { sides: 20, label: "d20" },
+  { sides: 12, label: "d12" },
+  { sides: 100, label: "d100" },
+  { sides: 10, label: "d10" },
+  { sides: 8, label: "d8" },
+  { sides: 6, label: "d6" },
+  { sides: 4, label: "d4" }
+];
+
+function createFreeDiceSelection() {
+  return Object.fromEntries(FREE_DICE_TYPES.map(({ sides }) => [sides, 0]));
+}
 
 function spellSource(spell) {
   return String(spell?.description || "").match(/\bSource:\s*([^.]+)/i)?.[1]?.trim() || "Unknown";
@@ -696,6 +709,74 @@ function noteTabIds(note) {
 function groupTabNotes(rootNote, notes) {
   const ids = new Set(noteTabIds(rootNote));
   return (notes || []).filter((note) => ids.has(note.id));
+}
+
+function isModifierEvent(value) {
+  return Boolean(value && typeof value === "object" && (
+    "shiftKey" in value ||
+    "nativeEvent" in value ||
+    "preventDefault" in value
+  ));
+}
+
+function promoteTabToRootInCollection(notes, rootId, nextRootId) {
+  const root = notes.find((note) => note.id === rootId);
+  const nextRoot = notes.find((note) => note.id === nextRootId);
+  if (!root || !nextRoot || rootId === nextRootId) return notes;
+  const remainingIds = noteTabIds(root).filter((id) => id !== rootId && id !== nextRootId);
+  const nextActiveTabId = root.activeTabId && root.activeTabId !== rootId && root.activeTabId !== nextRootId
+    ? root.activeTabId
+    : nextRootId;
+
+  return notes.map((note) => {
+    if (note.id === nextRootId) {
+      return {
+        ...note,
+        parentNoteId: null,
+        tabNoteIds: remainingIds,
+        activeTabId: nextActiveTabId,
+        x: root.x,
+        y: root.y,
+        width: root.width,
+        height: root.height,
+        z: root.z,
+        minimized: root.minimized
+      };
+    }
+    if (remainingIds.includes(note.id)) return { ...note, parentNoteId: nextRootId };
+    return note;
+  });
+}
+
+function closeSingleNoteInCollection(notes, noteId) {
+  const rootId = resolveRootNoteId(noteId, notes);
+  const root = notes.find((note) => note.id === rootId);
+  if (!root) return notes;
+  const groupedIds = noteTabIds(root);
+  if (groupedIds.length <= 1) return notes.filter((note) => note.id !== rootId);
+
+  if (noteId === rootId) {
+    const promotedId = groupedIds.find((id) => id !== rootId);
+    if (!promotedId) return notes.filter((note) => note.id !== rootId);
+    const promotedNotes = promoteTabToRootInCollection(notes, rootId, promotedId);
+    return promotedNotes.filter((note) => note.id !== rootId);
+  }
+
+  const fallbackActiveId = root.activeTabId === noteId
+    ? (groupedIds.find((id) => id !== noteId && id !== rootId) || rootId)
+    : root.activeTabId;
+
+  return notes
+    .filter((note) => note.id !== noteId)
+    .map((note) => (
+      note.id === rootId
+        ? {
+          ...note,
+          tabNoteIds: (note.tabNoteIds || []).filter((id) => id !== noteId),
+          activeTabId: fallbackActiveId
+        }
+        : note
+    ));
 }
 
 function clampBoardPoint(point, width = 0, height = 0) {
@@ -1358,6 +1439,107 @@ function rollDiceExpression(expression) {
   };
 }
 
+function countSelectedDice(selection) {
+  return FREE_DICE_TYPES.reduce((total, { sides }) => total + Number(selection?.[sides] || 0), 0);
+}
+
+function formatFreeDiceExpression(selection) {
+  return FREE_DICE_TYPES
+    .map(({ sides }) => {
+      const count = Number(selection?.[sides] || 0);
+      return count > 0 ? `${count}d${sides}` : "";
+    })
+    .filter(Boolean)
+    .join(" + ");
+}
+
+function DiceGlyph({ sides, className = "h-10 w-10" }) {
+  const props = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2.1,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  };
+
+  switch (sides) {
+    case 20:
+      return (
+        <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+          <polygon {...props} points="24 5 40 15 36 35 24 43 12 35 8 15" />
+          <polyline {...props} points="24 5 17 19 24 27 31 19 24 5" />
+          <polyline {...props} points="8 15 17 19 12 35" />
+          <polyline {...props} points="40 15 31 19 36 35" />
+          <polyline {...props} points="12 35 24 27 36 35" />
+          <line {...props} x1="17" y1="19" x2="31" y2="19" />
+        </svg>
+      );
+    case 12:
+      return (
+        <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+          <polygon {...props} points="24 5 35 9 41 19 38 32 24 43 10 32 7 19 13 9" />
+          <polyline {...props} points="13 9 18 19 30 19 35 9" />
+          <polyline {...props} points="7 19 18 19 16 35" />
+          <polyline {...props} points="41 19 30 19 32 35" />
+          <polyline {...props} points="16 35 24 27 32 35" />
+          <line {...props} x1="24" y1="5" x2="24" y2="19" />
+        </svg>
+      );
+    case 100:
+      return (
+        <svg viewBox="0 0 56 48" className={className} aria-hidden="true">
+          <g transform="translate(3 2)">
+            <polygon {...props} points="16 4 26 14 22 32 10 40 2 27 5 12" />
+            <polyline {...props} points="5 12 16 18 26 14" />
+            <polyline {...props} points="10 40 16 18 22 32" />
+          </g>
+          <g transform="translate(24 2)">
+            <polygon {...props} points="16 4 26 14 22 32 10 40 2 27 5 12" />
+            <polyline {...props} points="5 12 16 18 26 14" />
+            <polyline {...props} points="10 40 16 18 22 32" />
+          </g>
+        </svg>
+      );
+    case 10:
+      return (
+        <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+          <polygon {...props} points="24 5 37 17 31 34 24 42 17 34 11 17" />
+          <polyline {...props} points="11 17 24 23 37 17" />
+          <polyline {...props} points="17 34 24 23 31 34" />
+          <line {...props} x1="24" y1="5" x2="24" y2="23" />
+        </svg>
+      );
+    case 8:
+      return (
+        <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+          <polygon {...props} points="24 4 38 18 24 31 10 18" />
+          <polygon {...props} points="24 31 38 18 24 44 10 18" />
+          <line {...props} x1="24" y1="4" x2="24" y2="44" />
+        </svg>
+      );
+    case 6:
+      return (
+        <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+          <polygon {...props} points="16 10 29 10 29 25 16 25" />
+          <polygon {...props} points="29 10 38 16 38 31 29 25" />
+          <polygon {...props} points="16 10 25 16 38 16 29 10" />
+          <polyline {...props} points="16 25 25 31 38 31" />
+          <line {...props} x1="25" y1="16" x2="25" y2="31" />
+        </svg>
+      );
+    case 4:
+      return (
+        <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+          <polygon {...props} points="24 5 36 24 24 43 12 24" />
+          <line {...props} x1="24" y1="5" x2="24" y2="43" />
+          <line {...props} x1="12" y1="24" x2="36" y2="24" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 function MonsterSummary({ monster }) {
   return (
     <div className="space-y-4 text-sm text-neutral-300">
@@ -1657,9 +1839,10 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
             <button
               className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
               type="button"
-              aria-label={`Cerrar ${monster.name}`}
+              aria-label={`Cerrar ${monster.name}. Shift+click cierra todo el grupo`}
+              title="Click cierra este item. Shift+click cierra todo el grupo."
               onPointerDown={(event) => event.stopPropagation()}
-              onClick={onClose}
+              onClick={(event) => onClose(event)}
             >
               X
             </button>
@@ -1775,6 +1958,176 @@ function ResizeHandle({ edge, className, onResizeStart }) {
   );
 }
 
+function GlobalDiceTray({
+  isOpen,
+  selection,
+  rolls,
+  onToggle,
+  onClose,
+  onAddDie,
+  onRemoveDie,
+  onResetSelection,
+  onClearRolls,
+  onRoll
+}) {
+  const shellRef = useRef(null);
+  const latestRoll = rolls?.[0] || null;
+  const selectedDiceCount = countSelectedDice(selection);
+  const expression = formatFreeDiceExpression(selection);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    function handlePointerDown(event) {
+      if (shellRef.current?.contains(event.target)) return;
+      onClose();
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  return (
+    <div
+      ref={shellRef}
+      className="fixed bottom-20 left-4 z-50 flex flex-col items-start gap-3"
+      data-board-control="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      {isOpen ? (
+        <section className="w-[min(328px,calc(100vw-20px))] overflow-hidden rounded-[18px] border border-neutral-700/80 bg-[radial-gradient(circle_at_top,rgba(64,64,64,0.95),rgba(18,18,20,0.97)_58%)] text-neutral-100 shadow-[0_28px_80px_rgba(0,0,0,0.55)] backdrop-blur">
+          <header className="flex items-start justify-between border-b border-neutral-700/80 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-neutral-200">Roll Dice</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                {expression || "Hace click en los dados para armar la tirada."}
+              </p>
+            </div>
+            <button
+              className="text-3xl leading-none text-neutral-400 transition hover:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-red-500/60"
+              type="button"
+              aria-label="Cerrar roller"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          </header>
+
+          <div className="border-b border-neutral-700/80 px-4 py-4">
+            <div className="rounded-2xl border border-neutral-800 bg-black/20 px-4 py-3">
+              {latestRoll ? (
+                <>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-amber-400/90">Last Roll</p>
+                      <p className="mt-1 text-sm font-semibold text-neutral-200">{latestRoll.roll.expression}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">Total</p>
+                      <p className="text-3xl font-black leading-none text-red-500">{latestRoll.roll.total}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 break-words text-xs text-neutral-400">{latestRoll.roll.detail}</p>
+                </>
+              ) : (
+                <div className="py-3 text-sm text-neutral-500">No hay tiradas todavia.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-x-2 gap-y-3 px-4 py-5">
+            {FREE_DICE_TYPES.map(({ sides, label }) => {
+              const count = Number(selection?.[sides] || 0);
+              const isActive = count > 0;
+              return (
+                <button
+                  key={sides}
+                  className={`relative flex min-h-[82px] flex-col items-center justify-center rounded-2xl border px-2 py-3 text-center transition ${
+                    isActive
+                      ? "border-neutral-100 bg-neutral-300 text-neutral-950 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]"
+                      : "border-transparent bg-transparent text-neutral-100 hover:bg-white/5"
+                  }`}
+                  type="button"
+                  title={`${label}. Click suma, click derecho resta.`}
+                  onClick={() => onAddDie(sides)}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    onRemoveDie(sides);
+                  }}
+                >
+                  {count ? (
+                    <span className="absolute left-1 top-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-neutral-950 px-1 text-[11px] font-black leading-none text-white">
+                      {count}
+                    </span>
+                  ) : null}
+                  <DiceGlyph sides={sides} className="h-11 w-11" />
+                  <span className="mt-1 text-[1.05rem] font-black leading-none">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className="rounded-xl bg-neutral-300 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-neutral-900 transition hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-200/70 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-500"
+                type="button"
+                onClick={onResetSelection}
+                disabled={!selectedDiceCount}
+              >
+                Reset
+              </button>
+              <button
+                className="rounded-xl bg-red-800 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400/70 disabled:cursor-not-allowed disabled:bg-red-950 disabled:text-red-300/45"
+                type="button"
+                onClick={onRoll}
+                disabled={!selectedDiceCount}
+              >
+                Roll
+              </button>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                {selectedDiceCount ? `${selectedDiceCount} dados seleccionados` : "Sin seleccion"}
+              </div>
+              <button
+                className="text-sm font-black uppercase tracking-[0.12em] text-amber-400 transition hover:text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:cursor-not-allowed disabled:text-neutral-600"
+                type="button"
+                onClick={onClearRolls}
+                disabled={!rolls.length}
+              >
+                Clear Dice
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <button
+        className="relative inline-flex h-14 w-14 items-center justify-center rounded-full border border-red-400/70 bg-red-700 text-white shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300/70"
+        type="button"
+        aria-label={isOpen ? "Cerrar menu de dados" : "Abrir menu de dados"}
+        onClick={onToggle}
+      >
+        <DiceGlyph sides={20} className="h-8 w-8" />
+        {selectedDiceCount ? (
+          <span className="absolute -right-1 -top-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-neutral-950 bg-white px-1 text-[11px] font-black leading-none text-neutral-950">
+            {selectedDiceCount}
+          </span>
+        ) : null}
+      </button>
+    </div>
+  );
+}
+
 function EditableNoteTitle({ title, className = "", inputClassName = "", onRename }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
@@ -1864,7 +2217,7 @@ function NoteTabBar({ notes, activeTabId, onSelectTab, onCloseTab, onStartTabDra
               className="ml-2 align-middle text-[10px] text-neutral-500 hover:text-red-300"
               type="button"
               onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => onCloseTab?.(note.id)}
+              onClick={(event) => onCloseTab?.(note.id, event)}
               title={`Cerrar ${noteDisplayName(note)}`}
             >
               x
@@ -1926,7 +2279,7 @@ function MonsterNote({
           type="button"
           aria-label={`Cerrar ${noteDisplayName(note)}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onClose(frameNoteId)}
+          onClick={(event) => onClose(noteActionId, event)}
         >
           X
         </button>
@@ -1948,7 +2301,7 @@ function MonsterNote({
         onDragStart={(event) => onDragStart(event, frameNoteId)}
         onMinimize={() => onMinimize(frameNoteId)}
         onDuplicate={() => onDuplicate(noteActionId)}
-        onClose={() => onClose(frameNoteId)}
+        onClose={(event) => onClose(noteActionId, event)}
       />
       {tabBar}
       <MonsterStatBlockBody
@@ -2046,7 +2399,7 @@ function ResourceNote({
           type="button"
           aria-label={`Cerrar ${noteDisplayName(note)}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onClose(frameNoteId)}
+          onClick={(event) => onClose(noteActionId, event)}
         >
           X
         </button>
@@ -2083,7 +2436,7 @@ function ResourceNote({
           <div className="flex gap-1">
             <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
             <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>⧉</button>
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onClose(frameNoteId)}>X</button>
+            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
           </div>
         </div>
       </header>
@@ -2451,7 +2804,7 @@ function CharacterNote({
           type="button"
           aria-label={`Cerrar ${noteDisplayName(note)}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onClose(frameNoteId)}
+          onClick={(event) => onClose(noteActionId, event)}
         >
           X
         </button>
@@ -2473,7 +2826,7 @@ function CharacterNote({
         onDragStart={(event) => onDragStart(event, frameNoteId)}
         onMinimize={() => onMinimize(frameNoteId)}
         onDuplicate={() => onDuplicate(noteActionId)}
-        onClose={() => onClose(frameNoteId)}
+        onClose={(event) => onClose(noteActionId, event)}
       />
       {tabBar}
 
@@ -3154,6 +3507,9 @@ function DmScreenApp() {
   const [selectedMonster, setSelectedMonster] = useState(bestiary[0] || null);
   const [previewRolls, setPreviewRolls] = useState([]);
   const [previewDicePanelOpen, setPreviewDicePanelOpen] = useState(false);
+  const [freeDiceOpen, setFreeDiceOpen] = useState(false);
+  const [freeDiceSelection, setFreeDiceSelection] = useState(createFreeDiceSelection);
+  const [freeDiceRolls, setFreeDiceRolls] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [noteSpawnPoint, setNoteSpawnPoint] = useState(null);
   const [resourcePickerKind, setResourcePickerKind] = useState(null);
@@ -3534,65 +3890,11 @@ function DmScreenApp() {
   }
 
   function promoteTabToRoot(notes, rootId, nextRootId) {
-    const root = notes.find((note) => note.id === rootId);
-    const nextRoot = notes.find((note) => note.id === nextRootId);
-    if (!root || !nextRoot || rootId === nextRootId) return notes;
-    const remainingIds = noteTabIds(root).filter((id) => id !== rootId && id !== nextRootId);
-    const nextActiveTabId = root.activeTabId && root.activeTabId !== rootId && root.activeTabId !== nextRootId
-      ? root.activeTabId
-      : nextRootId;
-
-    return notes.map((note) => {
-      if (note.id === nextRootId) {
-        return {
-          ...note,
-          parentNoteId: null,
-          tabNoteIds: remainingIds,
-          activeTabId: nextActiveTabId,
-          x: root.x,
-          y: root.y,
-          width: root.width,
-          height: root.height,
-          z: root.z,
-          minimized: root.minimized
-        };
-      }
-      if (remainingIds.includes(note.id)) return { ...note, parentNoteId: nextRootId };
-      return note;
-    });
+    return promoteTabToRootInCollection(notes, rootId, nextRootId);
   }
 
   function closeSingleTab(noteId) {
-    setMonsterNotes((notes) => {
-      const rootId = resolveRootNoteId(noteId, notes);
-      const root = notes.find((note) => note.id === rootId);
-      if (!root) return notes;
-      const groupedIds = noteTabIds(root);
-      if (groupedIds.length <= 1) return notes.filter((note) => note.id !== rootId);
-
-      if (noteId === rootId) {
-        const promotedId = groupedIds.find((id) => id !== rootId);
-        if (!promotedId) return notes.filter((note) => note.id !== rootId);
-        const promotedNotes = promoteTabToRoot(notes, rootId, promotedId);
-        return promotedNotes.filter((note) => note.id !== rootId);
-      }
-
-      const fallbackActiveId = root.activeTabId === noteId
-        ? (groupedIds.find((id) => id !== noteId && id !== rootId) || rootId)
-        : root.activeTabId;
-
-      return notes
-        .filter((note) => note.id !== noteId)
-        .map((note) => (
-          note.id === rootId
-            ? {
-              ...note,
-              tabNoteIds: (note.tabNoteIds || []).filter((id) => id !== noteId),
-              activeTabId: fallbackActiveId
-            }
-            : note
-        ));
-    });
+    setMonsterNotes((notes) => closeSingleNoteInCollection(notes, noteId));
   }
 
   function detachTabFromRoot(noteId, rootId, boardPoint = null) {
@@ -3715,6 +4017,20 @@ function DmScreenApp() {
     });
   }
 
+  function handleNoteClose(noteId, event) {
+    const resolvedNoteId = isModifierEvent(noteId) ? null : noteId;
+    const resolvedEvent = isModifierEvent(noteId) ? noteId : event;
+    const shiftPressed = Boolean(resolvedEvent?.shiftKey || resolvedEvent?.nativeEvent?.shiftKey);
+    if (!resolvedNoteId) return;
+    resolvedEvent?.preventDefault?.();
+    resolvedEvent?.stopPropagation?.();
+    if (shiftPressed) {
+      closeNote(resolvedNoteId);
+      return;
+    }
+    closeSingleTab(resolvedNoteId);
+  }
+
   function focusNote(noteId) {
     const rootId = resolveRootNoteId(noteId, monsterNotes);
     if (!rootId) return;
@@ -3801,6 +4117,39 @@ function DmScreenApp() {
 
   function togglePreviewDicePanel() {
     setPreviewDicePanelOpen((open) => !open);
+  }
+
+  function addFreeDie(sides) {
+    setFreeDiceSelection((selection) => ({
+      ...selection,
+      [sides]: Number(selection?.[sides] || 0) + 1
+    }));
+  }
+
+  function removeFreeDie(sides) {
+    setFreeDiceSelection((selection) => ({
+      ...selection,
+      [sides]: Math.max(0, Number(selection?.[sides] || 0) - 1)
+    }));
+  }
+
+  function resetFreeDiceSelection() {
+    setFreeDiceSelection(createFreeDiceSelection());
+  }
+
+  function clearFreeDiceRolls() {
+    setFreeDiceRolls([]);
+  }
+
+  function rollFreeDiceSelection() {
+    const expression = formatFreeDiceExpression(freeDiceSelection);
+    if (!expression) return;
+    const roll = rollDiceExpression(expression);
+    setFreeDiceOpen(true);
+    setFreeDiceRolls((rolls) => [{
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      roll
+    }, ...rolls].slice(0, 12));
   }
 
   function openBoardContextMenu(event) {
@@ -4068,6 +4417,18 @@ function DmScreenApp() {
         onStop={stopLiveHost}
         onKick={kickLivePlayer}
       />
+      <GlobalDiceTray
+        isOpen={freeDiceOpen}
+        selection={freeDiceSelection}
+        rolls={freeDiceRolls}
+        onToggle={() => setFreeDiceOpen((open) => !open)}
+        onClose={() => setFreeDiceOpen(false)}
+        onAddDie={addFreeDie}
+        onRemoveDie={removeFreeDie}
+        onResetSelection={resetFreeDiceSelection}
+        onClearRolls={clearFreeDiceRolls}
+        onRoll={rollFreeDiceSelection}
+      />
       <div
         className="fixed bottom-4 left-4 z-40 flex items-center gap-1 border border-neutral-700 bg-neutral-900/95 p-1 text-sm text-neutral-100 shadow-2xl"
         data-board-control="true"
@@ -4119,7 +4480,7 @@ function DmScreenApp() {
               notes={tabs}
               activeTabId={activeNote.id}
               onSelectTab={(tabId) => selectNoteTab(rootNote.id, tabId)}
-              onCloseTab={closeSingleTab}
+              onCloseTab={handleNoteClose}
               onStartTabDrag={startTabDrag}
             />
           ) : null;
@@ -4131,7 +4492,7 @@ function DmScreenApp() {
             tabBar,
             isDropTarget: dropTargetNoteId === rootNote.id,
             onRename: renameNote,
-            onClose: closeNote,
+            onClose: handleNoteClose,
             onFocus: () => focusNote(rootNote.id),
             onDragStart: startDrag,
             onRoll: recordMonsterRoll,
