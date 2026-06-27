@@ -7,6 +7,7 @@ installer-final/
 installer-pdf/
 installer-pdf-fixed/
 installer-pdf-fields/
+installer-pdf-fields-verify/
 installer-pdf-fields-temp*/
 *.log
 npm-debug.log*

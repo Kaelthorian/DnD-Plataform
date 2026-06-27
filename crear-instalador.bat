@@ -11,6 +11,7 @@ set "TAILWIND_CLI=%PROJECT_DIR%\node_modules\tailwindcss\lib\cli.js"
 set "VITE_CLI=%PROJECT_DIR%\node_modules\vite\bin\vite.js"
 set "DM_SCREEN_BUILD_SCRIPT=%PROJECT_DIR%\scripts\ensure-dm-screen-build.js"
 set "PORTABLE_NODE=%PROJECT_DIR%\.tools\node-v20.19.0-win-x64\node.exe"
+set "PORTABLE_NPM_CMD=%PROJECT_DIR%\.tools\node-v20.19.0-win-x64\npm.cmd"
 
 echo.
 echo === Planilla DnD - Crear instalador ===
@@ -38,6 +39,30 @@ if not exist "package.json" (
   echo.
   pause
   exit /b 1
+)
+
+for /f "usebackq delims=" %%v in (`node -p "process.versions.node.split('.')[0]"`) do set "NODE_MAJOR=%%v"
+if not defined NODE_MAJOR (
+  echo ERROR: No se pudo detectar la version de Node.
+  echo.
+  pause
+  exit /b 1
+)
+
+set "BUILD_NODE=node"
+set "NPM_CMD=npm.cmd"
+if %NODE_MAJOR% LSS 20 (
+  if exist "%PORTABLE_NODE%" if exist "%PORTABLE_NPM_CMD%" (
+    set "BUILD_NODE=%PORTABLE_NODE%"
+    set "NPM_CMD=%PORTABLE_NPM_CMD%"
+    echo Node del sistema es v%NODE_MAJOR%. Se usara Node portable 20 para instalar, compilar y empaquetar.
+  ) else (
+    echo ERROR: Node del sistema es v%NODE_MAJOR%, pero electron-builder requiere Node moderno.
+    echo Instala Node 20+ o deja el portable en ".tools\node-v20.19.0-win-x64".
+    echo.
+    pause
+    exit /b 1
+  )
 )
 
 for /f "usebackq delims=" %%v in (`node -p "require('./package.json').version"`) do set "CURRENT_VERSION=%%v"
@@ -68,7 +93,7 @@ set "APP_VERSION=%NORMALIZED_VERSION%"
 
 echo.
 echo Actualizando version a %APP_VERSION%...
-call npm version "%APP_VERSION%" --no-git-tag-version --allow-same-version >nul
+call "%NPM_CMD%" version "%APP_VERSION%" --no-git-tag-version --allow-same-version >nul
 if errorlevel 1 (
   echo ERROR: La version indicada no es valida o no se pudo actualizar package.json.
   echo.
@@ -83,15 +108,29 @@ if not exist "%BUILDER_JS%" set "NEED_NPM_INSTALL=1"
 if not exist "%TAILWIND_CLI%" set "NEED_NPM_INSTALL=1"
 if not exist "%VITE_CLI%" set "NEED_NPM_INSTALL=1"
 
+if not defined NEED_NPM_INSTALL (
+  node -e "const pkg=require('./package.json'); const deps=[...Object.keys(pkg.dependencies||{}), ...Object.keys(pkg.devDependencies||{})]; const missing=deps.filter((name)=>{ try { require.resolve(name, { paths: [process.cwd()] }); return false; } catch (_error) { return true; } }); if (missing.length) { console.error('Faltan dependencias instaladas: ' + missing.join(', ')); process.exit(1); }"
+  if errorlevel 1 set "NEED_NPM_INSTALL=1"
+)
+
 if defined NEED_NPM_INSTALL (
   echo Instalando dependencias...
-  call npm install
+  call "%NPM_CMD%" install
   if errorlevel 1 (
     echo.
     echo ERROR: Fallo npm install.
     pause
     exit /b 1
   )
+)
+
+node -e "const pkg=require('./package.json'); const deps=[...Object.keys(pkg.dependencies||{}), ...Object.keys(pkg.devDependencies||{})]; const missing=deps.filter((name)=>{ try { require.resolve(name, { paths: [process.cwd()] }); return false; } catch (_error) { return true; } }); if (missing.length) { console.error('Faltan dependencias instaladas: ' + missing.join(', ')); process.exit(1); }"
+if errorlevel 1 (
+  echo.
+  echo ERROR: Faltan dependencias despues de npm install.
+  echo.
+  pause
+  exit /b 1
 )
 
 if not exist "%BUILDER_CMD%" (
@@ -115,28 +154,6 @@ if not exist "%DM_SCREEN_BUILD_SCRIPT%" (
   echo.
   pause
   exit /b 1
-)
-
-for /f "usebackq delims=" %%v in (`node -p "process.versions.node.split('.')[0]"`) do set "NODE_MAJOR=%%v"
-if not defined NODE_MAJOR (
-  echo ERROR: No se pudo detectar la version de Node.
-  echo.
-  pause
-  exit /b 1
-)
-
-set "BUILD_NODE=node"
-if %NODE_MAJOR% LSS 20 (
-  if exist "%PORTABLE_NODE%" (
-    set "BUILD_NODE=%PORTABLE_NODE%"
-    echo Node del sistema es v%NODE_MAJOR%. Se usara Node portable 20 para compilar y empaquetar.
-  ) else (
-    echo ERROR: Node del sistema es v%NODE_MAJOR%, pero electron-builder requiere Node moderno.
-    echo Instala Node 20+ o deja el portable en ".tools\node-v20.19.0-win-x64".
-    echo.
-    pause
-    exit /b 1
-  )
 )
 
 echo.

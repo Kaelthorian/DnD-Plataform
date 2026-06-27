@@ -748,6 +748,8 @@
       if (level === 0) return cantripsKnownForCharacter() + featGrantedSpellChoiceLimit(0);
       if (isWizardCharacter()) return Infinity;
       if (isBardCharacter()) return Infinity;
+      const preparedLimit = managedPreparedSpellLimit();
+      if (preparedLimit != null) return preparedLimit;
       const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
       if (!totalKey) return Infinity;
       const value = getFieldValueByNormalizedKey(totalKey.toLowerCase());
@@ -1058,6 +1060,27 @@
       const progression = detail?.classItem?.spellsKnownProgression;
       const base = Array.isArray(progression) ? progression[level - 1] : BARD_SPELLS_KNOWN[level - 1];
       return (base || 0) + extraKnownSpellLimit();
+    }
+
+    function managedPreparedSpellLimit() {
+      if (isWizardCharacter() || isBardCharacter()) return null;
+      const className = normalizeName(getMainClassName() || getSelectedClassName());
+      if (className !== "paladin") return null;
+      const level = Math.min(20, Math.max(1, getCharacterLevel()));
+      const detail = classDetailByName(getMainClassName() || getSelectedClassName());
+      const progression = detail?.classItem?.preparedSpellsProgression;
+      if (!Array.isArray(progression) || !progression.length) return null;
+      const base = Number(progression[level - 1]) || 0;
+      const featBonus = Array.from({ length: 9 }, (_item, index) => featGrantedSpellChoiceLimit(index + 1))
+        .reduce((total, count) => total + count, 0);
+      return base + featBonus;
+    }
+
+    function selectedManagedSpellCount(exceptField = null) {
+      return wizardSpellFields()
+        .filter((field) => field !== exceptField && field.value.trim())
+        .filter((field) => !isAutoGrantedSpellField(field))
+        .length;
     }
 
     function bardCanLearnSpell(spellName) {
@@ -6770,6 +6793,13 @@
         showStatus("Esa spell no esta disponible para Bard.");
         return;
       }
+      if (!isWizardCharacter() && !isBardCharacter() && level > 0 && !field.value.trim()) {
+        const managedLimit = managedPreparedSpellLimit();
+        if (managedLimit != null && selectedManagedSpellCount(field) >= managedLimit) {
+          showStatus(`Limite de spells preparadas: ${managedLimit}`);
+          return;
+        }
+      }
       if (isWizardCharacter() && level > 0 && !wizardSpellbookSet().has(normalizeName(spellName))) {
         showStatus("Primero agregala al spellbook.");
         return;
@@ -7336,6 +7366,11 @@
       if (!spell || spell.level <= 0) return null;
       const existing = knownSpellFieldForSpell(spell.name);
       if (existing) return existing;
+      const managedLimit = managedPreparedSpellLimit();
+      if (managedLimit != null && selectedManagedSpellCount() >= managedLimit) {
+        showStatus(`Limite de spells preparadas: ${managedLimit}`);
+        return null;
+      }
       if (!spellMatchesSelection(spell, spell.level)) {
         showStatus("Esa spell no esta disponible para tu personaje.");
         return null;
@@ -7405,9 +7440,11 @@
 
     function managedLearnSpellRow(field, spell, detailBody) {
       const selected = selectedKnownSpellSet().has(normalizeName(spell.name));
+      const totalLimit = managedPreparedSpellLimit();
+      const totalUsed = selectedManagedSpellCount();
       const limit = getSpellLevelLimit(spell.level);
       const used = getSelectedSpellCount(spell.level);
-      const atCapacity = !selected && used >= limit;
+      const atCapacity = !selected && ((totalLimit != null && totalUsed >= totalLimit) || used >= limit);
       const row = document.createElement("div");
       row.className = `spell-picker-row ${selected ? "active" : ""}`;
       row.addEventListener("click", (event) => {
@@ -7427,7 +7464,13 @@
         spellLevelLabel(spell.level),
         spellSchoolLabel(spell),
         spellSourceLabel(spell),
-        selected ? "Seleccionada" : atCapacity ? "Limite alcanzado" : `${used}/${limit === Infinity ? "sin limite" : limit}`
+        selected
+          ? "Seleccionada"
+          : atCapacity
+            ? "Limite alcanzado"
+            : totalLimit != null
+              ? `${totalUsed}/${totalLimit}`
+              : `${used}/${limit === Infinity ? "sin limite" : limit}`
       ].filter(Boolean).join(" - ");
 
       const actions = document.createElement("div");
@@ -7477,10 +7520,13 @@
       const summary = document.createElement("section");
       summary.className = "spell-picker-current";
       appendText(summary, "item-section-title", "Spells");
+      const preparedLimit = managedPreparedSpellLimit();
       appendText(
         summary,
         "item-section-body",
-        `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
+        preparedLimit != null
+          ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells preparadas ${selectedManagedSpellCount()}/${preparedLimit}`
+          : `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
         "p"
       );
       main.appendChild(summary);
@@ -7548,7 +7594,9 @@
           ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spellbook ${wizardSpellbookNames().length}/${wizardMaxSpellbookSpells()} - Prepared ${selectedWizardPreparedSpellCount()}/${wizardPreparedSpellLimit()}`
           : isBardCharacter()
             ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells conocidos ${selectedKnownSpellNames().length}/${bardKnownSpellLimit()}`
-          : `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
+          : managedPreparedSpellLimit() != null
+            ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells preparadas ${selectedManagedSpellCount()}/${managedPreparedSpellLimit()}`
+            : `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
         buildSpellSelectionDrawerContent(field, selectedSpell)
       );
       itemDrawer.classList.add("spell-picker-drawer");
@@ -10810,6 +10858,18 @@
         const known = selectedKnownSpellNames().length;
         if (known < maxKnown) {
           addAlert(alerts, "important", "Elegir spells conocidos", `Tu Bard puede conocer ${maxKnown} spell(s) para este nivel; conoce ${known}.`, null, alertSpellsAction());
+        }
+        return;
+      }
+
+      const managedLimit = managedPreparedSpellLimit();
+      if (managedLimit != null) {
+        const selected = selectedManagedSpellCount();
+        const className = getMainClassName() || getSelectedClassName() || "clase";
+        if (selected < managedLimit) {
+          addAlert(alerts, "important", "Elegir spells preparadas", `Tu ${className} puede preparar ${managedLimit} spell(s); preparaste ${selected}.`, null, alertSpellsAction());
+        } else if (selected > managedLimit) {
+          addAlert(alerts, "critical", "Demasiadas spells preparadas", `Preparaste ${selected}; tu limite actual es ${managedLimit}.`, null, alertSpellsAction());
         }
         return;
       }
