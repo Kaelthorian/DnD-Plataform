@@ -5565,6 +5565,58 @@
       return await new Response(stream).text();
     }
 
+    function cloneJsonCompatibleValue(value, depth = 0) {
+      if (depth > 12) return undefined;
+      if (value == null || typeof value === "string" || typeof value === "boolean") return value;
+      if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+      if (Array.isArray(value)) return value.map((entry) => cloneJsonCompatibleValue(entry, depth + 1)).filter((entry) => entry !== undefined);
+      if (!isPlainObject(value)) return undefined;
+
+      const clone = {};
+      Object.entries(value).forEach(([key, entry]) => {
+        const normalizedKey = String(key || "").trim();
+        if (!normalizedKey || normalizedKey === "__proto__" || normalizedKey === "constructor" || normalizedKey === "prototype") return;
+        const normalizedValue = cloneJsonCompatibleValue(entry, depth + 1);
+        if (normalizedValue !== undefined) clone[normalizedKey] = normalizedValue;
+      });
+      return clone;
+    }
+
+    function sanitizeImportedSheetData(data) {
+      if (!isPlainObject(data)) return {};
+      const sanitized = {};
+
+      Object.entries(data).forEach(([key, value]) => {
+        const normalizedKey = String(key || "").trim();
+        if (!normalizedKey || normalizedKey === "__proto__" || normalizedKey === "constructor" || normalizedKey === "prototype") return;
+        if (normalizedKey === "__sheetMeta") {
+          sanitized.__sheetMeta = cloneJsonCompatibleValue(value) || { choices: {} };
+          return;
+        }
+        if (typeof value === "string" || typeof value === "boolean") {
+          sanitized[normalizedKey] = value;
+          return;
+        }
+        if (typeof value === "number" && Number.isFinite(value)) sanitized[normalizedKey] = String(value);
+      });
+
+      if (!sanitized.__sheetMeta) sanitized.__sheetMeta = { choices: {} };
+      return sanitized;
+    }
+
+    function parseCharacterSheetPayload(json) {
+      let payload;
+      try {
+        payload = JSON.parse(json);
+      } catch (_error) {
+        throw new Error("El codigo del personaje no contiene datos JSON validos.");
+      }
+      if (payload?.type !== CHARACTER_SHEET_CODE_TYPE || payload?.version !== 1 || !isPlainObject(payload.data)) {
+        throw new Error("El codigo no contiene una planilla compatible.");
+      }
+      return sanitizeImportedSheetData(payload.data);
+    }
+
     async function encodeCharacterSheetData(data) {
       const json = JSON.stringify({
         type: CHARACTER_SHEET_CODE_TYPE,
@@ -5581,15 +5633,21 @@
       const match = String(code || "").trim().match(/^DNDCS1\.([gj])\.([A-Za-z0-9_-]+)$/);
       if (!match) throw new Error("Codigo de personaje invalido.");
       const [, mode, encoded] = match;
-      const bytes = base64UrlToBytes(encoded);
-      const json = mode === "g"
-        ? await decompressSheetCodeText(bytes)
-        : new TextDecoder().decode(bytes);
-      const payload = JSON.parse(json);
-      if (payload?.type !== CHARACTER_SHEET_CODE_TYPE || payload?.version !== 1 || !isPlainObject(payload.data)) {
-        throw new Error("El codigo no contiene una planilla compatible.");
+      let bytes;
+      try {
+        bytes = base64UrlToBytes(encoded);
+      } catch (_error) {
+        throw new Error("Codigo de personaje invalido.");
       }
-      return payload.data;
+      let json;
+      try {
+        json = mode === "g"
+          ? await decompressSheetCodeText(bytes)
+          : new TextDecoder().decode(bytes);
+      } catch (_error) {
+        throw new Error("El codigo del personaje esta corrupto o incompleto.");
+      }
+      return parseCharacterSheetPayload(json);
     }
 
     async function copyTextToClipboard(text) {
@@ -5704,8 +5762,9 @@
       document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
         if (!data || !(key in data)) return;
-        if (element.type === "checkbox") element.checked = Boolean(data[key]);
-        else element.value = data[key];
+        const value = data[key];
+        if (element.type === "checkbox") element.checked = Boolean(value);
+        else if (typeof value === "string" || typeof value === "number") element.value = value;
       });
       pendingCriticalHits.clear();
       ensureActiveStatusIds();

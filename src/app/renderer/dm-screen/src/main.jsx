@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import bestiary from "../../../../data/bestiary/bestiary-sublist-data.json";
 import spells from "../../../../data/spells/spells.json";
@@ -374,7 +374,11 @@ function itemRulesFooter(item) {
 }
 
 function normalizeSearch(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 }
 
 function signNumber(value) {
@@ -526,9 +530,91 @@ function compareLibraryEntries(left, right, kind, sortField) {
   return compareText(left.name, right.name);
 }
 
+function compareMonsterIndexEntries(left, right, sortField) {
+  if (sortField === "cr") return left.crSort - right.crSort || compareText(left.name, right.name);
+  if (sortField === "edition") return compareText(left.edition, right.edition) || compareText(left.name, right.name);
+  return compareText(left.name, right.name) || compareText(left.edition, right.edition);
+}
+
+function compareLibraryIndexEntries(left, right, kind, sortField) {
+  if (kind === "spell") {
+    if (sortField === "level") return left.level - right.level || compareText(left.name, right.name);
+    if (sortField === "source") return compareText(left.source, right.source) || compareText(left.name, right.name);
+    return compareText(left.name, right.name);
+  }
+  if (sortField === "rarity") return compareText(left.rarity, right.rarity) || compareText(left.name, right.name);
+  if (sortField === "source") return compareText(left.source, right.source) || compareText(left.name, right.name);
+  return compareText(left.name, right.name);
+}
+
 function libraryEntrySearchText(entry, kind) {
   if (kind === "spell") return [entry.name, formatSpellLevel(entry), spellSource(entry), spellSchool(entry), entry.classes?.join(" ")].map(normalizeSearch).join(" ");
   return [entry.name, itemRarity(entry), itemSource(entry), entry.type, renderEntryText(entry.entries)].map(normalizeSearch).join(" ");
+}
+
+function buildMonsterSearchIndex(monsters) {
+  return monsters.map((monster) => ({
+    monster,
+    name: String(monster?.name || ""),
+    normalizedName: normalizeSearch(monster?.name),
+    searchText: monsterSearchText(monster),
+    edition: monsterEdition(monster),
+    cr: formatCr(monster),
+    crSort: crSortValue(monster)
+  }));
+}
+
+function buildLibrarySearchIndex(entries, kind) {
+  return entries.map((entry) => ({
+    entry,
+    name: String(entry?.name || ""),
+    normalizedName: normalizeSearch(entry?.name),
+    searchText: libraryEntrySearchText(entry, kind),
+    source: kind === "spell" ? spellSource(entry) : itemSource(entry),
+    level: kind === "spell" ? Number(entry?.level || 0) : 0,
+    rarity: kind === "item" ? itemRarity(entry) : ""
+  }));
+}
+
+function searchMatchScoreNormalized(normalizedName, query, fullText = "") {
+  if (!query) return 0;
+  if (normalizedName === query) return 500;
+  if (normalizedName.startsWith(query)) return 400;
+  if (normalizedName.split(/\s+/).some((word) => word.startsWith(query))) return 350;
+  if (normalizedName.includes(query)) return 300;
+  return fullText.includes(query) ? 100 : 0;
+}
+
+function filterMonsterIndex(index, { query, editionFilter, crFilter, sortField, sortDirection }) {
+  const direction = sortDirection === "desc" ? -1 : 1;
+  return index
+    .filter(({ searchText, edition, cr }) => (
+      (!query || searchText.includes(query))
+      && (editionFilter === "all" || edition === editionFilter)
+      && (crFilter === "all" || cr === crFilter)
+    ))
+    .sort((left, right) => {
+      if (query) {
+        const leftScore = searchMatchScoreNormalized(left.normalizedName, query, left.searchText);
+        const rightScore = searchMatchScoreNormalized(right.normalizedName, query, right.searchText);
+        if (rightScore !== leftScore) return rightScore - leftScore;
+      }
+      return direction * compareMonsterIndexEntries(left, right, sortField);
+    });
+}
+
+function filterLibraryIndex(index, kind, { query, sortField, sortDirection }) {
+  const direction = sortDirection === "desc" ? -1 : 1;
+  return index
+    .filter(({ searchText }) => !query || searchText.includes(query))
+    .sort((left, right) => {
+      if (query) {
+        const leftScore = searchMatchScoreNormalized(left.normalizedName, query, left.searchText);
+        const rightScore = searchMatchScoreNormalized(right.normalizedName, query, right.searchText);
+        if (rightScore !== leftScore) return rightScore - leftScore;
+      }
+      return direction * compareLibraryIndexEntries(left, right, kind, sortField);
+    });
 }
 
 function normalizeResourceName(value) {
@@ -708,13 +794,7 @@ function equipmentResourceCandidates(text) {
 }
 
 function searchMatchScore(name, query, fullText = "") {
-  if (!query) return 0;
-  const normalizedName = normalizeSearch(name);
-  if (normalizedName === query) return 500;
-  if (normalizedName.startsWith(query)) return 400;
-  if (normalizedName.split(/\s+/).some((word) => word.startsWith(query))) return 350;
-  if (normalizedName.includes(query)) return 300;
-  return fullText.includes(query) ? 100 : 0;
+  return searchMatchScoreNormalized(normalizeSearch(name), query, fullText);
 }
 
 function formatSize(monster) {
@@ -884,15 +964,21 @@ async function decodeCharacterSheetCode(code) {
   const match = String(code || "").trim().match(new RegExp(`^${CHARACTER_SHEET_CODE_PREFIX}\\.([gj])\\.([A-Za-z0-9_-]+)$`));
   if (!match) throw new Error("Codigo de personaje invalido.");
   const [, mode, encoded] = match;
-  const bytes = base64UrlToBytes(encoded);
-  const json = mode === "g"
-    ? await decompressCharacterSheetCodeText(bytes)
-    : new TextDecoder().decode(bytes);
-  const payload = JSON.parse(json);
-  if (payload?.type !== CHARACTER_SHEET_CODE_TYPE || payload?.version !== 1 || !isPlainObject(payload.data)) {
-    throw new Error("El codigo no contiene una planilla compatible.");
+  let bytes;
+  try {
+    bytes = base64UrlToBytes(encoded);
+  } catch (_error) {
+    throw new Error("Codigo de personaje invalido.");
   }
-  return payload.data;
+  let json;
+  try {
+    json = mode === "g"
+      ? await decompressCharacterSheetCodeText(bytes)
+      : new TextDecoder().decode(bytes);
+  } catch (_error) {
+    throw new Error("El codigo del personaje esta corrupto o incompleto.");
+  }
+  return parseCharacterSheetPayload(json);
 }
 
 function characterField(data, aliases, fallback = "") {
@@ -1117,6 +1203,62 @@ function monsterSearchText(monster) {
   return [monster.name, monster.source, formatCr(monster), formatType(monster), renderEntryText(monster.trait), renderEntryText(monster.action)]
     .map(normalizeSearch)
     .join(" ");
+}
+
+const MONSTER_SEARCH_INDEX = buildMonsterSearchIndex(bestiary);
+const SPELL_SEARCH_INDEX = buildLibrarySearchIndex(spells, "spell");
+const ITEM_SEARCH_INDEX = buildLibrarySearchIndex(ITEM_LIBRARY, "item");
+
+function cloneJsonCompatibleValue(value, depth = 0) {
+  if (depth > 12) return undefined;
+  if (value == null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (Array.isArray(value)) return value.map((entry) => cloneJsonCompatibleValue(entry, depth + 1)).filter((entry) => entry !== undefined);
+  if (!isPlainObject(value)) return undefined;
+
+  const clone = {};
+  Object.entries(value).forEach(([key, entry]) => {
+    const normalizedKey = String(key || "").trim();
+    if (!normalizedKey || normalizedKey === "__proto__" || normalizedKey === "constructor" || normalizedKey === "prototype") return;
+    const normalizedValue = cloneJsonCompatibleValue(entry, depth + 1);
+    if (normalizedValue !== undefined) clone[normalizedKey] = normalizedValue;
+  });
+  return clone;
+}
+
+function sanitizeImportedSheetData(data) {
+  if (!isPlainObject(data)) return {};
+  const sanitized = {};
+
+  Object.entries(data).forEach(([key, value]) => {
+    const normalizedKey = String(key || "").trim();
+    if (!normalizedKey || normalizedKey === "__proto__" || normalizedKey === "constructor" || normalizedKey === "prototype") return;
+    if (normalizedKey === "__sheetMeta") {
+      sanitized.__sheetMeta = cloneJsonCompatibleValue(value) || { choices: {} };
+      return;
+    }
+    if (typeof value === "string" || typeof value === "boolean") {
+      sanitized[normalizedKey] = value;
+      return;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) sanitized[normalizedKey] = String(value);
+  });
+
+  if (!sanitized.__sheetMeta) sanitized.__sheetMeta = { choices: {} };
+  return sanitized;
+}
+
+function parseCharacterSheetPayload(json) {
+  let payload;
+  try {
+    payload = JSON.parse(json);
+  } catch (_error) {
+    throw new Error("El codigo del personaje no contiene datos JSON validos.");
+  }
+  if (payload?.type !== CHARACTER_SHEET_CODE_TYPE || payload?.version !== 1 || !isPlainObject(payload.data)) {
+    throw new Error("El codigo no contiene una planilla compatible.");
+  }
+  return sanitizeImportedSheetData(payload.data);
 }
 
 function rollDie(sides) {
@@ -2821,6 +2963,8 @@ function DmScreenApp() {
   const [liveHostPort, setLiveHostPort] = useState("8787");
   const [liveHostError, setLiveHostError] = useState("");
   const [boardView, setBoardView] = useState(persistedBoardState.view);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const deferredResourceSearchQuery = useDeferredValue(resourceSearchQuery);
   const dragRef = useRef(null);
   const resizeRef = useRef(null);
   const panRef = useRef(null);
@@ -2837,40 +2981,26 @@ function DmScreenApp() {
   ), []);
 
   const filteredMonsters = useMemo(() => {
-    const query = normalizeSearch(searchQuery);
-    const direction = sortDirection === "desc" ? -1 : 1;
-    return bestiary
-      .filter((monster) => (
-        (!query || monsterSearchText(monster).includes(query))
-        && (editionFilter === "all" || monsterEdition(monster) === editionFilter)
-        && (crFilter === "all" || formatCr(monster) === crFilter)
-      ))
-      .sort((left, right) => {
-        if (query) {
-          const leftScore = searchMatchScore(left.name, query, monsterSearchText(left));
-          const rightScore = searchMatchScore(right.name, query, monsterSearchText(right));
-          if (rightScore !== leftScore) return rightScore - leftScore;
-        }
-        return direction * compareMonsters(left, right, sortField);
-      });
-  }, [crFilter, editionFilter, searchQuery, sortDirection, sortField]);
+    const query = normalizeSearch(deferredSearchQuery);
+    return filterMonsterIndex(MONSTER_SEARCH_INDEX, {
+      query,
+      editionFilter,
+      crFilter,
+      sortField,
+      sortDirection
+    }).map(({ monster }) => monster);
+  }, [crFilter, deferredSearchQuery, editionFilter, sortDirection, sortField]);
 
   const filteredResources = useMemo(() => {
     const kind = resourcePickerKind || "spell";
-    const entries = kind === "spell" ? spells : ITEM_LIBRARY;
-    const query = normalizeSearch(resourceSearchQuery);
-    const direction = resourceSortDirection === "desc" ? -1 : 1;
-    return entries
-      .filter((entry) => !query || libraryEntrySearchText(entry, kind).includes(query))
-      .sort((left, right) => {
-        if (query) {
-          const leftScore = searchMatchScore(left.name, query, libraryEntrySearchText(left, kind));
-          const rightScore = searchMatchScore(right.name, query, libraryEntrySearchText(right, kind));
-          if (rightScore !== leftScore) return rightScore - leftScore;
-        }
-        return direction * compareLibraryEntries(left, right, kind, resourceSortField);
-      });
-  }, [resourcePickerKind, resourceSearchQuery, resourceSortDirection, resourceSortField]);
+    const index = kind === "spell" ? SPELL_SEARCH_INDEX : ITEM_SEARCH_INDEX;
+    const query = normalizeSearch(deferredResourceSearchQuery);
+    return filterLibraryIndex(index, kind, {
+      query,
+      sortField: resourceSortField,
+      sortDirection: resourceSortDirection
+    }).map(({ entry }) => entry);
+  }, [deferredResourceSearchQuery, resourcePickerKind, resourceSortDirection, resourceSortField]);
 
   useEffect(() => {
     if (!isPickerOpen) return;
@@ -3075,19 +3205,13 @@ function DmScreenApp() {
       addResourceNote(kind, entry, spawnPoint);
       return;
     }
-    const entries = kind === "spell" ? spells : ITEM_LIBRARY;
     const query = String(label || "").trim();
     const normalizedQuery = normalizeSearch(query);
-    const selectedEntry = entries
-      .filter((item) => !normalizedQuery || libraryEntrySearchText(item, kind).includes(normalizedQuery))
-      .sort((left, right) => {
-        if (normalizedQuery) {
-          const leftScore = searchMatchScore(left.name, normalizedQuery, libraryEntrySearchText(left, kind));
-          const rightScore = searchMatchScore(right.name, normalizedQuery, libraryEntrySearchText(right, kind));
-          if (rightScore !== leftScore) return rightScore - leftScore;
-        }
-        return compareLibraryEntries(left, right, kind, "name");
-      })[0] || null;
+    const selectedEntry = filterLibraryIndex(kind === "spell" ? SPELL_SEARCH_INDEX : ITEM_SEARCH_INDEX, kind, {
+      query: normalizedQuery,
+      sortField: "name",
+      sortDirection: "asc"
+    })[0]?.entry || null;
     openResourcePicker(kind, spawnPoint, { search: query, selectedEntry });
   }
 
