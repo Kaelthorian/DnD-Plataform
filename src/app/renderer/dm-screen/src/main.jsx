@@ -483,6 +483,12 @@ function parseModifier(value, fallback = 0) {
   return match ? Number.parseInt(match[0], 10) : fallback;
 }
 
+function formatToHitBonus(value) {
+  const source = String(value ?? "").trim();
+  if (!source) return "";
+  return signNumber(parseModifier(source, 0));
+}
+
 function formatCr(monster) {
   const cr = monster?.cr;
   if (cr == null || cr === "") return "None";
@@ -842,7 +848,7 @@ function cleanRulesText(text) {
       if (attackText.includes("rs")) return "Ranged Spell Attack:";
       return `${attackText.includes("r") ? "Ranged" : "Melee"} Attack:`;
     })
-    .replace(/\{@hit ([^}]+)\}/g, "$1 to hit")
+    .replace(/\{@hit ([^}]+)\}/g, (_match, bonus) => `${formatToHitBonus(bonus)} to hit`)
     .replace(/\{@h\}/g, "Hit: ")
     .replace(/\{@damage ([^}]+)\}/g, "$1")
     .replace(/\{@dice ([^}]+)\}/g, "$1")
@@ -1043,7 +1049,7 @@ function characterWeaponActions(data) {
       const attack = characterText(data, attackKey);
       const damage = characterText(data, damageKey);
       const parts = [
-        attack ? `${attack} to hit.` : "",
+        attack ? `${formatToHitBonus(attack)} to hit.` : "",
         damage ? `Hit: ${damage}.` : ""
       ].filter(Boolean);
       return { name, entries: [parts.join(" ")] };
