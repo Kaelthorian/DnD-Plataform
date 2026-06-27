@@ -105,6 +105,26 @@
       }
     },
     {
+      id: "shield-spell",
+      name: "Shield",
+      symbol: "AC+5",
+      tone: "positive",
+      description: "+5 AC hasta el inicio de tu proximo turno. Quitalo despues de resolver la ronda.",
+      effects: {
+        acBonus: 5
+      }
+    },
+    {
+      id: "shield-of-faith",
+      name: "Shield of Faith",
+      symbol: "AC+2",
+      tone: "positive",
+      description: "+2 AC mientras mantengas concentracion.",
+      effects: {
+        acBonus: 2
+      }
+    },
+    {
       id: "mage-armor",
       name: "Mage Armor",
       symbol: "AC 13",
@@ -112,6 +132,69 @@
       description: "Tu base AC pasa a 13 + DEX mientras no uses armadura.",
       effects: {
         baseArmorClassRules: [{ label: "Mage Armor", base: 13, ability: "DEX", requiresNoArmor: true, allowsShield: true }]
+      }
+    },
+    {
+      id: "guidance",
+      name: "Guidance",
+      symbol: "+1d4",
+      tone: "positive",
+      description: "Suma 1d4 a un ability check. Quitalo despues de usarlo.",
+      effects: {
+        checkBonusDice: [{ label: "Guidance", expression: "1d4" }]
+      }
+    },
+    {
+      id: "resistance-spell",
+      name: "Resistance",
+      symbol: "+1d4",
+      tone: "positive",
+      description: "Suma 1d4 a un saving throw. Quitalo despues de usarlo.",
+      effects: {
+        saveBonusDice: [{ label: "Resistance", expression: "1d4" }]
+      }
+    },
+    {
+      id: "longstrider",
+      name: "Longstrider",
+      symbol: "SPD+10",
+      tone: "positive",
+      description: "+10 ft. a tu Speed mientras dure el spell.",
+      effects: {
+        speedBonus: 10
+      }
+    },
+    {
+      id: "blurred",
+      name: "Blur",
+      symbol: "BLR",
+      tone: "positive",
+      description: "Los ataques contra ti tienen disadvantage mientras mantengas concentracion, salvo criaturas que no dependan de vista.",
+      effects: {
+        generalNotes: ["Ataques contra ti con disadvantage mientras Blur siga activo."]
+      }
+    },
+    {
+      id: "protection-from-evil-and-good",
+      name: "Protection from Evil and Good",
+      symbol: "PEG",
+      tone: "positive",
+      description: "Aberrations, Celestials, Elementals, Fey, Fiends y Undead tienen disadvantage al atacarte; tambien ayuda contra charm, frightened y possession.",
+      effects: {
+        generalNotes: ["Tipos protegidos tienen disadvantage al atacarte; ventaja en saves contra charm, frightened y possession de esos tipos."]
+      }
+    },
+    {
+      id: "foresight",
+      name: "Foresight",
+      symbol: "FST",
+      tone: "positive",
+      description: "Advantage en attack rolls, ability checks y saving throws; ataques contra ti tienen disadvantage.",
+      effects: {
+        attackRollMode: "advantage",
+        abilityCheckMode: "advantage",
+        saveRollMode: "advantage",
+        generalNotes: ["Ataques contra ti con disadvantage mientras Foresight siga activo."]
       }
     },
     {
@@ -486,6 +569,7 @@
       definitions,
       acBonus: 0,
       speedMultiplier: 1,
+      speedBonus: 0,
       speedOverride: null,
       passivePerceptionModifier: 0,
       baseArmorClassRules: [],
@@ -511,6 +595,7 @@
       if (Number.isFinite(Number(raw.speedMultiplier)) && Number(raw.speedMultiplier) > 0) {
         effects.speedMultiplier *= Number(raw.speedMultiplier);
       }
+      effects.speedBonus += Number(raw.speedBonus) || 0;
       if (Number.isFinite(Number(raw.speedOverride))) effects.speedOverride = Number(raw.speedOverride);
       effects.passivePerceptionModifier += Number(raw.passivePerceptionModifier) || 0;
       if (Array.isArray(raw.baseArmorClassRules)) {

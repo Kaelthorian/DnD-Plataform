@@ -63,6 +63,13 @@
     const itemPickerList = document.getElementById("itemPickerList");
     const itemPickerQuantity = document.getElementById("itemPickerQuantity");
     const itemPickerAdd = document.getElementById("itemPickerAdd");
+    const familiarPickerBackdrop = document.getElementById("familiarPickerBackdrop");
+    const familiarPickerClose = document.getElementById("familiarPickerClose");
+    const familiarPickerList = document.getElementById("familiarPickerList");
+    const familiarPickerOtherInput = document.getElementById("familiarPickerOtherInput");
+    const familiarPickerCancel = document.getElementById("familiarPickerCancel");
+    const familiarPickerConfirm = document.getElementById("familiarPickerConfirm");
+    const familiarNoteRoot = document.getElementById("familiarNoteRoot");
     const damageTooltip = document.getElementById("damageTooltip");
     const liveSheetClientBackdrop = document.getElementById("liveSheetClientBackdrop");
     const liveSheetClientClose = document.getElementById("liveSheetClientClose");
@@ -1099,6 +1106,18 @@
       itemPickerBackdrop?.addEventListener("click", (event) => {
         if (event.target === itemPickerBackdrop) closeItemPicker();
       });
+      familiarPickerClose?.addEventListener("click", closeFindFamiliarPicker);
+      familiarPickerCancel?.addEventListener("click", closeFindFamiliarPicker);
+      familiarPickerConfirm?.addEventListener("click", confirmFindFamiliarCast);
+      familiarPickerBackdrop?.addEventListener("click", (event) => {
+        if (event.target === familiarPickerBackdrop) closeFindFamiliarPicker();
+      });
+      familiarPickerOtherInput?.addEventListener("input", () => selectFindFamiliarOption("other"));
+      familiarPickerOtherInput?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        confirmFindFamiliarCast();
+      });
       document.addEventListener("pointerdown", (event) => {
         if (!activeSelectField) return;
         if (event.target === activeSelectField || optionMenu.contains(event.target)) return;
@@ -1113,6 +1132,7 @@
         if (event.key === "Escape") {
           closeOptionMenu();
           closeItemPicker();
+          closeFindFamiliarPicker();
           closeItemDrawer();
           closeTurnActionsPanel();
           closeLiveSheetClientPanel();

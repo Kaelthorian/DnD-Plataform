@@ -152,6 +152,24 @@ const CHARACTER_SAVE_FIELDS = {
   wis: ["ST Wisdom", "Check Box 21"],
   cha: ["ST Charisma", "Check Box 22"]
 };
+const HOMEBREW_MONSTER_DEFAULTS = {
+  name: "Homebrew Monster",
+  size: "M",
+  type: "monstrosity",
+  alignment: "Unaligned",
+  ac: "12",
+  hp: "10",
+  speed: "30",
+  cr: "1/4",
+  str: "10",
+  dex: "10",
+  con: "10",
+  int: "10",
+  wis: "10",
+  cha: "10",
+  traits: "",
+  actions: ""
+};
 const FREE_DICE_TYPES = [
   { sides: 20, label: "d20" },
   { sides: 12, label: "d12" },
@@ -955,6 +973,54 @@ function renderEntryText(value) {
     if (value.entry) return renderEntryText(value.entry);
   }
   return "";
+}
+
+function homebrewTextSections(text) {
+  return String(text || "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(/^([^:.-]{2,48})[:.-]\s*(.+)$/);
+      return {
+        name: match ? match[1].trim() : "Feature",
+        entries: [match ? match[2].trim() : line]
+      };
+    });
+}
+
+function homebrewHpValue(value) {
+  const text = String(value || "").trim();
+  if (!text) return { average: 1 };
+  const formulaMatch = text.match(/(\d+d\d+(?:\s*[+-]\s*\d+)?)/i);
+  const averageMatch = text.match(/\d+/);
+  return {
+    average: averageMatch ? Number.parseInt(averageMatch[0], 10) : undefined,
+    formula: formulaMatch?.[1]?.replace(/\s+/g, "")
+  };
+}
+
+function homebrewMonsterFromDraft(draft) {
+  const numericAbility = (value) => Math.max(1, Math.min(30, Number.parseInt(value, 10) || 10));
+  return {
+    name: String(draft.name || HOMEBREW_MONSTER_DEFAULTS.name).trim() || HOMEBREW_MONSTER_DEFAULTS.name,
+    source: "Homebrew",
+    size: [String(draft.size || "M").trim().toUpperCase() || "M"],
+    type: String(draft.type || "monstrosity").trim().toLowerCase() || "monstrosity",
+    alignment: String(draft.alignment || "Unaligned").trim() || "Unaligned",
+    ac: [Number.parseInt(draft.ac, 10) || 10],
+    hp: homebrewHpValue(draft.hp),
+    speed: { walk: Number.parseInt(draft.speed, 10) || 30 },
+    cr: String(draft.cr || "0").trim() || "0",
+    str: numericAbility(draft.str),
+    dex: numericAbility(draft.dex),
+    con: numericAbility(draft.con),
+    int: numericAbility(draft.int),
+    wis: numericAbility(draft.wis),
+    cha: numericAbility(draft.cha),
+    trait: homebrewTextSections(draft.traits),
+    action: homebrewTextSections(draft.actions)
+  };
 }
 
 function cleanRulesText(text) {
@@ -3479,6 +3545,110 @@ function CharacterCodeModal({ isOpen, value, error, onChange, onClose, onSubmit 
   );
 }
 
+function HomebrewMonsterModal({ isOpen, draft, onChange, onClose, onSubmit }) {
+  const nameRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    nameRef.current?.focus();
+    nameRef.current?.select();
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const updateField = (field) => (event) => onChange({ ...draft, [field]: event.target.value });
+  const inputClass = "h-10 w-full border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20";
+  const labelClass = "text-xs font-bold uppercase tracking-wide text-neutral-500";
+
+  return (
+    <div
+      className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/75 p-4"
+      data-homebrew-monster-modal="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <section className="max-h-[calc(100vh-32px)] w-[min(760px,calc(100vw-32px))] overflow-hidden border border-neutral-700 bg-neutral-900 text-neutral-200 shadow-2xl">
+        <header className="border-b-2 border-amber-500 bg-neutral-950 px-5 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Homebrew Monster</h1>
+              <p className="mt-1 text-sm text-neutral-400">Crea una nota de monstruo custom para el tablero.</p>
+            </div>
+            <button className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onClick={onClose}>X</button>
+          </div>
+        </header>
+        <form
+          className="max-h-[calc(100vh-124px)] space-y-4 overflow-auto p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <div className="grid gap-3 sm:grid-cols-[2fr_0.8fr_1fr_1fr]">
+            <label className={labelClass}>
+              Name
+              <input ref={nameRef} className={`${inputClass} mt-1`} value={draft.name} onChange={updateField("name")} />
+            </label>
+            <label className={labelClass}>
+              Size
+              <select className={`${inputClass} mt-1`} value={draft.size} onChange={updateField("size")}>
+                {Object.entries(SIZE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className={labelClass}>
+              Type
+              <input className={`${inputClass} mt-1`} value={draft.type} onChange={updateField("type")} />
+            </label>
+            <label className={labelClass}>
+              Alignment
+              <input className={`${inputClass} mt-1`} value={draft.alignment} onChange={updateField("alignment")} />
+            </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-4">
+            <label className={labelClass}>AC<input className={`${inputClass} mt-1`} value={draft.ac} onChange={updateField("ac")} /></label>
+            <label className={labelClass}>HP<input className={`${inputClass} mt-1`} value={draft.hp} onChange={updateField("hp")} placeholder="27 or 5d8+5" /></label>
+            <label className={labelClass}>Speed<input className={`${inputClass} mt-1`} value={draft.speed} onChange={updateField("speed")} /></label>
+            <label className={labelClass}>CR<input className={`${inputClass} mt-1`} value={draft.cr} onChange={updateField("cr")} /></label>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {ABILITY_KEYS.map((ability) => (
+              <label key={ability} className={labelClass}>
+                {ABILITY_LABELS[ability]}
+                <input className={`${inputClass} mt-1`} value={draft[ability]} onChange={updateField(ability)} />
+              </label>
+            ))}
+          </div>
+
+          <label className={labelClass}>
+            Traits
+            <textarea
+              className="mt-1 min-h-28 w-full resize-y border border-neutral-700 bg-neutral-950 px-3 py-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              value={draft.traits}
+              onChange={updateField("traits")}
+              placeholder="Keen Smell: Advantage on Wisdom (Perception) checks that rely on smell."
+            />
+          </label>
+          <label className={labelClass}>
+            Actions
+            <textarea
+              className="mt-1 min-h-32 w-full resize-y border border-neutral-700 bg-neutral-950 px-3 py-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              value={draft.actions}
+              onChange={updateField("actions")}
+              placeholder="Bite: Melee Weapon Attack: +4 to hit. Hit: 1d8+2 piercing damage."
+            />
+          </label>
+
+          <div className="flex justify-end gap-3 border-t border-neutral-800 pt-4">
+            <button className="inline-flex h-10 items-center border border-neutral-700 bg-neutral-900 px-4 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onClose}>Cancel</button>
+            <button className="inline-flex h-10 items-center bg-amber-500 px-4 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="submit">Create Monster</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 function DetailList({ title, items }) {
   const list = Array.isArray(items) ? items : [];
   if (!list.length) return null;
@@ -3523,6 +3693,9 @@ function DmScreenApp() {
   const [characterCodeValue, setCharacterCodeValue] = useState("");
   const [characterCodeError, setCharacterCodeError] = useState("");
   const [characterCodeSpawnPoint, setCharacterCodeSpawnPoint] = useState(null);
+  const [isHomebrewMonsterModalOpen, setIsHomebrewMonsterModalOpen] = useState(false);
+  const [homebrewMonsterDraft, setHomebrewMonsterDraft] = useState(HOMEBREW_MONSTER_DEFAULTS);
+  const [homebrewMonsterSpawnPoint, setHomebrewMonsterSpawnPoint] = useState(null);
   const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], playerCount: 0 });
   const [livePlayers, setLivePlayers] = useState([]);
   const [liveRolls, setLiveRolls] = useState([]);
@@ -3803,6 +3976,25 @@ function DmScreenApp() {
     setCharacterCodeValue("");
     setCharacterCodeError("");
     setCharacterCodeSpawnPoint(null);
+  }
+
+  function openHomebrewMonsterModal() {
+    if (!contextMenu) return;
+    setHomebrewMonsterSpawnPoint({ x: contextMenu.boardX, y: contextMenu.boardY });
+    setHomebrewMonsterDraft(HOMEBREW_MONSTER_DEFAULTS);
+    setIsHomebrewMonsterModalOpen(true);
+    setContextMenu(null);
+  }
+
+  function closeHomebrewMonsterModal() {
+    setIsHomebrewMonsterModalOpen(false);
+    setHomebrewMonsterSpawnPoint(null);
+  }
+
+  function addHomebrewMonsterNote() {
+    const monster = homebrewMonsterFromDraft(homebrewMonsterDraft);
+    addBoardNote({ kind: "monster", monster }, homebrewMonsterSpawnPoint);
+    closeHomebrewMonsterModal();
   }
 
   async function addCharacterNoteFromCode() {
@@ -4153,7 +4345,7 @@ function DmScreenApp() {
   }
 
   function openBoardContextMenu(event) {
-    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-board-control='true']")) return;
+    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']")) return;
     event.preventDefault();
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
@@ -4183,7 +4375,7 @@ function DmScreenApp() {
   }
 
   function shouldIgnoreBoardPointer(event) {
-    return Boolean(event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-board-control='true']"));
+    return Boolean(event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']"));
   }
 
   function startBoardPan(event) {
@@ -4566,6 +4758,14 @@ function DmScreenApp() {
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
             type="button"
+            onClick={openHomebrewMonsterModal}
+          >
+            <span>Add Homebrew</span>
+            <span className="text-neutral-500">+</span>
+          </button>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
             onClick={openCharacterCodeModal}
           >
             <span>Add Character Code</span>
@@ -4600,6 +4800,13 @@ function DmScreenApp() {
         }}
         onClose={closeCharacterCodeModal}
         onSubmit={addCharacterNoteFromCode}
+      />
+      <HomebrewMonsterModal
+        isOpen={isHomebrewMonsterModalOpen}
+        draft={homebrewMonsterDraft}
+        onChange={setHomebrewMonsterDraft}
+        onClose={closeHomebrewMonsterModal}
+        onSubmit={addHomebrewMonsterNote}
       />
 
       <MonsterPicker

@@ -151,6 +151,27 @@
       </div>
     </div>
   </div>
+  <div class="familiar-picker-backdrop" id="familiarPickerBackdrop" aria-hidden="true" hidden>
+    <div class="familiar-picker" role="dialog" aria-modal="true" aria-labelledby="familiarPickerTitle">
+      <div class="familiar-picker-header">
+        <div>
+          <div class="familiar-picker-title" id="familiarPickerTitle">Find Familiar</div>
+          <div class="familiar-picker-subtitle">Elegi la forma que queres invocar.</div>
+        </div>
+        <button class="familiar-picker-close" id="familiarPickerClose" type="button" aria-label="Cerrar">X</button>
+      </div>
+      <div class="familiar-picker-list" id="familiarPickerList"></div>
+      <label class="familiar-picker-other">
+        <span>Other CR 0 Beast</span>
+        <input class="familiar-picker-other-input" id="familiarPickerOtherInput" type="text" placeholder="Nombre de la bestia">
+      </label>
+      <div class="familiar-picker-actions">
+        <button class="familiar-picker-secondary" id="familiarPickerCancel" type="button">Cancelar</button>
+        <button class="familiar-picker-primary" id="familiarPickerConfirm" type="button">Cast</button>
+      </div>
+    </div>
+  </div>
+  <div class="familiar-note-root" id="familiarNoteRoot" aria-live="polite"></div>
   <div class="damage-tooltip" id="damageTooltip"></div>
   <div class="turn-actions-backdrop" id="turnActionsBackdrop" aria-hidden="true">
     <aside class="turn-actions-panel" id="turnActionsPanel" role="dialog" aria-modal="true" aria-labelledby="turnActionsTitle">
@@ -410,6 +431,176 @@
       WIS: "WIS",
       CHA: "CHA"
     };
+
+    const FIND_FAMILIAR_OPTIONS = [
+      {
+        key: "bat",
+        name: "Bat",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "12",
+        hp: "1 (1d4 - 1)",
+        speed: "5 ft., fly 30 ft.",
+        abilities: { str: 2, dex: 15, con: 8, int: 2, wis: 12, cha: 4 },
+        skills: "",
+        senses: "Blindsight 60 ft., passive Perception 11",
+        traits: ["Echolocation: no blindsight while deafened.", "Keen Hearing: advantage on Wisdom (Perception) checks that rely on hearing."],
+        actions: ["Bite: +0 to hit, 1 piercing damage."]
+      },
+      {
+        key: "cat",
+        name: "Cat",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "12",
+        hp: "2 (1d4)",
+        speed: "40 ft., climb 30 ft.",
+        abilities: { str: 3, dex: 15, con: 10, int: 3, wis: 12, cha: 7 },
+        skills: "Perception +3, Stealth +4",
+        senses: "Passive Perception 13",
+        traits: ["Keen Smell: advantage on Wisdom (Perception) checks that rely on smell."],
+        actions: ["Claws: +0 to hit, 1 slashing damage."]
+      },
+      {
+        key: "frog",
+        name: "Frog",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "11",
+        hp: "1 (1d4 - 1)",
+        speed: "20 ft., swim 20 ft.",
+        abilities: { str: 1, dex: 13, con: 8, int: 1, wis: 8, cha: 3 },
+        skills: "Perception +1, Stealth +3",
+        senses: "Darkvision 30 ft., passive Perception 11",
+        traits: ["Amphibious: can breathe air and water.", "Standing Leap: long jump up to 10 ft. and high jump up to 5 ft., with or without a running start."],
+        actions: ["No damaging action in the standard stat block."]
+      },
+      {
+        key: "hawk",
+        name: "Hawk",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "13",
+        hp: "1 (1d4 - 1)",
+        speed: "10 ft., fly 60 ft.",
+        abilities: { str: 5, dex: 16, con: 8, int: 2, wis: 14, cha: 6 },
+        skills: "Perception +4",
+        senses: "Passive Perception 14",
+        traits: ["Keen Sight: advantage on Wisdom (Perception) checks that rely on sight."],
+        actions: ["Talons: +5 to hit, 1 slashing damage."]
+      },
+      {
+        key: "lizard",
+        name: "Lizard",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "10",
+        hp: "2 (1d4)",
+        speed: "20 ft., climb 20 ft.",
+        abilities: { str: 2, dex: 11, con: 10, int: 1, wis: 8, cha: 3 },
+        skills: "",
+        senses: "Darkvision 30 ft., passive Perception 9",
+        traits: [],
+        actions: ["Bite: +0 to hit, 1 piercing damage."]
+      },
+      {
+        key: "octopus",
+        name: "Octopus",
+        subtitle: "Small beast, unaligned (CR 0)",
+        ac: "12",
+        hp: "3 (1d6)",
+        speed: "5 ft., swim 30 ft.",
+        abilities: { str: 4, dex: 15, con: 11, int: 3, wis: 10, cha: 4 },
+        skills: "Perception +2, Stealth +4",
+        senses: "Darkvision 30 ft., passive Perception 12",
+        traits: ["Hold Breath: can hold breath for 30 minutes.", "Underwater Camouflage: advantage on Dexterity (Stealth) checks made underwater."],
+        actions: ["Tentacles: +4 to hit, 1 bludgeoning damage."]
+      },
+      {
+        key: "owl",
+        name: "Owl",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "11",
+        hp: "1 (1d4 - 1)",
+        speed: "5 ft., fly 60 ft.",
+        abilities: { str: 3, dex: 13, con: 8, int: 2, wis: 12, cha: 7 },
+        skills: "Perception +3, Stealth +3",
+        senses: "Darkvision 120 ft., passive Perception 13",
+        traits: ["Flyby: does not provoke opportunity attacks when it flies out of an enemy's reach.", "Keen Hearing and Sight: advantage on Wisdom (Perception) checks that rely on hearing or sight."],
+        actions: ["Talons: +3 to hit, 1 slashing damage."]
+      },
+      {
+        key: "rat",
+        name: "Rat",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "10",
+        hp: "1 (1d4 - 1)",
+        speed: "20 ft.",
+        abilities: { str: 2, dex: 11, con: 9, int: 2, wis: 10, cha: 4 },
+        skills: "",
+        senses: "Darkvision 30 ft., passive Perception 10",
+        traits: ["Keen Smell: advantage on Wisdom (Perception) checks that rely on smell."],
+        actions: ["Bite: +0 to hit, 1 piercing damage."]
+      },
+      {
+        key: "raven",
+        name: "Raven",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "12",
+        hp: "1 (1d4 - 1)",
+        speed: "10 ft., fly 50 ft.",
+        abilities: { str: 2, dex: 14, con: 8, int: 2, wis: 12, cha: 6 },
+        skills: "Perception +3",
+        senses: "Passive Perception 13",
+        traits: ["Mimicry: can mimic simple sounds it has heard."],
+        actions: ["Beak: +4 to hit, 1 piercing damage."]
+      },
+      {
+        key: "spider",
+        name: "Spider",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "12",
+        hp: "1 (1d4 - 1)",
+        speed: "20 ft., climb 20 ft.",
+        abilities: { str: 2, dex: 14, con: 8, int: 1, wis: 10, cha: 2 },
+        skills: "Stealth +4",
+        senses: "Darkvision 30 ft., passive Perception 10",
+        traits: ["Spider Climb: can climb difficult surfaces, including upside down on ceilings.", "Web Sense and Web Walker: detects and ignores movement restrictions from webs."],
+        actions: ["Bite: +4 to hit, 1 piercing damage plus poison save per stat block."]
+      },
+      {
+        key: "weasel",
+        name: "Weasel",
+        subtitle: "Tiny beast, unaligned (CR 0)",
+        ac: "13",
+        hp: "1 (1d4 - 1)",
+        speed: "30 ft.",
+        abilities: { str: 3, dex: 16, con: 8, int: 2, wis: 12, cha: 3 },
+        skills: "Perception +3, Stealth +5",
+        senses: "Passive Perception 13",
+        traits: ["Keen Hearing and Smell: advantage on Wisdom (Perception) checks that rely on hearing or smell."],
+        actions: ["Bite: +5 to hit, 1 piercing damage."]
+      },
+      {
+        key: "other",
+        name: "Other Beast",
+        subtitle: "CR 0 beast chosen with the DM",
+        ac: "Use beast stat block",
+        hp: "Use beast stat block",
+        speed: "Use beast stat block",
+        abilities: { str: 10, dex: 10, con: 10, int: 2, wis: 10, cha: 6 },
+        skills: "Use the chosen CR 0 beast stat block.",
+        senses: "Use the chosen CR 0 beast stat block.",
+        traits: ["Must be a Beast with Challenge Rating 0.", "Confirm exact stats with the DM."],
+        actions: ["Use the chosen beast's CR 0 stat block."]
+      }
+    ];
+    const FIND_FAMILIAR_OPTION_BY_KEY = new Map(FIND_FAMILIAR_OPTIONS.map((option) => [option.key, option]));
+    let pendingFindFamiliarSpell = null;
+    let selectedFindFamiliarKey = "owl";
+    let familiarNotes = [];
+    let familiarNoteZ = 80;
+    let familiarNoteDrag = null;
+    let familiarNoteDropTargetId = null;
+    const FAMILIAR_NOTE_WIDTH = 390;
+    const FAMILIAR_NOTE_HEIGHT = 560;
+    const FAMILIAR_NOTE_MIN_WIDTH = 280;
+    const FAMILIAR_NOTE_MIN_HEIGHT = 220;
 
     const ARMOR_AC_RULES = [
       { name: "Half Plate Armor", aliases: ["half plate armor", "half plate"], base: 15, dexCap: 2 },
@@ -1610,8 +1801,660 @@
       return name.trim().toLowerCase();
     }
 
-    function isMageArmorName(name) {
-      return normalizeName(String(name || "")).replace(/\barmour\b/g, "armor") === "mage armor";
+    function spellStatusIdsForName(name) {
+      const normalized = normalizeName(String(name || ""))
+        .replace(/\barmour\b/g, "armor")
+        .replace(/\s*&\s*/g, " and ")
+        .replace(/\s+/g, " ");
+      const statusIdsBySpell = {
+        "bless": ["blessed"],
+        "blur": ["blurred"],
+        "foresight": ["foresight"],
+        "guidance": ["guidance"],
+        "greater invisibility": ["invisible"],
+        "haste": ["hasted"],
+        "invisibility": ["invisible"],
+        "longstrider": ["longstrider"],
+        "mage armor": ["mage-armor"],
+        "protection from evil and good": ["protection-from-evil-and-good"],
+        "resistance": ["resistance-spell"],
+        "shield": ["shield-spell"],
+        "shield of faith": ["shield-of-faith"]
+      };
+      return statusIdsBySpell[normalized] || [];
+    }
+
+    function isFindFamiliarSpell(spell) {
+      return [spell?.sourceName, spell?.name]
+        .filter(Boolean)
+        .some((name) => normalizeName(name) === "find familiar");
+    }
+
+    function findFamiliarOption(key) {
+      return FIND_FAMILIAR_OPTION_BY_KEY.get(String(key || "")) || FIND_FAMILIAR_OPTION_BY_KEY.get("owl");
+    }
+
+    function renderFindFamiliarOptions() {
+      if (!familiarPickerList) return;
+      familiarPickerList.textContent = "";
+      FIND_FAMILIAR_OPTIONS.forEach((option) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `familiar-picker-option ${option.key === selectedFindFamiliarKey ? "active" : ""}`;
+        button.textContent = option.name;
+        button.addEventListener("click", () => selectFindFamiliarOption(option.key));
+        familiarPickerList.appendChild(button);
+      });
+    }
+
+    function selectFindFamiliarOption(key) {
+      selectedFindFamiliarKey = findFamiliarOption(key).key;
+      renderFindFamiliarOptions();
+      if (selectedFindFamiliarKey === "other") familiarPickerOtherInput?.focus();
+    }
+
+    function openFindFamiliarPicker(spell) {
+      pendingFindFamiliarSpell = spell;
+      selectedFindFamiliarKey = "owl";
+      if (familiarPickerOtherInput) familiarPickerOtherInput.value = "";
+      renderFindFamiliarOptions();
+      familiarPickerBackdrop?.classList.add("visible");
+      familiarPickerBackdrop?.removeAttribute("hidden");
+      familiarPickerBackdrop?.setAttribute("aria-hidden", "false");
+      familiarPickerList?.querySelector(".active")?.focus();
+    }
+
+    function closeFindFamiliarPicker() {
+      pendingFindFamiliarSpell = null;
+      familiarPickerBackdrop?.classList.remove("visible");
+      familiarPickerBackdrop?.setAttribute("aria-hidden", "true");
+      familiarPickerBackdrop?.setAttribute("hidden", "");
+    }
+
+    function selectedFindFamiliar() {
+      const option = findFamiliarOption(selectedFindFamiliarKey);
+      if (option.key !== "other") return option;
+      const customName = familiarPickerOtherInput?.value?.trim();
+      return {
+        ...option,
+        name: customName || "Other Beast",
+        subtitle: customName ? `${customName} - CR 0 beast chosen with the DM` : option.subtitle
+      };
+    }
+
+    function confirmFindFamiliarCast() {
+      const spell = pendingFindFamiliarSpell;
+      if (!spell) return;
+      const familiar = selectedFindFamiliar();
+      closeFindFamiliarPicker();
+      castPreparedSpell(spell, { findFamiliar: familiar });
+    }
+
+    function familiarRootNoteId(noteId, notes = familiarNotes) {
+      const byId = new Map(notes.map((note) => [note.id, note]));
+      let currentId = noteId;
+      for (let guard = 0; guard < notes.length + 1; guard += 1) {
+        const current = byId.get(currentId);
+        if (!current?.parentNoteId) return currentId;
+        currentId = current.parentNoteId;
+      }
+      return noteId;
+    }
+
+    function familiarTabIds(rootNote) {
+      return [rootNote?.id, ...(Array.isArray(rootNote?.tabNoteIds) ? rootNote.tabNoteIds : [])].filter(Boolean);
+    }
+
+    function familiarGroupedNotes(rootNote) {
+      const ids = new Set(familiarTabIds(rootNote));
+      return familiarNotes.filter((note) => ids.has(note.id));
+    }
+
+    function familiarDisplayName(note) {
+      return note?.title || note?.familiar?.name || "Familiar";
+    }
+
+    function familiarNoteSubtitle(familiar) {
+      return familiar?.subtitle || "Tiny beast, unaligned (CR 0)";
+    }
+
+    function viewportClamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function clampFamiliarNotePosition(point, width = FAMILIAR_NOTE_WIDTH, height = FAMILIAR_NOTE_HEIGHT) {
+      const viewportWidth = window.innerWidth || 1200;
+      const viewportHeight = window.innerHeight || 800;
+      return {
+        x: viewportClamp(point.x, 8, Math.max(8, viewportWidth - width - 8)),
+        y: viewportClamp(point.y, 8, Math.max(8, viewportHeight - height - 8))
+      };
+    }
+
+    function createFamiliarNote(familiar) {
+      const offset = familiarNotes.filter((note) => !note.parentNoteId).length % 6;
+      const size = {
+        width: Math.min(FAMILIAR_NOTE_WIDTH, Math.max(FAMILIAR_NOTE_MIN_WIDTH, (window.innerWidth || 1200) - 28)),
+        height: Math.min(FAMILIAR_NOTE_HEIGHT, Math.max(FAMILIAR_NOTE_MIN_HEIGHT, (window.innerHeight || 800) - 28))
+      };
+      const point = clampFamiliarNotePosition({ x: 96 + offset * 34, y: 96 + offset * 28 }, size.width, size.height);
+      return {
+        id: `familiar-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        familiar,
+        title: familiar?.name || "Familiar",
+        x: point.x,
+        y: point.y,
+        width: size.width,
+        height: size.height,
+        z: familiarNoteZ += 1,
+        rolls: [],
+        dicePanelOpen: false,
+        parentNoteId: null,
+        tabNoteIds: [],
+        activeTabId: null
+      };
+    }
+
+    function showFamiliarNote(familiar) {
+      if (!familiar) return;
+      familiarNotes.push(createFamiliarNote(familiar));
+      renderFamiliarNotes();
+    }
+
+    function focusFamiliarNote(noteId) {
+      const rootId = familiarRootNoteId(noteId);
+      familiarNoteZ += 1;
+      familiarNotes = familiarNotes.map((note) => note.id === rootId ? { ...note, z: familiarNoteZ } : note);
+      renderFamiliarNotes();
+    }
+
+    function closeFamiliarNote(noteId, event = null) {
+      const rootId = familiarRootNoteId(noteId);
+      const root = familiarNotes.find((note) => note.id === rootId);
+      if (!root) return;
+      if (event?.shiftKey) {
+        const idsToRemove = new Set(familiarTabIds(root));
+        familiarNotes = familiarNotes.filter((note) => !idsToRemove.has(note.id));
+        renderFamiliarNotes();
+        return;
+      }
+      const groupedIds = familiarTabIds(root);
+      if (groupedIds.length <= 1 || noteId === rootId) {
+        const remainingTabId = groupedIds.find((id) => id !== rootId);
+        if (!remainingTabId) {
+          familiarNotes = familiarNotes.filter((note) => note.id !== rootId);
+          renderFamiliarNotes();
+          return;
+        }
+        const promoted = familiarNotes.find((note) => note.id === remainingTabId);
+        familiarNotes = familiarNotes
+          .filter((note) => note.id !== rootId)
+          .map((note) => {
+            if (note.id === remainingTabId) {
+              return {
+                ...note,
+                parentNoteId: null,
+                tabNoteIds: groupedIds.filter((id) => id !== rootId && id !== remainingTabId),
+                activeTabId: remainingTabId,
+                x: root.x,
+                y: root.y,
+                width: root.width,
+                height: root.height,
+                z: root.z
+              };
+            }
+            if (groupedIds.includes(note.id)) return { ...note, parentNoteId: remainingTabId };
+            return note;
+          });
+        if (promoted) renderFamiliarNotes();
+        return;
+      }
+      familiarNotes = familiarNotes
+        .filter((note) => note.id !== noteId)
+        .map((note) => (
+          note.id === rootId
+            ? {
+              ...note,
+              tabNoteIds: (note.tabNoteIds || []).filter((id) => id !== noteId),
+              activeTabId: note.activeTabId === noteId ? rootId : note.activeTabId
+            }
+            : note
+        ));
+      renderFamiliarNotes();
+    }
+
+    function selectFamiliarTab(rootId, tabId) {
+      familiarNotes = familiarNotes.map((note) => note.id === rootId ? { ...note, activeTabId: tabId } : note);
+      renderFamiliarNotes();
+    }
+
+    function detachFamiliarTab(noteId, rootId, point) {
+      const root = familiarNotes.find((note) => note.id === rootId);
+      const detached = familiarNotes.find((note) => note.id === noteId);
+      if (!root || !detached || noteId === rootId) return;
+      const nextPoint = clampFamiliarNotePosition(point, root.width, root.height);
+      familiarNotes = familiarNotes.map((note) => {
+        if (note.id === rootId) {
+          const tabIds = (note.tabNoteIds || []).filter((id) => id !== noteId);
+          return {
+            ...note,
+            tabNoteIds: tabIds,
+            activeTabId: note.activeTabId === noteId ? (tabIds[0] || rootId) : note.activeTabId
+          };
+        }
+        if (note.id === noteId) {
+          return { ...note, parentNoteId: null, tabNoteIds: [], activeTabId: noteId, x: nextPoint.x, y: nextPoint.y, z: familiarNoteZ += 1 };
+        }
+        return note;
+      });
+      renderFamiliarNotes();
+    }
+
+    function groupFamiliarNoteIntoRoot(dragNoteId, targetNoteId) {
+      const dragRootId = familiarRootNoteId(dragNoteId);
+      const targetRootId = familiarRootNoteId(targetNoteId);
+      if (!dragRootId || !targetRootId || dragRootId === targetRootId) return;
+      const dragRoot = familiarNotes.find((note) => note.id === dragRootId);
+      const targetRoot = familiarNotes.find((note) => note.id === targetRootId);
+      if (!dragRoot || !targetRoot) return;
+      const targetIds = new Set(familiarTabIds(targetRoot));
+      const movedIds = familiarTabIds(dragRoot).filter((id) => !targetIds.has(id));
+      if (!movedIds.length) return;
+      familiarNotes = familiarNotes.map((note) => {
+        if (note.id === targetRootId) {
+          return { ...note, tabNoteIds: [...(note.tabNoteIds || []), ...movedIds], activeTabId: dragRootId };
+        }
+        if (movedIds.includes(note.id)) return { ...note, parentNoteId: targetRootId, tabNoteIds: [], activeTabId: note.id };
+        return note;
+      });
+      renderFamiliarNotes();
+    }
+
+    function findFamiliarDropTarget(noteId, point) {
+      const rootId = familiarRootNoteId(noteId);
+      return familiarNotes
+        .filter((note) => !note.parentNoteId && note.id !== rootId)
+        .sort((left, right) => (right.z || 0) - (left.z || 0))
+        .find((note) => (
+          point.x >= note.x
+          && point.x <= note.x + note.width
+          && point.y >= note.y
+          && point.y <= note.y + note.height
+        ))?.id || null;
+    }
+
+    function startFamiliarNoteDrag(event, noteId) {
+      if (event.button != null && event.button !== 0) return;
+      event.preventDefault();
+      const rootId = familiarRootNoteId(noteId);
+      const note = familiarNotes.find((entry) => entry.id === rootId);
+      if (!note) return;
+      familiarNoteZ += 1;
+      familiarNotes = familiarNotes.map((entry) => entry.id === rootId ? { ...entry, z: familiarNoteZ } : entry);
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      familiarNoteDrag = {
+        pointerId: event.pointerId,
+        noteId: rootId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startX: note.x,
+        startY: note.y,
+        width: note.width,
+        height: note.height,
+        moved: false,
+        dropTargetId: null
+      };
+      document.addEventListener("pointermove", handleFamiliarNoteDrag);
+      document.addEventListener("pointerup", stopFamiliarNoteDrag, { once: true });
+      document.addEventListener("pointercancel", stopFamiliarNoteDrag, { once: true });
+    }
+
+    function handleFamiliarNoteDrag(event) {
+      const drag = familiarNoteDrag;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      if (Math.abs(event.clientX - drag.startClientX) > 4 || Math.abs(event.clientY - drag.startClientY) > 4) drag.moved = true;
+      const nextPoint = clampFamiliarNotePosition({
+        x: drag.startX + event.clientX - drag.startClientX,
+        y: drag.startY + event.clientY - drag.startClientY
+      }, drag.width, drag.height);
+      const targetId = findFamiliarDropTarget(drag.noteId, {
+        x: nextPoint.x + drag.width / 2,
+        y: nextPoint.y + drag.height / 2
+      });
+      familiarNoteDropTargetId = targetId;
+      drag.dropTargetId = targetId;
+      familiarNotes = familiarNotes.map((note) => note.id === drag.noteId ? { ...note, x: nextPoint.x, y: nextPoint.y } : note);
+      renderFamiliarNotes();
+    }
+
+    function stopFamiliarNoteDrag(event) {
+      document.removeEventListener("pointermove", handleFamiliarNoteDrag);
+      const drag = familiarNoteDrag;
+      familiarNoteDrag = null;
+      familiarNoteDropTargetId = null;
+      if (drag?.moved && drag.dropTargetId) groupFamiliarNoteIntoRoot(drag.noteId, drag.dropTargetId);
+      else renderFamiliarNotes();
+    }
+
+    function startFamiliarTabDrag(event, noteId, rootId) {
+      if (event.button != null && event.button !== 0) return;
+      event.stopPropagation();
+      const root = familiarNotes.find((note) => note.id === rootId);
+      if (!root || noteId === rootId) return;
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const pointerId = event.pointerId;
+      function move(moveEvent) {
+        if (moveEvent.pointerId !== pointerId) return;
+        if (Math.abs(moveEvent.clientX - startX) <= 6 && Math.abs(moveEvent.clientY - startY) <= 6) return;
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        detachFamiliarTab(noteId, rootId, { x: moveEvent.clientX - root.width / 2, y: moveEvent.clientY - 18 });
+      }
+      function up(upEvent) {
+        if (upEvent.pointerId !== pointerId) return;
+        document.removeEventListener("pointermove", move);
+      }
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up, { once: true });
+    }
+
+    function rollD20ForFamiliar(modifier = 0) {
+      const die = rollDie(20);
+      return {
+        kind: "d20",
+        expression: `d20${modifier ? formatModifier(modifier) : ""}`,
+        total: die + modifier,
+        detail: `${die}${modifier ? ` ${formatModifier(modifier)}` : ""}`,
+        dice: [die],
+        modifier
+      };
+    }
+
+    function recordFamiliarRoll(noteId, label, roll) {
+      familiarNotes = familiarNotes.map((note) => (
+        note.id === noteId
+          ? {
+            ...note,
+            dicePanelOpen: true,
+            rolls: [{ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, label, roll }, ...(note.rolls || [])].slice(0, 20)
+          }
+          : note
+      ));
+      renderFamiliarNotes();
+    }
+
+    function toggleFamiliarDicePanel(noteId) {
+      familiarNotes = familiarNotes.map((note) => note.id === noteId ? { ...note, dicePanelOpen: !note.dicePanelOpen } : note);
+      renderFamiliarNotes();
+    }
+
+    function familiarHpFormula(familiar) {
+      const formula = String(familiar?.hp || "").match(/\(([^)]*d[^)]*)\)/i)?.[1];
+      return formula || "";
+    }
+
+    function appendFamiliarRollButton(parent, label, text, onRoll) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "familiar-roll-button";
+      button.title = label;
+      button.textContent = text;
+      button.addEventListener("pointerdown", (event) => event.stopPropagation());
+      button.addEventListener("click", onRoll);
+      parent.appendChild(button);
+      return button;
+    }
+
+    function appendInteractiveFamiliarText(parent, text, context, noteId) {
+      const source = String(text || "");
+      const pattern = /(\d+d\d+(?:\s*[+-]\s*\d+)*)|([+-]\d+)/gi;
+      let cursor = 0;
+      let match;
+      while ((match = pattern.exec(source))) {
+        if (match.index > cursor) parent.appendChild(document.createTextNode(source.slice(cursor, match.index)));
+        const token = match[0];
+        if (match[1]) {
+          const expression = token.replace(/\s+/g, "").replace(/^d/i, "1d");
+          appendFamiliarRollButton(parent, `Tirar ${expression}`, token, () => recordFamiliarRoll(noteId, `${context}: ${expression}`, rollDiceExpression(expression)));
+        } else {
+          const modifier = Number.parseInt(token, 10) || 0;
+          appendFamiliarRollButton(parent, `Tirar d20${formatModifier(modifier)}`, token, () => recordFamiliarRoll(noteId, `${context}: d20${formatModifier(modifier)}`, rollD20ForFamiliar(modifier)));
+        }
+        cursor = match.index + token.length;
+      }
+      if (cursor < source.length) parent.appendChild(document.createTextNode(source.slice(cursor)));
+    }
+
+    function appendFamiliarTextLine(root, label, value, noteId = null) {
+      if (!value) return;
+      const line = document.createElement("p");
+      line.className = "familiar-note-line";
+      appendText(line, "familiar-note-strong", label);
+      line.appendChild(document.createTextNode(" "));
+      if (noteId) appendInteractiveFamiliarText(line, value, label, noteId);
+      else line.appendChild(document.createTextNode(value));
+      root.appendChild(line);
+    }
+
+    function appendFamiliarAbilityCell(grid, familiar, key, noteId) {
+      const score = familiar.abilities?.[key];
+      if (!Number.isFinite(score)) return;
+      const label = { str: "STR", dex: "DEX", con: "CON", int: "INT", wis: "WIS", cha: "CHA" }[key];
+      const modifier = abilityModifier(score) || 0;
+      const cell = document.createElement("div");
+      cell.className = "familiar-ability-cell";
+      appendText(cell, "familiar-ability-label", label, "span");
+      appendText(cell, "familiar-ability-score", String(score), "span");
+      appendFamiliarRollButton(cell, `Tirar ${label} mod d20${formatModifier(modifier)}`, formatModifier(modifier), () => recordFamiliarRoll(noteId, `${label} mod`, rollD20ForFamiliar(modifier)));
+      appendFamiliarRollButton(cell, `Tirar ${label} save d20${formatModifier(modifier)}`, formatModifier(modifier), () => recordFamiliarRoll(noteId, `${label} save`, rollD20ForFamiliar(modifier)));
+      grid.appendChild(cell);
+    }
+
+    function appendFamiliarTextSection(root, title, items, noteId, interactive = false) {
+      const values = Array.isArray(items) ? items.filter(Boolean) : String(items || "").split(/\n+/).filter(Boolean);
+      if (!values.length) return;
+      const section = document.createElement("section");
+      section.className = "familiar-text-section";
+      appendText(section, "familiar-text-section-title", title, "h3");
+      const body = document.createElement("div");
+      body.className = "familiar-text-section-body";
+      values.forEach((value, index) => {
+        const paragraph = document.createElement("p");
+        paragraph.className = "familiar-action-line";
+        const split = String(value).match(/^([^:]+):\s*(.*)$/);
+        if (split) {
+          const name = document.createElement("span");
+          name.className = "familiar-action-name";
+          name.textContent = `${split[1]}.`;
+          paragraph.append(name, document.createTextNode(" "));
+          if (interactive) appendInteractiveFamiliarText(paragraph, split[2], split[1], noteId);
+          else paragraph.appendChild(document.createTextNode(split[2]));
+        } else if (interactive) {
+          appendInteractiveFamiliarText(paragraph, value, `${title} ${index + 1}`, noteId);
+        } else {
+          paragraph.textContent = value;
+        }
+        body.appendChild(paragraph);
+      });
+      section.appendChild(body);
+      root.appendChild(section);
+    }
+
+    function buildFamiliarBody(note) {
+      const familiar = note.familiar;
+      const body = document.createElement("div");
+      body.className = "familiar-note-body";
+      const top = document.createElement("div");
+      top.className = "familiar-note-top";
+      const basics = document.createElement("div");
+      basics.className = "familiar-note-basics";
+      appendFamiliarTextLine(basics, "AC", familiar.ac);
+      const hpFormula = familiarHpFormula(familiar);
+      const hpLine = document.createElement("p");
+      hpLine.className = "familiar-note-line";
+      appendText(hpLine, "familiar-note-strong", "HP");
+      hpLine.appendChild(document.createTextNode(" "));
+      if (hpFormula) appendFamiliarRollButton(hpLine, `Tirar HP ${hpFormula}`, hpFormula, () => recordFamiliarRoll(note.id, "HP", rollDiceExpression(hpFormula.replace(/\s+/g, ""))));
+      else hpLine.appendChild(document.createTextNode(familiar.hp || "--"));
+      if (hpFormula) hpLine.appendChild(document.createTextNode(` (${familiar.hp})`));
+      basics.appendChild(hpLine);
+      appendFamiliarTextLine(basics, "Speed", familiar.speed);
+      top.appendChild(basics);
+
+      const initiative = abilityModifier(familiar.abilities?.dex) || 0;
+      const initiativeBox = document.createElement("div");
+      initiativeBox.className = "familiar-note-initiative";
+      appendText(initiativeBox, "familiar-note-strong", "Initiative");
+      initiativeBox.appendChild(document.createTextNode(" "));
+      appendFamiliarRollButton(initiativeBox, `Tirar iniciativa d20${formatModifier(initiative)}`, formatModifier(initiative), () => recordFamiliarRoll(note.id, "Initiative", rollD20ForFamiliar(initiative)));
+      appendText(initiativeBox, "familiar-note-muted", ` (${10 + initiative})`, "span");
+      top.appendChild(initiativeBox);
+      body.appendChild(top);
+
+      const abilityHeader = document.createElement("div");
+      abilityHeader.className = "familiar-ability-header";
+      abilityHeader.innerHTML = "<span></span><span></span><span>Mod</span><span>Save</span>";
+      body.appendChild(abilityHeader);
+      const abilityGrid = document.createElement("div");
+      abilityGrid.className = "familiar-ability-grid";
+      ["str", "dex", "con", "int", "wis", "cha"].forEach((key) => appendFamiliarAbilityCell(abilityGrid, familiar, key, note.id));
+      body.appendChild(abilityGrid);
+
+      appendFamiliarTextLine(body, "Skills", familiar.skills);
+      appendFamiliarTextLine(body, "Senses", familiar.senses);
+      appendFamiliarTextLine(body, "Languages", "--");
+      appendFamiliarTextLine(body, "CR", "0 (XP 10)");
+      appendFamiliarTextSection(body, "Traits", familiar.traits, note.id);
+      appendFamiliarTextSection(body, "Actions", familiar.actions, note.id, true);
+      appendFamiliarTextSection(body, "Find Familiar", ["It obeys your commands, acts independently in combat, and cannot attack unless a rule explicitly allows it."], note.id);
+      appendText(body, "familiar-note-source", "Source: Find Familiar");
+      return body;
+    }
+
+    function buildFamiliarDicePanel(note) {
+      const panel = document.createElement("section");
+      panel.className = "familiar-dice-panel";
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "familiar-dice-toggle";
+      toggle.innerHTML = `<span>Dice Roller</span><span>${note.dicePanelOpen ? "x" : "^"}</span>`;
+      toggle.addEventListener("pointerdown", (event) => event.stopPropagation());
+      toggle.addEventListener("click", () => toggleFamiliarDicePanel(note.id));
+      panel.appendChild(toggle);
+      if (!note.dicePanelOpen) return panel;
+      const content = document.createElement("div");
+      content.className = "familiar-dice-content";
+      const latest = note.rolls?.[0] || null;
+      const latestBox = document.createElement("div");
+      latestBox.className = "familiar-dice-latest";
+      if (latest) {
+        appendText(latestBox, "familiar-dice-source", familiarDisplayName(note));
+        const result = document.createElement("div");
+        result.className = "familiar-dice-result";
+        appendText(result, "familiar-dice-label", latest.label, "span");
+        appendText(result, "familiar-dice-total", String(latest.roll.total), "span");
+        appendText(result, "familiar-dice-detail", `(${latest.roll.detail})`, "span");
+        latestBox.appendChild(result);
+      } else {
+        appendText(latestBox, "familiar-dice-empty", "Click a blue value to roll.");
+      }
+      content.appendChild(latestBox);
+      const history = document.createElement("div");
+      history.className = "familiar-dice-history";
+      if (note.rolls?.length) {
+        note.rolls.forEach((entry) => {
+          const row = document.createElement("div");
+          row.className = "familiar-dice-history-row";
+          appendText(row, "familiar-dice-history-label", entry.label, "span");
+          appendText(row, "familiar-dice-history-total", String(entry.roll.total), "span");
+          history.appendChild(row);
+        });
+      } else {
+        appendText(history, "familiar-dice-empty", "9d12-6 or \"/help\"");
+      }
+      content.appendChild(history);
+      panel.appendChild(content);
+      return panel;
+    }
+
+    function buildFamiliarTabBar(rootNote, activeNote) {
+      const tabs = familiarGroupedNotes(rootNote);
+      if (tabs.length < 2) return null;
+      const bar = document.createElement("div");
+      bar.className = "familiar-note-tabs";
+      tabs.forEach((tab) => {
+        const item = document.createElement("div");
+        item.className = `familiar-note-tab ${tab.id === activeNote.id ? "active" : ""}`;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = familiarDisplayName(tab);
+        button.title = familiarDisplayName(tab);
+        button.addEventListener("pointerdown", (event) => startFamiliarTabDrag(event, tab.id, rootNote.id));
+        button.addEventListener("click", () => selectFamiliarTab(rootNote.id, tab.id));
+        const close = document.createElement("button");
+        close.type = "button";
+        close.textContent = "x";
+        close.title = `Cerrar ${familiarDisplayName(tab)}`;
+        close.addEventListener("pointerdown", (event) => event.stopPropagation());
+        close.addEventListener("click", (event) => closeFamiliarNote(tab.id, event));
+        item.append(button, close);
+        bar.appendChild(item);
+      });
+      return bar;
+    }
+
+    function renderFamiliarNotes() {
+      const root = familiarNoteRoot || document.getElementById("familiarNoteRoot");
+      if (!root) return;
+      root.textContent = "";
+      familiarNotes
+        .filter((note) => !note.parentNoteId)
+        .sort((left, right) => (left.z || 0) - (right.z || 0))
+        .forEach((rootNote) => {
+          const tabs = familiarGroupedNotes(rootNote);
+          const activeNote = tabs.find((note) => note.id === rootNote.activeTabId) || rootNote;
+          const note = document.createElement("article");
+          note.className = `familiar-note ${familiarNoteDropTargetId === rootNote.id ? "drop-target" : ""}`;
+          note.style.left = `${rootNote.x}px`;
+          note.style.top = `${rootNote.y}px`;
+          note.style.width = `${rootNote.width}px`;
+          note.style.height = `${rootNote.height}px`;
+          note.style.zIndex = String(rootNote.z || 80);
+          note.addEventListener("pointerdown", () => focusFamiliarNote(rootNote.id));
+
+          const header = document.createElement("header");
+          header.className = "familiar-note-header";
+          header.addEventListener("pointerdown", (event) => {
+            event.stopPropagation();
+            startFamiliarNoteDrag(event, rootNote.id);
+          });
+          const titleBlock = document.createElement("div");
+          appendText(titleBlock, "familiar-note-title", familiarDisplayName(activeNote));
+          appendText(titleBlock, "familiar-note-subtitle", familiarNoteSubtitle(activeNote.familiar));
+          const right = document.createElement("div");
+          right.className = "familiar-note-header-right";
+          appendText(right, "familiar-note-edition", "FF");
+          const controls = document.createElement("div");
+          controls.className = "familiar-note-controls";
+          const close = document.createElement("button");
+          close.type = "button";
+          close.className = "familiar-note-control";
+          close.textContent = "X";
+          close.title = "Click cierra este item. Shift+click cierra todo el grupo.";
+          close.addEventListener("pointerdown", (event) => event.stopPropagation());
+          close.addEventListener("click", (event) => closeFamiliarNote(activeNote.id, event));
+          controls.appendChild(close);
+          right.appendChild(controls);
+          header.append(titleBlock, right);
+
+          const tabBar = buildFamiliarTabBar(rootNote, activeNote);
+          note.appendChild(header);
+          if (tabBar) note.appendChild(tabBar);
+          note.appendChild(buildFamiliarBody(activeNote));
+          note.appendChild(buildFamiliarDicePanel(activeNote));
+          root.appendChild(note);
+        });
     }
 
     function sheetFieldElements() {
@@ -2855,23 +3698,36 @@
       scheduleSave();
     }
 
-    function castPreparedSpell(spell) {
+    function castPreparedSpell(spell, options = {}) {
       if (!spell || spell.kind !== "spell") return;
+      const familiar = options.findFamiliar || null;
+      if (isFindFamiliarSpell(spell) && !familiar) {
+        openFindFamiliarPicker(spell);
+        return;
+      }
       if (spell.level <= 0) {
-        showStatus(`${spell.name}: cantrip, no gasta spell slot`);
+        const statusResult = activateSpellStatuses(spell.sourceName || spell.name, spell.name);
+        if (familiar) showFamiliarNote(familiar);
+        if (statusResult.activated) {
+          updateDerivedStats();
+          scheduleSave();
+          showStatus(`${spell.name}: status activo`);
+        } else if (familiar) {
+          showStatus(`${spell.name}: ${familiar.name} invocado`);
+        } else {
+          showStatus(`${spell.name}: cantrip, no gasta spell slot`);
+        }
         return;
       }
       const castLevel = Math.max(spell.level, spell.castLevel || spell.level);
       const sourceName = spell.sourceName || spell.name;
-      const activateSpellStatus = () => {
-        if (!isMageArmorName(sourceName) && !isMageArmorName(spell.name)) return false;
-        return activateStatusById("mage-armor");
-      };
       if (castLevel === spell.level && freeSpellUseInfo(sourceName)?.remaining > 0 && spendFreeSpellUse(sourceName)) {
-        const activated = activateSpellStatus();
+        const statusResult = activateSpellStatuses(sourceName, spell.name);
+        if (familiar) showFamiliarNote(familiar);
         updateDerivedStats();
         scheduleSave();
-        if (activated) showStatus(`${spell.name}: Mage Armor activo`);
+        if (statusResult.activated) showStatus(`${spell.name}: status activo`);
+        else if (familiar) showStatus(`${spell.name}: ${familiar.name} invocado`);
         return;
       }
       if (!spendSpellSlot(castLevel)) {
@@ -2880,9 +3736,12 @@
       }
       const remaining = spellSlotRemaining(castLevel);
       const total = spellSlotTotal(castLevel);
-      const activated = activateSpellStatus();
-      showStatus(activated
-        ? `${spell.name}: Mage Armor activo. Slots nivel ${castLevel}: ${remaining}/${total}`
+      const statusResult = activateSpellStatuses(sourceName, spell.name);
+      if (familiar) showFamiliarNote(familiar);
+      showStatus(familiar
+        ? `${spell.name}: ${familiar.name} invocado. Slots nivel ${castLevel}: ${remaining}/${total}`
+        : statusResult.activated
+        ? `${spell.name}: status activo. Slots nivel ${castLevel}: ${remaining}/${total}`
         : `${spell.name} casteada a nivel ${castLevel}. Slots nivel ${castLevel}: ${remaining}/${total}`);
       updateDerivedStats();
       updatePreparedSpellsPanel();
@@ -6110,6 +6969,14 @@
       return true;
     }
 
+    function activateSpellStatuses(...spellNames) {
+      const statusIds = [...new Set(spellNames.flatMap(spellStatusIdsForName))];
+      return {
+        matched: statusIds.length > 0,
+        activated: statusIds.some((statusId) => activateStatusById(statusId))
+      };
+    }
+
     function statusDescriptionText(definition) {
       if (!definition) return "";
       const tone = definition.tone === "positive" ? "Beneficio" : "Penalidad";
@@ -6193,6 +7060,7 @@
       if (target.closest?.("#liveSheetClientBackdrop")) return;
       if (target.closest?.("#freeDiceMenu")) return;
       if (target.closest?.("#itemPickerBackdrop")) return;
+      if (target.closest?.("#familiarPickerBackdrop")) return;
       if (target.closest?.(".spell-picker")) return;
       if (!target.matches?.("input[type='checkbox'], input[type='radio'], select")) return;
       event.preventDefault();
@@ -6267,7 +7135,12 @@
 
       closeOptionMenu();
       closeItemPicker();
+      closeFindFamiliarPicker();
       closeItemDrawer();
+      familiarNotes = [];
+      familiarNoteDrag = null;
+      familiarNoteDropTargetId = null;
+      if (familiarNoteRoot) familiarNoteRoot.textContent = "";
       if (statusDock) statusDock.dataset.menuOpen = "false";
       selectedPickerItem = null;
       if (itemPickerAdd) itemPickerAdd.disabled = true;
@@ -13640,12 +14513,13 @@
       const effects = activeStatusEffects();
       const next = Number.isFinite(effects.speedOverride)
         ? effects.speedOverride
-        : Math.max(0, Math.round(base * (effects.speedMultiplier || 1)));
+        : Math.max(0, Math.round(base * (effects.speedMultiplier || 1)) + (effects.speedBonus || 0));
       setFieldValue("Speed", String(next));
       const parts = [
         `Base ${base}`,
         Number.isFinite(effects.speedOverride) ? `Estado fija ${effects.speedOverride}` : "",
-        !Number.isFinite(effects.speedOverride) && effects.speedMultiplier !== 1 ? `Estados x${effects.speedMultiplier}` : ""
+        !Number.isFinite(effects.speedOverride) && effects.speedMultiplier !== 1 ? `Estados x${effects.speedMultiplier}` : "",
+        !Number.isFinite(effects.speedOverride) && effects.speedBonus ? `Estados ${formatModifier(effects.speedBonus)} ft.` : ""
       ].filter(Boolean);
       setFieldTitle("Speed", `Speed: ${parts.join(", ")}`);
     }
