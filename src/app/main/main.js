@@ -1,10 +1,11 @@
-const { app, BrowserWindow, Menu, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
 
 const dataLoader = require("../../services/data-loader");
 const { liveSheetServer } = require("../../services/live-sheet-server");
+const { ObsidianService } = require("../../services/obsidian-service");
 const saveService = require("../../services/save-service");
 const translationService = require("../../services/translation-service");
 
@@ -12,6 +13,7 @@ const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 const platformBackgroundWatchers = new Map();
 let scheduledPlatformBackgroundBroadcast = null;
 let lastPlatformBackgroundUrl = null;
+let obsidianService = null;
 
 const WINDOW_ROUTES = {
   characterSheet: {
@@ -122,6 +124,18 @@ function broadcastToRenderers(channel, payload) {
   });
 }
 
+function getObsidianService() {
+  if (!obsidianService) {
+    obsidianService = new ObsidianService({
+      userDataPath: app.getPath("userData"),
+      dialog,
+      shell,
+      onVaultChanged: (payload) => broadcastToRenderers("obsidian:vault-changed", payload)
+    });
+  }
+  return obsidianService;
+}
+
 function ensurePlatformBackgroundWatchers() {
   getPlatformBackgroundDirectoryCandidates().forEach((directoryPath) => {
     if (platformBackgroundWatchers.has(directoryPath) || !fs.existsSync(directoryPath)) return;
@@ -192,6 +206,7 @@ async function createWindow(routeName = "characterSheet") {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  getObsidianService().refreshWatchers().catch(() => {});
   return createWindow();
 });
 
@@ -247,6 +262,40 @@ ipcMain.handle("background:image-url", async () => {
 
 ipcMain.handle("platform-background:image-url", async () => {
   return getPlatformBackgroundImageUrl();
+});
+
+ipcMain.handle("obsidian:get-vault", async () => {
+  return getObsidianService().getVault();
+});
+
+ipcMain.handle("obsidian:select-vault", async (event) => {
+  return getObsidianService().selectVault(BrowserWindow.fromWebContents(event.sender));
+});
+
+ipcMain.handle("obsidian:clear-vault", async () => {
+  const result = await getObsidianService().clearVault();
+  broadcastToRenderers("obsidian:vault-changed", { relativePath: "", changedAt: Date.now(), vaultCleared: true });
+  return result;
+});
+
+ipcMain.handle("obsidian:list-notes", async (_event, query) => {
+  return getObsidianService().listNotes(query);
+});
+
+ipcMain.handle("obsidian:read-note", async (_event, relativePath) => {
+  return getObsidianService().readNote(relativePath);
+});
+
+ipcMain.handle("obsidian:write-note", async (_event, { relativePath, markdown } = {}) => {
+  return getObsidianService().writeNote(relativePath, markdown);
+});
+
+ipcMain.handle("obsidian:open-note", async (_event, relativePath) => {
+  return getObsidianService().openNote(relativePath);
+});
+
+ipcMain.handle("obsidian:get-asset-url", async (_event, relativePath) => {
+  return getObsidianService().getAssetUrl(relativePath);
 });
 
 ipcMain.handle("races:load", async () => {
@@ -336,6 +385,7 @@ liveSheetServer.on("server-status", (status) => {
 
 app.on("before-quit", () => {
   liveSheetServer.stop().catch(() => {});
+  obsidianService?.closeWatchers();
   platformBackgroundWatchers.forEach((watcher) => {
     try {
       watcher.close();

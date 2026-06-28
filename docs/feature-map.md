@@ -84,6 +84,15 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
   - Character sheet client controls live in `src/app/renderer/index.html` and `src/app/renderer/renderer.js`.
   - DM live player cards live in `src/app/renderer/dm-screen/src/main.jsx` and reuse `characterFromSheetData(data)`.
   - Data is memory-only on the DM side and is never written into local save slots automatically.
+- Obsidian vault integration: `src/services/obsidian-service.js`
+  - Electron main owns the local vault path, stored in `obsidian-vault-config.json` under Electron `userData`.
+  - Preload exposes the safe renderer API at `window.dndSheet.obsidian`.
+  - The DM Screen picker and `kind: "obsidian"` board notes live in `src/app/renderer/dm-screen/src/main.jsx`.
+  - Notes are scanned from local `.md` files only. `.obsidian`, `.trash`, `node_modules`, and `.git` are ignored.
+  - Board persistence stores the note relative path/title/vault label plus normal position, size, z-index, tab, and minimized state. Markdown content is re-read from the vault.
+  - Open Obsidian notes can be edited from the DM Screen; saves write back to the local `.md` file after the same vault path validation used for reads.
+  - Markdown rendering is React-based and intentionally small: headings, paragraphs, lists, bold/italic, inline/fenced code, links, wikilinks, aliases, and safe image embeds.
+  - First implementation limitations: no Obsidian plugin protocol beyond `obsidian://open`, no embedded Obsidian app/webview, no cloud sync, and no advanced Obsidian syntax such as tables, callouts, tags, or transclusion of non-image notes.
 
 ## Manual Test Checklist
 
@@ -97,4 +106,9 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
 - Edit current HP and confirm the DM Screen card updates.
 - Disconnect the player and confirm the last card remains marked disconnected.
 - Restart the server and connect again.
+- Right-click the DM Screen board and choose `Add Obsidian Note`.
+- Select a local Obsidian vault when prompted, search for a note, add it to the board, then drag/resize/minimize/duplicate/close it.
+- Press `Edit` on an Obsidian note, change the markdown, save it, and confirm the file updates in Obsidian.
+- Edit the note in Obsidian and confirm the open DM Screen note refreshes, or use the note window `Refresh` button.
+- Click `Open` on the note window and confirm the system attempts to open the note through the Obsidian desktop app.
 - Confirm the app still starts normally.

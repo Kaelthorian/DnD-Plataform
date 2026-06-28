@@ -41,5 +41,16 @@ contextBridge.exposeInMainWorld("dndSheet", {
     onPlayerDisconnected: (callback) => onRendererEvent("live-sheet:player-disconnected", callback),
     onPlayerRoll: (callback) => onRendererEvent("live-sheet:player-roll", callback),
     onServerStatus: (callback) => onRendererEvent("live-sheet:server-status", callback)
+  },
+  obsidian: {
+    getVault: () => ipcRenderer.invoke("obsidian:get-vault"),
+    selectVault: () => ipcRenderer.invoke("obsidian:select-vault"),
+    clearVault: () => ipcRenderer.invoke("obsidian:clear-vault"),
+    listNotes: (query) => ipcRenderer.invoke("obsidian:list-notes", query),
+    readNote: (relativePath) => ipcRenderer.invoke("obsidian:read-note", relativePath),
+    writeNote: (relativePath, markdown) => ipcRenderer.invoke("obsidian:write-note", { relativePath, markdown }),
+    openNote: (relativePath) => ipcRenderer.invoke("obsidian:open-note", relativePath),
+    getAssetUrl: (relativePath) => ipcRenderer.invoke("obsidian:get-asset-url", relativePath),
+    onVaultChanged: (callback) => onRendererEvent("obsidian:vault-changed", callback)
   }
 });

@@ -116,12 +116,16 @@ const NOTE_DEFAULT_HEIGHT = 620;
 const BOARD_WIDTH = 20000;
 const BOARD_HEIGHT = 20000;
 const BOARD_PADDING = 12;
-const BOARD_MIN_ZOOM = 0.35;
+const BOARD_MIN_ZOOM = 0.08;
 const BOARD_MAX_ZOOM = 1.8;
 const BOARD_ZOOM_STEP = 0.15;
 const DM_BOARD_STORAGE_KEY = "dnd-dm-screen-board-v1";
 const CHARACTER_SHEET_CODE_PREFIX = "DNDCS1";
 const CHARACTER_SHEET_CODE_TYPE = "dnd-character-sheet";
+const OBSIDIAN_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
+const OBSIDIAN_IMAGE_MIN_ZOOM = 25;
+const OBSIDIAN_IMAGE_MAX_ZOOM = 500;
+const OBSIDIAN_IMAGE_ZOOM_STEP = 15;
 
 const CHARACTER_SKILLS = [
   ["Acrobatics", "dex", "Check Box 23"],
@@ -169,6 +173,29 @@ const HOMEBREW_MONSTER_DEFAULTS = {
   cha: "10",
   traits: "",
   actions: ""
+};
+const HOMEBREW_ITEM_DEFAULTS = {
+  name: "Homebrew Item",
+  type: "Gear",
+  rarity: "common",
+  source: "Homebrew",
+  value: "",
+  weight: "",
+  damage: "",
+  properties: "",
+  entries: ""
+};
+const HOMEBREW_SPELL_DEFAULTS = {
+  name: "Homebrew Spell",
+  level: "1",
+  school: "Evocation",
+  source: "Homebrew",
+  castingTime: "1 action",
+  range: "60 feet",
+  components: "V, S",
+  duration: "Instantaneous",
+  classes: "",
+  description: ""
 };
 const FREE_DICE_TYPES = [
   { sides: 20, label: "d20" },
@@ -269,6 +296,42 @@ function spellBodyParagraphs(spell) {
     .filter(Boolean);
 }
 
+function spellMonsterSectionEntry(spell) {
+  const metadata = spellMetadataRows(spell).map(([label, value]) => `${label}: ${value}`);
+  const body = spellBodyParagraphs(spell);
+  const footer = spellSourceLabel(spell) ? `Source: ${spellSourceLabel(spell)}` : "";
+  return {
+    name: spell?.name || "Spell",
+    entries: [
+      [
+        formatSpellSubtitle(spell),
+        ...metadata,
+        ...body,
+        footer
+      ].filter(Boolean).join("\n\n")
+    ]
+  };
+}
+
+function itemMonsterSectionEntry(item) {
+  const damage = formatItemDamage(item);
+  const properties = itemPropertyLine(item);
+  const valueWeight = [formatItemCurrency(item?.value), formatItemWeight(item?.weight)].filter(Boolean).join(", ");
+  const lines = [
+    itemTypeLabel(item),
+    itemCategorySummary(item),
+    damage ? `Damage: ${damage}` : "",
+    properties ? `Properties: ${properties}` : "",
+    valueWeight ? `Value/Weight: ${valueWeight}` : "",
+    renderEntryText(item.entries),
+    itemRulesFooter(item) ? `Source: ${itemRulesFooter(item)}` : ""
+  ].filter(Boolean);
+  return {
+    name: item?.name || "Item",
+    entries: [lines.join("\n\n") || "Item effect."]
+  };
+}
+
 function formatSpellLevel(spell) {
   const level = Number(spell?.level);
   if (!Number.isFinite(level)) return "Unknown";
@@ -307,6 +370,14 @@ function itemPropertyMetas(item) {
     .filter(Boolean);
 }
 
+function itemPropertyLine(item) {
+  const knownProperties = itemPropertyMetas(item).map((propertyMeta) => formatItemPropertyName(propertyMeta, item));
+  const customProperties = Array.isArray(item?.homebrewProperties)
+    ? item.homebrewProperties.map((property) => String(property || "").trim()).filter(Boolean)
+    : [];
+  return [...knownProperties, ...customProperties].filter(Boolean).join(", ");
+}
+
 function itemMasteryMetas(item) {
   return (Array.isArray(item?.mastery) ? item.mastery : [])
     .map((mastery) => itemLookupByTaggedValue(ITEM_MASTERY_LOOKUP, mastery))
@@ -324,7 +395,7 @@ function itemTypeLabel(item) {
   if (/armor/i.test(typeName)) return "Armor";
   if (/shield/i.test(typeName)) return "Shield";
   if (/tool/i.test(typeName)) return "Tool";
-  return typeName || "Item";
+  return typeName || item?.type || "Item";
 }
 
 function itemCategorySummary(item) {
@@ -332,6 +403,7 @@ function itemCategorySummary(item) {
   if (item?.weaponCategory) categories.push(`${titleCase(item.weaponCategory)} Weapon`);
   const typeName = itemTypeMeta(item)?.name || "";
   if (typeName && !categories.includes(typeName)) categories.push(typeName);
+  if (!typeName && item?.type) categories.push(String(item.type));
   return categories.join(", ");
 }
 
@@ -704,6 +776,8 @@ function noteDisplayName(note) {
   if (titleOverride) return titleOverride;
   if (note?.kind === "monster") return note?.monster?.name || "Monster";
   if (note?.kind === "character") return note?.character?.name || "Character";
+  if (note?.kind === "obsidian") return note?.obsidian?.title || note?.obsidian?.fileName || "Obsidian Note";
+  if (note?.kind === "text") return note?.textTitle || "Text Note";
   return note?.entry?.name || (note?.kind === "spell" ? "Spell" : note?.kind === "item" ? "Item" : "Note");
 }
 
@@ -804,13 +878,86 @@ function clampBoardPoint(point, width = 0, height = 0) {
   };
 }
 
+function noteFrameRect(note) {
+  const width = note?.minimized ? clamp(note.width, 220, 340) : note?.width || NOTE_DEFAULT_WIDTH;
+  const height = note?.minimized ? 44 : note?.height || NOTE_DEFAULT_HEIGHT;
+  return {
+    x: Number(note?.x) || 0,
+    y: Number(note?.y) || 0,
+    width,
+    height,
+    right: (Number(note?.x) || 0) + width,
+    bottom: (Number(note?.y) || 0) + height
+  };
+}
+
+function normalizeRectFromPoints(start, end) {
+  const left = Math.min(start.x, end.x);
+  const top = Math.min(start.y, end.y);
+  const right = Math.max(start.x, end.x);
+  const bottom = Math.max(start.y, end.y);
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+    right,
+    bottom
+  };
+}
+
+function rectsIntersect(left, right) {
+  return left.x <= right.right
+    && left.right >= right.x
+    && left.y <= right.bottom
+    && left.bottom >= right.y;
+}
+
+function cloneForBoardState(value) {
+  return cloneJsonCompatibleValue(value);
+}
+
+function updateObjectPath(source, pathParts, value) {
+  if (!Array.isArray(pathParts) || !pathParts.length) return source;
+  const root = Array.isArray(source) ? source.slice() : { ...(source || {}) };
+  let cursor = root;
+  pathParts.forEach((part, index) => {
+    if (index === pathParts.length - 1) {
+      cursor[part] = value;
+      return;
+    }
+    const nextPart = pathParts[index + 1];
+    const currentValue = cursor[part];
+    const nextValue = Array.isArray(currentValue)
+      ? currentValue.slice()
+      : currentValue && typeof currentValue === "object"
+        ? { ...currentValue }
+        : typeof nextPart === "number"
+          ? []
+          : {};
+    cursor[part] = nextValue;
+    cursor = nextValue;
+  });
+  return root;
+}
+
 function noteStorageSnapshot(note) {
   return {
     id: note.id,
     kind: note.kind,
     monsterRef: libraryRef(note.monster),
+    monsterCustom: note.kind === "monster" && note.monsterCustom ? cloneForBoardState(note.monsterCustom) : null,
     entryRef: libraryRef(note.entry),
+    entryCustom: (note.kind === "spell" || note.kind === "item") && note.entryCustom ? cloneForBoardState(note.entryCustom) : null,
     character: note.character || null,
+    textTitle: note.kind === "text" ? note.textTitle || "" : "",
+    textContent: note.kind === "text" ? note.textContent || "" : "",
+    obsidian: note.kind === "obsidian" ? {
+      relativePath: note.obsidian?.relativePath || "",
+      fileName: note.obsidian?.fileName || "",
+      title: note.obsidian?.title || "",
+      vaultName: note.obsidian?.vaultName || ""
+    } : null,
     titleOverride: note.titleOverride || "",
     parentNoteId: note.parentNoteId || null,
     tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.slice() : [],
@@ -830,12 +977,23 @@ function noteStorageSnapshot(note) {
 
 function restoreStoredNote(note) {
   if (!note?.kind || !note.id) return null;
-  const monster = note.kind === "monster" ? findLibraryEntryByRef("monster", note.monsterRef) : null;
-  const entry = note.kind === "spell" || note.kind === "item" ? findLibraryEntryByRef(note.kind, note.entryRef) : null;
+  const monsterCustom = note.kind === "monster" && note.monsterCustom ? cloneForBoardState(note.monsterCustom) : null;
+  const monster = note.kind === "monster" ? (monsterCustom || findLibraryEntryByRef("monster", note.monsterRef)) : null;
+  const entryCustom = (note.kind === "spell" || note.kind === "item") && note.entryCustom ? cloneForBoardState(note.entryCustom) : null;
+  const entry = note.kind === "spell" || note.kind === "item" ? (entryCustom || findLibraryEntryByRef(note.kind, note.entryRef)) : null;
   const character = note.kind === "character" && note.character ? note.character : null;
+  const obsidian = note.kind === "obsidian" && note.obsidian?.relativePath
+    ? {
+      relativePath: String(note.obsidian.relativePath),
+      fileName: String(note.obsidian.fileName || note.obsidian.relativePath.split("/").pop() || ""),
+      title: String(note.obsidian.title || note.obsidian.fileName || "Obsidian Note"),
+      vaultName: String(note.obsidian.vaultName || "")
+    }
+    : null;
   if (note.kind === "monster" && !monster) return null;
   if ((note.kind === "spell" || note.kind === "item") && !entry) return null;
   if (note.kind === "character" && !character) return null;
+  if (note.kind === "obsidian" && !obsidian) return null;
   const width = clamp(Number(note.width) || NOTE_DEFAULT_WIDTH, NOTE_MIN_WIDTH, BOARD_WIDTH - BOARD_PADDING * 2);
   const height = clamp(Number(note.height) || NOTE_DEFAULT_HEIGHT, NOTE_MIN_HEIGHT, BOARD_HEIGHT - BOARD_PADDING * 2);
   const point = clampBoardPoint({
@@ -848,8 +1006,20 @@ function restoreStoredNote(note) {
     id: String(note.id),
     kind: note.kind,
     monster,
+    monsterCustom,
     character,
     entry,
+    entryCustom,
+    textTitle: typeof note.textTitle === "string" ? note.textTitle : "",
+    textContent: typeof note.textContent === "string" ? note.textContent : "",
+    obsidian,
+    obsidianMarkdown: "",
+    obsidianLoading: false,
+    obsidianError: "",
+    obsidianEditing: false,
+    obsidianDraft: "",
+    obsidianSaving: false,
+    obsidianUpdatedAt: null,
     titleOverride: typeof note.titleOverride === "string" ? note.titleOverride : "",
     parentNoteId: note.parentNoteId ? String(note.parentNoteId) : null,
     tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.map((entry) => String(entry || "")).filter(Boolean) : [],
@@ -1023,6 +1193,59 @@ function homebrewMonsterFromDraft(draft) {
   };
 }
 
+function optionalNumber(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return undefined;
+  const amount = Number(text.replace(/,/g, "."));
+  return Number.isFinite(amount) ? amount : undefined;
+}
+
+function homebrewItemFromDraft(draft) {
+  const entries = compactLines(draft.entries);
+  const properties = String(draft.properties || "")
+    .split(/[,;\n]+/)
+    .map((property) => property.trim())
+    .filter(Boolean);
+  const type = String(draft.type || HOMEBREW_ITEM_DEFAULTS.type).trim() || HOMEBREW_ITEM_DEFAULTS.type;
+  return {
+    name: String(draft.name || HOMEBREW_ITEM_DEFAULTS.name).trim() || HOMEBREW_ITEM_DEFAULTS.name,
+    type,
+    rarity: String(draft.rarity || HOMEBREW_ITEM_DEFAULTS.rarity).trim() || HOMEBREW_ITEM_DEFAULTS.rarity,
+    source: String(draft.source || HOMEBREW_ITEM_DEFAULTS.source).trim() || HOMEBREW_ITEM_DEFAULTS.source,
+    value: optionalNumber(draft.value),
+    weight: optionalNumber(draft.weight),
+    dmg1: String(draft.damage || "").trim(),
+    homebrewProperties: properties,
+    entries: entries.length ? entries : ["Describe what this item does."],
+    __homebrew: true
+  };
+}
+
+function homebrewSpellFromDraft(draft) {
+  const level = Number.parseInt(draft.level, 10);
+  const safeLevel = Number.isFinite(level) ? clamp(level, 0, 9) : Number(HOMEBREW_SPELL_DEFAULTS.level);
+  const source = String(draft.source || HOMEBREW_SPELL_DEFAULTS.source).trim() || HOMEBREW_SPELL_DEFAULTS.source;
+  const school = String(draft.school || HOMEBREW_SPELL_DEFAULTS.school).trim() || HOMEBREW_SPELL_DEFAULTS.school;
+  const description = compactParagraph(draft.description) || "Describe what this spell does.";
+  return {
+    name: String(draft.name || HOMEBREW_SPELL_DEFAULTS.name).trim() || HOMEBREW_SPELL_DEFAULTS.name,
+    level: safeLevel,
+    castingTime: String(draft.castingTime || HOMEBREW_SPELL_DEFAULTS.castingTime).trim(),
+    range: String(draft.range || HOMEBREW_SPELL_DEFAULTS.range).trim(),
+    components: String(draft.components || HOMEBREW_SPELL_DEFAULTS.components).trim(),
+    duration: String(draft.duration || HOMEBREW_SPELL_DEFAULTS.duration).trim(),
+    classes: String(draft.classes || "")
+      .split(/[,;\n]+/)
+      .map((className) => className.trim())
+      .filter(Boolean),
+    description: [
+      `Source: ${source}. Level: ${safeLevel}. School: ${school}.`,
+      description
+    ].join("\n\n"),
+    __homebrew: true
+  };
+}
+
 function cleanRulesText(text) {
   return String(text)
     .replace(/\{@atk ([^}]+)\}/g, (_match, attack) => {
@@ -1084,6 +1307,7 @@ function formatSpeedCompact(monster) {
 }
 
 function formatKeyValueMap(value) {
+  if (typeof value === "string") return value;
   if (!value || typeof value !== "object") return "";
   return Object.entries(value)
     .map(([key, entry]) => `${key} ${Array.isArray(entry) ? entry.join(", ") : entry}`)
@@ -1702,10 +1926,85 @@ function RollButton({ children, title, onRoll }) {
       type="button"
       title={title}
       onPointerDown={(event) => event.stopPropagation()}
-      onClick={onRoll}
+      onClick={(event) => {
+        if (event.ctrlKey || event.metaKey) return;
+        onRoll?.(event);
+      }}
     >
       {children}
     </button>
+  );
+}
+
+function CtrlEditableText({
+  value,
+  className = "",
+  inputClassName = "",
+  multiline = false,
+  title = "Ctrl+click para editar",
+  onCommit,
+  children
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value ?? ""));
+
+  useEffect(() => {
+    if (!editing) setDraft(String(value ?? ""));
+  }, [editing, value]);
+
+  function commit() {
+    setEditing(false);
+    onCommit?.(draft);
+  }
+
+  if (editing) {
+    const sharedProps = {
+      className: inputClassName || "w-full border border-amber-500 bg-neutral-950 px-2 py-1 text-sm text-neutral-100 focus:outline-none",
+      value: draft,
+      autoFocus: true,
+      onPointerDown: (event) => event.stopPropagation(),
+      onChange: (event) => setDraft(event.target.value),
+      onBlur: commit,
+      onKeyDown: (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+          event.preventDefault();
+          commit();
+        }
+        if (!multiline && event.key === "Enter") {
+          event.preventDefault();
+          commit();
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setDraft(String(value ?? ""));
+          setEditing(false);
+        }
+      }
+    };
+    return multiline ? (
+      <textarea {...sharedProps} className={`${sharedProps.className} min-h-24 resize-y`} />
+    ) : (
+      <input {...sharedProps} type="text" />
+    );
+  }
+
+  return (
+    <span
+      className={`${className} ${onCommit ? "cursor-text rounded-sm hover:bg-amber-500/10" : ""}`}
+      title={onCommit ? title : undefined}
+      onPointerDown={(event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.stopPropagation();
+      }}
+      onClick={(event) => {
+        if (!onCommit || (!event.ctrlKey && !event.metaKey)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setEditing(true);
+      }}
+    >
+      {children ?? value}
+    </span>
   );
 }
 
@@ -1803,7 +2102,7 @@ function MonsterRollPanel({ note, onToggle, onResizeCorner = null }) {
   );
 }
 
-function AbilityCell({ monster, ability, onRoll }) {
+function AbilityCell({ monster, ability, onRoll, onEdit = null }) {
   const score = monster[ability] ?? "-";
   const mod = abilityModifier(score);
   const save = parseModifier(monster.save?.[ability], mod);
@@ -1812,53 +2111,121 @@ function AbilityCell({ monster, ability, onRoll }) {
   return (
     <div className="grid grid-cols-[34px_1fr_42px_42px] items-center bg-neutral-800 px-1 py-0.5 text-sm">
       <span className="font-bold text-neutral-300">{label}</span>
-      <span className="text-neutral-300">{score}</span>
+      <CtrlEditableText value={score} className="text-neutral-300" onCommit={onEdit ? (value) => onEdit([ability], value) : null}>
+        {score}
+      </CtrlEditableText>
       <RollButton title={`Tirar ${label} mod d20${signNumber(mod)}`} onRoll={() => onRoll(`${label} mod`, rollD20(mod))}>
         {signNumber(mod)}
       </RollButton>
-      <RollButton title={`Tirar ${label} save d20${signNumber(save)}`} onRoll={() => onRoll(`${label} save`, rollD20(save))}>
-        {signNumber(save)}
-      </RollButton>
+      <CtrlEditableText value={monster.save?.[ability] ?? signNumber(save)} className="text-center" onCommit={onEdit ? (value) => onEdit(["save", ability], value) : null}>
+        <RollButton title={`Tirar ${label} save d20${signNumber(save)}`} onRoll={() => onRoll(`${label} save`, rollD20(save))}>
+          {signNumber(save)}
+        </RollButton>
+      </CtrlEditableText>
     </div>
   );
 }
 
-function MonsterActionLine({ action, onRoll }) {
+function MonsterActionLine({ action, onRoll, onEditName = null, onEditText = null }) {
   const entries = Array.isArray(action.entries) ? action.entries : [action.entries].filter(Boolean);
   const text = entries.map(renderEntryText).filter(Boolean).join(" ");
 
   return (
     <p className="leading-snug">
-      <span className="font-bold italic text-neutral-200">{action.name || "Action"}.</span>{" "}
-      <InteractiveRulesText text={text} context={action.name || "Action"} onRoll={onRoll} />
+      <CtrlEditableText value={action.name || "Action"} className="font-bold italic text-neutral-200" onCommit={onEditName}>
+        {action.name || "Action"}
+      </CtrlEditableText>
+      <span className="font-bold italic text-neutral-200">.</span>{" "}
+      <CtrlEditableText value={text} multiline onCommit={onEditText}>
+        <InteractiveRulesText text={text} context={action.name || "Action"} onRoll={onRoll} />
+      </CtrlEditableText>
     </p>
   );
 }
 
-function MonsterTextSection({ title, items, onRoll, interactive = false }) {
+function MonsterTextSection({ title, items, onRoll, interactive = false, onEdit = null, pathKey = "", dropNoteId = "" }) {
   const list = Array.isArray(items) ? items : [];
-  if (!list.length) return null;
+  if (!list.length && !onEdit) return null;
+  const singularTitle = title.replace(/s$/i, "");
+
+  function addSectionItem() {
+    if (!onEdit || !pathKey) return;
+    const nextItem = {
+      name: `New ${singularTitle}`,
+      entries: [interactive ? "Melee or Ranged Weapon Attack: +0 to hit. Hit: 1 damage." : "New text."]
+    };
+    onEdit([pathKey, list.length], nextItem);
+  }
+
+  function removeSectionItem(index) {
+    if (!onEdit || !pathKey) return;
+    onEdit([pathKey], list.filter((_item, itemIndex) => itemIndex !== index));
+  }
 
   return (
-    <section className="mt-2">
-      <h3 className="border-b border-amber-500 pb-0.5 font-serif text-lg uppercase leading-none text-amber-500">{title}</h3>
+    <section
+      className="mt-2"
+      data-monster-section-drop={onEdit && dropNoteId && pathKey ? "true" : undefined}
+      data-drop-note-id={dropNoteId || undefined}
+      data-drop-section={pathKey || undefined}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-amber-500 pb-0.5">
+        <h3 className="font-serif text-lg uppercase leading-none text-amber-500">{title}</h3>
+        {onEdit ? (
+          <button
+            className="border border-neutral-700 bg-neutral-950 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-400 hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={addSectionItem}
+          >
+            Add {singularTitle}
+          </button>
+        ) : null}
+      </div>
       <div className="mt-1 space-y-1 text-sm text-neutral-300">
-        {list.map((item, index) => (
-          interactive ? (
-            <MonsterActionLine key={`${title}-${item.name || index}`} action={item} onRoll={onRoll} />
-          ) : (
-            <p key={`${title}-${item.name || index}`} className="leading-snug">
-              <span className="font-bold italic text-neutral-200">{item.name || title}.</span>{" "}
-              {stripMarkdownEmphasis(shortText(item.entries, 360))}
-            </p>
-          )
-        ))}
+        {list.length ? list.map((item, index) => (
+          <div key={`${title}-${item.name || index}`} className="group grid grid-cols-[1fr_auto] gap-2">
+            <div className="min-w-0">
+              {interactive ? (
+                <MonsterActionLine
+                  action={item}
+                  onRoll={onRoll}
+                  onEditName={onEdit ? (value) => onEdit([pathKey, index, "name"], value) : null}
+                  onEditText={onEdit ? (value) => onEdit([pathKey, index, "entries"], [value]) : null}
+                />
+              ) : (
+                <p className="leading-snug">
+                  <CtrlEditableText value={item.name || title} className="font-bold italic text-neutral-200" onCommit={onEdit ? (value) => onEdit([pathKey, index, "name"], value) : null}>
+                    {item.name || title}
+                  </CtrlEditableText>
+                  <span className="font-bold italic text-neutral-200">.</span>{" "}
+                  <CtrlEditableText value={renderEntryText(item.entries || item)} multiline onCommit={onEdit ? (value) => onEdit([pathKey, index, "entries"], [value]) : null}>
+                    {stripMarkdownEmphasis(shortText(item.entries, 360))}
+                  </CtrlEditableText>
+                </p>
+              )}
+            </div>
+            {onEdit ? (
+              <button
+                className="h-6 border border-neutral-800 bg-neutral-950 px-2 text-[10px] font-bold uppercase tracking-wide text-red-300 opacity-60 hover:border-red-500 hover:bg-red-950/40 hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                type="button"
+                title={`Remove ${item.name || singularTitle}`}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => removeSectionItem(index)}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+        )) : (
+          <p className="text-xs italic text-neutral-500">No {title.toLowerCase()} yet.</p>
+        )}
       </div>
     </section>
   );
 }
 
-function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null }) {
+function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null, onMonsterEdit = null }) {
   return (
     <header
       className={`flex items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2 ${onDragStart ? "cursor-move" : ""}`}
@@ -1871,12 +2238,21 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
           inputClassName="w-full border border-amber-500 bg-neutral-950 px-2 py-1 font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500 focus:outline-none"
           onRename={onRename}
         />
-        <p className="mt-2 text-sm italic text-neutral-300">{formatSize(monster)} {formatType(monster)}, {formatAlignment(monster)}</p>
+        <p className="mt-2 text-sm italic text-neutral-300">
+          <CtrlEditableText value={monster.size || ""} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["size"], value) : null}>{formatSize(monster)}</CtrlEditableText>{" "}
+          <CtrlEditableText value={formatType(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["type"], value) : null}>{formatType(monster)}</CtrlEditableText>
+          {", "}
+          <CtrlEditableText value={formatAlignment(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["alignment"], value) : null}>{formatAlignment(monster)}</CtrlEditableText>
+        </p>
       </div>
       <div className="flex items-start gap-3">
         <div className="text-right font-serif text-xl uppercase leading-none text-amber-500">
-          {monsterEdition(monster)}
-          {monster.page ? <span className="ml-1 align-baseline text-xs text-neutral-300">p{monster.page}</span> : null}
+          <CtrlEditableText value={monsterEdition(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["source"], value) : null}>{monsterEdition(monster)}</CtrlEditableText>
+          {monster.page ? (
+            <span className="ml-1 align-baseline text-xs text-neutral-300">
+              p<CtrlEditableText value={monster.page} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["page"], value) : null}>{monster.page}</CtrlEditableText>
+            </span>
+          ) : null}
         </div>
         <div className="flex gap-1">
           {onMinimize ? (
@@ -1920,12 +2296,14 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
 }
 
 function MonsterStatBlockBody({
+  noteId = "",
   monster,
   onRoll,
   className = "max-h-[min(66vh,600px)] overflow-auto",
   hpState = null,
   onHpChange = null,
-  onRollHp = null
+  onRollHp = null,
+  onMonsterEdit = null
 }) {
   const initiative = abilityModifier(monster.dex);
   const resistances = formatDamageResistances(monster);
@@ -1939,18 +2317,28 @@ function MonsterStatBlockBody({
     <div className={`${className} px-3 py-2 text-sm`}>
       <div className="grid grid-cols-[1fr_auto] gap-4">
         <div className="space-y-0.5">
-          <p><strong className="text-neutral-200">AC</strong> {formatAc(monster)}</p>
+          <p>
+            <strong className="text-neutral-200">AC</strong>{" "}
+            <CtrlEditableText value={formatAc(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["ac"], value) : null}>
+              {formatAc(monster)}
+            </CtrlEditableText>
+          </p>
           {hpState ? (
             <div className="flex flex-wrap items-center gap-2">
               <strong className="text-neutral-200">HP</strong>
-              <button
-                className="rounded-sm px-0.5 font-semibold text-sky-300 transition hover:bg-sky-300/15 hover:text-sky-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
-                type="button"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={onRollHp}
-              >
-                {monster.hp?.formula || formatHp(monster)}
-              </button>
+              <CtrlEditableText value={monster.hp?.formula || formatHp(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["hp", "formula"], value) : null}>
+                <button
+                  className="rounded-sm px-0.5 font-semibold text-sky-300 transition hover:bg-sky-300/15 hover:text-sky-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    if (event.ctrlKey || event.metaKey) return;
+                    onRollHp?.();
+                  }}
+                >
+                  {monster.hp?.formula || formatHp(monster)}
+                </button>
+              </CtrlEditableText>
               <label className="flex items-center gap-1 text-xs text-neutral-500">
                 Current
                 <NumericExpressionInput
@@ -1971,9 +2359,19 @@ function MonsterStatBlockBody({
               </label>
             </div>
           ) : (
-            <p><strong className="text-neutral-200">HP</strong> {formatHp(monster)}</p>
+            <p>
+              <strong className="text-neutral-200">HP</strong>{" "}
+              <CtrlEditableText value={formatHp(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["hp"], value) : null}>
+                {formatHp(monster)}
+              </CtrlEditableText>
+            </p>
           )}
-          <p><strong className="text-neutral-200">Speed</strong> {formatSpeedCompact(monster)}</p>
+          <p>
+            <strong className="text-neutral-200">Speed</strong>{" "}
+            <CtrlEditableText value={formatSpeedCompact(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["speed"], value) : null}>
+              {formatSpeedCompact(monster)}
+            </CtrlEditableText>
+          </p>
         </div>
         <div className="text-right">
           <strong className="text-neutral-200">Initiative</strong>{" "}
@@ -1990,23 +2388,27 @@ function MonsterStatBlockBody({
         <span className="text-center">Save</span>
       </div>
       <div className="grid gap-1 sm:grid-cols-3">
-        {["str", "dex", "con"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} />)}
+        {["str", "dex", "con"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} onEdit={onMonsterEdit} />)}
       </div>
       <div className="mt-1 grid gap-1 sm:grid-cols-3">
-        {["int", "wis", "cha"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} />)}
+        {["int", "wis", "cha"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} onEdit={onMonsterEdit} />)}
       </div>
 
-      {resistances ? <p className="mt-2 leading-snug"><strong className="text-neutral-200">Damage</strong> {resistances}</p> : null}
-      {immunities ? <p className="leading-snug"><strong className="text-neutral-200">Immunities</strong> {immunities}</p> : null}
-      {formatKeyValueMap(monster.skill) ? <p className="leading-snug"><strong className="text-neutral-200">Skills</strong> {formatKeyValueMap(monster.skill)}</p> : null}
-      {senses ? <p className="leading-snug"><strong className="text-neutral-200">Senses</strong> {senses}</p> : null}
-      <p className="leading-snug"><strong className="text-neutral-200">Languages</strong> {languages}</p>
-      <p className="leading-snug"><strong className="text-neutral-200">CR</strong> {formatCr(monster)} (XP {xp})</p>
+      {resistances ? (
+        <p className="mt-2 leading-snug"><strong className="text-neutral-200">Damage</strong>{" "}
+          <CtrlEditableText value={resistances} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["resist"], value) : null}>{resistances}</CtrlEditableText>
+        </p>
+      ) : null}
+      {immunities ? <p className="leading-snug"><strong className="text-neutral-200">Immunities</strong> <CtrlEditableText value={immunities} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["conditionImmune"], value) : null}>{immunities}</CtrlEditableText></p> : null}
+      {formatKeyValueMap(monster.skill) ? <p className="leading-snug"><strong className="text-neutral-200">Skills</strong> <CtrlEditableText value={formatKeyValueMap(monster.skill)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["skill"], value) : null}>{formatKeyValueMap(monster.skill)}</CtrlEditableText></p> : null}
+      {senses ? <p className="leading-snug"><strong className="text-neutral-200">Senses</strong> <CtrlEditableText value={senses} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["senses"], value) : null}>{senses}</CtrlEditableText></p> : null}
+      <p className="leading-snug"><strong className="text-neutral-200">Languages</strong> <CtrlEditableText value={languages} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["languages"], value) : null}>{languages}</CtrlEditableText></p>
+      <p className="leading-snug"><strong className="text-neutral-200">CR</strong> <CtrlEditableText value={formatCr(monster)} onCommit={onMonsterEdit ? (value) => onMonsterEdit(["cr"], value) : null}>{formatCr(monster)}</CtrlEditableText> (XP {xp})</p>
 
-      <MonsterTextSection title="Traits" items={monster.trait} onRoll={onRoll} />
-      <MonsterTextSection title="Actions" items={monster.action} onRoll={onRoll} interactive />
-      <MonsterTextSection title="Bonus Actions" items={monster.bonus} onRoll={onRoll} interactive />
-      <MonsterTextSection title="Reactions" items={monster.reaction} onRoll={onRoll} interactive />
+      <MonsterTextSection title="Traits" items={monster.trait} onRoll={onRoll} onEdit={onMonsterEdit} pathKey="trait" dropNoteId={noteId} />
+      <MonsterTextSection title="Actions" items={monster.action} onRoll={onRoll} interactive onEdit={onMonsterEdit} pathKey="action" dropNoteId={noteId} />
+      <MonsterTextSection title="Bonus Actions" items={monster.bonus} onRoll={onRoll} interactive onEdit={onMonsterEdit} pathKey="bonus" dropNoteId={noteId} />
+      <MonsterTextSection title="Reactions" items={monster.reaction} onRoll={onRoll} interactive onEdit={onMonsterEdit} pathKey="reaction" dropNoteId={noteId} />
 
       <p className="mt-3 text-xs font-bold text-neutral-400">Source: <span className="italic">{monsterEdition(monster)}</span>{monster.page ? `, page ${monster.page}` : ""}</p>
     </div>
@@ -2312,7 +2714,8 @@ function MonsterNote({
   onRestore,
   onDuplicate,
   onHpChange,
-  onRollHp
+  onRollHp,
+  onMonsterEdit
 }) {
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
@@ -2364,6 +2767,7 @@ function MonsterNote({
         monster={note.monster}
         title={noteDisplayName(note)}
         onRename={(value) => onRename?.(noteActionId, value)}
+        onMonsterEdit={(path, value) => onMonsterEdit?.(noteActionId, path, value)}
         onDragStart={(event) => onDragStart(event, frameNoteId)}
         onMinimize={() => onMinimize(frameNoteId)}
         onDuplicate={() => onDuplicate(noteActionId)}
@@ -2371,12 +2775,14 @@ function MonsterNote({
       />
       {tabBar}
       <MonsterStatBlockBody
+        noteId={noteActionId}
         monster={note.monster}
         onRoll={addRoll}
         className="min-h-0 flex-1 overflow-auto"
         hpState={{ current: note.hpCurrent, max: note.hpMax }}
         onHpChange={(field, value) => onHpChange(noteActionId, field, value)}
         onRollHp={() => onRollHp(noteActionId)}
+        onMonsterEdit={(path, value) => onMonsterEdit?.(noteActionId, path, value)}
       />
       <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
@@ -2430,7 +2836,7 @@ function ResourceNote({
   const itemPrimaryLabel = isSpell ? "" : itemTypeLabel(entry);
   const itemCategoryLine = isSpell ? "" : itemCategorySummary(entry);
   const itemDamage = isSpell ? "" : formatItemDamage(entry);
-  const itemPropertiesLine = isSpell ? "" : itemPropertyMetas(entry).map((propertyMeta) => formatItemPropertyName(propertyMeta, entry)).join(", ");
+  const itemPropertiesLine = isSpell ? "" : itemPropertyLine(entry);
   const itemMasteryLine = isSpell ? "" : itemMasteryMetas(entry).map((masteryMeta) => masteryMeta?.name).filter(Boolean).join(", ");
   const itemValueWeightLine = isSpell ? "" : [formatItemCurrency(entry?.value), formatItemWeight(entry?.weight)].filter(Boolean).join(", ");
   const itemFooter = isSpell ? "" : itemRulesFooter(entry);
@@ -2594,6 +3000,99 @@ function ResourceNote({
       <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+    </article>
+  );
+}
+
+function TextNote({
+  note,
+  shellNote = null,
+  actionNoteId = null,
+  tabBar = null,
+  isDropTarget = false,
+  onRename,
+  onClose,
+  onDragStart,
+  onFocus,
+  onResizeStart,
+  onMinimize,
+  onRestore,
+  onDuplicate,
+  onTextChange
+}) {
+  const frameNote = shellNote || note;
+  const frameNoteId = frameNote.id;
+  const noteActionId = actionNoteId || note.id;
+  const title = noteDisplayName(note);
+
+  if (frameNote.minimized) {
+    return (
+      <article
+        className={`absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border bg-neutral-900 px-3 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-amber-500"}`}
+        data-dm-note="true"
+        style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: clamp(frameNote.width, 220, 340) }}
+        onPointerDown={onFocus}
+      >
+        <button
+          className="min-w-0 flex-1 text-left"
+          type="button"
+          onPointerDown={(event) => onDragStart(event, frameNoteId)}
+          onClick={() => onRestore(frameNoteId)}
+          title={`Restaurar ${title}`}
+        >
+          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{title}</span>
+          <span className="block truncate text-[11px] text-neutral-500">Text note</span>
+        </button>
+        <button
+          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
+          type="button"
+          aria-label={`Cerrar ${title}`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => onClose(noteActionId, event)}
+        >
+          X
+        </button>
+      </article>
+    );
+  }
+
+  return (
+    <article
+      className={`absolute flex overflow-hidden border bg-neutral-900 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-neutral-950"}`}
+      data-dm-note="true"
+      style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: frameNote.width, height: frameNote.height, flexDirection: "column" }}
+      onPointerDown={onFocus}
+    >
+      <header
+        className="flex cursor-move items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2"
+        onPointerDown={(event) => onDragStart(event, frameNoteId)}
+      >
+        <div className="min-w-0">
+          <EditableNoteTitle
+            title={title}
+            className="block max-w-full truncate font-serif text-left text-xl font-bold uppercase leading-none tracking-wide text-amber-500"
+            inputClassName="w-full border border-amber-500 bg-neutral-950 px-2 py-1 font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500 focus:outline-none"
+            onRename={(value) => onRename?.(noteActionId, value)}
+          />
+          <p className="mt-2 text-sm italic text-neutral-500">Text note</p>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>D</button>
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+        </div>
+      </header>
+      {tabBar}
+      <textarea
+        className="min-h-0 flex-1 resize-none bg-neutral-950/60 px-4 py-3 text-sm leading-relaxed text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500/30"
+        value={note.textContent || ""}
+        placeholder="Escribi una nota..."
+        onPointerDown={(event) => event.stopPropagation()}
+        onChange={(event) => onTextChange(noteActionId, event.target.value)}
+      />
+      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -3068,15 +3567,77 @@ function LivePlayerCard({ player, onKick }) {
   );
 }
 
+function MultiplayerIcon({ className = "" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M9 11.2a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3.4 20c.5-3.2 2.6-5.2 5.6-5.2s5.1 2 5.6 5.2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 10.6a3 3 0 1 0-1.1-5.8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.9 14.9c2.4.3 4 2.1 4.5 5.1"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onToggleCollapsed, onPortChange, onStart, onStop, onKick }) {
   const running = Boolean(status?.running);
   const addresses = Array.isArray(status?.addresses) ? status.addresses : [];
   const primaryAddress = addresses[0] || "DM_IP";
   const effectivePort = status?.port || port || 8787;
 
+  if (collapsed) {
+    return (
+      <button
+        className="fixed right-4 top-4 z-40 flex h-14 w-14 items-center justify-center border border-amber-500 bg-neutral-900/95 text-amber-300 shadow-2xl transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+        data-board-control="true"
+        type="button"
+        aria-label="Expand live players panel"
+        title={`Live Players: ${players.length} players | ws://${primaryAddress}:${effectivePort}`}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={onToggleCollapsed}
+      >
+        <MultiplayerIcon className="h-8 w-8" />
+        <span className={`absolute right-1 top-1 h-2.5 w-2.5 rounded-full border border-neutral-950 ${running ? "bg-emerald-400" : "bg-neutral-600"}`} />
+        {players.length ? (
+          <span className="absolute -bottom-1 -left-1 inline-flex h-6 min-w-6 items-center justify-center border border-neutral-950 bg-amber-500 px-1 text-[11px] font-black leading-none text-neutral-950">
+            {players.length}
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
   return (
     <aside
-      className={`fixed right-4 top-4 z-40 flex flex-col border border-neutral-700 bg-neutral-900/95 text-neutral-200 shadow-2xl ${collapsed ? "w-[min(280px,calc(100vw-32px))]" : "max-h-[calc(100vh-32px)] w-[min(420px,calc(100vw-32px))]"}`}
+      className="fixed right-4 top-4 z-40 flex max-h-[calc(100vh-32px)] w-[min(420px,calc(100vw-32px))] flex-col border border-neutral-700 bg-neutral-900/95 text-neutral-200 shadow-2xl"
       data-board-control="true"
       onPointerDown={(event) => event.stopPropagation()}
     >
@@ -3085,9 +3646,7 @@ function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onTo
           <div>
             <h2 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Live Players</h2>
             <p className="mt-1 text-xs text-neutral-500">
-              {collapsed
-                ? `${players.length} players | ws://${primaryAddress}:${effectivePort}`
-                : `Players connect to ws://${primaryAddress}:${effectivePort} from the Connect to DM panel.`}
+              Players connect to ws://{primaryAddress}:{effectivePort} from the Connect to DM panel.
             </p>
           </div>
           <div className="flex shrink-0 items-start gap-2">
@@ -3107,9 +3666,8 @@ function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onTo
           </div>
         </div>
       </header>
-      {collapsed ? null : (
-        <>
-          <div className="grid gap-3 border-b border-neutral-800 p-3">
+      <>
+        <div className="grid gap-3 border-b border-neutral-800 p-3">
             <div className="grid grid-cols-[1fr_auto_auto] gap-2">
               <label className="text-xs font-bold uppercase text-neutral-500">
                 Port
@@ -3151,9 +3709,9 @@ function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onTo
               <p className="text-xs text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
             )}
             {error ? <p className="border border-red-500/30 bg-red-950/40 px-2 py-1 text-xs text-red-200">{error}</p> : null}
-          </div>
+        </div>
 
-          <div className="min-h-0 flex-1 overflow-auto p-3">
+        <div className="min-h-0 flex-1 overflow-auto p-3">
             <section className="mb-3 border border-neutral-800 bg-neutral-950/70">
               <header className="border-b border-neutral-800 px-3 py-2">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-amber-500">Recent Rolls</h3>
@@ -3188,9 +3746,8 @@ function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onTo
                 No connected players yet.
               </div>
             )}
-          </div>
-        </>
-      )}
+        </div>
+      </>
     </aside>
   );
 }
@@ -3470,6 +4027,626 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
   );
 }
 
+function cleanObsidianTarget(value) {
+  return String(value || "")
+    .replace(/^!?\[\[/, "")
+    .replace(/\]\]$/, "")
+    .split("|")[0]
+    .split("#")[0]
+    .trim();
+}
+
+function obsidianDisplayAlias(value) {
+  const content = String(value || "").replace(/^!?\[\[/, "").replace(/\]\]$/, "");
+  const [target, alias] = content.split("|");
+  return (alias || target || "").split("#")[0].trim();
+}
+
+function isSafeObsidianImage(value) {
+  return OBSIDIAN_IMAGE_EXTENSIONS.has(`.${String(value || "").split(".").pop()}`.toLowerCase());
+}
+
+function isObsidianHorizontalRule(line) {
+  return /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(String(line || ""));
+}
+
+function isObsidianBlockStart(line) {
+  return /^```/.test(line)
+    || isObsidianHorizontalRule(line)
+    || /^(#{1,6})\s+/.test(line)
+    || /^\s*>\s?/.test(line)
+    || /^\s*[-*+]\s+/.test(line)
+    || /^\s*\d+\.\s+/.test(line);
+}
+
+function parseObsidianListItem(text) {
+  const task = String(text || "").match(/^\[([ xX])\]\s+(.+)$/);
+  if (!task) return { text: String(text || ""), task: false, checked: false };
+  return {
+    text: task[2].trim(),
+    task: true,
+    checked: task[1].toLowerCase() === "x"
+  };
+}
+
+function parseObsidianMarkdown(markdown) {
+  const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
+  const blocks = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+
+    const fence = line.match(/^```(.*)$/);
+    if (fence) {
+      const code = [];
+      index += 1;
+      while (index < lines.length && !/^```/.test(lines[index])) {
+        code.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      blocks.push({ type: "code", language: fence[1]?.trim() || "", text: code.join("\n") });
+      continue;
+    }
+
+    if (isObsidianHorizontalRule(line)) {
+      blocks.push({ type: "hr" });
+      index += 1;
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      blocks.push({ type: "heading", level: heading[1].length, text: heading[2].trim() });
+      index += 1;
+      continue;
+    }
+
+    const quote = line.match(/^\s*>\s?(.*)$/);
+    if (quote) {
+      const quoteLines = [];
+      while (index < lines.length) {
+        const match = lines[index].match(/^\s*>\s?(.*)$/);
+        if (!match) break;
+        quoteLines.push(match[1]);
+        index += 1;
+      }
+      const callout = quoteLines[0]?.match(/^\[!([a-z0-9_-]+)\][+-]?\s*(.*)$/i);
+      if (callout) {
+        blocks.push({
+          type: "callout",
+          kind: callout[1].toLowerCase(),
+          title: callout[2]?.trim() || callout[1],
+          lines: quoteLines.slice(1).filter((entry) => entry.trim())
+        });
+      } else {
+        blocks.push({ type: "quote", lines: quoteLines.filter((entry) => entry.trim()) });
+      }
+      continue;
+    }
+
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    if (bullet) {
+      const items = [];
+      while (index < lines.length) {
+        const match = lines[index].match(/^\s*[-*+]\s+(.+)$/);
+        if (!match) break;
+        items.push(parseObsidianListItem(match[1].trim()));
+        index += 1;
+      }
+      blocks.push({ type: "list", ordered: false, items });
+      continue;
+    }
+
+    const ordered = line.match(/^\s*\d+\.\s+(.+)$/);
+    if (ordered) {
+      const items = [];
+      while (index < lines.length) {
+        const match = lines[index].match(/^\s*\d+\.\s+(.+)$/);
+        if (!match) break;
+        items.push(parseObsidianListItem(match[1].trim()));
+        index += 1;
+      }
+      blocks.push({ type: "list", ordered: true, items });
+      continue;
+    }
+
+    const paragraph = [];
+    while (index < lines.length) {
+      const nextLine = lines[index];
+      if (!nextLine.trim()) break;
+      if (isObsidianBlockStart(nextLine)) break;
+      paragraph.push(nextLine.trim());
+      index += 1;
+    }
+    blocks.push({ type: "paragraph", text: paragraph.join(" ") });
+  }
+
+  return blocks;
+}
+
+function ObsidianImage({ target, noteRelativePath }) {
+  const [state, setState] = useState({ url: "", error: "" });
+  const [zoom, setZoom] = useState(100);
+  const cleanTarget = cleanObsidianTarget(target);
+  const sourceDirectory = String(noteRelativePath || "").split("/").slice(0, -1).join("/");
+
+  function handleImageWheel(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const direction = event.deltaY > 0 ? -1 : 1;
+    setZoom((value) => clamp(value + direction * OBSIDIAN_IMAGE_ZOOM_STEP, OBSIDIAN_IMAGE_MIN_ZOOM, OBSIDIAN_IMAGE_MAX_ZOOM));
+  }
+
+  useEffect(() => {
+    let disposed = false;
+    async function resolveImage() {
+      if (!cleanTarget || !isSafeObsidianImage(cleanTarget)) {
+        setState({ url: "", error: "Unsupported image" });
+        return;
+      }
+      const candidates = [...new Set([
+        sourceDirectory ? `${sourceDirectory}/${cleanTarget}` : cleanTarget,
+        cleanTarget
+      ])];
+      for (const candidate of candidates) {
+        try {
+          const url = await window.dndSheet?.obsidian?.getAssetUrl(candidate);
+          if (!disposed && url) {
+            setState({ url, error: "" });
+            return;
+          }
+        } catch (_error) {
+          // Try the next safe vault-relative candidate.
+        }
+      }
+      if (!disposed) setState({ url: "", error: "Image not found" });
+    }
+    resolveImage();
+    return () => {
+      disposed = true;
+    };
+  }, [cleanTarget, sourceDirectory]);
+
+  if (state.url) {
+    return (
+      <div
+        className="my-3 max-w-full overflow-auto border border-neutral-800 bg-neutral-950/60"
+        onWheel={handleImageWheel}
+        onPointerDown={(event) => event.stopPropagation()}
+        onDoubleClick={() => setZoom(100)}
+        title={`${zoom}%`}
+      >
+        <img
+          className="block h-auto max-w-none object-contain"
+          src={state.url}
+          alt={obsidianDisplayAlias(target) || cleanTarget}
+          style={{ width: `${zoom}%` }}
+          draggable={false}
+        />
+      </div>
+    );
+  }
+  return <span className="text-xs italic text-neutral-500">[{state.error || "Loading image"}: {cleanTarget}]</span>;
+}
+
+function ObsidianInline({ text, noteRelativePath, onOpenWiki, onOpenExternal }) {
+  const parts = [];
+  const pattern = /(!\[\[[^\]]+\]\]|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\)|~~[^~]+~~|==[^=]+==|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = pattern.exec(String(text || "")))) {
+    if (match.index > lastIndex) parts.push({ type: "text", text: text.slice(lastIndex, match.index) });
+    const token = match[0];
+    if (token.startsWith("![[")) parts.push({ type: "image", target: token });
+    else if (token.startsWith("[[")) parts.push({ type: "wiki", target: token });
+    else if (token.startsWith("[") && token.includes("](")) {
+      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      parts.push({ type: "link", label: linkMatch?.[1] || token, href: linkMatch?.[2] || "" });
+    } else if (token.startsWith("~~")) parts.push({ type: "strike", text: token.slice(2, -2) });
+    else if (token.startsWith("==")) parts.push({ type: "highlight", text: token.slice(2, -2) });
+    else if (token.startsWith("`")) parts.push({ type: "code", text: token.slice(1, -1) });
+    else if (token.startsWith("**")) parts.push({ type: "bold", text: token.slice(2, -2) });
+    else if (token.startsWith("*")) parts.push({ type: "italic", text: token.slice(1, -1) });
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < String(text || "").length) parts.push({ type: "text", text: String(text || "").slice(lastIndex) });
+
+  return parts.map((part, index) => {
+    const key = `${part.type}-${index}-${part.text || part.target || part.href || ""}`;
+    if (part.type === "image") return <ObsidianImage key={key} target={part.target} noteRelativePath={noteRelativePath} />;
+    if (part.type === "wiki") {
+      const target = cleanObsidianTarget(part.target);
+      return (
+        <button
+          key={key}
+          className="font-semibold text-sky-300 underline decoration-sky-500/40 underline-offset-2 hover:text-sky-200"
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => onOpenWiki?.(target)}
+        >
+          {obsidianDisplayAlias(part.target)}
+        </button>
+      );
+    }
+    if (part.type === "link") {
+      const external = /^https?:\/\//i.test(part.href);
+      return (
+        <button
+          key={key}
+          className="font-semibold text-sky-300 underline decoration-sky-500/40 underline-offset-2 hover:text-sky-200"
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => external ? onOpenExternal?.(part.href) : onOpenWiki?.(part.href)}
+        >
+          {part.label}
+        </button>
+      );
+    }
+    if (part.type === "code") return <code key={key} className="rounded-sm bg-neutral-950 px-1 py-0.5 text-[0.95em] text-amber-200">{part.text}</code>;
+    if (part.type === "strike") return <del key={key} className="text-neutral-500"><ObsidianInline text={part.text} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} /></del>;
+    if (part.type === "highlight") return <mark key={key} className="bg-amber-400/25 px-0.5 text-amber-100"><ObsidianInline text={part.text} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} /></mark>;
+    if (part.type === "bold") return <strong key={key} className="font-bold text-neutral-100"><ObsidianInline text={part.text} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} /></strong>;
+    if (part.type === "italic") return <em key={key} className="italic text-neutral-200"><ObsidianInline text={part.text} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} /></em>;
+    return <React.Fragment key={key}>{part.text}</React.Fragment>;
+  });
+}
+
+function ObsidianMarkdown({ markdown, noteRelativePath, onOpenWiki, onOpenExternal }) {
+  const blocks = useMemo(() => parseObsidianMarkdown(markdown), [markdown]);
+  if (!blocks.length) return <p className="text-sm text-neutral-500">This note is empty.</p>;
+
+  return (
+    <div className="space-y-3 leading-relaxed text-neutral-300">
+      {blocks.map((block, index) => {
+        const key = `${block.type}-${index}`;
+        if (block.type === "heading") {
+          const Heading = block.level === 1 ? "h2" : block.level === 2 ? "h3" : block.level === 3 ? "h4" : block.level === 4 ? "h5" : "h6";
+          const headingClasses = {
+            1: "font-serif text-2xl font-bold uppercase text-amber-500",
+            2: "font-serif text-xl font-bold text-amber-400",
+            3: "font-serif text-lg font-bold text-neutral-100",
+            4: "text-base font-bold uppercase tracking-wide text-neutral-100",
+            5: "text-sm font-bold uppercase tracking-wide text-neutral-200",
+            6: "text-xs font-bold uppercase tracking-wide text-neutral-300"
+          };
+          const className = headingClasses[block.level] || headingClasses[6];
+          return <Heading key={key} className={className}><ObsidianInline text={block.text} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} /></Heading>;
+        }
+        if (block.type === "hr") {
+          return <hr key={key} className="my-4 border-0 border-t border-amber-500/60" />;
+        }
+        if (block.type === "code") {
+          return (
+            <pre key={key} className="overflow-auto border border-neutral-800 bg-neutral-950 p-3 text-xs text-neutral-200">
+              <code>{block.text}</code>
+            </pre>
+          );
+        }
+        if (block.type === "list") {
+          const List = block.ordered ? "ol" : "ul";
+          return (
+            <List key={key} className={`${block.ordered ? "list-decimal" : "list-disc"} space-y-1 pl-5`}>
+              {block.items.map((item, itemIndex) => (
+                <li key={`${key}-${itemIndex}`} className={item.task ? "list-none" : ""}>
+                  {item.task ? (
+                    <label className="-ml-5 flex items-start gap-2">
+                      <input className="mt-1 h-3.5 w-3.5 accent-amber-500" type="checkbox" checked={item.checked} readOnly />
+                      <span className={item.checked ? "text-neutral-500 line-through" : ""}>
+                        <ObsidianInline text={item.text} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} />
+                      </span>
+                    </label>
+                  ) : (
+                    <ObsidianInline text={item.text ?? item} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} />
+                  )}
+                </li>
+              ))}
+            </List>
+          );
+        }
+        if (block.type === "quote" || block.type === "callout") {
+          const isCallout = block.type === "callout";
+          return (
+            <blockquote key={key} className={`border-l-4 px-3 py-2 ${isCallout ? "border-sky-400 bg-sky-950/25" : "border-neutral-600 bg-neutral-950/50"}`}>
+              {isCallout ? (
+                <div className="mb-1 text-xs font-bold uppercase tracking-wide text-sky-300">{block.kind}: {block.title}</div>
+              ) : null}
+              <div className="space-y-2 text-neutral-300">
+                {(block.lines || []).map((line, lineIndex) => (
+                  <p key={`${key}-line-${lineIndex}`}>
+                    <ObsidianInline text={line} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} />
+                  </p>
+                ))}
+              </div>
+            </blockquote>
+          );
+        }
+        return (
+          <p key={key}>
+            <ObsidianInline text={block.text} noteRelativePath={noteRelativePath} onOpenWiki={onOpenWiki} onOpenExternal={onOpenExternal} />
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function ObsidianNote({
+  note,
+  shellNote = null,
+  actionNoteId = null,
+  tabBar = null,
+  isDropTarget = false,
+  onRename,
+  onClose,
+  onDragStart,
+  onFocus,
+  onResizeStart,
+  onMinimize,
+  onRestore,
+  onDuplicate,
+  onRefresh,
+  onOpenInObsidian,
+  onStartEdit,
+  onChangeEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onOpenWiki,
+  onOpenExternal
+}) {
+  const frameNote = shellNote || note;
+  const frameNoteId = frameNote.id;
+  const noteActionId = actionNoteId || note.id;
+  const title = noteDisplayName(note);
+  const relativePath = note.obsidian?.relativePath || "";
+  const status = note.obsidianLoading
+    ? "Loading..."
+    : note.obsidianSaving
+      ? "Saving..."
+    : note.obsidianUpdatedAt
+      ? `Updated ${new Date(note.obsidianUpdatedAt).toLocaleTimeString()}`
+      : note.obsidian?.vaultName || "Obsidian";
+  const editDraft = typeof note.obsidianDraft === "string" ? note.obsidianDraft : note.obsidianMarkdown || "";
+
+  if (frameNote.minimized) {
+    return (
+      <article
+        className={`absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border bg-neutral-900 px-3 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-amber-500"}`}
+        data-dm-note="true"
+        style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: clamp(frameNote.width, 220, 340) }}
+        onPointerDown={onFocus}
+      >
+        <button
+          className="min-w-0 flex-1 text-left"
+          type="button"
+          onPointerDown={(event) => onDragStart(event, frameNoteId)}
+          onClick={() => onRestore(frameNoteId)}
+          title={`Restaurar ${title}`}
+        >
+          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{title}</span>
+          <span className="block truncate text-[11px] text-neutral-500">{relativePath}</span>
+        </button>
+        <button
+          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
+          type="button"
+          aria-label={`Cerrar ${title}`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => onClose(noteActionId, event)}
+        >
+          X
+        </button>
+      </article>
+    );
+  }
+
+  return (
+    <article
+      className={`absolute flex overflow-hidden border bg-neutral-900 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-neutral-950"}`}
+      data-dm-note="true"
+      style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: frameNote.width, height: frameNote.height, flexDirection: "column" }}
+      onPointerDown={onFocus}
+    >
+      <header
+        className="flex cursor-move items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2"
+        onPointerDown={(event) => onDragStart(event, frameNoteId)}
+      >
+        <div className="min-w-0">
+          <EditableNoteTitle
+            title={title}
+            className="block max-w-full truncate font-serif text-left text-xl font-bold uppercase leading-none tracking-wide text-amber-500"
+            inputClassName="w-full border border-amber-500 bg-neutral-950 px-2 py-1 font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500 focus:outline-none"
+            onRename={(value) => onRename?.(noteActionId, value)}
+          />
+          <p className="mt-2 truncate text-sm italic text-neutral-300">{relativePath}</p>
+          <p className="mt-1 text-xs text-neutral-500">{status}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          {note.obsidianEditing ? (
+            <>
+              <button className="h-7 border border-emerald-600 bg-emerald-900/60 px-2 text-xs font-bold text-emerald-100 hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60" type="button" disabled={note.obsidianSaving} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSaveEdit(noteActionId)}>Save</button>
+              <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700 disabled:cursor-wait disabled:opacity-60" type="button" disabled={note.obsidianSaving} onPointerDown={(event) => event.stopPropagation()} onClick={() => onCancelEdit(noteActionId)}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onStartEdit(noteActionId)}>Edit</button>
+              <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onRefresh(noteActionId)}>Refresh</button>
+              <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onOpenInObsidian(noteActionId)}>Open</button>
+            </>
+          )}
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>D</button>
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+        </div>
+      </header>
+      {tabBar}
+      <div className="min-h-0 flex-1 overflow-auto px-4 py-3 text-sm">
+        {note.obsidianEditing ? (
+          <>
+            {note.obsidianError ? (
+              <div className="mb-3 border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-rose-200">
+                {note.obsidianError}
+              </div>
+            ) : null}
+            <textarea
+              className="h-full min-h-[360px] w-full resize-none border border-neutral-700 bg-neutral-950 px-3 py-3 font-mono text-sm leading-relaxed text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              value={editDraft}
+              spellCheck={false}
+              onPointerDown={(event) => event.stopPropagation()}
+              onChange={(event) => onChangeEdit(noteActionId, event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+                  event.preventDefault();
+                  onSaveEdit(noteActionId);
+                }
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  onCancelEdit(noteActionId);
+                }
+              }}
+            />
+          </>
+        ) : note.obsidianError ? (
+          <div className="border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-rose-200">
+            {note.obsidianError}
+          </div>
+        ) : (
+          <ObsidianMarkdown
+            markdown={note.obsidianMarkdown}
+            noteRelativePath={relativePath}
+            onOpenWiki={(target) => onOpenWiki?.(target, note)}
+            onOpenExternal={onOpenExternal}
+          />
+        )}
+      </div>
+      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+    </article>
+  );
+}
+
+function ObsidianPicker({
+  isOpen,
+  vault,
+  notes,
+  selectedNote,
+  searchQuery,
+  loading,
+  error,
+  onSearch,
+  onSelect,
+  onSelectVault,
+  onClearVault,
+  onRefresh,
+  onAdd,
+  onClose
+}) {
+  if (!isOpen) return null;
+  const hasVault = vault?.configured && vault?.exists;
+
+  return (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4" data-obsidian-picker="true">
+      <section className="grid h-[min(760px,calc(100vh-32px))] w-[min(1120px,calc(100vw-32px))] grid-cols-1 overflow-hidden border border-neutral-700 bg-neutral-900 text-neutral-300 shadow-2xl md:grid-cols-[420px_1fr]">
+        <div className="flex min-h-0 flex-col border-r border-neutral-700">
+          <header className="border-b-2 border-amber-500 bg-neutral-950 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add Obsidian Note</h1>
+                <p className="truncate text-sm text-neutral-500">{hasVault ? vault.name : "No vault selected"}</p>
+              </div>
+              <button className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onClick={onClose}>X</button>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-sm font-bold text-amber-500 hover:border-amber-500 hover:bg-neutral-800" type="button" onClick={onSelectVault}>
+                Select Vault
+              </button>
+              {vault?.configured ? (
+                <button className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onClearVault}>
+                  Clear
+                </button>
+              ) : null}
+              {hasVault ? (
+                <button className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onRefresh}>
+                  Refresh
+                </button>
+              ) : null}
+            </div>
+            {hasVault ? (
+              <input
+                className="mt-4 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                value={searchQuery}
+                onChange={(event) => onSearch(event.target.value)}
+                placeholder="Search title, file name, path, excerpt"
+                autoFocus
+              />
+            ) : null}
+            {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-auto bg-neutral-900">
+            {!hasVault ? (
+              <div className="p-4 text-sm text-neutral-400">
+                Select a local Obsidian vault folder to scan markdown notes.
+              </div>
+            ) : loading ? (
+              <p className="px-4 py-6 text-sm text-neutral-500">Loading notes...</p>
+            ) : notes.length ? notes.map((note) => {
+              const active = selectedNote?.relativePath === note.relativePath;
+              return (
+                <button
+                  key={note.relativePath}
+                  className={`w-full border-b border-neutral-800 px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-300 ${active ? "bg-amber-500 text-neutral-950 hover:bg-amber-400" : "text-neutral-300 hover:bg-neutral-800"}`}
+                  type="button"
+                  onClick={() => onSelect(note)}
+                >
+                  <span className="block truncate font-semibold">{note.title || note.fileName}</span>
+                  <span className={`block truncate text-xs ${active ? "text-neutral-800" : "text-neutral-500"}`}>{note.relativePath}</span>
+                </button>
+              );
+            }) : (
+              <p className="px-4 py-6 text-sm text-neutral-500">No matching notes.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="min-h-0 overflow-auto bg-neutral-900 p-5">
+          {hasVault && selectedNote ? (
+            <div className="space-y-5">
+              <article className="overflow-hidden border border-neutral-950 bg-neutral-900 text-neutral-300 shadow-2xl">
+                <header className="border-b-2 border-amber-500 bg-neutral-900 px-3 py-2">
+                  <h2 className="font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500">{selectedNote.title}</h2>
+                  <p className="mt-2 text-sm italic text-neutral-300">{selectedNote.relativePath}</p>
+                </header>
+                <div className="max-h-[min(58vh,560px)] overflow-auto px-3 py-2 text-sm">
+                  <p className="leading-relaxed text-neutral-300">{selectedNote.excerpt || "No excerpt available."}</p>
+                  <dl className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                    <Stat label="Size" value={`${selectedNote.size || 0} bytes`} />
+                    <Stat label="Modified" value={selectedNote.mtimeMs ? new Date(selectedNote.mtimeMs).toLocaleString() : ""} />
+                  </dl>
+                </div>
+              </article>
+              <div className="sticky bottom-0 border-t border-neutral-700 bg-neutral-900 pt-4">
+                <button className="inline-flex h-10 items-center bg-amber-500 px-4 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={() => onAdd(selectedNote)}>
+                  Add note
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-neutral-500">
+              {hasVault ? "Select a note." : "Select a vault to start."}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function CharacterCodeModal({ isOpen, value, error, onChange, onClose, onSubmit }) {
   const inputRef = useRef(null);
 
@@ -3545,20 +4722,41 @@ function CharacterCodeModal({ isOpen, value, error, onChange, onClose, onSubmit 
   );
 }
 
-function HomebrewMonsterModal({ isOpen, draft, onChange, onClose, onSubmit }) {
+function HomebrewMonsterModal({
+  isOpen,
+  activeTab,
+  monsterDraft,
+  itemDraft,
+  spellDraft,
+  onTabChange,
+  onMonsterChange,
+  onItemChange,
+  onSpellChange,
+  onClose,
+  onSubmit
+}) {
   const nameRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
     nameRef.current?.focus();
     nameRef.current?.select();
-  }, [isOpen]);
+  }, [activeTab, isOpen]);
 
   if (!isOpen) return null;
 
-  const updateField = (field) => (event) => onChange({ ...draft, [field]: event.target.value });
+  const updateMonsterField = (field) => (event) => onMonsterChange({ ...monsterDraft, [field]: event.target.value });
+  const updateItemField = (field) => (event) => onItemChange({ ...itemDraft, [field]: event.target.value });
+  const updateSpellField = (field) => (event) => onSpellChange({ ...spellDraft, [field]: event.target.value });
   const inputClass = "h-10 w-full border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20";
   const labelClass = "text-xs font-bold uppercase tracking-wide text-neutral-500";
+  const textareaClass = "mt-1 min-h-28 w-full resize-y border border-neutral-700 bg-neutral-950 px-3 py-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20";
+  const tabs = [
+    ["monster", "Monsters"],
+    ["item", "Items"],
+    ["spell", "Spells"]
+  ];
+  const submitLabel = activeTab === "item" ? "Create Item" : activeTab === "spell" ? "Create Spell" : "Create Monster";
 
   return (
     <div
@@ -3570,10 +4768,22 @@ function HomebrewMonsterModal({ isOpen, draft, onChange, onClose, onSubmit }) {
         <header className="border-b-2 border-amber-500 bg-neutral-950 px-5 py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Homebrew Monster</h1>
-              <p className="mt-1 text-sm text-neutral-400">Crea una nota de monstruo custom para el tablero.</p>
+              <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Homebrew</h1>
+              <p className="mt-1 text-sm text-neutral-400">Crea notas custom para el tablero.</p>
             </div>
             <button className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onClick={onClose}>X</button>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {tabs.map(([tab, label]) => (
+              <button
+                key={tab}
+                className={`h-9 border px-3 text-xs font-bold uppercase tracking-wide ${activeTab === tab ? "border-amber-500 bg-amber-500 text-neutral-950" : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500 hover:bg-neutral-800"}`}
+                type="button"
+                onClick={() => onTabChange(tab)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </header>
         <form
@@ -3583,65 +4793,122 @@ function HomebrewMonsterModal({ isOpen, draft, onChange, onClose, onSubmit }) {
             onSubmit();
           }}
         >
-          <div className="grid gap-3 sm:grid-cols-[2fr_0.8fr_1fr_1fr]">
-            <label className={labelClass}>
-              Name
-              <input ref={nameRef} className={`${inputClass} mt-1`} value={draft.name} onChange={updateField("name")} />
-            </label>
-            <label className={labelClass}>
-              Size
-              <select className={`${inputClass} mt-1`} value={draft.size} onChange={updateField("size")}>
-                {Object.entries(SIZE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </label>
-            <label className={labelClass}>
-              Type
-              <input className={`${inputClass} mt-1`} value={draft.type} onChange={updateField("type")} />
-            </label>
-            <label className={labelClass}>
-              Alignment
-              <input className={`${inputClass} mt-1`} value={draft.alignment} onChange={updateField("alignment")} />
-            </label>
-          </div>
+          {activeTab === "monster" ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-[2fr_0.8fr_1fr_1fr]">
+                <label className={labelClass}>
+                  Name
+                  <input ref={nameRef} className={`${inputClass} mt-1`} value={monsterDraft.name} onChange={updateMonsterField("name")} />
+                </label>
+                <label className={labelClass}>
+                  Size
+                  <select className={`${inputClass} mt-1`} value={monsterDraft.size} onChange={updateMonsterField("size")}>
+                    {Object.entries(SIZE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  Type
+                  <input className={`${inputClass} mt-1`} value={monsterDraft.type} onChange={updateMonsterField("type")} />
+                </label>
+                <label className={labelClass}>
+                  Alignment
+                  <input className={`${inputClass} mt-1`} value={monsterDraft.alignment} onChange={updateMonsterField("alignment")} />
+                </label>
+              </div>
 
-          <div className="grid gap-3 sm:grid-cols-4">
-            <label className={labelClass}>AC<input className={`${inputClass} mt-1`} value={draft.ac} onChange={updateField("ac")} /></label>
-            <label className={labelClass}>HP<input className={`${inputClass} mt-1`} value={draft.hp} onChange={updateField("hp")} placeholder="27 or 5d8+5" /></label>
-            <label className={labelClass}>Speed<input className={`${inputClass} mt-1`} value={draft.speed} onChange={updateField("speed")} /></label>
-            <label className={labelClass}>CR<input className={`${inputClass} mt-1`} value={draft.cr} onChange={updateField("cr")} /></label>
-          </div>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <label className={labelClass}>AC<input className={`${inputClass} mt-1`} value={monsterDraft.ac} onChange={updateMonsterField("ac")} /></label>
+                <label className={labelClass}>HP<input className={`${inputClass} mt-1`} value={monsterDraft.hp} onChange={updateMonsterField("hp")} placeholder="27 or 5d8+5" /></label>
+                <label className={labelClass}>Speed<input className={`${inputClass} mt-1`} value={monsterDraft.speed} onChange={updateMonsterField("speed")} /></label>
+                <label className={labelClass}>CR<input className={`${inputClass} mt-1`} value={monsterDraft.cr} onChange={updateMonsterField("cr")} /></label>
+              </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {ABILITY_KEYS.map((ability) => (
-              <label key={ability} className={labelClass}>
-                {ABILITY_LABELS[ability]}
-                <input className={`${inputClass} mt-1`} value={draft[ability]} onChange={updateField(ability)} />
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                {ABILITY_KEYS.map((ability) => (
+                  <label key={ability} className={labelClass}>
+                    {ABILITY_LABELS[ability]}
+                    <input className={`${inputClass} mt-1`} value={monsterDraft[ability]} onChange={updateMonsterField(ability)} />
+                  </label>
+                ))}
+              </div>
+
+              <label className={labelClass}>
+                Traits
+                <textarea
+                  className={textareaClass}
+                  value={monsterDraft.traits}
+                  onChange={updateMonsterField("traits")}
+                  placeholder="Keen Smell: Advantage on Wisdom (Perception) checks that rely on smell."
+                />
               </label>
-            ))}
-          </div>
+              <label className={labelClass}>
+                Actions
+                <textarea
+                  className={`${textareaClass} min-h-32`}
+                  value={monsterDraft.actions}
+                  onChange={updateMonsterField("actions")}
+                  placeholder="Bite: Melee Weapon Attack: +4 to hit. Hit: 1d8+2 piercing damage."
+                />
+              </label>
+            </>
+          ) : null}
 
-          <label className={labelClass}>
-            Traits
-            <textarea
-              className="mt-1 min-h-28 w-full resize-y border border-neutral-700 bg-neutral-950 px-3 py-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              value={draft.traits}
-              onChange={updateField("traits")}
-              placeholder="Keen Smell: Advantage on Wisdom (Perception) checks that rely on smell."
-            />
-          </label>
-          <label className={labelClass}>
-            Actions
-            <textarea
-              className="mt-1 min-h-32 w-full resize-y border border-neutral-700 bg-neutral-950 px-3 py-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              value={draft.actions}
-              onChange={updateField("actions")}
-              placeholder="Bite: Melee Weapon Attack: +4 to hit. Hit: 1d8+2 piercing damage."
-            />
-          </label>
+          {activeTab === "item" ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_1fr]">
+                <label className={labelClass}>Name<input ref={nameRef} className={`${inputClass} mt-1`} value={itemDraft.name} onChange={updateItemField("name")} /></label>
+                <label className={labelClass}>Type<input className={`${inputClass} mt-1`} value={itemDraft.type} onChange={updateItemField("type")} placeholder="Weapon, Armor, Gear" /></label>
+                <label className={labelClass}>Rarity<input className={`${inputClass} mt-1`} value={itemDraft.rarity} onChange={updateItemField("rarity")} /></label>
+                <label className={labelClass}>Source<input className={`${inputClass} mt-1`} value={itemDraft.source} onChange={updateItemField("source")} /></label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <label className={labelClass}>Value (cp)<input className={`${inputClass} mt-1`} value={itemDraft.value} onChange={updateItemField("value")} /></label>
+                <label className={labelClass}>Weight (lb)<input className={`${inputClass} mt-1`} value={itemDraft.weight} onChange={updateItemField("weight")} /></label>
+                <label className={labelClass}>Damage<input className={`${inputClass} mt-1`} value={itemDraft.damage} onChange={updateItemField("damage")} placeholder="1d8 slashing" /></label>
+                <label className={labelClass}>Properties<input className={`${inputClass} mt-1`} value={itemDraft.properties} onChange={updateItemField("properties")} placeholder="Finesse, Light" /></label>
+              </div>
+              <label className={labelClass}>
+                Description
+                <textarea
+                  className={`${textareaClass} min-h-40`}
+                  value={itemDraft.entries}
+                  onChange={updateItemField("entries")}
+                  placeholder="Describe what this item does."
+                />
+              </label>
+            </>
+          ) : null}
+
+          {activeTab === "spell" ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-[2fr_0.7fr_1fr_1fr]">
+                <label className={labelClass}>Name<input ref={nameRef} className={`${inputClass} mt-1`} value={spellDraft.name} onChange={updateSpellField("name")} /></label>
+                <label className={labelClass}>Level<input className={`${inputClass} mt-1`} value={spellDraft.level} onChange={updateSpellField("level")} placeholder="0-9" /></label>
+                <label className={labelClass}>School<input className={`${inputClass} mt-1`} value={spellDraft.school} onChange={updateSpellField("school")} /></label>
+                <label className={labelClass}>Source<input className={`${inputClass} mt-1`} value={spellDraft.source} onChange={updateSpellField("source")} /></label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-4">
+                <label className={labelClass}>Casting Time<input className={`${inputClass} mt-1`} value={spellDraft.castingTime} onChange={updateSpellField("castingTime")} /></label>
+                <label className={labelClass}>Range<input className={`${inputClass} mt-1`} value={spellDraft.range} onChange={updateSpellField("range")} /></label>
+                <label className={labelClass}>Components<input className={`${inputClass} mt-1`} value={spellDraft.components} onChange={updateSpellField("components")} /></label>
+                <label className={labelClass}>Duration<input className={`${inputClass} mt-1`} value={spellDraft.duration} onChange={updateSpellField("duration")} /></label>
+              </div>
+              <label className={labelClass}>Classes<input className={`${inputClass} mt-1`} value={spellDraft.classes} onChange={updateSpellField("classes")} placeholder="Wizard, Cleric" /></label>
+              <label className={labelClass}>
+                Description
+                <textarea
+                  className={`${textareaClass} min-h-40`}
+                  value={spellDraft.description}
+                  onChange={updateSpellField("description")}
+                  placeholder="Describe what the spell does."
+                />
+              </label>
+            </>
+          ) : null}
 
           <div className="flex justify-end gap-3 border-t border-neutral-800 pt-4">
             <button className="inline-flex h-10 items-center border border-neutral-700 bg-neutral-900 px-4 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onClose}>Cancel</button>
-            <button className="inline-flex h-10 items-center bg-amber-500 px-4 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="submit">Create Monster</button>
+            <button className="inline-flex h-10 items-center bg-amber-500 px-4 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="submit">{submitLabel}</button>
           </div>
         </form>
       </section>
@@ -3688,13 +4955,24 @@ function DmScreenApp() {
   const [resourceSortDirection, setResourceSortDirection] = useState("asc");
   const [selectedSpell, setSelectedSpell] = useState(spells[0] || null);
   const [selectedItem, setSelectedItem] = useState(ITEM_LIBRARY[0] || null);
+  const [isObsidianPickerOpen, setIsObsidianPickerOpen] = useState(false);
+  const [obsidianVault, setObsidianVault] = useState(null);
+  const [obsidianNotes, setObsidianNotes] = useState([]);
+  const [obsidianSearchQuery, setObsidianSearchQuery] = useState("");
+  const [selectedObsidianNote, setSelectedObsidianNote] = useState(null);
+  const [obsidianPickerLoading, setObsidianPickerLoading] = useState(false);
+  const [obsidianPickerError, setObsidianPickerError] = useState("");
+  const [obsidianSpawnPoint, setObsidianSpawnPoint] = useState(null);
   const [monsterNotes, setMonsterNotes] = useState(persistedBoardState.notes);
   const [isCharacterCodeModalOpen, setIsCharacterCodeModalOpen] = useState(false);
   const [characterCodeValue, setCharacterCodeValue] = useState("");
   const [characterCodeError, setCharacterCodeError] = useState("");
   const [characterCodeSpawnPoint, setCharacterCodeSpawnPoint] = useState(null);
   const [isHomebrewMonsterModalOpen, setIsHomebrewMonsterModalOpen] = useState(false);
+  const [homebrewModalTab, setHomebrewModalTab] = useState("monster");
   const [homebrewMonsterDraft, setHomebrewMonsterDraft] = useState(HOMEBREW_MONSTER_DEFAULTS);
+  const [homebrewItemDraft, setHomebrewItemDraft] = useState(HOMEBREW_ITEM_DEFAULTS);
+  const [homebrewSpellDraft, setHomebrewSpellDraft] = useState(HOMEBREW_SPELL_DEFAULTS);
   const [homebrewMonsterSpawnPoint, setHomebrewMonsterSpawnPoint] = useState(null);
   const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], playerCount: 0 });
   const [livePlayers, setLivePlayers] = useState([]);
@@ -3703,14 +4981,19 @@ function DmScreenApp() {
   const [liveHostError, setLiveHostError] = useState("");
   const [livePlayersCollapsed, setLivePlayersCollapsed] = useState(false);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
+  const [selectedRootNoteIds, setSelectedRootNoteIds] = useState([]);
+  const [selectionBox, setSelectionBox] = useState(null);
   const [boardView, setBoardView] = useState(persistedBoardState.view);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const deferredResourceSearchQuery = useDeferredValue(resourceSearchQuery);
+  const deferredObsidianSearchQuery = useDeferredValue(obsidianSearchQuery);
   const dragRef = useRef(null);
   const tabDragRef = useRef(null);
   const resizeRef = useRef(null);
   const panRef = useRef(null);
+  const selectionRef = useRef(null);
   const boardViewRef = useRef(boardView);
+  const monsterNotesRef = useRef(monsterNotes);
   const suppressRestoreClickRef = useRef(null);
   const zRef = useRef(Math.max(20, ...persistedBoardState.notes.map((note) => Number(note.z) || 0)));
 
@@ -3744,6 +5027,18 @@ function DmScreenApp() {
     }).map(({ entry }) => entry);
   }, [deferredResourceSearchQuery, resourcePickerKind, resourceSortDirection, resourceSortField]);
 
+  const filteredObsidianNotes = useMemo(() => {
+    const query = normalizeSearch(deferredObsidianSearchQuery);
+    const notes = Array.isArray(obsidianNotes) ? obsidianNotes : [];
+    if (!query) return notes;
+    return notes.filter((note) => normalizeSearch([
+      note.title,
+      note.fileName,
+      note.relativePath,
+      note.excerpt
+    ].join(" ")).includes(query));
+  }, [deferredObsidianSearchQuery, obsidianNotes]);
+
   useEffect(() => {
     if (!isPickerOpen) return;
     if (selectedMonster && filteredMonsters.includes(selectedMonster)) return;
@@ -3762,14 +5057,55 @@ function DmScreenApp() {
     boardViewRef.current = boardView;
   }, [boardView]);
 
+  useEffect(() => {
+    monsterNotesRef.current = monsterNotes;
+  }, [monsterNotes]);
+
   const visibleNotes = useMemo(
     () => monsterNotes.filter((note) => !note.parentNoteId),
     [monsterNotes]
   );
+  const selectedRootNoteIdSet = useMemo(() => new Set(selectedRootNoteIds), [selectedRootNoteIds]);
 
   useEffect(() => {
     saveDmBoardState(monsterNotes, boardView);
   }, [boardView, monsterNotes]);
+
+  useEffect(() => {
+    const rootIds = new Set(visibleNotes.map((note) => note.id));
+    setSelectedRootNoteIds((ids) => ids.filter((id) => rootIds.has(id)));
+  }, [visibleNotes]);
+
+  useEffect(() => {
+    if (selectedObsidianNote && filteredObsidianNotes.some((note) => note.relativePath === selectedObsidianNote.relativePath)) return;
+    setSelectedObsidianNote(filteredObsidianNotes[0] || null);
+  }, [filteredObsidianNotes, selectedObsidianNote]);
+
+  useEffect(() => {
+    const api = window.dndSheet?.obsidian;
+    if (!api) return undefined;
+    api.getVault()
+      .then((vault) => setObsidianVault(vault))
+      .catch(() => setObsidianVault({ configured: false, path: "", name: "", exists: false }));
+
+    const restoredPaths = [...new Set(monsterNotesRef.current
+      .filter((note) => note.kind === "obsidian" && note.obsidian?.relativePath && !note.obsidianMarkdown && !note.obsidianError)
+      .map((note) => note.obsidian.relativePath))];
+    restoredPaths.forEach((relativePath) => loadObsidianNoteContent(relativePath));
+
+    const unsubscribe = api.onVaultChanged?.((payload) => {
+      api.getVault().then((vault) => setObsidianVault(vault)).catch(() => {});
+      if (isObsidianPickerOpen) refreshObsidianNotes();
+      const changedPath = payload?.relativePath || "";
+      const openPaths = [...new Set(monsterNotesRef.current
+        .filter((note) => note.kind === "obsidian" && note.obsidian?.relativePath)
+        .map((note) => note.obsidian.relativePath))];
+      openPaths
+        .filter((relativePath) => !changedPath || relativePath === changedPath)
+        .forEach((relativePath) => loadObsidianNoteContent(relativePath, { live: true }));
+    });
+    return () => unsubscribe?.();
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -3922,6 +5258,79 @@ function DmScreenApp() {
     if (kind === "item") setSelectedItem(selectedEntry || selectedItem || ITEM_LIBRARY[0] || null);
   }
 
+  async function refreshObsidianNotes(query = obsidianSearchQuery) {
+    const api = window.dndSheet?.obsidian;
+    if (!api) {
+      setObsidianPickerError("Obsidian API unavailable in this renderer.");
+      return;
+    }
+    setObsidianPickerLoading(true);
+    setObsidianPickerError("");
+    try {
+      const vault = await api.getVault();
+      setObsidianVault(vault);
+      if (!vault?.configured || !vault?.exists) {
+        setObsidianNotes([]);
+        setSelectedObsidianNote(null);
+        return;
+      }
+      const notes = await api.listNotes(query || "");
+      const noteList = Array.isArray(notes) ? notes : [];
+      setObsidianNotes(noteList);
+      setSelectedObsidianNote((current) => {
+        if (current && noteList.some((note) => note.relativePath === current.relativePath)) return current;
+        return noteList[0] || null;
+      });
+    } catch (error) {
+      setObsidianPickerError(error?.message || "Could not load Obsidian notes.");
+      setObsidianNotes([]);
+      setSelectedObsidianNote(null);
+    } finally {
+      setObsidianPickerLoading(false);
+    }
+  }
+
+  function openObsidianPicker(spawnPoint = null, { search = "" } = {}) {
+    setObsidianSpawnPoint(spawnPoint);
+    setObsidianSearchQuery(search);
+    setIsObsidianPickerOpen(true);
+    setContextMenu(null);
+    refreshObsidianNotes(search);
+  }
+
+  async function selectObsidianVault() {
+    const api = window.dndSheet?.obsidian;
+    if (!api) {
+      setObsidianPickerError("Obsidian API unavailable in this renderer.");
+      return;
+    }
+    setObsidianPickerLoading(true);
+    setObsidianPickerError("");
+    try {
+      const vault = await api.selectVault();
+      setObsidianVault(vault);
+      await refreshObsidianNotes("");
+    } catch (error) {
+      setObsidianPickerError(error?.message || "Could not select Obsidian vault.");
+    } finally {
+      setObsidianPickerLoading(false);
+    }
+  }
+
+  async function clearObsidianVault() {
+    const api = window.dndSheet?.obsidian;
+    if (!api) return;
+    setObsidianPickerError("");
+    try {
+      const vault = await api.clearVault();
+      setObsidianVault(vault);
+      setObsidianNotes([]);
+      setSelectedObsidianNote(null);
+    } catch (error) {
+      setObsidianPickerError(error?.message || "Could not clear Obsidian vault.");
+    }
+  }
+
   function selectPickerMonster(monster) {
     setSelectedMonster(monster);
     setPreviewRolls([]);
@@ -3934,10 +5343,232 @@ function DmScreenApp() {
     setNoteSpawnPoint(null);
   }
 
+  function addTextNote(positionOverride = null) {
+    addBoardNote({
+      kind: "text",
+      textTitle: "Text Note",
+      textContent: "",
+      width: 420,
+      height: 320
+    }, positionOverride);
+    setContextMenu(null);
+  }
+
   function addResourceNote(kind, entry, positionOverride = null) {
-    addBoardNote({ kind, entry }, positionOverride);
+    addBoardNote({ kind, entry, entryCustom: entry?.__homebrew ? cloneForBoardState(entry) : null }, positionOverride);
     setResourcePickerKind(null);
     setNoteSpawnPoint(null);
+  }
+
+  function addObsidianNote(noteMeta, positionOverride = null) {
+    if (!noteMeta?.relativePath) return;
+    const vaultName = obsidianVault?.name || noteMeta.vaultName || "";
+    addBoardNote({
+      kind: "obsidian",
+      obsidian: {
+        relativePath: noteMeta.relativePath,
+        fileName: noteMeta.fileName || noteMeta.relativePath.split("/").pop() || "",
+        title: noteMeta.title || noteMeta.fileName || "Obsidian Note",
+        vaultName
+      },
+      width: 580,
+      height: 640,
+      obsidianLoading: true
+    }, positionOverride || obsidianSpawnPoint);
+    setIsObsidianPickerOpen(false);
+    setObsidianSpawnPoint(null);
+    setTimeout(() => loadObsidianNoteContent(noteMeta.relativePath), 0);
+  }
+
+  async function loadObsidianNoteContent(relativePath, { live = false } = {}) {
+    const api = window.dndSheet?.obsidian;
+    if (!api || !relativePath) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.kind === "obsidian" && note.obsidian?.relativePath === relativePath
+        ? note.obsidianEditing && live
+          ? note
+          : { ...note, obsidianLoading: true, obsidianError: live ? note.obsidianError : "" }
+        : note
+    )));
+    try {
+      const data = await api.readNote(relativePath);
+      setMonsterNotes((notes) => notes.map((note) => (
+        note.kind === "obsidian" && note.obsidian?.relativePath === relativePath
+          ? note.obsidianEditing && live
+            ? note
+            : {
+              ...note,
+              obsidian: {
+                ...note.obsidian,
+                relativePath: data.relativePath || relativePath,
+                fileName: data.fileName || note.obsidian?.fileName || "",
+                title: data.title || note.obsidian?.title || "Obsidian Note"
+              },
+              obsidianMarkdown: data.markdown || "",
+              obsidianLoading: false,
+              obsidianError: "",
+              obsidianUpdatedAt: Date.now()
+            }
+          : note
+      )));
+    } catch (error) {
+      setMonsterNotes((notes) => notes.map((note) => (
+        note.kind === "obsidian" && note.obsidian?.relativePath === relativePath
+          ? {
+            ...note,
+            obsidianLoading: false,
+            obsidianError: error?.message || "Could not read Obsidian note.",
+            obsidianUpdatedAt: Date.now()
+          }
+          : note
+      )));
+    }
+  }
+
+  function refreshObsidianNote(noteId) {
+    const note = monsterNotes.find((entry) => entry.id === noteId);
+    if (note?.obsidian?.relativePath) loadObsidianNoteContent(note.obsidian.relativePath);
+  }
+
+  function startEditingObsidianNote(noteId) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId
+        ? {
+          ...note,
+          obsidianEditing: true,
+          obsidianDraft: typeof note.obsidianMarkdown === "string" ? note.obsidianMarkdown : "",
+          obsidianError: ""
+        }
+        : note
+    )));
+  }
+
+  function updateObsidianNoteDraft(noteId, markdown) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? { ...note, obsidianDraft: markdown } : note
+    )));
+  }
+
+  function cancelEditingObsidianNote(noteId) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId
+        ? {
+          ...note,
+          obsidianEditing: false,
+          obsidianDraft: "",
+          obsidianSaving: false,
+          obsidianError: ""
+        }
+        : note
+    )));
+  }
+
+  async function saveObsidianNoteEdit(noteId) {
+    const note = monsterNotesRef.current.find((entry) => entry.id === noteId);
+    const relativePath = note?.obsidian?.relativePath;
+    if (!relativePath) return;
+    const markdown = typeof note.obsidianDraft === "string" ? note.obsidianDraft : note.obsidianMarkdown || "";
+    const api = window.dndSheet?.obsidian;
+    if (!api?.writeNote) {
+      setMonsterNotes((notes) => notes.map((entry) => (
+        entry.id === noteId ? { ...entry, obsidianError: "Obsidian write API unavailable." } : entry
+      )));
+      return;
+    }
+
+    setMonsterNotes((notes) => notes.map((entry) => (
+      entry.id === noteId ? { ...entry, obsidianSaving: true, obsidianError: "" } : entry
+    )));
+
+    try {
+      const data = await api.writeNote(relativePath, markdown);
+      setMonsterNotes((notes) => notes.map((entry) => {
+        if (entry.kind !== "obsidian" || entry.obsidian?.relativePath !== relativePath) return entry;
+        const nextNote = {
+          ...entry,
+          obsidian: {
+            ...entry.obsidian,
+            relativePath: data.relativePath || relativePath,
+            fileName: data.fileName || entry.obsidian?.fileName || "",
+            title: data.title || entry.obsidian?.title || "Obsidian Note"
+          },
+          obsidianMarkdown: data.markdown || "",
+          obsidianLoading: false,
+          obsidianError: "",
+          obsidianUpdatedAt: Date.now()
+        };
+        if (entry.id === noteId) {
+          return {
+            ...nextNote,
+            obsidianEditing: false,
+            obsidianDraft: "",
+            obsidianSaving: false
+          };
+        }
+        if (entry.obsidianEditing) return entry;
+        return {
+          ...nextNote,
+          obsidianSaving: false
+        };
+      }));
+      refreshObsidianNotes(obsidianSearchQuery);
+    } catch (error) {
+      setMonsterNotes((notes) => notes.map((entry) => (
+        entry.id === noteId
+          ? {
+            ...entry,
+            obsidianSaving: false,
+            obsidianError: error?.message || "Could not save Obsidian note."
+          }
+          : entry
+      )));
+    }
+  }
+
+  async function openNoteInObsidian(noteId) {
+    const note = monsterNotes.find((entry) => entry.id === noteId);
+    if (!note?.obsidian?.relativePath) return;
+    try {
+      await window.dndSheet?.obsidian?.openNote(note.obsidian.relativePath);
+    } catch (error) {
+      setMonsterNotes((notes) => notes.map((entry) => (
+        entry.id === noteId ? { ...entry, obsidianError: error?.message || "Obsidian app could not be opened." } : entry
+      )));
+    }
+  }
+
+  async function openObsidianWikiLink(target, sourceNote = null) {
+    const query = cleanObsidianTarget(target);
+    if (!query) return;
+    const normalizedQuery = normalizeSearch(query).replace(/\.md$/, "");
+    try {
+      const api = window.dndSheet?.obsidian;
+      const notes = await api?.listNotes(query);
+      const match = (Array.isArray(notes) ? notes : []).find((note) => {
+        const title = normalizeSearch(note.title);
+        const fileName = normalizeSearch(String(note.fileName || "").replace(/\.md$/, ""));
+        const relativePath = normalizeSearch(String(note.relativePath || "").replace(/\.md$/, ""));
+        return title === normalizedQuery || fileName === normalizedQuery || relativePath.endsWith(normalizedQuery);
+      }) || notes?.[0];
+      if (match) {
+        const spawnPoint = sourceNote
+          ? clampBoardPoint({ x: sourceNote.x + 36, y: sourceNote.y + 36 }, NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT)
+          : null;
+        addObsidianNote(match, spawnPoint);
+        return;
+      }
+    } catch (_error) {
+      // Fall through to the picker with the target prefilled.
+    }
+    const spawnPoint = sourceNote
+      ? clampBoardPoint({ x: sourceNote.x + 36, y: sourceNote.y + 36 }, NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT)
+      : null;
+    openObsidianPicker(spawnPoint, { search: query });
+  }
+
+  function openExternalLink(url) {
+    if (!/^https?:\/\//i.test(String(url || ""))) return;
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   function addCharacterResourceNote(kind, label, sourceNote, event) {
@@ -3981,7 +5612,10 @@ function DmScreenApp() {
   function openHomebrewMonsterModal() {
     if (!contextMenu) return;
     setHomebrewMonsterSpawnPoint({ x: contextMenu.boardX, y: contextMenu.boardY });
+    setHomebrewModalTab("monster");
     setHomebrewMonsterDraft(HOMEBREW_MONSTER_DEFAULTS);
+    setHomebrewItemDraft(HOMEBREW_ITEM_DEFAULTS);
+    setHomebrewSpellDraft(HOMEBREW_SPELL_DEFAULTS);
     setIsHomebrewMonsterModalOpen(true);
     setContextMenu(null);
   }
@@ -3991,9 +5625,21 @@ function DmScreenApp() {
     setHomebrewMonsterSpawnPoint(null);
   }
 
-  function addHomebrewMonsterNote() {
+  function addHomebrewNote() {
+    if (homebrewModalTab === "item") {
+      const entry = homebrewItemFromDraft(homebrewItemDraft);
+      addBoardNote({ kind: "item", entry, entryCustom: entry, width: 520, height: 560 }, homebrewMonsterSpawnPoint);
+      closeHomebrewMonsterModal();
+      return;
+    }
+    if (homebrewModalTab === "spell") {
+      const entry = homebrewSpellFromDraft(homebrewSpellDraft);
+      addBoardNote({ kind: "spell", entry, entryCustom: entry, width: 520, height: 560 }, homebrewMonsterSpawnPoint);
+      closeHomebrewMonsterModal();
+      return;
+    }
     const monster = homebrewMonsterFromDraft(homebrewMonsterDraft);
-    addBoardNote({ kind: "monster", monster }, homebrewMonsterSpawnPoint);
+    addBoardNote({ kind: "monster", monster, monsterCustom: monster }, homebrewMonsterSpawnPoint);
     closeHomebrewMonsterModal();
   }
 
@@ -4030,16 +5676,29 @@ function DmScreenApp() {
     const spawnPoint = clampBoardPoint({ x: spawnX, y: spawnY }, width, height);
     const monster = payload.monster || null;
     const character = payload.character || null;
+    const obsidian = payload.obsidian || null;
     const hpAverage = monster?.hp?.average ?? "";
     const characterHp = character?.hpMax || character?.hpCurrent || "";
     setMonsterNotes((notes) => [
       ...notes,
       {
-        id: `${payload.kind}-${(monster || payload.entry || character)?.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: `${payload.kind}-${(monster || payload.entry || character)?.name || obsidian?.relativePath || "note"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         kind: payload.kind,
         monster,
+        monsterCustom: payload.monsterCustom || null,
         character,
         entry: payload.entry || null,
+        entryCustom: payload.entryCustom || null,
+        textTitle: payload.textTitle || "",
+        textContent: payload.textContent || "",
+        obsidian,
+        obsidianMarkdown: payload.obsidianMarkdown || "",
+        obsidianLoading: Boolean(payload.obsidianLoading),
+        obsidianError: payload.obsidianError || "",
+        obsidianEditing: false,
+        obsidianDraft: "",
+        obsidianSaving: false,
+        obsidianUpdatedAt: payload.obsidianUpdatedAt || null,
         titleOverride: typeof payload.titleOverride === "string" ? payload.titleOverride : "",
         parentNoteId: null,
         tabNoteIds: [],
@@ -4064,14 +5723,77 @@ function DmScreenApp() {
     addBoardNote({
       kind: source.kind,
       monster: source.monster,
+      monsterCustom: source.monsterCustom,
       character: source.character,
       entry: source.entry,
+      entryCustom: source.entryCustom,
+      textTitle: source.textTitle,
+      textContent: source.textContent,
       titleOverride: source.titleOverride || "",
       width: source.width,
       height: source.height,
+      obsidian: source.obsidian,
+      obsidianMarkdown: source.obsidianMarkdown,
+      obsidianLoading: source.obsidianLoading,
+      obsidianError: source.obsidianError,
+      obsidianEditing: false,
+      obsidianDraft: "",
+      obsidianSaving: false,
+      obsidianUpdatedAt: source.obsidianUpdatedAt,
       hpCurrent: source.hpCurrent,
       hpMax: source.hpMax
     }, { x: source.x + 28, y: source.y + 28 });
+  }
+
+  function updateTextNote(noteId, textContent) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? { ...note, textContent } : note
+    )));
+  }
+
+  function editMonsterNote(noteId, pathParts, value) {
+    if (!Array.isArray(pathParts) || !pathParts.length) return;
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== noteId || note.kind !== "monster") return note;
+      const baseMonster = cloneForBoardState(note.monsterCustom || note.monster) || {};
+      const monsterCustom = updateObjectPath(baseMonster, pathParts, value);
+      return {
+        ...note,
+        monster: monsterCustom,
+        monsterCustom
+      };
+    }));
+  }
+
+  function findMonsterSectionDropTarget(clientX, clientY, sourceNoteId = "") {
+    const sections = Array.from(document.querySelectorAll("[data-monster-section-drop='true']"));
+    return sections.find((section) => {
+      const targetNoteId = section.dataset.dropNoteId || "";
+      if (!targetNoteId || targetNoteId === sourceNoteId) return false;
+      const rect = section.getBoundingClientRect();
+      return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+    }) || null;
+  }
+
+  function addResourceNoteToMonsterSection(resourceNoteId, targetNoteId, sectionKey) {
+    if (!resourceNoteId || !targetNoteId || !sectionKey) return false;
+    const resourceNote = monsterNotesRef.current.find((note) => note.id === resourceNoteId);
+    if (!["spell", "item"].includes(resourceNote?.kind) || !resourceNote.entry) return false;
+    const sectionEntry = resourceNote.kind === "spell"
+      ? spellMonsterSectionEntry(resourceNote.entry)
+      : itemMonsterSectionEntry(resourceNote.entry);
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== targetNoteId || note.kind !== "monster") return note;
+      const baseMonster = cloneForBoardState(note.monsterCustom || note.monster) || {};
+      const currentEntries = Array.isArray(baseMonster[sectionKey]) ? baseMonster[sectionKey] : [];
+      const monsterCustom = updateObjectPath(baseMonster, [sectionKey], [...currentEntries, sectionEntry]);
+      return {
+        ...note,
+        monster: monsterCustom,
+        monsterCustom
+      };
+    }));
+    return true;
   }
 
   function renameNote(noteId, nextTitle) {
@@ -4345,14 +6067,14 @@ function DmScreenApp() {
   }
 
   function openBoardContextMenu(event) {
-    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']")) return;
+    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']")) return;
     event.preventDefault();
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
     const boardPoint = clampBoardPoint(screenToBoardPoint(event.clientX, event.clientY), NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
     setContextMenu({
       x: clamp(event.clientX, 8, viewportWidth - 180),
-      y: clamp(event.clientY, 8, viewportHeight - 176),
+      y: clamp(event.clientY, 8, viewportHeight - 260),
       boardX: boardPoint.x,
       boardY: boardPoint.y
     });
@@ -4374,13 +6096,23 @@ function DmScreenApp() {
     openResourcePicker(kind, { x: contextMenu.boardX, y: contextMenu.boardY });
   }
 
+  function openContextObsidianPicker() {
+    if (!contextMenu) return;
+    openObsidianPicker({ x: contextMenu.boardX, y: contextMenu.boardY });
+  }
+
+  function openContextTextNote() {
+    if (!contextMenu) return;
+    addTextNote({ x: contextMenu.boardX, y: contextMenu.boardY });
+  }
+
   function shouldIgnoreBoardPointer(event) {
-    return Boolean(event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']"));
+    return Boolean(event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']"));
   }
 
   function startBoardPan(event) {
-    if (event.button != null && event.button !== 0) return;
-    if (dragRef.current || resizeRef.current || shouldIgnoreBoardPointer(event)) return;
+    if (event.button != null && event.button !== 0 && event.button !== 1) return;
+    if (dragRef.current || resizeRef.current || selectionRef.current || shouldIgnoreBoardPointer(event)) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const view = boardViewRef.current;
@@ -4393,9 +6125,29 @@ function DmScreenApp() {
     };
   }
 
+  function startBoardSelection(event) {
+    if (event.button != null && event.button !== 0) return;
+    if (dragRef.current || resizeRef.current || panRef.current || shouldIgnoreBoardPointer(event)) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const startPoint = screenToBoardPoint(event.clientX, event.clientY);
+    const append = Boolean(event.shiftKey || event.ctrlKey || event.metaKey);
+    selectionRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startPoint,
+      append,
+      baseIds: append ? selectedRootNoteIds.slice() : [],
+      moved: false
+    };
+    setSelectionBox({ x: startPoint.x, y: startPoint.y, width: 0, height: 0 });
+  }
+
   function handleBoardPointerDown(event) {
     closeBoardContextMenu(event);
-    startBoardPan(event);
+    if (event.altKey || event.button === 1) startBoardPan(event);
+    else startBoardSelection(event);
   }
 
   function handleBoardWheel(event) {
@@ -4440,22 +6192,55 @@ function DmScreenApp() {
     if (event.button != null && event.button !== 0) return;
     if (resizeRef.current) return;
     event.preventDefault();
+    event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const rootId = resolveRootNoteId(noteId, monsterNotes);
     const note = monsterNotes.find((entry) => entry.id === rootId);
     if (!note) return;
-    focusNote(rootId);
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      setSelectedRootNoteIds((ids) => (
+        ids.includes(rootId) ? ids.filter((id) => id !== rootId) : [...ids, rootId]
+      ));
+      focusNote(rootId);
+      return;
+    }
+    const rootNotes = monsterNotes.filter((entry) => !entry.parentNoteId);
+    const selectedDragIds = selectedRootNoteIds.includes(rootId)
+      ? selectedRootNoteIds.filter((id) => rootNotes.some((entry) => entry.id === id))
+      : [rootId];
+    const dragNotes = rootNotes.filter((entry) => selectedDragIds.includes(entry.id));
+    if (!selectedRootNoteIds.includes(rootId)) setSelectedRootNoteIds([rootId]);
+    zRef.current += dragNotes.length;
+    const firstZ = zRef.current - dragNotes.length + 1;
+    const zById = new Map(dragNotes.map((entry, index) => [entry.id, firstZ + index]));
+    setMonsterNotes((notes) => notes.map((entry) => (
+      zById.has(entry.id) ? { ...entry, z: zById.get(entry.id) } : entry
+    )));
+    const startPositions = Object.fromEntries(dragNotes.map((entry) => {
+      const rect = noteFrameRect(entry);
+      return [entry.id, {
+        x: entry.x,
+        y: entry.y,
+        width: rect.width,
+        height: rect.height
+      }];
+    }));
+    const primaryRect = startPositions[rootId] || noteFrameRect(note);
     dragRef.current = {
       noteId: rootId,
+      noteIds: dragNotes.map((entry) => entry.id),
+      startPositions,
       pointerId: event.pointerId,
       startClientX: event.clientX,
       startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
       moved: false,
       dropTargetNoteId: null,
       startNoteX: note.x,
       startNoteY: note.y,
-      width: note.minimized ? clamp(note.width, 220, 340) : note.width,
-      height: note.minimized ? 44 : note.height,
+      width: primaryRect.width,
+      height: primaryRect.height,
       scale: boardViewRef.current.scale
     };
   }
@@ -4484,6 +6269,23 @@ function DmScreenApp() {
   }
 
   function updateDrag(event) {
+    const selection = selectionRef.current;
+    if (selection?.pointerId === event.pointerId) {
+      const currentPoint = screenToBoardPoint(event.clientX, event.clientY);
+      const rect = normalizeRectFromPoints(selection.startPoint, currentPoint);
+      if (Math.abs(event.clientX - selection.startClientX) > 4 || Math.abs(event.clientY - selection.startClientY) > 4) selection.moved = true;
+      setSelectionBox(rect);
+      const hitIds = visibleNotes
+        .filter((note) => rectsIntersect(rect, noteFrameRect(note)))
+        .map((note) => note.id);
+      const nextIds = selection.append ? [...selection.baseIds] : [];
+      hitIds.forEach((id) => {
+        if (!nextIds.includes(id)) nextIds.push(id);
+      });
+      setSelectedRootNoteIds(nextIds);
+      return;
+    }
+
     const tabDrag = tabDragRef.current;
     if (tabDrag?.pointerId === event.pointerId) {
       if (Math.abs(event.clientX - tabDrag.startClientX) > 6 || Math.abs(event.clientY - tabDrag.startClientY) > 6) {
@@ -4491,9 +6293,20 @@ function DmScreenApp() {
         detachTabFromRoot(tabDrag.noteId, tabDrag.rootId, boardPoint);
         dragRef.current = {
           noteId: tabDrag.noteId,
+          noteIds: [tabDrag.noteId],
+          startPositions: {
+            [tabDrag.noteId]: {
+              x: boardPoint.x,
+              y: boardPoint.y,
+              width: tabDrag.width,
+              height: tabDrag.height
+            }
+          },
           pointerId: event.pointerId,
           startClientX: event.clientX,
           startClientY: event.clientY,
+          lastClientX: event.clientX,
+          lastClientY: event.clientY,
           moved: true,
           dropTargetNoteId: null,
           startNoteX: boardPoint.x,
@@ -4537,6 +6350,8 @@ function DmScreenApp() {
       return;
     }
     if (Math.abs(event.clientX - drag.startClientX) > 4 || Math.abs(event.clientY - drag.startClientY) > 4) drag.moved = true;
+    drag.lastClientX = event.clientX;
+    drag.lastClientY = event.clientY;
     const deltaX = (event.clientX - drag.startClientX) / drag.scale;
     const deltaY = (event.clientY - drag.startClientY) / drag.scale;
     const nextPoint = clampBoardPoint({
@@ -4545,13 +6360,31 @@ function DmScreenApp() {
     }, drag.width, drag.height);
     const nextX = nextPoint.x;
     const nextY = nextPoint.y;
-    const dropTargetId = findDragDropTarget(drag.noteId, { x: nextX + drag.width / 2, y: nextY + drag.height / 2 }, monsterNotes);
+    const isGroupDrag = Array.isArray(drag.noteIds) && drag.noteIds.length > 1;
+    const dropTargetId = isGroupDrag ? null : findDragDropTarget(drag.noteId, { x: nextX + drag.width / 2, y: nextY + drag.height / 2 }, monsterNotes);
     drag.dropTargetNoteId = dropTargetId;
     setDropTargetNoteId((current) => current === dropTargetId ? current : dropTargetId);
-    setMonsterNotes((notes) => notes.map((note) => note.id === drag.noteId ? { ...note, x: nextX, y: nextY } : note));
+    const startPositions = drag.startPositions || {};
+    const draggedIds = Array.isArray(drag.noteIds) && drag.noteIds.length ? drag.noteIds : [drag.noteId];
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (!draggedIds.includes(note.id)) return note;
+      const start = startPositions[note.id];
+      if (!start) return note;
+      const point = clampBoardPoint({
+        x: start.x + deltaX,
+        y: start.y + deltaY
+      }, start.width, start.height);
+      return { ...note, x: point.x, y: point.y };
+    }));
   }
 
   function stopDrag(event) {
+    if (selectionRef.current?.pointerId === event.pointerId) {
+      const completedSelection = selectionRef.current;
+      selectionRef.current = null;
+      setSelectionBox(null);
+      if (!completedSelection.moved && !completedSelection.append) setSelectedRootNoteIds([]);
+    }
     if (tabDragRef.current?.pointerId === event.pointerId) tabDragRef.current = null;
     if (dragRef.current?.pointerId === event.pointerId) {
       const completedDrag = dragRef.current;
@@ -4564,7 +6397,13 @@ function DmScreenApp() {
       }
       dragRef.current = null;
       setDropTargetNoteId(null);
-      if (completedDrag.moved && completedDrag.dropTargetNoteId) {
+      const resourceDropTarget = completedDrag.moved && (!completedDrag.noteIds || completedDrag.noteIds.length <= 1)
+        ? findMonsterSectionDropTarget(completedDrag.lastClientX ?? event.clientX, completedDrag.lastClientY ?? event.clientY, completedDrag.noteId)
+        : null;
+      if (resourceDropTarget && addResourceNoteToMonsterSection(completedDrag.noteId, resourceDropTarget.dataset.dropNoteId, resourceDropTarget.dataset.dropSection)) {
+        return;
+      }
+      if (completedDrag.moved && completedDrag.dropTargetNoteId && (!completedDrag.noteIds || completedDrag.noteIds.length <= 1)) {
         groupNoteIntoRoot(completedDrag.noteId, completedDrag.dropTargetNoteId);
       }
     }
@@ -4699,6 +6538,7 @@ function DmScreenApp() {
               {...sharedProps}
               onHpChange={updateNoteHp}
               onRollHp={rollNoteHp}
+              onMonsterEdit={editMonsterNote}
             />
           ) : activeNote.kind === "character" ? (
             <CharacterNote
@@ -4706,12 +6546,59 @@ function DmScreenApp() {
               onHpChange={updateNoteHp}
               onOpenResource={addCharacterResourceNote}
             />
+          ) : activeNote.kind === "text" ? (
+            <TextNote
+              {...sharedProps}
+              onTextChange={updateTextNote}
+            />
+          ) : activeNote.kind === "obsidian" ? (
+            <ObsidianNote
+              {...sharedProps}
+              onRefresh={refreshObsidianNote}
+              onOpenInObsidian={openNoteInObsidian}
+              onStartEdit={startEditingObsidianNote}
+              onChangeEdit={updateObsidianNoteDraft}
+              onCancelEdit={cancelEditingObsidianNote}
+              onSaveEdit={saveObsidianNoteEdit}
+              onOpenWiki={openObsidianWikiLink}
+              onOpenExternal={openExternalLink}
+            />
           ) : (
             <ResourceNote
               {...sharedProps}
             />
           );
         })}
+
+        {visibleNotes.filter((note) => selectedRootNoteIdSet.has(note.id)).map((note) => {
+          const rect = noteFrameRect(note);
+          return (
+            <div
+              key={`selected-${note.id}`}
+              className="pointer-events-none absolute border-2 border-sky-300 ring-2 ring-sky-300/30"
+              style={{
+                left: rect.x - 3,
+                top: rect.y - 3,
+                width: rect.width + 6,
+                height: rect.height + 6,
+                zIndex: (note.z || 0) + 2
+              }}
+            />
+          );
+        })}
+
+        {selectionBox ? (
+          <div
+            className="pointer-events-none absolute border border-sky-300 bg-sky-300/15"
+            style={{
+              left: selectionBox.x,
+              top: selectionBox.y,
+              width: selectionBox.width,
+              height: selectionBox.height,
+              zIndex: 100000
+            }}
+          />
+        ) : null}
       </div>
 
       {!visibleNotes.length ? (
@@ -4766,6 +6653,14 @@ function DmScreenApp() {
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
             type="button"
+            onClick={openContextTextNote}
+          >
+            <span>Add Text Note</span>
+            <span className="text-neutral-500">+</span>
+          </button>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
             onClick={openCharacterCodeModal}
           >
             <span>Add Character Code</span>
@@ -4787,6 +6682,14 @@ function DmScreenApp() {
             <span>Add Item</span>
             <span className="text-neutral-500">+</span>
           </button>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
+            onClick={openContextObsidianPicker}
+          >
+            <span>Add Obsidian Note</span>
+            <span className="text-neutral-500">+</span>
+          </button>
         </div>
       ) : null}
 
@@ -4803,10 +6706,16 @@ function DmScreenApp() {
       />
       <HomebrewMonsterModal
         isOpen={isHomebrewMonsterModalOpen}
-        draft={homebrewMonsterDraft}
-        onChange={setHomebrewMonsterDraft}
+        activeTab={homebrewModalTab}
+        monsterDraft={homebrewMonsterDraft}
+        itemDraft={homebrewItemDraft}
+        spellDraft={homebrewSpellDraft}
+        onTabChange={setHomebrewModalTab}
+        onMonsterChange={setHomebrewMonsterDraft}
+        onItemChange={setHomebrewItemDraft}
+        onSpellChange={setHomebrewSpellDraft}
         onClose={closeHomebrewMonsterModal}
-        onSubmit={addHomebrewMonsterNote}
+        onSubmit={addHomebrewNote}
       />
 
       <MonsterPicker
@@ -4850,6 +6759,22 @@ function DmScreenApp() {
         }}
         onAdd={(entry) => addResourceNote(resourcePickerKind || "spell", entry)}
         onClose={() => setResourcePickerKind(null)}
+      />
+      <ObsidianPicker
+        isOpen={isObsidianPickerOpen}
+        vault={obsidianVault}
+        notes={filteredObsidianNotes}
+        selectedNote={selectedObsidianNote}
+        searchQuery={obsidianSearchQuery}
+        loading={obsidianPickerLoading}
+        error={obsidianPickerError}
+        onSearch={setObsidianSearchQuery}
+        onSelect={setSelectedObsidianNote}
+        onSelectVault={selectObsidianVault}
+        onClearVault={clearObsidianVault}
+        onRefresh={() => refreshObsidianNotes(obsidianSearchQuery)}
+        onAdd={addObsidianNote}
+        onClose={() => setIsObsidianPickerOpen(false)}
       />
     </main>
   );

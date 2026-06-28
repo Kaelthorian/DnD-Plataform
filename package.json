@@ -12,7 +12,7 @@
     "build:dm-screen:js": "vite build --config ./src/app/renderer/dm-screen/vite.config.mjs",
     "prestart": "node ./scripts/ensure-dm-screen-build.js",
     "start": "set ELECTRON_RUN_AS_NODE=& electron .",
-    "test": "npm run test:engine",
+    "test": "npm run test:engine && node tests/services/obsidian-service.test.js",
     "test:backgrounds": "node tests/engine/backgrounds.test.js",
     "test:engine": "node tests/engine/backgrounds.test.js && node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/resource-state.test.js && node tests/engine/long-rest.test.js",
     "predist": "node ./scripts/ensure-dm-screen-build.js",

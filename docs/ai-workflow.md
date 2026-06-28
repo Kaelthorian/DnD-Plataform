@@ -24,6 +24,12 @@ Start with app-owned folders. Avoid `vendor/5etools-src-main` unless source/refe
 - Fix live sheet sharing: inspect `src/services/live-sheet-server.js`, the `live-sheet:*` handlers in `src/app/main/main.js`, `window.dndSheet.liveSheet` in `src/app/preload/preload.js`, the Connect to DM controls in `src/app/renderer/renderer.js`, and the Live Players panel in `src/app/renderer/dm-screen/src/main.jsx`.
 - Live sheet sharing is local LAN only over WebSocket. Do not add cloud relay, accounts, or automatic writes into save slots; remote player data stays memory-only unless a future explicit save feature is designed.
 - Keep player-card parsing centralized through `characterFromSheetData(data)` in the DM Screen. If sheet fields change, update that parser instead of adding a second live-player parser.
+- Fix Obsidian vault integration: inspect `src/services/obsidian-service.js`, the `obsidian:*` handlers in `src/app/main/main.js`, `window.dndSheet.obsidian` in `src/app/preload/preload.js`, and the Obsidian picker/note components in `src/app/renderer/dm-screen/src/main.jsx`.
+- Obsidian notes are local filesystem reads only. Keep all vault-relative path validation in `src/services/obsidian-service.js`; renderers must not receive arbitrary absolute paths.
+- To select a vault, open the DM Screen, right-click the board, choose `Add Obsidian Note`, then use `Select Vault`. The chosen folder is remembered in Electron `userData`.
+- To add a note, search the Obsidian picker by title, file name, relative path, or excerpt, then press `Add note`. Open notes persist on the DM board by relative path and reload content from the current vault.
+- To edit a note, use `Edit` in the DM Screen Obsidian note window and `Save` to write back to the local `.md` file through `obsidian:write-note`.
+- First Obsidian implementation limitations: no iframe/webview embedding, no required Obsidian plugin, no cloud sync, no advanced Markdown tables/callouts, and image embeds are limited to safe local `.png`, `.jpg`, `.jpeg`, `.webp`, and `.gif` files inside the selected vault.
 - Change packaged files: inspect `package.json` build `files`.
 
 ## Background Safety Notes
