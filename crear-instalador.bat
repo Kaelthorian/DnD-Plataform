@@ -6,7 +6,9 @@ set "PROJECT_DIR=%CD%"
 set "OUTPUT_DIR=installer-pdf-fields"
 set "BUILD_OUTPUT_DIR=%OUTPUT_DIR%"
 set "BUILDER_CMD=%PROJECT_DIR%\node_modules\.bin\electron-builder.cmd"
-set "BUILDER_JS=%PROJECT_DIR%\node_modules\electron-builder\cli.js"
+set "BUILDER_JS="
+set "BUILDER_JS_PRIMARY=%PROJECT_DIR%\node_modules\electron-builder\cli.js"
+set "BUILDER_JS_FALLBACK=%PROJECT_DIR%\node_modules\electron-builder\out\cli\cli.js"
 set "TAILWIND_CLI=%PROJECT_DIR%\node_modules\tailwindcss\lib\cli.js"
 set "VITE_CLI=%PROJECT_DIR%\node_modules\vite\bin\vite.js"
 set "DM_SCREEN_BUILD_SCRIPT=%PROJECT_DIR%\scripts\ensure-dm-screen-build.js"
@@ -34,6 +36,15 @@ if errorlevel 1 (
   exit /b 1
 )
 
+set "SYSTEM_NPM_CMD="
+for /f "delims=" %%p in ('where npm.cmd 2^>nul') do if not defined SYSTEM_NPM_CMD set "SYSTEM_NPM_CMD=%%p"
+if not defined SYSTEM_NPM_CMD (
+  echo ERROR: No se pudo resolver la ruta de npm.cmd.
+  echo.
+  pause
+  exit /b 1
+)
+
 if not exist "package.json" (
   echo ERROR: No se encontro package.json en esta carpeta.
   echo.
@@ -49,8 +60,16 @@ if not defined NODE_MAJOR (
   exit /b 1
 )
 
+echo %NODE_MAJOR%| findstr /R "^[0-9][0-9]*$" >nul
+if errorlevel 1 (
+  echo ERROR: La version de Node detectada no es valida: %NODE_MAJOR%
+  echo.
+  pause
+  exit /b 1
+)
+
 set "BUILD_NODE=node"
-set "NPM_CMD=npm.cmd"
+set "NPM_CMD=%SYSTEM_NPM_CMD%"
 if %NODE_MAJOR% LSS 20 (
   if exist "%PORTABLE_NODE%" if exist "%PORTABLE_NPM_CMD%" (
     set "BUILD_NODE=%PORTABLE_NODE%"
@@ -65,7 +84,10 @@ if %NODE_MAJOR% LSS 20 (
   )
 )
 
-for /f "usebackq delims=" %%v in (`node -p "require('./package.json').version"`) do set "CURRENT_VERSION=%%v"
+for /f "tokens=2 delims=:" %%v in ('findstr /R /C:"\"version\"" package.json') do if not defined CURRENT_VERSION set "CURRENT_VERSION=%%v"
+set "CURRENT_VERSION=%CURRENT_VERSION:"=%"
+set "CURRENT_VERSION=%CURRENT_VERSION:,=%"
+set "CURRENT_VERSION=%CURRENT_VERSION: =%"
 if not defined CURRENT_VERSION (
   echo ERROR: No se pudo leer la version actual desde package.json.
   echo.
@@ -104,12 +126,12 @@ if errorlevel 1 (
 set "NEED_NPM_INSTALL="
 if not exist "node_modules" set "NEED_NPM_INSTALL=1"
 if not exist "%BUILDER_CMD%" set "NEED_NPM_INSTALL=1"
-if not exist "%BUILDER_JS%" set "NEED_NPM_INSTALL=1"
+if not exist "%BUILDER_JS_PRIMARY%" if not exist "%BUILDER_JS_FALLBACK%" set "NEED_NPM_INSTALL=1"
 if not exist "%TAILWIND_CLI%" set "NEED_NPM_INSTALL=1"
 if not exist "%VITE_CLI%" set "NEED_NPM_INSTALL=1"
 
 if not defined NEED_NPM_INSTALL (
-  node -e "const pkg=require('./package.json'); const deps=[...Object.keys(pkg.dependencies||{}), ...Object.keys(pkg.devDependencies||{})]; const missing=deps.filter((name)=>{ try { require.resolve(name, { paths: [process.cwd()] }); return false; } catch (_error) { return true; } }); if (missing.length) { console.error('Faltan dependencias instaladas: ' + missing.join(', ')); process.exit(1); }"
+  call :CheckDependencies
   if errorlevel 1 set "NEED_NPM_INSTALL=1"
 )
 
@@ -124,7 +146,7 @@ if defined NEED_NPM_INSTALL (
   )
 )
 
-node -e "const pkg=require('./package.json'); const deps=[...Object.keys(pkg.dependencies||{}), ...Object.keys(pkg.devDependencies||{})]; const missing=deps.filter((name)=>{ try { require.resolve(name, { paths: [process.cwd()] }); return false; } catch (_error) { return true; } }); if (missing.length) { console.error('Faltan dependencias instaladas: ' + missing.join(', ')); process.exit(1); }"
+call :CheckDependencies
 if errorlevel 1 (
   echo.
   echo ERROR: Faltan dependencias despues de npm install.
@@ -141,7 +163,10 @@ if not exist "%BUILDER_CMD%" (
   exit /b 1
 )
 
-if not exist "%BUILDER_JS%" (
+if exist "%BUILDER_JS_PRIMARY%" set "BUILDER_JS=%BUILDER_JS_PRIMARY%"
+if not defined BUILDER_JS if exist "%BUILDER_JS_FALLBACK%" set "BUILDER_JS=%BUILDER_JS_FALLBACK%"
+
+if not defined BUILDER_JS (
   echo ERROR: No se encontro electron-builder\cli.js en node_modules.
   echo Ejecuta npm install y vuelve a intentar.
   echo.
@@ -225,6 +250,10 @@ if defined SETUP_EXE (
 echo.
 pause
 exit /b 0
+
+:CheckDependencies
+"%BUILD_NODE%" -e "const pkg=require('./package.json'); const deps=[...Object.keys(pkg.dependencies||{}), ...Object.keys(pkg.devDependencies||{})]; const missing=deps.filter((name)=>{ try { require.resolve(name, { paths: [process.cwd()] }); return false; } catch (_error) { return true; } }); if (missing.length) { console.error('Faltan dependencias instaladas: ' + missing.join(', ')); process.exit(1); }"
+exit /b %ERRORLEVEL%
 
 :NormalizeVersion
 setlocal EnableDelayedExpansion

@@ -76,6 +76,7 @@
     const liveSheetClientCancel = document.getElementById("liveSheetClientCancel");
     const liveSheetDmIp = document.getElementById("liveSheetDmIp");
     const liveSheetPort = document.getElementById("liveSheetPort");
+    const liveSheetSessionToken = document.getElementById("liveSheetSessionToken");
     const liveSheetPlayerName = document.getElementById("liveSheetPlayerName");
     const liveSheetConnectButton = document.getElementById("liveSheetConnectButton");
     const liveSheetClientStatus = document.getElementById("liveSheetClientStatus");
@@ -159,7 +160,7 @@
     function loadLiveSheetClientSettings() {
       try {
         const parsed = JSON.parse(localStorage.getItem(LIVE_SHEET_CLIENT_SETTINGS_KEY) || "{}");
-        if (liveSheetDmIp) liveSheetDmIp.value = String(parsed.dmIp || "");
+        if (liveSheetDmIp) liveSheetDmIp.value = String(parsed.host || parsed.dmIp || "");
         if (liveSheetPort) liveSheetPort.value = String(parsed.port || "8787");
         if (liveSheetPlayerName) liveSheetPlayerName.value = String(parsed.playerName || "");
       } catch (_error) {
@@ -169,7 +170,7 @@
 
     function saveLiveSheetClientSettings() {
       localStorage.setItem(LIVE_SHEET_CLIENT_SETTINGS_KEY, JSON.stringify({
-        dmIp: liveSheetDmIp?.value?.trim() || "",
+        host: liveSheetDmIp?.value?.trim() || "",
         port: liveSheetPort?.value?.trim() || "8787",
         playerName: liveSheetPlayerName?.value?.trim() || ""
       }));
@@ -218,6 +219,7 @@
         version: 1,
         playerId: liveSheetPlayerId(),
         playerName: defaultLiveSheetPlayerName(),
+        sessionToken: liveSheetSessionToken?.value?.trim() || "",
         ...payload
       }));
       return true;
@@ -303,16 +305,23 @@
       showStatus("Live sheet desconectada");
     }
 
+    function normalizeLiveSheetHost(rawHost) {
+      const trimmed = String(rawHost || "").trim();
+      if (!trimmed) return "";
+      const withoutProtocol = trimmed.replace(/^wss?:\/\//i, "");
+      return withoutProtocol.split("/")[0].split(":")[0].trim();
+    }
+
     function connectLiveSheetClient() {
       if (liveSheetClientSocket?.readyState === WebSocket.OPEN || liveSheetClientSocket?.readyState === WebSocket.CONNECTING) {
         disconnectLiveSheetClient();
         return;
       }
 
-      const dmIp = liveSheetDmIp?.value?.trim();
+      const dmHost = normalizeLiveSheetHost(liveSheetDmIp?.value);
       const port = Number.parseInt(liveSheetPort?.value || "8787", 10);
-      if (!dmIp) {
-        setLiveSheetClientStatus("Ingresa la IP del DM.", "error");
+      if (!dmHost) {
+        setLiveSheetClientStatus("Ingresa el host o IP Tailscale del DM.", "error");
         liveSheetDmIp?.focus();
         return;
       }
@@ -322,8 +331,9 @@
         return;
       }
 
+      if (liveSheetDmIp) liveSheetDmIp.value = dmHost;
       saveLiveSheetClientSettings();
-      const url = `ws://${dmIp}:${port}`;
+      const url = `ws://${dmHost}:${port}`;
       liveSheetClientManualDisconnect = false;
       setLiveSheetClientStatus(`Connecting to ${url}`, "neutral");
       try {
@@ -332,7 +342,26 @@
         socket.addEventListener("open", () => {
           setLiveSheetClientStatus(`Connected to ${url}`, "ok");
           sendLiveSheetHello();
+          sendLiveSheetSnapshot();
           showStatus("Live sheet conectada");
+        });
+        socket.addEventListener("message", (event) => {
+          let payload = null;
+          try {
+            payload = JSON.parse(String(event.data || ""));
+          } catch (_error) {
+            return;
+          }
+          if (payload?.type === "server:welcome") {
+            setLiveSheetClientStatus(`Connected to ${url}`, "ok");
+          }
+          if (payload?.type === "server:ack" && payload.receivedType === "sheet:update") {
+            setLiveSheetClientStatus("Synced with DM", "ok");
+          }
+          if (payload?.type === "dm:sheet:patch") {
+            const applied = typeof applyLiveSheetPatch === "function" ? applyLiveSheetPatch(payload.patch) : false;
+            setLiveSheetClientStatus(applied ? "Synced with DM" : "DM edit received, no matching fields", applied ? "ok" : "error");
+          }
         });
         socket.addEventListener("close", () => {
           if (liveSheetClientSocket === socket) liveSheetClientSocket = null;

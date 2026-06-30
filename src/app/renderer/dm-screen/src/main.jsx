@@ -156,6 +156,14 @@ const CHARACTER_SAVE_FIELDS = {
   wis: ["ST Wisdom", "Check Box 21"],
   cha: ["ST Charisma", "Check Box 22"]
 };
+const CHARACTER_ABILITY_FIELD_KEYS = {
+  str: "STR",
+  dex: "DEX",
+  con: "CON",
+  int: "INT",
+  wis: "WIS",
+  cha: "CHA"
+};
 const HOMEBREW_MONSTER_DEFAULTS = {
   name: "Homebrew Monster",
   size: "M",
@@ -1069,11 +1077,18 @@ function loadDmBoardState() {
 function saveDmBoardState(notes, view) {
   if (typeof localStorage === "undefined") return;
   try {
+    const persistentNotes = notes.filter((note) => !note.livePlayerId);
+    const persistentIds = new Set(persistentNotes.map((note) => note.id));
     localStorage.setItem(DM_BOARD_STORAGE_KEY, JSON.stringify({
       version: 1,
       savedAt: new Date().toISOString(),
       view,
-      notes: notes.map(noteStorageSnapshot)
+      notes: persistentNotes.map((note) => noteStorageSnapshot({
+        ...note,
+        parentNoteId: persistentIds.has(note.parentNoteId) ? note.parentNoteId : null,
+        tabNoteIds: (note.tabNoteIds || []).filter((id) => persistentIds.has(id)),
+        activeTabId: persistentIds.has(note.activeTabId) ? note.activeTabId : null
+      }))
     }));
   } catch (error) {
     console.error("Could not save DM board state", error);
@@ -3233,17 +3248,31 @@ function CharacterTextBlock({ text, context, onRoll, onOpenResource = null }) {
   );
 }
 
-function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange }) {
+function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange, onCharacterFieldChange }) {
   const initiative = abilityModifier(monster.dex);
   const senses = formatList(monster.senses);
   const skills = formatKeyValueMap(monster.skill);
   const languages = formatList(monster.languages) || "--";
+  const editable = Boolean(onCharacterFieldChange);
+  const editField = (fieldKey) => editable ? (value) => onCharacterFieldChange(note.id, fieldKey, value) : null;
+  const editAbility = (pathParts, value) => {
+    if (!editable || !Array.isArray(pathParts) || !pathParts.length) return;
+    if (pathParts[0] === "save") {
+      const [saveField] = CHARACTER_SAVE_FIELDS[pathParts[1]] || [];
+      if (saveField) onCharacterFieldChange(note.id, saveField, value);
+      return;
+    }
+    const abilityField = CHARACTER_ABILITY_FIELD_KEYS[pathParts[0]];
+    if (abilityField) onCharacterFieldChange(note.id, abilityField, value);
+  };
 
   return (
     <div className="px-3 py-2 text-sm">
       <div className="grid grid-cols-[1fr_auto] gap-4">
         <div className="space-y-0.5">
-          <p><strong className="text-neutral-200">AC</strong> {formatAc(monster)}</p>
+          <p><strong className="text-neutral-200">AC</strong>{" "}
+            <CtrlEditableText value={character.ac || ""} onCommit={editField("AC")}>{formatAc(monster)}</CtrlEditableText>
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             <strong className="text-neutral-200">HP</strong>
             <span className="font-semibold text-neutral-200">
@@ -3267,9 +3296,22 @@ function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange }
                 onChange={(value) => onHpChange(note.id, "max", value)}
               />
             </label>
+            <label className="flex items-center gap-1 text-xs text-neutral-500">
+              Temp
+              <NumericExpressionInput
+                className="h-7 w-16 border border-neutral-700 bg-neutral-950 px-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
+                value={character.tempHp || ""}
+                onPointerDown={(event) => event.stopPropagation()}
+                onChange={(value) => onCharacterFieldChange?.(note.id, "HPTemp", value)}
+              />
+            </label>
           </div>
-          <p><strong className="text-neutral-200">Speed</strong> {formatSpeedCompact(monster)}</p>
-          <p><strong className="text-neutral-200">Passive</strong> {character.passive || "--"}</p>
+          <p><strong className="text-neutral-200">Speed</strong>{" "}
+            <CtrlEditableText value={character.speed || ""} onCommit={editField("Speed")}>{formatSpeedCompact(monster)}</CtrlEditableText>
+          </p>
+          <p><strong className="text-neutral-200">Passive</strong>{" "}
+            <CtrlEditableText value={character.passive || ""} onCommit={editField("Passive")}>{character.passive || "--"}</CtrlEditableText>
+          </p>
         </div>
         <div className="text-right">
           <strong className="text-neutral-200">Initiative</strong>{" "}
@@ -3286,10 +3328,10 @@ function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange }
         <span className="text-center">Save</span>
       </div>
       <div className="grid gap-1 sm:grid-cols-3">
-        {["str", "dex", "con"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} />)}
+        {["str", "dex", "con"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} onEdit={editable ? editAbility : null} />)}
       </div>
       <div className="mt-1 grid gap-1 sm:grid-cols-3">
-        {["int", "wis", "cha"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} />)}
+        {["int", "wis", "cha"].map((ability) => <AbilityCell key={ability} monster={monster} ability={ability} onRoll={onRoll} onEdit={editable ? editAbility : null} />)}
       </div>
 
       {skills ? <p className="mt-2 leading-snug"><strong className="text-neutral-200">Skills</strong> {skills}</p> : null}
@@ -3297,7 +3339,11 @@ function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange }
       <p className="leading-snug"><strong className="text-neutral-200">Languages</strong> {languages}</p>
       <p className="leading-snug">
         <strong className="text-neutral-200">Character</strong>{" "}
-        {[character.race, character.background, character.profBonus ? `Prof ${character.profBonus}` : "", character.hitDice ? `HD ${character.hitDice}` : ""].filter(Boolean).join(" | ") || "Imported"}
+        <CtrlEditableText value={character.race || ""} onCommit={editField("Race ")}>{character.race || "Race"}</CtrlEditableText>
+        {" | "}
+        <CtrlEditableText value={character.background || ""} onCommit={editField("Background")}>{character.background || "Background"}</CtrlEditableText>
+        {character.profBonus ? <>{" | "}Prof <CtrlEditableText value={character.profBonus || ""} onCommit={editField("ProfBonus")}>{character.profBonus}</CtrlEditableText></> : null}
+        {character.hitDice ? <>{" | "}HD {character.hitDice}</> : null}
       </p>
       {character.money.length ? (
         <p className="leading-snug"><strong className="text-neutral-200">Money</strong> {character.money.map(([key, value]) => `${value} ${key}`).join(", ")}</p>
@@ -3323,6 +3369,7 @@ function CharacterNote({
   onRestore,
   onDuplicate,
   onHpChange,
+  onCharacterFieldChange,
   onOpenResource
 }) {
   const frameNote = shellNote || note;
@@ -3345,6 +3392,11 @@ function CharacterNote({
   function addRoll(label, roll) {
     onRoll(noteActionId, label, roll);
   }
+
+  function commitCharacterField(fieldKey, value) {
+    onCharacterFieldChange?.(noteActionId, fieldKey, value);
+  }
+  const canEditRemoteSheet = Boolean(note.livePlayerId && note.liveConnected !== false);
 
   if (frameNote.minimized) {
     return (
@@ -3387,7 +3439,7 @@ function CharacterNote({
       <MonsterStatBlockHeader
         monster={statBlockCharacter}
         title={noteDisplayName(note)}
-        onRename={(value) => onRename?.(noteActionId, value)}
+        onRename={(value) => canEditRemoteSheet ? commitCharacterField("CharacterName", value) : onRename?.(noteActionId, value)}
         onDragStart={(event) => onDragStart(event, frameNoteId)}
         onMinimize={() => onMinimize(frameNoteId)}
         onDuplicate={() => onDuplicate(noteActionId)}
@@ -3396,15 +3448,48 @@ function CharacterNote({
       {tabBar}
 
       <div className="min-h-0 flex-1 overflow-auto text-sm">
-        {character.player ? (
-          <p className="border-b border-neutral-800 px-3 py-2 text-xs text-neutral-500">Player {character.player}</p>
+        {(character.player || note.livePlayerId) ? (
+          <p className="border-b border-neutral-800 px-3 py-2 text-xs text-neutral-500">
+            {note.livePlayerId ? (
+              <span>
+                Live Player{" "}
+                <CtrlEditableText value={note.livePlayerName || character.player || ""} onCommit={canEditRemoteSheet ? (value) => commitCharacterField("PlayerName", value) : null}>
+                  {note.livePlayerName || character.player || "Player"}
+                </CtrlEditableText>
+                {" | "}{note.liveConnected === false ? "Disconnected" : "Connected"}
+              </span>
+            ) : (
+              <span>Player {character.player}</span>
+            )}
+          </p>
         ) : null}
+        <div className="grid gap-2 border-b border-neutral-800 bg-neutral-950/40 px-3 py-2 text-xs text-neutral-400 sm:grid-cols-3">
+          <p>
+            <strong className="text-neutral-200">Class</strong>{" "}
+            <CtrlEditableText value={character.classLevel || ""} onCommit={canEditRemoteSheet ? (value) => commitCharacterField("ClassLevel", value) : null}>
+              {character.classLevel || "Class"}
+            </CtrlEditableText>
+          </p>
+          <p>
+            <strong className="text-neutral-200">Level</strong>{" "}
+            <CtrlEditableText value={character.level || ""} onCommit={canEditRemoteSheet ? (value) => commitCharacterField("CharacterLevel", value) : null}>
+              {character.level || "--"}
+            </CtrlEditableText>
+          </p>
+          <p>
+            <strong className="text-neutral-200">Alignment</strong>{" "}
+            <CtrlEditableText value={character.alignment || ""} onCommit={canEditRemoteSheet ? (value) => commitCharacterField("Alignment", value) : null}>
+              {character.alignment || "--"}
+            </CtrlEditableText>
+          </p>
+        </div>
         <CharacterMonsterVitals
           character={character}
           monster={statBlockCharacter}
           note={note}
           onRoll={addRoll}
           onHpChange={onHpChange}
+          onCharacterFieldChange={canEditRemoteSheet ? onCharacterFieldChange : null}
         />
 
         {character.actions.length ? (
@@ -3500,73 +3585,6 @@ function formatLiveTimestamp(value) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-function LivePlayerCard({ player, onKick }) {
-  const character = useMemo(() => {
-    try {
-      return characterFromSheetData(player.data || {});
-    } catch (_error) {
-      return null;
-    }
-  }, [player.data]);
-  const name = sanitizeDisplayText(character?.name, "Unknown character");
-  const playerName = sanitizeDisplayText(player.playerName, "Player");
-  const classLevel = sanitizeDisplayText(character?.classLevel || (character?.level ? `Level ${character.level}` : ""), "No class");
-  const race = sanitizeDisplayText(character?.race, "No race");
-  const hpLabel = `${character?.hpCurrent || 0}/${character?.hpMax || 0}${character?.tempHp ? ` +${character.tempHp} temp` : ""}`;
-  const slots = character?.spellcasting?.slots || [];
-
-  return (
-    <article className={`border bg-neutral-950/80 p-3 shadow-lg ${player.connected ? "border-neutral-700" : "border-neutral-800 opacity-75"}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${player.connected ? "bg-emerald-400" : "bg-neutral-600"}`} />
-            <h3 className="truncate font-serif text-lg font-bold uppercase leading-tight text-amber-500">{name}</h3>
-          </div>
-          <p className="mt-1 truncate text-xs text-neutral-400">{playerName} | {classLevel} | {race}</p>
-        </div>
-        <button
-          className="shrink-0 border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-bold text-neutral-300 hover:border-red-500 hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-red-500/40"
-          type="button"
-          onClick={() => onKick(player.playerId)}
-        >
-          {player.connected ? "Kick" : "Remove"}
-        </button>
-      </div>
-
-      <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
-        <Stat label="AC" value={character?.ac || "--"} />
-        <Stat label="HP" value={hpLabel} />
-        <Stat label="Temp" value={character?.tempHp || "0"} />
-        <Stat label="Passive" value={character?.passive || "--"} />
-      </div>
-
-      <div className="mt-3 grid grid-cols-6 gap-1 text-center text-xs">
-        {ABILITY_KEYS.map((ability) => (
-          <div key={ability} className="border border-neutral-800 bg-neutral-900 px-1 py-1">
-            <div className="font-bold uppercase text-neutral-500">{ABILITY_LABELS[ability]}</div>
-            <div className="text-neutral-100">{character?.abilities?.[ability] ?? "--"}</div>
-          </div>
-        ))}
-      </div>
-
-      {slots.length ? (
-        <div className="mt-3 grid grid-cols-3 gap-1 text-xs">
-          {slots.map((slot) => (
-            <div key={slot.level} className="border border-neutral-800 bg-neutral-900 px-2 py-1">
-              <span className="font-bold text-amber-500">L{slot.level}</span> {slot.remaining || 0}/{slot.total || 0}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <p className="mt-3 text-[11px] uppercase tracking-wide text-neutral-500">
-        {player.connected ? "Connected" : "Disconnected"} | Last update {formatLiveTimestamp(player.lastUpdate)}
-      </p>
-    </article>
-  );
-}
-
 function MultiplayerIcon({ className = "" }) {
   return (
     <svg
@@ -3607,11 +3625,49 @@ function MultiplayerIcon({ className = "" }) {
   );
 }
 
-function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onToggleCollapsed, onPortChange, onStart, onStop, onKick }) {
+function LivePlayersPanel({
+  status,
+  diagnostics,
+  port,
+  error,
+  players,
+  collapsed,
+  tokenEnabled,
+  onToggleCollapsed,
+  onPortChange,
+  onTokenEnabledChange,
+  onStart,
+  onStop,
+  onRunSelfTest,
+  onKick
+}) {
   const running = Boolean(status?.running);
   const addresses = Array.isArray(status?.addresses) ? status.addresses : [];
-  const primaryAddress = addresses[0] || "DM_IP";
+  const tailscaleAddresses = Array.isArray(status?.tailscaleAddresses) ? status.tailscaleAddresses : [];
+  const lanAddresses = Array.isArray(status?.lanAddresses) ? status.lanAddresses : addresses.filter((address) => !tailscaleAddresses.includes(address));
+  const primaryAddress = tailscaleAddresses[0] || lanAddresses[0] || addresses[0] || "DM_IP";
   const effectivePort = status?.port || port || 8787;
+  const recommendedUrl = status?.recommendedUrl || (primaryAddress !== "DM_IP" ? `ws://${primaryAddress}:${effectivePort}` : "");
+  const tailscaleUrl = tailscaleAddresses[0] ? `ws://${tailscaleAddresses[0]}:${effectivePort}` : "";
+  const sessionToken = status?.tokenEnabled ? status?.sessionToken : "";
+  const selfTests = status?.selfTests || {};
+  const [magicDnsHost, setMagicDnsHost] = useState("");
+  const magicDnsUrl = magicDnsHost.trim() ? `ws://${magicDnsHost.trim()}:${effectivePort}` : "";
+
+  function copyText(text) {
+    if (!text) return;
+    navigator.clipboard?.writeText(text).catch(() => {});
+  }
+
+  function testLabel(test, okText, failText, pendingText) {
+    if (!running || !test) return pendingText;
+    return test.ok ? okText : failText;
+  }
+
+  function testClass(test) {
+    if (!running || !test) return "border-neutral-800 bg-neutral-950 text-neutral-500";
+    return test.ok ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-300" : "border-red-500/30 bg-red-950/30 text-red-200";
+  }
 
   if (collapsed) {
     return (
@@ -3646,7 +3702,7 @@ function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onTo
           <div>
             <h2 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Live Players</h2>
             <p className="mt-1 text-xs text-neutral-500">
-              Players connect to ws://{primaryAddress}:{effectivePort} from the Connect to DM panel.
+              Players connect to {recommendedUrl || `ws://${primaryAddress}:${effectivePort}`} from the Connect to DM panel.
             </p>
           </div>
           <div className="flex shrink-0 items-start gap-2">
@@ -3699,53 +3755,126 @@ function LivePlayersPanel({ status, port, error, players, rolls, collapsed, onTo
               </button>
             </div>
 
-            {addresses.length ? (
-              <div className="grid gap-1 text-xs text-neutral-400">
-                {addresses.map((address) => (
-                  <code key={address} className="border border-neutral-800 bg-neutral-950 px-2 py-1 text-amber-200">ws://{address}:{effectivePort}</code>
-                ))}
+            <label className="flex items-start gap-2 border border-neutral-800 bg-neutral-950/60 p-2 text-xs text-neutral-300">
+              <input
+                className="mt-0.5"
+                type="checkbox"
+                checked={Boolean(tokenEnabled)}
+                disabled={running}
+                onChange={(event) => onTokenEnabledChange(event.target.checked)}
+              />
+              <span>
+                <span className="block font-bold text-neutral-100">Session token</span>
+                <span className="text-neutral-500">Recommended for Tailscale host. Turn off only for local tests.</span>
+              </span>
+            </label>
+
+            <section className="grid gap-2 border border-emerald-500/30 bg-emerald-950/10 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-emerald-300">Tailscale connection</h3>
+                <span className={`border px-2 py-1 text-[10px] font-bold uppercase ${tailscaleAddresses.length ? "border-emerald-500/40 text-emerald-300" : "border-neutral-700 text-neutral-500"}`}>
+                  {tailscaleAddresses.length ? "Tailscale detected" : "Tailscale not detected"}
+                </span>
               </div>
-            ) : (
-              <p className="text-xs text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
-            )}
+              {tailscaleUrl ? (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <code className="min-w-0 break-all border border-neutral-800 bg-neutral-950 px-2 py-2 text-xs text-emerald-200">{tailscaleUrl}</code>
+                  <button className="border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold text-neutral-200 hover:border-emerald-500" type="button" onClick={() => copyText(tailscaleUrl)}>Copy</button>
+                </div>
+              ) : (
+                <p className="text-xs text-neutral-500">Start the host to show the recommended Tailscale URL.</p>
+              )}
+              {sessionToken ? (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <code className="min-w-0 break-all border border-neutral-800 bg-neutral-950 px-2 py-2 text-xs text-amber-200">Session code: {sessionToken}</code>
+                  <button className="border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold text-neutral-200 hover:border-amber-500" type="button" onClick={() => copyText(sessionToken)}>Copy</button>
+                </div>
+              ) : (
+                <p className="text-xs text-neutral-500">No token mode active.</p>
+              )}
+              <label className="grid gap-1 text-xs font-bold uppercase text-neutral-500">
+                MagicDNS host
+                <input
+                  className="h-9 border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-emerald-500 focus:outline-none"
+                  type="text"
+                  spellCheck="false"
+                  placeholder="kael-pc o kael-pc.tailnet.ts.net"
+                  value={magicDnsHost}
+                  onChange={(event) => setMagicDnsHost(event.target.value)}
+                />
+              </label>
+              {magicDnsUrl ? (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <code className="min-w-0 break-all border border-neutral-800 bg-neutral-950 px-2 py-2 text-xs text-emerald-200">{magicDnsUrl}</code>
+                  <button className="border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold text-neutral-200 hover:border-emerald-500" type="button" onClick={() => copyText(magicDnsUrl)}>Copy</button>
+                </div>
+              ) : null}
+              <div className="grid gap-1 text-xs leading-relaxed text-neutral-400">
+                <p>Para usar Tailscale, todos los jugadores deben tener Tailscale instalado y estar en el mismo tailnet o tener acceso compartido a la PC del DM.</p>
+                <p>No uses tu IP publica. No abras puertos del router para este modo.</p>
+                <p>Usa la IP Tailscale 100.x.y.z o el nombre MagicDNS del DM.</p>
+                <p>Si no conecta, proba primero hacer ping a la IP Tailscale del DM.</p>
+              </div>
+              <p className="text-xs text-neutral-500">{diagnostics?.message || (tailscaleAddresses[0] ? `Tailscale IP detected: ${tailscaleAddresses[0]}` : "No Tailscale IP detected. Open Tailscale and confirm this device is connected.")}</p>
+            </section>
+
+            <section className="grid gap-2 border border-neutral-800 bg-neutral-950/50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-neutral-400">Connection tests</h3>
+                <button className="border border-neutral-700 bg-neutral-950 px-2 py-1 text-[11px] font-bold text-neutral-300 hover:border-amber-500 disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={!running} onClick={onRunSelfTest}>Run tests</button>
+              </div>
+              <div className="grid gap-1 text-xs">
+                <span className={`border px-2 py-1 ${testClass(selfTests.local)}`}>{testLabel(selfTests.local, "Local test OK", "Local test failed", "Local test pending")}</span>
+                <span className={`border px-2 py-1 ${testClass(selfTests.tailscale)}`}>{testLabel(selfTests.tailscale, "Tailscale self-test OK", "Tailscale self-test failed", tailscaleAddresses.length ? "Tailscale self-test pending" : "No Tailscale IP for self-test")}</span>
+              </div>
+              {running && tailscaleAddresses.length && selfTests.tailscale && !selfTests.tailscale.ok ? (
+                <p className="border border-red-500/30 bg-red-950/30 px-2 py-1 text-xs text-red-200">
+                  El host arranco, pero no responde por Tailscale. Revisa Windows Firewall para permitir Planilla DnD / Electron en redes privadas.
+                </p>
+              ) : null}
+            </section>
+
+            <section className="grid gap-1 border border-neutral-800 bg-neutral-950/50 p-3 text-xs text-neutral-400">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-neutral-500">LAN fallback</h3>
+              {lanAddresses.length ? lanAddresses.map((address) => (
+                <code key={address} className="break-all border border-neutral-800 bg-neutral-950 px-2 py-1 text-amber-200">ws://{address}:{effectivePort}</code>
+              )) : (
+                <p className="text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
+              )}
+            </section>
             {error ? <p className="border border-red-500/30 bg-red-950/40 px-2 py-1 text-xs text-red-200">{error}</p> : null}
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-3">
-            <section className="mb-3 border border-neutral-800 bg-neutral-950/70">
+            <section className="border border-neutral-800 bg-neutral-950/70">
               <header className="border-b border-neutral-800 px-3 py-2">
-                <h3 className="text-xs font-bold uppercase tracking-wide text-amber-500">Recent Rolls</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wide text-amber-500">Live Sheets</h3>
               </header>
-              <div className="grid max-h-48 gap-2 overflow-auto p-2">
-                {rolls.length ? rolls.slice(0, 8).map((roll) => (
-                  <article key={roll.id} className="border border-neutral-800 bg-neutral-900 px-2 py-2 text-xs">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate font-bold text-neutral-100">{sanitizeDisplayText(roll.playerName, "Player")}</p>
-                        <p className="truncate text-neutral-400">{sanitizeDisplayText(roll.title, "Tirada")}</p>
-                      </div>
-                      <span className="shrink-0 text-base font-bold text-sky-300">{sanitizeDisplayText(roll.result, "--")}</span>
+              <div className="grid gap-1 p-2 text-xs">
+                {players.length ? players.map((player) => (
+                  <div key={player.playerId} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border border-neutral-800 bg-neutral-900 px-2 py-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${player.connected ? "bg-emerald-400" : "bg-neutral-600"}`} />
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-neutral-100">{sanitizeDisplayText(player.playerName, "Player")}</p>
+                      <p className="truncate text-[11px] text-neutral-500">
+                        {player.lastUpdate ? `Character note on board | ${formatLiveTimestamp(player.lastUpdate)}` : "Waiting for sheet snapshot"}
+                      </p>
                     </div>
-                    {roll.detail ? <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] leading-snug text-neutral-500">{sanitizeDisplayText(roll.detail)}</p> : null}
-                    <p className="mt-1 text-[10px] uppercase tracking-wide text-neutral-600">{formatLiveTimestamp(roll.receivedAt || roll.timestamp)}</p>
-                  </article>
+                    <button
+                      className="border border-neutral-700 bg-neutral-950 px-2 py-1 text-[11px] font-bold text-neutral-300 hover:border-red-500 hover:text-red-200"
+                      type="button"
+                      onClick={() => onKick(player.playerId)}
+                    >
+                      {player.connected ? "Kick" : "Remove"}
+                    </button>
+                  </div>
                 )) : (
-                  <p className="px-2 py-3 text-center text-xs text-neutral-500">No rolls received yet.</p>
+                  <p className="border border-dashed border-neutral-700 bg-neutral-950/60 p-4 text-center text-sm text-neutral-500">
+                    No connected players yet.
+                  </p>
                 )}
               </div>
             </section>
-
-            {players.length ? (
-              <div className="grid gap-3">
-                {players.map((player) => (
-                  <LivePlayerCard key={player.playerId} player={player} onKick={onKick} />
-                ))}
-              </div>
-            ) : (
-              <div className="border border-dashed border-neutral-700 bg-neutral-950/60 p-4 text-center text-sm text-neutral-500">
-                No connected players yet.
-              </div>
-            )}
         </div>
       </>
     </aside>
@@ -4974,10 +5103,11 @@ function DmScreenApp() {
   const [homebrewItemDraft, setHomebrewItemDraft] = useState(HOMEBREW_ITEM_DEFAULTS);
   const [homebrewSpellDraft, setHomebrewSpellDraft] = useState(HOMEBREW_SPELL_DEFAULTS);
   const [homebrewMonsterSpawnPoint, setHomebrewMonsterSpawnPoint] = useState(null);
-  const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], playerCount: 0 });
+  const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], tailscaleAddresses: [], lanAddresses: [], playerCount: 0 });
+  const [liveDiagnostics, setLiveDiagnostics] = useState(null);
   const [livePlayers, setLivePlayers] = useState([]);
-  const [liveRolls, setLiveRolls] = useState([]);
   const [liveHostPort, setLiveHostPort] = useState("8787");
+  const [liveHostTokenEnabled, setLiveHostTokenEnabled] = useState(true);
   const [liveHostError, setLiveHostError] = useState("");
   const [livePlayersCollapsed, setLivePlayersCollapsed] = useState(false);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
@@ -5117,21 +5247,33 @@ function DmScreenApp() {
         if (disposed) return;
         setLiveServerStatus(status);
         if (status?.port) setLiveHostPort(String(status.port));
+        if (typeof status?.tokenEnabled === "boolean") setLiveHostTokenEnabled(status.tokenEnabled);
+      })
+      .catch(console.error);
+    liveSheet.getDiagnostics?.()
+      .then((diagnostics) => {
+        if (!disposed) setLiveDiagnostics(diagnostics);
       })
       .catch(console.error);
     liveSheet.getPlayers()
       .then((players) => {
-        if (!disposed) setLivePlayers(Array.isArray(players) ? players : []);
+        if (!disposed) {
+          const nextPlayers = Array.isArray(players) ? players : [];
+          setLivePlayers(nextPlayers);
+          nextPlayers.forEach(syncLivePlayerCharacterNote);
+        }
       })
       .catch(console.error);
 
     const unsubscribeStatus = liveSheet.onServerStatus((status) => {
-      setLiveServerStatus(status || { running: false, port: 8787, addresses: [], playerCount: 0 });
+      setLiveServerStatus(status || { running: false, port: 8787, addresses: [], tailscaleAddresses: [], lanAddresses: [], playerCount: 0 });
       if (status?.port) setLiveHostPort(String(status.port));
+      if (typeof status?.tokenEnabled === "boolean") setLiveHostTokenEnabled(status.tokenEnabled);
       if (status?.running) setLiveHostError("");
     });
     const unsubscribeUpdated = liveSheet.onPlayerUpdated((player) => {
       if (!player?.playerId) return;
+      syncLivePlayerCharacterNote(player);
       setLivePlayers((players) => {
         const nextPlayers = players.filter((entry) => entry.playerId !== player.playerId);
         return [...nextPlayers, player].sort((left, right) => String(left.playerName || "").localeCompare(String(right.playerName || ""), undefined, { sensitivity: "base" }));
@@ -5143,13 +5285,19 @@ function DmScreenApp() {
         if (player.removed) return players.filter((entry) => entry.playerId !== player.playerId);
         return players.map((entry) => entry.playerId === player.playerId ? { ...entry, ...player, connected: false } : entry);
       });
+      setMonsterNotes((notes) => {
+        const liveNote = notes.find((note) => note.livePlayerId === player.playerId);
+        if (player.removed && liveNote) return closeSingleNoteInCollection(notes, liveNote.id);
+        return notes.map((note) => (
+          note.livePlayerId === player.playerId
+            ? { ...note, liveConnected: false, liveLastUpdate: player.lastUpdate || note.liveLastUpdate || null }
+            : note
+        ));
+      });
     });
     const unsubscribeRoll = liveSheet.onPlayerRoll?.((roll) => {
       if (!roll) return;
-      setLiveRolls((rolls) => [{
-        id: `${roll.receivedAt || Date.now()}-${roll.playerId || "player"}-${Math.random().toString(16).slice(2)}`,
-        ...roll
-      }, ...rolls].slice(0, 40));
+      appendLivePlayerRoll(roll);
     });
 
     return () => {
@@ -5186,7 +5334,10 @@ function DmScreenApp() {
       return;
     }
     setLiveHostError("");
-    const result = await liveSheet.startServer(liveHostPort);
+    const result = await liveSheet.startServer({
+      port: liveHostPort,
+      tokenEnabled: liveHostTokenEnabled
+    });
     if (!result?.ok) {
       setLiveHostError(result?.error || "No se pudo iniciar el host local.");
       if (result?.status) setLiveServerStatus(result.status);
@@ -5194,12 +5345,21 @@ function DmScreenApp() {
     }
     setLiveServerStatus(result.status);
     if (result.status?.port) setLiveHostPort(String(result.status.port));
+    liveSheet.getDiagnostics?.().then(setLiveDiagnostics).catch(() => {});
   }
 
   async function stopLiveHost() {
     const liveSheet = window.dndSheet?.liveSheet;
     if (!liveSheet) return;
     const result = await liveSheet.stopServer();
+    if (result?.status) setLiveServerStatus(result.status);
+    liveSheet.getDiagnostics?.().then(setLiveDiagnostics).catch(() => {});
+  }
+
+  async function runLiveHostSelfTest() {
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet?.runSelfTest) return;
+    const result = await liveSheet.runSelfTest();
     if (result?.status) setLiveServerStatus(result.status);
   }
 
@@ -5666,6 +5826,155 @@ function DmScreenApp() {
     }
   }
 
+  function syncLivePlayerCharacterNote(player) {
+    if (!player?.playerId || !player?.lastUpdate || !player?.data || !Object.keys(player.data).length) return;
+    let character = null;
+    try {
+      character = characterFromSheetData(player.data);
+    } catch (error) {
+      console.error(error);
+      return;
+    }
+    if (!character) return;
+
+    setMonsterNotes((notes) => {
+      const existing = notes.find((note) => note.livePlayerId === player.playerId);
+      const characterHp = character.hpMax || character.hpCurrent || "";
+      if (existing) {
+        return notes.map((note) => (
+          note.id === existing.id
+            ? {
+              ...note,
+              character,
+              liveSheetData: player.data || note.liveSheetData || {},
+              livePlayerName: player.playerName || note.livePlayerName || "",
+              liveConnected: Boolean(player.connected),
+              liveLastUpdate: player.lastUpdate || note.liveLastUpdate || null,
+              hpCurrent: character.hpCurrent ?? note.hpCurrent,
+              hpMax: characterHp || note.hpMax
+            }
+            : note
+        ));
+      }
+
+      const liveIndex = notes.filter((note) => note.livePlayerId).length;
+      const width = 520;
+      const height = 680;
+      zRef.current += 1;
+      const nextZ = zRef.current;
+      const spawnPoint = clampBoardPoint({
+        x: 120 + (liveIndex % 4) * 34,
+        y: 120 + (liveIndex % 4) * 30
+      }, width, height);
+      return [
+        ...notes,
+        {
+          id: `live-character-${player.playerId}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          kind: "character",
+          character,
+          monster: null,
+          monsterCustom: null,
+          entry: null,
+          entryCustom: null,
+          textTitle: "",
+          textContent: "",
+          obsidian: null,
+          obsidianMarkdown: "",
+          obsidianLoading: false,
+          obsidianError: "",
+          obsidianEditing: false,
+          obsidianDraft: "",
+          obsidianSaving: false,
+          obsidianUpdatedAt: null,
+          titleOverride: "",
+          parentNoteId: null,
+          tabNoteIds: [],
+          activeTabId: null,
+          x: spawnPoint.x,
+          y: spawnPoint.y,
+          width,
+          height,
+          z: nextZ,
+          rolls: [],
+          dicePanelOpen: false,
+          minimized: false,
+          hpCurrent: character.hpCurrent,
+          hpMax: characterHp,
+          livePlayerId: player.playerId,
+          liveSheetData: player.data || {},
+          livePlayerName: player.playerName || "",
+          liveConnected: Boolean(player.connected),
+          liveLastUpdate: player.lastUpdate || null
+        }
+      ];
+    });
+  }
+
+  function appendLivePlayerRoll(roll) {
+    if (!roll?.playerId) return;
+    const label = sanitizeDisplayText(roll.title, "Tirada");
+    const result = sanitizeDisplayText(roll.result, "--");
+    const detail = sanitizeDisplayText(roll.detail, "");
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.livePlayerId !== roll.playerId) return note;
+      return {
+        ...note,
+        dicePanelOpen: true,
+        liveConnected: true,
+        rolls: [{
+          id: `${roll.receivedAt || Date.now()}-${roll.playerId}-${Math.random().toString(16).slice(2)}`,
+          label,
+          roll: {
+            expression: label,
+            total: result,
+            detail: detail || result
+          }
+        }, ...(note.rolls || [])].slice(0, 20)
+      };
+    }));
+  }
+
+  function normalizeLiveSheetPatch(patch) {
+    if (!patch || typeof patch !== "object" || Array.isArray(patch)) return {};
+    return Object.fromEntries(Object.entries(patch)
+      .map(([key, value]) => [String(key || "").trim(), value == null ? "" : String(value)])
+      .filter(([key]) => key && key !== "__proto__" && key !== "constructor" && key !== "prototype"));
+  }
+
+  function applyLivePatchToNote(note, patch) {
+    const liveSheetData = {
+      ...(note.liveSheetData || note.character?.rawData || {}),
+      ...patch
+    };
+    const character = characterFromSheetData(liveSheetData);
+    const characterHp = character.hpMax || character.hpCurrent || "";
+    return {
+      ...note,
+      character,
+      liveSheetData,
+      livePlayerName: liveSheetData.PlayerName || note.livePlayerName || "",
+      hpCurrent: character.hpCurrent,
+      hpMax: characterHp
+    };
+  }
+
+  function updateLiveCharacterField(noteId, fieldKey, value) {
+    const patch = normalizeLiveSheetPatch({ [fieldKey]: value });
+    if (!Object.keys(patch).length) return;
+    const note = monsterNotesRef.current.find((entry) => entry.id === noteId);
+    if (!note?.livePlayerId || note.liveConnected === false) return;
+
+    setMonsterNotes((notes) => notes.map((entry) => (
+      entry.id === noteId ? applyLivePatchToNote(entry, patch) : entry
+    )));
+
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet?.updatePlayerSheet) return;
+    liveSheet.updatePlayerSheet(note.livePlayerId, patch).catch((error) => {
+      console.error(error);
+    });
+  }
+
   function addBoardNote(payload, positionOverride = null) {
     zRef.current += 1;
     const offset = monsterNotes.length % 6;
@@ -5973,6 +6282,11 @@ function DmScreenApp() {
   }
 
   function updateNoteHp(noteId, field, value) {
+    const note = monsterNotesRef.current.find((entry) => entry.id === noteId);
+    if (note?.livePlayerId) {
+      updateLiveCharacterField(noteId, field === "max" ? "HPMax" : "HPCurrent", value);
+      return;
+    }
     const numericValue = value === "" ? "" : Number(value);
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === noteId ? { ...note, [field === "max" ? "hpMax" : "hpCurrent"]: numericValue } : note
@@ -6437,15 +6751,18 @@ function DmScreenApp() {
       </div>
       <LivePlayersPanel
         status={liveServerStatus}
+        diagnostics={liveDiagnostics}
         port={liveHostPort}
         error={liveHostError}
         players={livePlayers}
-        rolls={liveRolls}
         collapsed={livePlayersCollapsed}
+        tokenEnabled={liveHostTokenEnabled}
         onToggleCollapsed={() => setLivePlayersCollapsed((value) => !value)}
         onPortChange={setLiveHostPort}
+        onTokenEnabledChange={setLiveHostTokenEnabled}
         onStart={startLiveHost}
         onStop={stopLiveHost}
+        onRunSelfTest={runLiveHostSelfTest}
         onKick={kickLivePlayer}
       />
       <GlobalDiceTray
@@ -6544,6 +6861,7 @@ function DmScreenApp() {
             <CharacterNote
               {...sharedProps}
               onHpChange={updateNoteHp}
+              onCharacterFieldChange={updateLiveCharacterField}
               onOpenResource={addCharacterResourceNote}
             />
           ) : activeNote.kind === "text" ? (

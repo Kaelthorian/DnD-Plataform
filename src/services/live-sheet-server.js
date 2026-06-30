@@ -1,4 +1,5 @@
 const os = require("os");
+const crypto = require("crypto");
 const { EventEmitter } = require("events");
 const { WebSocket, WebSocketServer } = require("ws");
 
@@ -29,6 +30,42 @@ function normalizePort(port) {
   return parsed;
 }
 
+function isTailscaleIpv4(address) {
+  const parts = String(address || "").split(".").map((part) => Number.parseInt(part, 10));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+  return parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127;
+}
+
+function isTailscaleInterfaceName(name) {
+  return /tailscale|utun/i.test(String(name || ""));
+}
+
+function unique(values) {
+  return [...new Set((values || []).filter(Boolean))];
+}
+
+function listLocalAddresses(networkInterfaces = os.networkInterfaces()) {
+  const tailscaleAddresses = [];
+  const lanAddresses = [];
+
+  Object.entries(networkInterfaces || {}).forEach(([name, entries]) => {
+    (entries || []).forEach((entry) => {
+      if (!entry || entry.family !== "IPv4" || entry.internal || !entry.address) return;
+      if (isTailscaleInterfaceName(name) || isTailscaleIpv4(entry.address)) {
+        tailscaleAddresses.push(entry.address);
+        return;
+      }
+      lanAddresses.push(entry.address);
+    });
+  });
+
+  return {
+    tailscaleAddresses: unique(tailscaleAddresses),
+    lanAddresses: unique(lanAddresses),
+    allAddresses: unique([...tailscaleAddresses, ...lanAddresses])
+  };
+}
+
 function sanitizeRollEvent(roll) {
   if (!isPlainObject(roll)) return null;
   return {
@@ -39,12 +76,74 @@ function sanitizeRollEvent(roll) {
   };
 }
 
+function sanitizeSheetPatch(patch) {
+  if (!isPlainObject(patch)) return null;
+  const sanitized = {};
+  Object.entries(patch).forEach(([key, value]) => {
+    const normalizedKey = sanitizeText(key, 120);
+    if (!normalizedKey || normalizedKey === "__proto__" || normalizedKey === "constructor" || normalizedKey === "prototype") return;
+    if (typeof value === "boolean") {
+      sanitized[normalizedKey] = value;
+      return;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      sanitized[normalizedKey] = String(value);
+      return;
+    }
+    if (typeof value === "string") sanitized[normalizedKey] = sanitizeText(value, 5000);
+  });
+  return Object.keys(sanitized).length ? sanitized : null;
+}
+
 function localLanAddresses() {
-  return Object.values(os.networkInterfaces())
-    .flat()
-    .filter((entry) => entry && entry.family === "IPv4" && !entry.internal)
-    .map((entry) => entry.address)
-    .filter(Boolean);
+  return listLocalAddresses().lanAddresses;
+}
+
+function generateSessionToken() {
+  return crypto.randomBytes(4).toString("hex").toUpperCase();
+}
+
+function normalizeStartOptions(optionsOrPort = DEFAULT_PORT) {
+  if (isPlainObject(optionsOrPort)) {
+    return {
+      port: normalizePort(optionsOrPort.port),
+      tokenEnabled: optionsOrPort.tokenEnabled !== false,
+      sessionToken: sanitizeText(optionsOrPort.sessionToken, 64)
+    };
+  }
+  return {
+    port: normalizePort(optionsOrPort),
+    tokenEnabled: false,
+    sessionToken: ""
+  };
+}
+
+function sendJson(socket, payload) {
+  if (socket?.readyState !== WebSocket.OPEN) return false;
+  socket.send(JSON.stringify(payload));
+  return true;
+}
+
+async function websocketSelfTest(host, port, timeoutMs = 1200) {
+  const url = `ws://${host}:${port}`;
+  return new Promise((resolve) => {
+    let settled = false;
+    const socket = new WebSocket(url);
+    const done = (ok, error = "") => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        socket.close();
+      } catch (_error) {
+        // Ignore cleanup errors from a failed diagnostic socket.
+      }
+      resolve({ ok, url, error });
+    };
+    const timer = setTimeout(() => done(false, "Connection timed out."), timeoutMs);
+    socket.once("open", () => done(true));
+    socket.once("error", (error) => done(false, error?.message || "Connection failed."));
+  });
 }
 
 class LiveSheetServer extends EventEmitter {
@@ -53,6 +152,12 @@ class LiveSheetServer extends EventEmitter {
     this.server = null;
     this.port = null;
     this.players = new Map();
+    this.tokenEnabled = false;
+    this.sessionToken = "";
+    this.selfTests = {
+      local: null,
+      tailscale: null
+    };
   }
 
   isRunning() {
@@ -60,11 +165,21 @@ class LiveSheetServer extends EventEmitter {
   }
 
   status(extra = {}) {
+    const addresses = listLocalAddresses();
+    const port = this.port || extra.port || DEFAULT_PORT;
+    const recommendedAddress = addresses.tailscaleAddresses[0] || addresses.lanAddresses[0] || "";
     return {
       running: this.isRunning(),
       port: this.port,
-      addresses: this.isRunning() ? localLanAddresses() : [],
+      tailscaleAddresses: addresses.tailscaleAddresses,
+      lanAddresses: addresses.lanAddresses,
+      addresses: addresses.allAddresses,
       playerCount: [...this.players.values()].filter((player) => player.connected).length,
+      recommendedConnectionMode: addresses.tailscaleAddresses.length ? "tailscale" : "lan",
+      recommendedUrl: recommendedAddress ? `ws://${recommendedAddress}:${port}` : "",
+      tokenEnabled: this.tokenEnabled,
+      sessionToken: this.tokenEnabled ? this.sessionToken : "",
+      selfTests: this.selfTests,
       ...extra
     };
   }
@@ -94,10 +209,26 @@ class LiveSheetServer extends EventEmitter {
     this.emit("server-status", this.status(extra));
   }
 
-  async start(port = DEFAULT_PORT) {
+  async runSelfTests() {
+    if (!this.server || !this.port) {
+      this.selfTests = { local: null, tailscale: null };
+      return this.selfTests;
+    }
+    const { tailscaleAddresses } = listLocalAddresses();
+    const local = await websocketSelfTest("127.0.0.1", this.port);
+    const tailscale = tailscaleAddresses[0]
+      ? await websocketSelfTest(tailscaleAddresses[0], this.port)
+      : null;
+    this.selfTests = { local, tailscale };
+    this.emitStatus();
+    return this.selfTests;
+  }
+
+  async start(optionsOrPort = DEFAULT_PORT) {
     if (this.server) return this.status();
 
-    const nextPort = normalizePort(port);
+    const options = normalizeStartOptions(optionsOrPort);
+    const nextPort = options.port;
     const server = new WebSocketServer({
       host: "0.0.0.0",
       port: nextPort,
@@ -132,6 +263,9 @@ class LiveSheetServer extends EventEmitter {
 
     this.server = server;
     this.port = nextPort;
+    this.tokenEnabled = Boolean(options.tokenEnabled);
+    this.sessionToken = this.tokenEnabled ? (options.sessionToken || generateSessionToken()) : "";
+    this.selfTests = { local: null, tailscale: null };
     server.on("connection", (socket, request) => this.handleConnection(socket, request));
     server.on("close", () => {
       if (this.server === server) {
@@ -141,6 +275,7 @@ class LiveSheetServer extends EventEmitter {
       }
     });
     this.emitStatus();
+    await this.runSelfTests();
     return this.status();
   }
 
@@ -153,6 +288,9 @@ class LiveSheetServer extends EventEmitter {
     const server = this.server;
     this.server = null;
     this.port = null;
+    this.tokenEnabled = false;
+    this.sessionToken = "";
+    this.selfTests = { local: null, tailscale: null };
     for (const player of this.players.values()) {
       if (player.ws && player.ws.readyState === WebSocket.OPEN) {
         player.ws.close(1001, "Host stopped");
@@ -184,6 +322,39 @@ class LiveSheetServer extends EventEmitter {
     return { ok: true };
   }
 
+  updatePlayerSheet(playerId, patch) {
+    const normalizedId = sanitizePlayerId(playerId);
+    const sanitizedPatch = sanitizeSheetPatch(patch);
+    if (!normalizedId) return { ok: false, error: "Jugador invalido." };
+    if (!sanitizedPatch) return { ok: false, error: "Patch de planilla invalido." };
+    const player = this.players.get(normalizedId);
+    if (!player) return { ok: false, error: "Jugador no encontrado." };
+
+    player.data = {
+      ...(player.data || {}),
+      ...sanitizedPatch
+    };
+    player.lastUpdate = new Date().toISOString();
+
+    if (!player.connected || !player.ws || player.ws.readyState !== WebSocket.OPEN) {
+      this.players.set(normalizedId, player);
+      this.emit("player-updated", this.playerSnapshot(player));
+      this.emitStatus();
+      return { ok: false, error: "El jugador no esta conectado.", player: this.playerSnapshot(player) };
+    }
+
+    sendJson(player.ws, {
+      version: 1,
+      type: "dm:sheet:patch",
+      patch: sanitizedPatch,
+      serverTime: player.lastUpdate
+    });
+    this.players.set(normalizedId, player);
+    this.emit("player-updated", this.playerSnapshot(player));
+    this.emitStatus();
+    return { ok: true, player: this.playerSnapshot(player) };
+  }
+
   handleConnection(socket, request) {
     let activePlayerId = null;
     socket.on("message", (rawMessage, isBinary) => {
@@ -212,6 +383,11 @@ class LiveSheetServer extends EventEmitter {
         return;
       }
 
+      if (this.tokenEnabled && validated.sessionToken !== this.sessionToken) {
+        socket.close(1008, "Token de sesion invalido.");
+        return;
+      }
+
       const now = new Date().toISOString();
       activePlayerId = validated.playerId;
       const previous = this.players.get(validated.playerId);
@@ -231,8 +407,24 @@ class LiveSheetServer extends EventEmitter {
         ws: socket
       };
       this.players.set(validated.playerId, player);
+      if (validated.messageType === "player:hello") {
+        sendJson(socket, {
+          version: 1,
+          type: "server:welcome",
+          serverTime: now,
+          recommendedMode: this.status().recommendedConnectionMode
+        });
+      }
       if (validated.messageType !== "roll:event" || !previous || !previous.connected || previous.playerName !== validated.playerName) {
         this.emit("player-updated", this.playerSnapshot(player));
+      }
+      if (validated.messageType === "sheet:update") {
+        sendJson(socket, {
+          version: 1,
+          type: "server:ack",
+          receivedType: "sheet:update",
+          serverTime: now
+        });
       }
       if (validated.messageType === "roll:event") {
         this.emit("player-roll", {
@@ -278,6 +470,7 @@ class LiveSheetServer extends EventEmitter {
       messageType: payload.type,
       playerId,
       playerName: sanitizeText(payload.playerName) || "Jugador",
+      sessionToken: sanitizeText(payload.sessionToken, 128),
       data: payload.type === "sheet:update" ? payload.data : null,
       roll
     };
@@ -287,6 +480,12 @@ class LiveSheetServer extends EventEmitter {
 module.exports = {
   DEFAULT_PORT,
   MAX_MESSAGE_BYTES,
+  isTailscaleIpv4,
+  isTailscaleInterfaceName,
+  listLocalAddresses,
+  localLanAddresses,
+  sanitizeSheetPatch,
+  websocketSelfTest,
   LiveSheetServer,
   liveSheetServer: new LiveSheetServer()
 };

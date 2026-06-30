@@ -52,17 +52,20 @@
       <div class="live-sheet-client-header">
         <div>
           <div class="live-sheet-client-title" id="liveSheetClientTitle">Connect to DM</div>
-          <div class="live-sheet-client-subtitle">Local network live sheet sharing</div>
+          <div class="live-sheet-client-subtitle">Tailscale or local network live sheet sharing</div>
         </div>
         <button class="live-sheet-client-close" id="liveSheetClientClose" type="button" aria-label="Cerrar">X</button>
       </div>
       <div class="live-sheet-client-body">
-        <label class="live-sheet-client-label" for="liveSheetDmIp">DM IP</label>
-        <input class="live-sheet-client-input" id="liveSheetDmIp" type="text" inputmode="numeric" placeholder="192.168.1.10">
+        <label class="live-sheet-client-label" for="liveSheetDmIp">DM host / Tailscale IP</label>
+        <input class="live-sheet-client-input" id="liveSheetDmIp" type="text" spellcheck="false" autocomplete="off" placeholder="100.x.y.z o kael-pc">
         <label class="live-sheet-client-label" for="liveSheetPort">Port</label>
         <input class="live-sheet-client-input" id="liveSheetPort" type="number" min="1" max="65535" step="1" value="8787">
+        <label class="live-sheet-client-label" for="liveSheetSessionToken">Session token</label>
+        <input class="live-sheet-client-input" id="liveSheetSessionToken" type="text" spellcheck="false" autocomplete="off" maxlength="80" placeholder="Optional code from DM">
         <label class="live-sheet-client-label" for="liveSheetPlayerName">Player name</label>
         <input class="live-sheet-client-input" id="liveSheetPlayerName" type="text" maxlength="80" placeholder="Player">
+        <div class="live-sheet-client-help">Usa la IP Tailscale 100.x.y.z o el nombre MagicDNS del DM. No uses IP publica ni port forwarding.</div>
         <div class="live-sheet-client-status" id="liveSheetClientStatus" aria-live="polite">Disconnected</div>
       </div>
       <div class="live-sheet-client-actions">
@@ -6688,6 +6691,35 @@
       ensureActiveStatusIds();
       renderStatusDock();
       updateInteractionState();
+    }
+
+    function applyLiveSheetPatch(patch) {
+      if (!patch || typeof patch !== "object" || Array.isArray(patch)) return false;
+      let changed = false;
+      document.querySelectorAll(".field").forEach((element) => {
+        const key = element.dataset.key;
+        if (!key || !(key in patch)) return;
+        const value = patch[key];
+        if (element.type === "checkbox") {
+          element.checked = Boolean(value);
+        } else if (typeof value === "string" || typeof value === "number") {
+          element.value = String(value);
+        } else if (typeof value === "boolean") {
+          element.value = value ? "true" : "";
+        } else {
+          return;
+        }
+        changed = true;
+        element.dispatchEvent(new Event("input", { bubbles: true }));
+        element.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      if (!changed) return false;
+      refreshAfterApplyingSlotData();
+      updateActiveSlotFromCurrentData();
+      saveActiveStore().catch(console.error);
+      sendLiveSheetSnapshot();
+      showStatus("DM actualizo tu planilla");
+      return true;
     }
 
     const SAVE_STORE_VERSION = 2;

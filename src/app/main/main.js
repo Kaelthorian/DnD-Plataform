@@ -1,10 +1,11 @@
 const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require("electron");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
 
 const dataLoader = require("../../services/data-loader");
-const { liveSheetServer } = require("../../services/live-sheet-server");
+const { liveSheetServer, listLocalAddresses } = require("../../services/live-sheet-server");
 const { ObsidianService } = require("../../services/obsidian-service");
 const saveService = require("../../services/save-service");
 const translationService = require("../../services/translation-service");
@@ -134,6 +135,51 @@ function getObsidianService() {
     });
   }
   return obsidianService;
+}
+
+function getTailscaleCliDiagnostic() {
+  try {
+    const ipResult = spawnSync("tailscale", ["ip", "-4"], {
+      encoding: "utf8",
+      timeout: 1800,
+      windowsHide: true
+    });
+    if (ipResult.error) {
+      return {
+        available: false,
+        error: ipResult.error.code === "ENOENT" ? "tailscale CLI not found in PATH." : ipResult.error.message
+      };
+    }
+    const statusResult = spawnSync("tailscale", ["status"], {
+      encoding: "utf8",
+      timeout: 1800,
+      windowsHide: true
+    });
+    return {
+      available: true,
+      ip4: String(ipResult.stdout || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
+      status: String(statusResult.stdout || "").trim(),
+      error: ipResult.status === 0 ? "" : (String(ipResult.stderr || "").trim() || `tailscale ip exited with ${ipResult.status}`)
+    };
+  } catch (error) {
+    return {
+      available: false,
+      error: error?.message || "tailscale CLI diagnostic failed."
+    };
+  }
+}
+
+function getLiveSheetDiagnostics() {
+  const addresses = listLocalAddresses();
+  const firstTailscaleIp = addresses.tailscaleAddresses[0] || "";
+  return {
+    ...addresses,
+    tailscaleDetected: Boolean(firstTailscaleIp),
+    message: firstTailscaleIp
+      ? `Tailscale IP detected: ${firstTailscaleIp}`
+      : "No Tailscale IP detected. Open Tailscale and confirm this device is connected.",
+    cli: getTailscaleCliDiagnostic()
+  };
 }
 
 function ensurePlatformBackgroundWatchers() {
@@ -336,9 +382,9 @@ ipcMain.handle("translate:text", async (_event, { text, from = "en", to = "es" }
   return translationService.translateText(source, from, to);
 });
 
-ipcMain.handle("live-sheet:start", async (_event, port) => {
+ipcMain.handle("live-sheet:start", async (_event, options) => {
   try {
-    const status = await liveSheetServer.start(port);
+    const status = await liveSheetServer.start(options);
     return { ok: true, status };
   } catch (error) {
     return {
@@ -359,12 +405,25 @@ ipcMain.handle("live-sheet:status", async () => {
   return liveSheetServer.status();
 });
 
+ipcMain.handle("live-sheet:diagnostics", async () => {
+  return getLiveSheetDiagnostics();
+});
+
+ipcMain.handle("live-sheet:self-test", async () => {
+  const selfTests = await liveSheetServer.runSelfTests();
+  return { ok: true, status: liveSheetServer.status({ selfTests }) };
+});
+
 ipcMain.handle("live-sheet:get-players", async () => {
   return liveSheetServer.getPlayers();
 });
 
 ipcMain.handle("live-sheet:kick-player", async (_event, playerId) => {
   return liveSheetServer.kickPlayer(playerId);
+});
+
+ipcMain.handle("live-sheet:update-player-sheet", async (_event, { playerId, patch } = {}) => {
+  return liveSheetServer.updatePlayerSheet(playerId, patch);
 });
 
 liveSheetServer.on("player-updated", (player) => {

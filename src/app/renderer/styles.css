@@ -2562,6 +2562,15 @@
       color: #8b1e24;
     }
 
+    .live-sheet-client-help {
+      border: 1px solid #dfdfdf;
+      border-radius: 6px;
+      background: #f7f7f7;
+      color: #555;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
     .live-sheet-client-actions {
       display: flex;
       justify-content: flex-end;

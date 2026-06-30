@@ -15,6 +15,7 @@ async function writeFile(filePath, content) {
   const userDataPath = path.join(root, "user-data");
   const vaultPath = path.join(root, "vault");
   const outsidePath = path.join(root, "outside.md");
+  let service = null;
 
   try {
     await writeFile(path.join(vaultPath, "Session 1.md"), "# Session One\n\nOpening scene.");
@@ -26,7 +27,7 @@ async function writeFile(filePath, content) {
     await writeFile(path.join(vaultPath, "image.png"), "not really an image");
     await writeFile(outsidePath, "# Outside");
 
-    const service = new ObsidianService({ userDataPath });
+    service = new ObsidianService({ userDataPath });
     await service.setVaultPath(vaultPath);
 
     const vault = await service.getVault();
@@ -62,6 +63,7 @@ async function writeFile(filePath, content) {
     const assetUrl = await service.getAssetUrl("image.png");
     assert.ok(assetUrl.startsWith("file:"));
   } finally {
+    service?.closeWatchers?.();
     await fs.rm(root, { recursive: true, force: true });
   }
 })().catch((error) => {
