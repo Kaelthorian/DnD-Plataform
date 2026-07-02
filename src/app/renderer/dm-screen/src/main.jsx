@@ -121,8 +121,18 @@ const BOARD_MAX_ZOOM = 1.8;
 const BOARD_ZOOM_STEP = 0.15;
 const DM_BOARD_STORAGE_KEY = "dnd-dm-screen-board-v1";
 const DM_LIVE_PLAYERS_PANEL_STORAGE_KEY = "dnd-dm-screen-live-players-panel-v1";
+const DM_MAP_IMAGE_DB_NAME = "dnd-dm-screen-map-images-v1";
+const DM_MAP_IMAGE_STORE_NAME = "map-images";
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
+const DEFAULT_MAP_GRID = {
+  enabled: false,
+  snap: false,
+  cellWidth: 70,
+  cellHeight: 70,
+  offsetX: 0,
+  offsetY: 0
+};
 const CHARACTER_SHEET_CODE_PREFIX = "DNDCS1";
 const CHARACTER_SHEET_CODE_TYPE = "dnd-character-sheet";
 const OBSIDIAN_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
@@ -834,7 +844,7 @@ function noteDisplayName(note) {
   if (note?.kind === "character") return note?.character?.name || "Character";
   if (note?.kind === "obsidian") return note?.obsidian?.title || note?.obsidian?.fileName || "Obsidian Note";
   if (note?.kind === "text") return note?.textTitle || "Text Note";
-  if (note?.kind === "map") return note?.mapImage?.name || "VVT Map";
+  if (note?.kind === "map") return note?.titleOverride || note?.mapImage?.name || "VVT Map";
   return note?.entry?.name || (note?.kind === "spell" ? "Spell" : note?.kind === "item" ? "Item" : "Note");
 }
 
@@ -998,6 +1008,182 @@ function restoreStoredImage(image) {
   };
 }
 
+function mapImageRuntimeSnapshot(image) {
+  if (!image) return null;
+  return {
+    id: String(image.id || image.assetId || `map-image-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    assetId: String(image.assetId || ""),
+    name: String(image.name || "Mapa"),
+    type: String(image.type || ""),
+    size: Number(image.size) || 0,
+    objectUrl: image.objectUrl || "",
+    dataUrl: image.dataUrl || "",
+    updatedAt: String(image.updatedAt || "")
+  };
+}
+
+function mapImageStorageSnapshot(image) {
+  const snapshot = mapImageRuntimeSnapshot(image);
+  if (!snapshot) return null;
+  const stored = {
+    id: snapshot.id,
+    assetId: snapshot.assetId,
+    name: snapshot.name,
+    type: snapshot.type,
+    size: snapshot.size,
+    updatedAt: snapshot.updatedAt
+  };
+  if (!stored.assetId && snapshot.dataUrl) stored.dataUrl = snapshot.dataUrl;
+  return stored;
+}
+
+function restoreStoredMapImage(image) {
+  if (!image) return null;
+  const assetId = String(image.assetId || "");
+  if (!assetId && !image.dataUrl) return null;
+  return {
+    id: String(image.id || assetId || `map-image-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    assetId,
+    name: String(image.name || "Mapa"),
+    type: String(image.type || ""),
+    size: Number(image.size) || 0,
+    dataUrl: image.dataUrl ? String(image.dataUrl) : "",
+    objectUrl: "",
+    updatedAt: String(image.updatedAt || "")
+  };
+}
+
+function mapImageUrl(image) {
+  return image?.objectUrl || image?.dataUrl || "";
+}
+
+function indexedDbRequest(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("IndexedDB request failed."));
+  });
+}
+
+function openMapImageDatabase() {
+  if (typeof indexedDB === "undefined") return Promise.reject(new Error("IndexedDB no esta disponible."));
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DM_MAP_IMAGE_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(DM_MAP_IMAGE_STORE_NAME)) db.createObjectStore(DM_MAP_IMAGE_STORE_NAME, { keyPath: "id" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("No se pudo abrir el almacen de mapas."));
+  });
+}
+
+async function putMapImageAsset(record) {
+  const db = await openMapImageDatabase();
+  try {
+    const transaction = db.transaction(DM_MAP_IMAGE_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(DM_MAP_IMAGE_STORE_NAME);
+    const completePromise = new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("No se pudo guardar el mapa."));
+      transaction.onabort = () => reject(transaction.error || new Error("No se pudo guardar el mapa."));
+    });
+    await indexedDbRequest(store.put(record));
+    await completePromise;
+  } finally {
+    db.close();
+  }
+}
+
+async function getMapImageAsset(assetId) {
+  if (!assetId) return null;
+  const db = await openMapImageDatabase();
+  try {
+    const transaction = db.transaction(DM_MAP_IMAGE_STORE_NAME, "readonly");
+    const store = transaction.objectStore(DM_MAP_IMAGE_STORE_NAME);
+    return await indexedDbRequest(store.get(assetId));
+  } finally {
+    db.close();
+  }
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [header, payload] = String(dataUrl || "").split(",");
+  const mime = header?.match(/^data:([^;]+);base64$/)?.[1] || "";
+  if (!payload) return null;
+  const binary = atob(payload);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Blob([bytes], { type: mime || "application/octet-stream" });
+}
+
+async function readMapImageFileAsStoredImage(file, fallbackName = "Mapa") {
+  if (!file || !String(file.type || "").startsWith("image/")) throw new Error("Elegi un archivo de imagen.");
+  const id = `map-image-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const updatedAt = new Date().toISOString();
+  await putMapImageAsset({
+    id,
+    name: file.name || fallbackName,
+    type: file.type || "",
+    size: file.size || 0,
+    updatedAt,
+    blob: file
+  });
+  return {
+    id,
+    assetId: id,
+    name: file.name || fallbackName,
+    type: file.type || "",
+    size: file.size || 0,
+    objectUrl: URL.createObjectURL(file),
+    dataUrl: "",
+    updatedAt
+  };
+}
+
+async function hydrateMapImage(image) {
+  const snapshot = mapImageRuntimeSnapshot(image);
+  if (!snapshot || snapshot.objectUrl) return snapshot;
+  if (snapshot.assetId) {
+    const record = await getMapImageAsset(snapshot.assetId);
+    if (record?.blob) {
+      return {
+        ...snapshot,
+        name: snapshot.name || record.name || "Mapa",
+        type: snapshot.type || record.type || "",
+        size: snapshot.size || record.size || 0,
+        updatedAt: snapshot.updatedAt || record.updatedAt || "",
+        objectUrl: URL.createObjectURL(record.blob),
+        dataUrl: ""
+      };
+    }
+  }
+  if (snapshot.dataUrl) {
+    const blob = dataUrlToBlob(snapshot.dataUrl);
+    if (!blob) return snapshot;
+    const id = snapshot.assetId || snapshot.id || `map-image-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const updatedAt = snapshot.updatedAt || new Date().toISOString();
+    await putMapImageAsset({
+      id,
+      name: snapshot.name || "Mapa",
+      type: snapshot.type || blob.type || "",
+      size: snapshot.size || blob.size || 0,
+      updatedAt,
+      blob
+    });
+    return {
+      ...snapshot,
+      id,
+      assetId: id,
+      type: snapshot.type || blob.type || "",
+      size: snapshot.size || blob.size || 0,
+      objectUrl: URL.createObjectURL(blob),
+      dataUrl: "",
+      updatedAt
+    };
+  }
+  return snapshot;
+}
+
 function mapTokenMonsterSnapshot(monster) {
   if (!monster?.name) return null;
   return {
@@ -1006,21 +1192,445 @@ function mapTokenMonsterSnapshot(monster) {
   };
 }
 
-function normalizeMapToken(token) {
-  const monster = mapTokenMonsterSnapshot(token?.monster);
+function mapTokenCharacterSnapshot(character) {
+  if (!character?.name) return null;
+  return cloneForBoardState(character);
+}
+
+function normalizeCombatNumber(value, fallback = "") {
+  const text = String(value ?? "").trim();
+  if (!text) return fallback;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function mapActorCombatState(actor = {}, { rollInitiative = true } = {}) {
+  const character = actor.kind === "character" ? actor.character : null;
+  const monster = actor.kind === "character" ? null : actor.monster;
+  const hpFallback = character
+    ? (character.hpMax || character.hpCurrent || "")
+    : (monster?.hp?.average ?? "");
+  const hpMax = normalizeCombatNumber(actor.hpMax ?? hpFallback, hpFallback);
+  const hpCurrent = normalizeCombatNumber(actor.hpCurrent ?? hpMax, hpMax);
+  const dexScore = character?.abilities?.dex ?? monster?.dex ?? 10;
+  const initiativeModifier = abilityModifier(Number(dexScore) || 10);
+  const initiativeRoll = rollInitiative ? rollD20(initiativeModifier) : null;
+  return {
+    ac: String(actor.ac || (character ? character.ac : formatAc(monster)) || "Unknown"),
+    hpCurrent,
+    hpMax,
+    initiative: normalizeCombatNumber(actor.initiative ?? initiativeRoll?.total, ""),
+    initiativeModifier,
+    initiativeDetail: String(actor.initiativeDetail || initiativeRoll?.detail || "")
+  };
+}
+
+function normalizeMapTokenCombatFields(token) {
+  return {
+    ac: String(token?.ac || "Unknown"),
+    hpCurrent: normalizeCombatNumber(token?.hpCurrent ?? token?.hp, ""),
+    hpMax: normalizeCombatNumber(token?.hpMax, ""),
+    initiative: normalizeCombatNumber(token?.initiative, ""),
+    initiativeModifier: normalizeCombatNumber(token?.initiativeModifier, 0),
+    initiativeDetail: String(token?.initiativeDetail || "")
+  };
+}
+
+function normalizeLinkedMapTokenLink(link) {
+  if (!link?.mapNoteId || !link?.pageId || !link?.tokenId) return null;
+  return {
+    mapNoteId: String(link.mapNoteId),
+    pageId: String(link.pageId),
+    tokenId: String(link.tokenId)
+  };
+}
+
+function normalizeTokenActorNote(actorNote, token = {}) {
+  if (!actorNote?.kind) return null;
+  const kind = actorNote.kind === "character" ? "character" : "monster";
+  const character = kind === "character"
+    ? mapTokenCharacterSnapshot(actorNote.character || token.character)
+    : null;
+  const monsterCustom = kind === "monster" && actorNote.monsterCustom ? cloneForBoardState(actorNote.monsterCustom) : null;
+  const monster = kind === "monster"
+    ? (monsterCustom || cloneForBoardState(actorNote.monster) || findLibraryEntryByRef("monster", actorNote.monsterRef || token.monster))
+    : null;
+  if (kind === "character" && !character) return null;
+  if (kind === "monster" && !monster) return null;
+  const hpFallback = kind === "character"
+    ? (character.hpMax || character.hpCurrent || "")
+    : (monster?.hp?.average ?? "");
+  return {
+    kind,
+    monster,
+    monsterCustom,
+    character,
+    titleOverride: String(actorNote.titleOverride || ""),
+    hpCurrent: actorNote.hpCurrent ?? token.hpCurrent ?? hpFallback,
+    hpMax: actorNote.hpMax ?? token.hpMax ?? hpFallback,
+    rolls: Array.isArray(actorNote.rolls) ? actorNote.rolls.slice(0, 20) : [],
+    dicePanelOpen: Boolean(actorNote.dicePanelOpen)
+  };
+}
+
+function tokenActorNoteFromToken(token) {
+  const stored = normalizeTokenActorNote(token?.actorNote, token);
+  if (stored) return stored;
+  if (token?.kind === "character") {
+    const character = mapTokenCharacterSnapshot(token.character);
+    if (!character) return null;
+    return normalizeTokenActorNote({
+      kind: "character",
+      character,
+      hpCurrent: token.hpCurrent,
+      hpMax: token.hpMax
+    }, token);
+  }
+  const monster = token?.monsterCustom ? cloneForBoardState(token.monsterCustom) : findLibraryEntryByRef("monster", token?.monster);
   if (!monster) return null;
+  return normalizeTokenActorNote({
+    kind: "monster",
+    monster,
+    monsterCustom: token.monsterCustom ? cloneForBoardState(token.monsterCustom) : null,
+    hpCurrent: token.hpCurrent,
+    hpMax: token.hpMax
+  }, token);
+}
+
+function tokenActorNoteSnapshot(note) {
+  if (!note || !["monster", "character"].includes(note.kind)) return null;
+  return normalizeTokenActorNote({
+    kind: note.kind,
+    monster: note.kind === "monster" ? note.monster : null,
+    monsterCustom: note.kind === "monster" && note.monsterCustom ? cloneForBoardState(note.monsterCustom) : null,
+    character: note.kind === "character" ? note.character : null,
+    titleOverride: note.titleOverride || "",
+    hpCurrent: note.hpCurrent,
+    hpMax: note.hpMax,
+    rolls: note.rolls || [],
+    dicePanelOpen: note.dicePanelOpen
+  });
+}
+
+function normalizeMapToken(token) {
+  const kind = token?.kind === "character" ? "character" : "monster";
+  const monster = kind === "monster" ? mapTokenMonsterSnapshot(token?.monster) : null;
+  const character = kind === "character" ? mapTokenCharacterSnapshot(token?.character) : null;
+  if (kind === "monster" && !monster) return null;
+  if (kind === "character" && !character) return null;
+  const fallbackName = kind === "character" ? character.name : monster.name;
   return {
     id: String(token.id || `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`),
-    name: String(token.name || monster.name),
+    kind,
+    name: String(token.name || fallbackName),
     monster,
+    monsterCustom: token.monsterCustom ? cloneForBoardState(token.monsterCustom) : null,
+    character,
     x: Number.isFinite(Number(token.x)) ? Number(token.x) : 0,
     y: Number.isFinite(Number(token.y)) ? Number(token.y) : 0,
-    size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140)
+    size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140),
+    ...normalizeMapTokenCombatFields(token),
+    actorNote: normalizeTokenActorNote(token.actorNote, token)
   };
 }
 
 function mapTokenSnapshot(token) {
   return normalizeMapToken(token);
+}
+
+function normalizeMapGrid(grid) {
+  const source = isPlainObject(grid) ? grid : {};
+  return {
+    enabled: Boolean(source.enabled),
+    snap: Boolean(source.snap),
+    cellWidth: clamp(Number(source.cellWidth) || DEFAULT_MAP_GRID.cellWidth, 8, 500),
+    cellHeight: clamp(Number(source.cellHeight) || DEFAULT_MAP_GRID.cellHeight, 8, 500),
+    offsetX: clamp(Number(source.offsetX) || 0, -500, 500),
+    offsetY: clamp(Number(source.offsetY) || 0, -500, 500)
+  };
+}
+
+function mapGridSnapshot(grid) {
+  return normalizeMapGrid(grid);
+}
+
+function defaultMapPageId(noteId = "default") {
+  return `map-page-${String(noteId || "default")}`;
+}
+
+function mapPageName(page, index = 0) {
+  return String(page?.name || page?.mapImage?.name || `Mapa ${index + 1}`);
+}
+
+function normalizeMapPage(page, fallbackId = "map-page-default", index = 0) {
+  const source = isPlainObject(page) ? page : {};
+  return {
+    id: String(source.id || fallbackId),
+    name: mapPageName(source, index),
+    mapImage: source.mapImage ? mapImageRuntimeSnapshot(source.mapImage) : null,
+    mapTokens: Array.isArray(source.mapTokens) ? source.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
+    mapGrid: normalizeMapGrid(source.mapGrid)
+  };
+}
+
+function mapPagesForNote(note) {
+  if (note?.kind !== "map") return [];
+  const pages = Array.isArray(note.mapPages) && note.mapPages.length
+    ? note.mapPages.map((page, index) => normalizeMapPage(page, page.id || `${defaultMapPageId(note.id)}-${index + 1}`, index)).filter(Boolean)
+    : [];
+  if (pages.length) return pages;
+  return [normalizeMapPage({
+    id: defaultMapPageId(note.id),
+    name: note.mapImage?.name || "Mapa 1",
+    mapImage: note.mapImage || null,
+    mapTokens: note.mapTokens || [],
+    mapGrid: note.mapGrid
+  }, defaultMapPageId(note.id), 0)];
+}
+
+function activeMapPageForNote(note) {
+  const pages = mapPagesForNote(note);
+  return pages.find((page) => page.id === note?.activeMapPageId) || pages[0] || null;
+}
+
+function syncMapNoteActivePage(note, pages, activePageId = null) {
+  const normalizedPages = (pages || []).map((page, index) => normalizeMapPage(page, page.id || `${defaultMapPageId(note?.id)}-${index + 1}`, index));
+  const safePages = normalizedPages.length ? normalizedPages : mapPagesForNote(note);
+  const nextActiveId = activePageId || note?.activeMapPageId || safePages[0]?.id || null;
+  const activePage = safePages.find((page) => page.id === nextActiveId) || safePages[0] || null;
+  return {
+    ...note,
+    mapPages: safePages,
+    activeMapPageId: activePage?.id || null,
+    mapImage: activePage?.mapImage || null,
+    mapTokens: activePage?.mapTokens || [],
+    mapGrid: activePage?.mapGrid ? mapGridSnapshot(activePage.mapGrid) : normalizeMapGrid(null)
+  };
+}
+
+function updateMapNotePage(note, pageId, updater) {
+  const pages = mapPagesForNote(note);
+  const targetId = pageId || note.activeMapPageId || pages[0]?.id;
+  const updatedPages = pages.map((page) => (
+    page.id === targetId ? normalizeMapPage(updater(page), page.id) : page
+  ));
+  return syncMapNoteActivePage(note, updatedPages, targetId);
+}
+
+function mapPageStorageSnapshot(page) {
+  const normalized = normalizeMapPage(page);
+  return {
+    id: normalized.id,
+    name: normalized.name,
+    mapImage: normalized.mapImage ? mapImageStorageSnapshot(normalized.mapImage) : null,
+    mapTokens: normalized.mapTokens.map(mapTokenSnapshot).filter(Boolean),
+    mapGrid: mapGridSnapshot(normalized.mapGrid)
+  };
+}
+
+function restoreStoredMapPage(page, fallbackId, index = 0) {
+  return normalizeMapPage({
+    id: page?.id || fallbackId,
+    name: page?.name,
+    mapImage: page?.mapImage ? restoreStoredMapImage(page.mapImage) : null,
+    mapTokens: Array.isArray(page?.mapTokens) ? page.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
+    mapGrid: page?.mapGrid
+  }, fallbackId, index);
+}
+
+function loadImageElement(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("No se pudo analizar la imagen."));
+    image.src = dataUrl;
+  });
+}
+
+function smoothSignal(signal, radius = 1) {
+  return signal.map((_, index) => {
+    let total = 0;
+    let count = 0;
+    for (let offset = -radius; offset <= radius; offset += 1) {
+      const value = signal[index + offset];
+      if (value == null) continue;
+      total += value;
+      count += 1;
+    }
+    return count ? total / count : 0;
+  });
+}
+
+function bestRepeatingGrid(signal, minPeriod, maxPeriod) {
+  if (!Array.isArray(signal) || signal.length < minPeriod * 3) return null;
+  const mean = signal.reduce((total, value) => total + value, 0) / signal.length;
+  const variance = signal.reduce((total, value) => total + (value - mean) ** 2, 0) / signal.length;
+  const deviation = Math.sqrt(variance) || 1;
+  const normalized = smoothSignal(signal.map((value) => Math.max(0, (value - mean) / deviation)), 1);
+  let best = null;
+  const safeMaxPeriod = Math.min(maxPeriod, Math.floor(signal.length / 2));
+
+  for (let period = minPeriod; period <= safeMaxPeriod; period += 1) {
+    let bestOffsetScore = 0;
+    let bestOffset = 0;
+    for (let offset = 0; offset < period; offset += 1) {
+      let total = 0;
+      let count = 0;
+      for (let index = offset; index < normalized.length; index += period) {
+        total += normalized[index];
+        count += 1;
+      }
+      if (count < 3) continue;
+      const score = total / count;
+      if (score > bestOffsetScore) {
+        bestOffsetScore = score;
+        bestOffset = offset;
+      }
+    }
+    const periodScore = bestOffsetScore * Math.log2(Math.max(2, Math.floor(signal.length / period)));
+    if (!best || periodScore > best.score) best = { period, offset: bestOffset, score: periodScore, lineScore: bestOffsetScore };
+  }
+
+  if (!best || best.lineScore < 0.55) return null;
+  return best;
+}
+
+function gridInkMaskFromPixels(pixels, width, height) {
+  const mask = new Uint8Array(width * height);
+  for (let index = 0; index < width * height; index += 1) {
+    const pixelIndex = index * 4;
+    const red = pixels[pixelIndex];
+    const green = pixels[pixelIndex + 1];
+    const blue = pixels[pixelIndex + 2];
+    const alpha = pixels[pixelIndex + 3];
+    if (alpha < 80) continue;
+
+    const maxChannel = Math.max(red, green, blue);
+    const minChannel = Math.min(red, green, blue);
+    const luminance = red * 0.299 + green * 0.587 + blue * 0.114;
+    const neutral = maxChannel - minChannel <= 38;
+    const grayLine = neutral && luminance >= 105 && luminance <= 218;
+    if (grayLine) mask[index] = 1;
+  }
+  return mask;
+}
+
+function gridInkAxisScores(mask, width, height) {
+  const columnScores = Array(width).fill(0);
+  const rowScores = Array(height).fill(0);
+
+  for (let y = 1; y < height - 1; y += 1) {
+    const rowStart = y * width;
+    for (let x = 1; x < width - 1; x += 1) {
+      const index = rowStart + x;
+      if (!mask[index]) continue;
+      const verticalNeighbors = mask[index - width] + mask[index + width];
+      const horizontalNeighbors = mask[index - 1] + mask[index + 1];
+      if (verticalNeighbors) columnScores[x] += 1 + verticalNeighbors * 0.5;
+      if (horizontalNeighbors) rowScores[y] += 1 + horizontalNeighbors * 0.5;
+    }
+  }
+
+  return {
+    columns: columnScores.map((score) => score / height),
+    rows: rowScores.map((score) => score / width)
+  };
+}
+
+function gradientAxisScores(luminance, width, height) {
+  const columns = Array.from({ length: width }, (_, x) => {
+    if (x <= 0 || x >= width - 1) return 0;
+    let total = 0;
+    for (let y = 0; y < height; y += 1) {
+      const index = y * width + x;
+      total += Math.abs(luminance[index] - luminance[index - 1]) + Math.abs(luminance[index + 1] - luminance[index]);
+    }
+    return total / height;
+  });
+  const rows = Array.from({ length: height }, (_, y) => {
+    if (y <= 0 || y >= height - 1) return 0;
+    let total = 0;
+    const rowStart = y * width;
+    const prevRowStart = (y - 1) * width;
+    const nextRowStart = (y + 1) * width;
+    for (let x = 0; x < width; x += 1) {
+      total += Math.abs(luminance[rowStart + x] - luminance[prevRowStart + x]) + Math.abs(luminance[nextRowStart + x] - luminance[rowStart + x]);
+    }
+    return total / width;
+  });
+  return { columns, rows };
+}
+
+function chooseDetectedGrid(candidates) {
+  const valid = candidates.filter((candidate) => candidate?.xGrid && candidate?.yGrid);
+  if (!valid.length) return null;
+  return valid
+    .map((candidate) => {
+      const xPeriod = candidate.xGrid.period;
+      const yPeriod = candidate.yGrid.period;
+      const aspectPenalty = Math.abs(Math.log(Math.max(xPeriod, yPeriod) / Math.max(1, Math.min(xPeriod, yPeriod))));
+      const score = candidate.weight
+        * (candidate.xGrid.score + candidate.yGrid.score)
+        / (1 + aspectPenalty * 2);
+      return { ...candidate, score };
+    })
+    .sort((left, right) => right.score - left.score)[0];
+}
+
+async function detectGridFromImageDataUrl(dataUrl) {
+  const image = await loadImageElement(dataUrl);
+  const naturalWidth = image.naturalWidth || image.width;
+  const naturalHeight = image.naturalHeight || image.height;
+  if (!naturalWidth || !naturalHeight) throw new Error("No se pudo leer el tamano de la imagen.");
+
+  const maxAnalysisSize = 900;
+  const analysisScale = Math.min(1, maxAnalysisSize / Math.max(naturalWidth, naturalHeight));
+  const width = Math.max(1, Math.round(naturalWidth * analysisScale));
+  const height = Math.max(1, Math.round(naturalHeight * analysisScale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) throw new Error("No se pudo preparar el analisis del grid.");
+  context.drawImage(image, 0, 0, width, height);
+  const pixels = context.getImageData(0, 0, width, height).data;
+  const luminance = new Float32Array(width * height);
+  for (let index = 0; index < width * height; index += 1) {
+    const pixelIndex = index * 4;
+    luminance[index] = pixels[pixelIndex] * 0.299 + pixels[pixelIndex + 1] * 0.587 + pixels[pixelIndex + 2] * 0.114;
+  }
+
+  const minPeriod = Math.max(6, Math.round(18 * analysisScale));
+  const maxPeriod = Math.max(minPeriod + 1, Math.round(260 * analysisScale));
+  const gridInkScores = gridInkAxisScores(gridInkMaskFromPixels(pixels, width, height), width, height);
+  const gradientScores = gradientAxisScores(luminance, width, height);
+  const detected = chooseDetectedGrid([
+    {
+      weight: 2.6,
+      xGrid: bestRepeatingGrid(gridInkScores.columns, minPeriod, maxPeriod),
+      yGrid: bestRepeatingGrid(gridInkScores.rows, minPeriod, maxPeriod)
+    },
+    {
+      weight: 0.65,
+      xGrid: bestRepeatingGrid(gradientScores.columns, minPeriod, maxPeriod),
+      yGrid: bestRepeatingGrid(gradientScores.rows, minPeriod, maxPeriod)
+    }
+  ]);
+  if (!detected) throw new Error("No pude detectar un grid claro en esta imagen.");
+
+  return {
+    naturalWidth,
+    naturalHeight,
+    cellWidth: detected.xGrid.period / analysisScale,
+    cellHeight: detected.yGrid.period / analysisScale,
+    offsetX: detected.xGrid.offset / analysisScale,
+    offsetY: detected.yGrid.offset / analysisScale
+  };
+}
+
+function normalizeGridOffset(value, cellSize) {
+  const cell = Math.max(1, Number(cellSize) || 1);
+  return ((Number(value) || 0) % cell + cell) % cell;
 }
 
 function firstClipboardImageFile(clipboardData) {
@@ -1090,6 +1700,8 @@ function updateObjectPath(source, pathParts, value) {
 }
 
 function noteStorageSnapshot(note) {
+  const activeMapPage = note.kind === "map" ? activeMapPageForNote(note) : null;
+  const mapPages = note.kind === "map" ? mapPagesForNote(note).map(mapPageStorageSnapshot).filter(Boolean) : [];
   return {
     id: note.id,
     kind: note.kind,
@@ -1101,8 +1713,11 @@ function noteStorageSnapshot(note) {
     textTitle: note.kind === "text" ? note.textTitle || "" : "",
     textContent: note.kind === "text" ? note.textContent || "" : "",
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(storedImageSnapshot).filter(Boolean) : [],
-    mapImage: note.kind === "map" && note.mapImage ? storedImageSnapshot(note.mapImage) : null,
-    mapTokens: note.kind === "map" && Array.isArray(note.mapTokens) ? note.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [],
+    mapImage: activeMapPage?.mapImage ? mapImageStorageSnapshot(activeMapPage.mapImage) : null,
+    mapTokens: activeMapPage ? activeMapPage.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [],
+    mapGrid: activeMapPage ? mapGridSnapshot(activeMapPage.mapGrid) : null,
+    mapPages,
+    activeMapPageId: note.kind === "map" ? (activeMapPage?.id || note.activeMapPageId || null) : null,
     obsidian: note.kind === "obsidian" ? {
       relativePath: note.obsidian?.relativePath || "",
       fileName: note.obsidian?.fileName || "",
@@ -1113,6 +1728,8 @@ function noteStorageSnapshot(note) {
     parentNoteId: note.parentNoteId || null,
     tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.slice() : [],
     activeTabId: note.activeTabId || null,
+    linkedMapToken: normalizeLinkedMapTokenLink(note.linkedMapToken),
+    tokenInitiative: note.tokenInitiative ?? "",
     x: note.x,
     y: note.y,
     width: note.width,
@@ -1134,11 +1751,24 @@ function restoreStoredNote(note) {
   const entry = note.kind === "spell" || note.kind === "item" ? (entryCustom || findLibraryEntryByRef(note.kind, note.entryRef)) : null;
   const character = note.kind === "character" && note.character ? note.character : null;
   const mapImage = note.kind === "map" && note.mapImage
-    ? restoreStoredImage(note.mapImage)
+    ? restoreStoredMapImage(note.mapImage)
     : null;
   const mapTokens = note.kind === "map" && Array.isArray(note.mapTokens)
     ? note.mapTokens.map(normalizeMapToken).filter(Boolean)
     : [];
+  const mapGrid = note.kind === "map" ? normalizeMapGrid(note.mapGrid) : null;
+  const restoredMapPages = note.kind === "map" && Array.isArray(note.mapPages) && note.mapPages.length
+    ? note.mapPages.map((page, index) => restoreStoredMapPage(page, page.id || `${defaultMapPageId(note.id)}-${index + 1}`, index)).filter(Boolean)
+    : note.kind === "map"
+      ? [normalizeMapPage({
+        id: defaultMapPageId(note.id),
+        name: mapImage?.name || "Mapa 1",
+        mapImage,
+        mapTokens,
+        mapGrid
+      }, defaultMapPageId(note.id), 0)]
+      : [];
+  const activeMapPage = restoredMapPages.find((page) => page.id === note.activeMapPageId) || restoredMapPages[0] || null;
   const obsidian = note.kind === "obsidian" && note.obsidian?.relativePath
     ? {
       relativePath: String(note.obsidian.relativePath),
@@ -1170,8 +1800,11 @@ function restoreStoredNote(note) {
     textTitle: typeof note.textTitle === "string" ? note.textTitle : "",
     textContent: typeof note.textContent === "string" ? note.textContent : "",
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(restoreStoredImage).filter(Boolean) : [],
-    mapImage,
-    mapTokens,
+    mapImage: activeMapPage?.mapImage || mapImage,
+    mapTokens: activeMapPage?.mapTokens || mapTokens,
+    mapGrid: activeMapPage?.mapGrid || mapGrid,
+    mapPages: restoredMapPages,
+    activeMapPageId: activeMapPage?.id || null,
     obsidian,
     obsidianMarkdown: "",
     obsidianLoading: false,
@@ -1184,6 +1817,8 @@ function restoreStoredNote(note) {
     parentNoteId: note.parentNoteId ? String(note.parentNoteId) : null,
     tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.map((entry) => String(entry || "")).filter(Boolean) : [],
     activeTabId: note.activeTabId ? String(note.activeTabId) : null,
+    linkedMapToken: normalizeLinkedMapTokenLink(note.linkedMapToken),
+    tokenInitiative: note.tokenInitiative ?? "",
     x: point.x,
     y: point.y,
     width,
@@ -2234,11 +2869,11 @@ function InteractiveRulesText({ text, context, onRoll }) {
   return <>{parts}</>;
 }
 
-function MonsterRollPanel({ note, onToggle, onResizeCorner = null }) {
+function MonsterRollPanel({ note, onToggle, onResizeCorner = null, className = "relative border-t border-neutral-700 bg-neutral-950" }) {
   const latest = note.rolls?.[0];
 
   return (
-    <section className="relative border-t border-neutral-700 bg-neutral-950">
+    <section className={className}>
       <button
         className="flex w-full items-center justify-between bg-black px-3 py-1.5 pr-9 text-left text-sm text-neutral-100 hover:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-sky-300"
         type="button"
@@ -2462,6 +3097,35 @@ function MonsterTokenImage({ monster, className = "" }) {
       )}
     </div>
   );
+}
+
+function characterInitials(character) {
+  const name = String(character?.name || "PC").trim();
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (!parts.length) return "PC";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
+}
+
+function CharacterTokenImage({ character, className = "" }) {
+  const subtitle = [
+    character?.race,
+    character?.classLevel || (character?.level ? `Lv ${character.level}` : "")
+  ].filter(Boolean).join(" | ");
+  return (
+    <div className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-sky-300 bg-sky-950 text-center shadow-inner ${className}`}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.35),transparent_32%),linear-gradient(135deg,rgba(14,165,233,0.75),rgba(15,23,42,0.95))]" />
+      <div className="relative px-1">
+        <div className="font-serif text-lg font-black leading-none text-white">{characterInitials(character)}</div>
+        {subtitle ? <div className="mt-0.5 max-w-16 truncate text-[8px] font-bold uppercase text-sky-100/80">{subtitle}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function MapTokenImage({ token, className = "" }) {
+  if (token?.kind === "character") return <CharacterTokenImage character={token.character} className={className} />;
+  return <MonsterTokenImage monster={token?.monster} className={className} />;
 }
 
 function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null, onMonsterEdit = null }) {
@@ -3015,19 +3679,33 @@ function MonsterNote({
         onClose={(event) => onClose(noteActionId, event)}
       />
       {tabBar}
-      <MonsterStatBlockBody
-        noteId={noteActionId}
-        monster={note.monster}
-        onRoll={addRoll}
-        className="min-h-0 flex-1 overflow-auto"
-        hpState={{ current: note.hpCurrent, max: note.hpMax }}
-        onHpChange={(field, value) => onHpChange(noteActionId, field, value)}
-        onRollHp={() => onRollHp(noteActionId)}
-        onMonsterEdit={(path, value) => onMonsterEdit?.(noteActionId, path, value)}
-      />
-      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      {note.linkedMapToken ? (
+        <div className="grid shrink-0 grid-cols-3 border-b border-neutral-800 bg-neutral-950/90 px-3 py-2 text-xs text-neutral-300">
+          <div><span className="font-bold uppercase text-neutral-500">AC</span> <span className="font-bold text-sky-200">{formatAc(note.monster)}</span></div>
+          <div><span className="font-bold uppercase text-neutral-500">HP</span> <span className="font-bold text-emerald-200">{note.hpCurrent ?? "--"} / {note.hpMax ?? "--"}</span></div>
+          <div><span className="font-bold uppercase text-neutral-500">Ini</span> <span className="font-bold text-amber-300">{note.tokenInitiative ?? "Token"}</span></div>
+        </div>
+      ) : null}
+      <div className="min-h-0 flex flex-1">
+        <MonsterStatBlockBody
+          noteId={noteActionId}
+          monster={note.monster}
+          onRoll={addRoll}
+          className="min-h-0 flex-1 overflow-auto"
+          hpState={{ current: note.hpCurrent, max: note.hpMax }}
+          onHpChange={(field, value) => onHpChange(noteActionId, field, value)}
+          onRollHp={() => onRollHp(noteActionId)}
+          onMonsterEdit={(path, value) => onMonsterEdit?.(noteActionId, path, value)}
+        />
+        <MonsterRollPanel
+          note={note}
+          onToggle={onToggleDice}
+          className="relative w-64 shrink-0 border-l border-neutral-700 bg-neutral-950"
+        />
+      </div>
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -3384,6 +4062,60 @@ function TextNote({
   );
 }
 
+function MapTokenTracker({ tokens, onHpChange }) {
+  const visibleTokens = [...tokens].sort((left, right) => {
+    const rightInitiative = Number(right.initiative);
+    const leftInitiative = Number(left.initiative);
+    if (Number.isFinite(rightInitiative) && Number.isFinite(leftInitiative) && rightInitiative !== leftInitiative) {
+      return rightInitiative - leftInitiative;
+    }
+    return String(left.name || "").localeCompare(String(right.name || ""));
+  });
+  if (!visibleTokens.length) return null;
+
+  return (
+    <aside
+      className="absolute bottom-3 left-3 top-3 z-20 flex w-64 max-w-[calc(100%-1.5rem)] flex-col border border-neutral-700 bg-neutral-950/92 text-neutral-200 shadow-xl"
+      data-board-control="true"
+      onPointerDown={(event) => event.stopPropagation()}
+      onWheel={(event) => event.stopPropagation()}
+    >
+      <div className="border-b border-neutral-800 px-3 py-2">
+        <h3 className="font-serif text-sm font-bold uppercase text-amber-500">Tokens</h3>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="grid grid-cols-[1fr_38px_74px_38px] gap-2 border-b border-neutral-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+          <span>Nombre</span>
+          <span className="text-center">AC</span>
+          <span className="text-center">HP</span>
+          <span className="text-center">Ini</span>
+        </div>
+        {visibleTokens.map((token) => (
+          <div key={token.id} className="grid grid-cols-[1fr_38px_74px_38px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs">
+            <div className="min-w-0">
+              <div className="truncate font-bold text-neutral-100" title={token.name || "Token"}>{token.name || "Token"}</div>
+              <div className="truncate text-[10px] uppercase text-neutral-500">{token.kind === "character" ? "PC" : "Monster"}</div>
+            </div>
+            <div className="truncate text-center font-bold text-sky-200" title={token.ac || "Unknown"}>{token.ac || "?"}</div>
+            <div className="flex items-center justify-center gap-1">
+              <NumericExpressionInput
+                className="h-7 w-10 border border-neutral-700 bg-neutral-900 px-1 text-center font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
+                value={token.hpCurrent}
+                integer
+                onChange={(value) => onHpChange?.(token.id, value)}
+              />
+              {token.hpMax !== "" ? <span className="min-w-0 text-[10px] text-neutral-500">/{token.hpMax}</span> : null}
+            </div>
+            <div className="text-center font-bold text-amber-300" title={token.initiativeDetail || ""}>
+              {token.initiative !== "" ? token.initiative : "--"}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
 function MapNote({
   note,
   shellNote = null,
@@ -3399,19 +4131,53 @@ function MapNote({
   onRestore,
   onDuplicate,
   onMapImageChange,
-  onMapTokenDragStart
+  onMapGridChange,
+  onMapPageAdd,
+  onMapPageSelect,
+  onMapPageRename,
+  onMapPageClose,
+  onMapTokenHpChange,
+  onMapTokenDragStart,
+  onMapTokenContextMenu
 }) {
   const inputRef = useRef(null);
+  const bodyRef = useRef(null);
+  const pendingImageModeRef = useRef("replace");
   const [error, setError] = useState("");
+  const [isAutoFittingGrid, setIsAutoFittingGrid] = useState(false);
+  const [isGridPanelOpen, setIsGridPanelOpen] = useState(false);
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
   const noteActionId = actionNoteId || note.id;
   const title = noteDisplayName(note);
-  const image = note.mapImage || null;
-  const tokens = Array.isArray(note.mapTokens) ? note.mapTokens : [];
+  const pages = mapPagesForNote(note);
+  const activePage = activeMapPageForNote(note) || pages[0] || normalizeMapPage({ id: defaultMapPageId(noteActionId) }, defaultMapPageId(noteActionId), 0);
+  const image = activePage.mapImage || null;
+  const imageSrc = mapImageUrl(image);
+  const tokens = Array.isArray(activePage.mapTokens) ? activePage.mapTokens : [];
+  const grid = normalizeMapGrid(activePage.mapGrid);
 
-  function openFilePicker(event) {
+  useEffect(() => {
+    if (!image || image.objectUrl || (!image.assetId && !image.dataUrl)) return undefined;
+    let cancelled = false;
+    hydrateMapImage(image)
+      .then((hydratedImage) => {
+        if (cancelled || !hydratedImage) return;
+        if (hydratedImage.objectUrl !== image.objectUrl || hydratedImage.dataUrl !== image.dataUrl || hydratedImage.assetId !== image.assetId) {
+          onMapImageChange?.(noteActionId, hydratedImage, activePage.id);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setError(error?.message || "No se pudo cargar la imagen del mapa.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activePage.id, image?.assetId, image?.dataUrl, image?.objectUrl, noteActionId]);
+
+  function openFilePicker(event, mode = "replace") {
     event?.stopPropagation?.();
+    pendingImageModeRef.current = mode;
     inputRef.current?.click();
   }
 
@@ -3428,9 +4194,11 @@ function MapNote({
       return;
     }
     try {
-      const image = await readImageFileAsStoredImage(file, "Mapa");
+      const image = await readMapImageFileAsStoredImage(file, "Mapa");
       setError("");
-      onMapImageChange?.(noteActionId, image);
+      if (pendingImageModeRef.current === "add") onMapPageAdd?.(noteActionId, image);
+      else onMapImageChange?.(noteActionId, image, activePage.id);
+      pendingImageModeRef.current = "replace";
     } catch (error) {
       setError(error?.message || "No se pudo cargar la imagen.");
     }
@@ -3442,6 +4210,42 @@ function MapNote({
     event.preventDefault();
     event.stopPropagation();
     applyImageFile(imageFile);
+  }
+
+  function updateGrid(patch) {
+    onMapGridChange?.(noteActionId, normalizeMapGrid({ ...grid, ...patch }), activePage.id);
+  }
+
+  async function autoFitGrid(event) {
+    event?.stopPropagation?.();
+    if (!imageSrc || !bodyRef.current) return;
+    setIsAutoFittingGrid(true);
+    try {
+      const detected = await detectGridFromImageDataUrl(imageSrc);
+      const bodyWidth = bodyRef.current.clientWidth || frameNote.width;
+      const bodyHeight = bodyRef.current.clientHeight || frameNote.height;
+      const containScale = Math.min(bodyWidth / detected.naturalWidth, bodyHeight / detected.naturalHeight);
+      const visibleWidth = detected.naturalWidth * containScale;
+      const visibleHeight = detected.naturalHeight * containScale;
+      const imageLeft = (bodyWidth - visibleWidth) / 2;
+      const imageTop = (bodyHeight - visibleHeight) / 2;
+      const cellWidth = clamp(detected.cellWidth * containScale, 8, 500);
+      const cellHeight = clamp(detected.cellHeight * containScale, 8, 500);
+      const offsetX = normalizeGridOffset(imageLeft + detected.offsetX * containScale, cellWidth);
+      const offsetY = normalizeGridOffset(imageTop + detected.offsetY * containScale, cellHeight);
+      updateGrid({
+        enabled: true,
+        cellWidth: Math.round(cellWidth * 10) / 10,
+        cellHeight: Math.round(cellHeight * 10) / 10,
+        offsetX: Math.round(offsetX * 10) / 10,
+        offsetY: Math.round(offsetY * 10) / 10
+      });
+      setError("");
+    } catch (error) {
+      setError(error?.message || "No pude detectar el grid de esta imagen.");
+    } finally {
+      setIsAutoFittingGrid(false);
+    }
   }
 
   if (frameNote.minimized) {
@@ -3498,13 +4302,59 @@ function MapNote({
           <p className="mt-2 text-sm italic text-neutral-500">VVT map note</p>
         </div>
         <div className="flex shrink-0 gap-1">
-          <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={openFilePicker}>IMG</button>
+          <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => openFilePicker(event, "add")}>MAP +</button>
           <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
           <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>D</button>
           <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
         </div>
       </header>
       {tabBar}
+      <div
+        className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-neutral-800 bg-neutral-950 px-2 py-1"
+        data-board-control="true"
+        onPointerDown={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}
+      >
+        {pages.map((page, index) => {
+          const isActive = page.id === activePage.id;
+          return (
+            <div key={page.id} className={`flex max-w-48 shrink-0 items-center border ${isActive ? "border-amber-500 bg-neutral-900 text-amber-200" : "border-neutral-800 bg-neutral-950 text-neutral-400"}`}>
+              <button
+                className="min-w-0 flex-1 truncate px-3 py-1.5 text-left text-xs font-bold uppercase hover:text-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                type="button"
+                title={page.name}
+                onClick={() => onMapPageSelect?.(noteActionId, page.id)}
+              >
+                <CtrlEditableText
+                  value={page.name || `Mapa ${index + 1}`}
+                  className="block truncate"
+                  inputClassName="w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-xs font-bold uppercase text-amber-100 focus:outline-none"
+                  onCommit={(value) => onMapPageRename?.(noteActionId, page.id, value)}
+                >
+                  {page.name || `Mapa ${index + 1}`}
+                </CtrlEditableText>
+              </button>
+              {pages.length > 1 ? (
+                <button
+                  className="h-7 w-7 border-l border-neutral-800 text-xs font-bold text-neutral-500 hover:bg-red-950/40 hover:text-red-200 focus:outline-none focus:ring-1 focus:ring-red-400/50"
+                  type="button"
+                  aria-label={`Cerrar ${page.name || `Mapa ${index + 1}`}`}
+                  onClick={() => onMapPageClose?.(noteActionId, page.id)}
+                >
+                  X
+                </button>
+              ) : null}
+            </div>
+          );
+        })}
+        <button
+          className="h-8 shrink-0 border border-neutral-700 bg-neutral-900 px-3 text-xs font-bold uppercase text-sky-200 hover:border-sky-400 hover:bg-sky-950 focus:outline-none focus:ring-1 focus:ring-sky-300/60"
+          type="button"
+          onClick={(event) => openFilePicker(event, "add")}
+        >
+          + Mapa
+        </button>
+      </div>
       <input
         ref={inputRef}
         className="hidden"
@@ -3514,13 +4364,14 @@ function MapNote({
         onChange={handleFileChange}
       />
       <div
+        ref={bodyRef}
         className="relative min-h-0 flex-1 overflow-hidden bg-neutral-950"
         data-map-body-note-id={noteActionId}
       >
-        {image?.dataUrl ? (
+        {imageSrc ? (
           <img
             className="h-full w-full object-contain"
-            src={image.dataUrl}
+            src={imageSrc}
             alt={image.name || title}
             draggable={false}
             onPointerDown={(event) => event.stopPropagation()}
@@ -3536,7 +4387,112 @@ function MapNote({
             <span className="max-w-sm text-sm text-neutral-500">PNG, JPG, WebP o GIF</span>
           </button>
         )}
-        {image?.dataUrl ? (
+        {imageSrc && grid.enabled ? (
+          <div
+            className="pointer-events-none absolute inset-0 z-[1]"
+            style={{
+              backgroundImage: "linear-gradient(rgba(56,189,248,0.72) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.72) 1px, transparent 1px)",
+              backgroundSize: `${grid.cellWidth}px ${grid.cellHeight}px`,
+              backgroundPosition: `${grid.offsetX}px ${grid.offsetY}px`
+            }}
+          />
+        ) : null}
+        {imageSrc ? (
+          <MapTokenTracker
+            tokens={tokens}
+            onHpChange={(tokenId, value) => onMapTokenHpChange?.(noteActionId, activePage.id, tokenId, value)}
+          />
+        ) : null}
+        {imageSrc ? (
+          <div
+            className="absolute right-3 top-3 z-30 border border-neutral-700 bg-neutral-950/92 text-[11px] text-neutral-200 shadow-lg"
+            data-board-control="true"
+            onPointerDown={(event) => event.stopPropagation()}
+            onWheel={(event) => event.stopPropagation()}
+          >
+            <button
+              className="flex w-full min-w-32 items-center justify-between gap-3 px-3 py-2 font-bold uppercase text-amber-300 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              type="button"
+              onClick={() => setIsGridPanelOpen((open) => !open)}
+            >
+              <span>Grid</span>
+              <span className="text-neutral-500">{isGridPanelOpen ? "-" : "+"}</span>
+            </button>
+            {isGridPanelOpen ? (
+              <div className="grid w-64 grid-cols-2 gap-2 border-t border-neutral-800 p-3">
+                <label className="inline-flex items-center gap-1 font-bold uppercase text-amber-300">
+                  <input
+                    type="checkbox"
+                    checked={grid.enabled}
+                    onChange={(event) => updateGrid({ enabled: event.target.checked })}
+                  />
+                  Grid
+                </label>
+                <label className="inline-flex items-center gap-1 font-bold uppercase text-sky-300">
+                  <input
+                    type="checkbox"
+                    checked={grid.snap}
+                    onChange={(event) => updateGrid({ snap: event.target.checked })}
+                  />
+                  Snap
+                </label>
+                <button
+                  className="col-span-2 border border-sky-500/60 bg-sky-950/70 px-2 py-1 font-bold uppercase text-sky-100 hover:bg-sky-900 disabled:cursor-wait disabled:opacity-60"
+                  type="button"
+                  disabled={isAutoFittingGrid}
+                  onClick={autoFitGrid}
+                >
+                  {isAutoFittingGrid ? "Analizando..." : "Auto"}
+                </button>
+                <label className="flex items-center justify-between gap-2">
+                  W
+                  <input
+                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                    type="number"
+                    min="8"
+                    max="500"
+                    value={grid.cellWidth}
+                    onChange={(event) => updateGrid({ cellWidth: event.target.value })}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-2">
+                  H
+                  <input
+                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                    type="number"
+                    min="8"
+                    max="500"
+                    value={grid.cellHeight}
+                    onChange={(event) => updateGrid({ cellHeight: event.target.value })}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-2">
+                  X
+                  <input
+                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                    type="number"
+                    min="-500"
+                    max="500"
+                    value={grid.offsetX}
+                    onChange={(event) => updateGrid({ offsetX: event.target.value })}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-2">
+                  Y
+                  <input
+                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                    type="number"
+                    min="-500"
+                    max="500"
+                    value={grid.offsetY}
+                    onChange={(event) => updateGrid({ offsetY: event.target.value })}
+                  />
+                </label>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {imageSrc ? (
           <>
             {tokens.map((token) => {
               const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
@@ -3545,25 +4501,26 @@ function MapNote({
                   key={token.id}
                   className="absolute z-10 rounded-full border-2 border-amber-300 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
                   type="button"
-                  title={token.name || token.monster?.name || "Monster token"}
+                  title={token.name || token.character?.name || token.monster?.name || "Token"}
                   style={{
                     left: token.x,
                     top: token.y,
                     width: size,
                     height: size
                   }}
-                  onPointerDown={(event) => onMapTokenDragStart?.(event, noteActionId, token.id)}
+                  onPointerDown={(event) => onMapTokenDragStart?.(event, noteActionId, activePage.id, token.id)}
+                  onContextMenu={(event) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, token.id)}
                 >
-                  <MonsterTokenImage monster={token.monster} className="h-full w-full border-0" />
+                  <MapTokenImage token={token} className="h-full w-full border-0" />
                   <span className="pointer-events-none absolute left-1/2 top-full mt-1 max-w-28 -translate-x-1/2 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold text-neutral-100 shadow">
-                    {token.name || token.monster?.name || "Token"}
+                    {token.name || token.character?.name || token.monster?.name || "Token"}
                   </span>
                 </button>
               );
             })}
           </>
         ) : null}
-        {image?.dataUrl ? (
+        {imageSrc ? (
           <button
             className="absolute bottom-3 right-3 border border-neutral-700 bg-neutral-950/90 px-3 py-2 text-xs font-bold uppercase text-neutral-200 shadow-lg hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
             type="button"
@@ -5602,6 +6559,7 @@ function DmScreenApp() {
   const [freeDiceSelection, setFreeDiceSelection] = useState(createFreeDiceSelection);
   const [freeDiceRolls, setFreeDiceRolls] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
+  const [tokenContextMenu, setTokenContextMenu] = useState(null);
   const [noteSpawnPoint, setNoteSpawnPoint] = useState(null);
   const [resourcePickerKind, setResourcePickerKind] = useState(null);
   const [resourceSearchQuery, setResourceSearchQuery] = useState("");
@@ -5642,6 +6600,7 @@ function DmScreenApp() {
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const deferredResourceSearchQuery = useDeferredValue(resourceSearchQuery);
   const deferredObsidianSearchQuery = useDeferredValue(obsidianSearchQuery);
+  const boardRootRef = useRef(null);
   const dragRef = useRef(null);
   const mapTokenDragRef = useRef(null);
   const tabDragRef = useRef(null);
@@ -5649,6 +6608,7 @@ function DmScreenApp() {
   const panRef = useRef(null);
   const selectionRef = useRef(null);
   const boardViewRef = useRef(boardView);
+  const handleBoardWheelRef = useRef(null);
   const monsterNotesRef = useRef(monsterNotes);
   const focusedRootNoteIdRef = useRef(null);
   const suppressRestoreClickRef = useRef(null);
@@ -5715,6 +6675,22 @@ function DmScreenApp() {
   }, [boardView]);
 
   useEffect(() => {
+    handleBoardWheelRef.current = handleBoardWheel;
+  });
+
+  useEffect(() => {
+    const boardRoot = boardRootRef.current;
+    if (!boardRoot) return undefined;
+    const handleNativeWheel = (event) => {
+      handleBoardWheelRef.current?.(event);
+    };
+    boardRoot.addEventListener("wheel", handleNativeWheel, { passive: false });
+    return () => {
+      boardRoot.removeEventListener("wheel", handleNativeWheel);
+    };
+  }, []);
+
+  useEffect(() => {
     monsterNotesRef.current = monsterNotes;
   }, [monsterNotes]);
 
@@ -5755,11 +6731,15 @@ function DmScreenApp() {
       if (imageFile) {
         event.preventDefault();
         try {
-          const image = await readImageFileAsStoredImage(imageFile);
           const activeNote = activeNoteFromPasteTarget(event.target);
-          if (activeNote?.kind === "map") updateMapNoteImage(activeNote.id, image);
-          else if (activeNote?.kind === "text") addTextNoteImage(activeNote.id, image);
-          else addMapNote(null, image);
+          if (activeNote?.kind === "text") {
+            const image = await readImageFileAsStoredImage(imageFile);
+            addTextNoteImage(activeNote.id, image);
+          } else {
+            const image = await readMapImageFileAsStoredImage(imageFile);
+            if (activeNote?.kind === "map") updateMapNoteImage(activeNote.id, image);
+            else addMapNote(null, image);
+          }
         } catch (error) {
           console.error(error);
         }
@@ -6105,10 +7085,21 @@ function DmScreenApp() {
     const width = 760;
     const height = 520;
     const spawnPoint = positionOverride || boardCenterSpawnPoint(width, height);
+    const pageId = `map-page-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     addBoardNote({
       kind: "map",
       titleOverride: "Mapa VVT",
       mapImage,
+      mapTokens: [],
+      mapGrid: normalizeMapGrid(null),
+      mapPages: [{
+        id: pageId,
+        name: mapImage?.name || "Mapa 1",
+        mapImage,
+        mapTokens: [],
+        mapGrid: normalizeMapGrid(null)
+      }],
+      activeMapPageId: pageId,
       width,
       height
     }, spawnPoint);
@@ -6587,14 +7578,28 @@ function DmScreenApp() {
     const monster = payload.monster || null;
     const character = payload.character || null;
     const obsidian = payload.obsidian || null;
-    const mapImage = payload.mapImage || null;
+    const mapImage = payload.mapImage ? mapImageRuntimeSnapshot(payload.mapImage) : null;
     const mapTokens = Array.isArray(payload.mapTokens) ? payload.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [];
+    const mapGrid = payload.kind === "map" ? mapGridSnapshot(payload.mapGrid) : null;
+    const noteId = `${payload.kind}-${(monster || payload.entry || character)?.name || obsidian?.relativePath || mapImage?.name || "note"}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const mapPages = payload.kind === "map"
+      ? (Array.isArray(payload.mapPages) && payload.mapPages.length
+        ? payload.mapPages.map((page, index) => normalizeMapPage(page, page.id || `${defaultMapPageId(noteId)}-${index + 1}`, index))
+        : [normalizeMapPage({
+          id: payload.activeMapPageId || defaultMapPageId(noteId),
+          name: mapImage?.name || "Mapa 1",
+          mapImage,
+          mapTokens,
+          mapGrid
+        }, payload.activeMapPageId || defaultMapPageId(noteId), 0)])
+      : [];
+    const activeMapPage = mapPages.find((page) => page.id === payload.activeMapPageId) || mapPages[0] || null;
     const hpAverage = monster?.hp?.average ?? "";
     const characterHp = character?.hpMax || character?.hpCurrent || "";
     setMonsterNotes((notes) => [
       ...notes,
       {
-        id: `${payload.kind}-${(monster || payload.entry || character)?.name || obsidian?.relativePath || mapImage?.name || "note"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: noteId,
         kind: payload.kind,
         monster,
         monsterCustom: payload.monsterCustom || null,
@@ -6604,8 +7609,11 @@ function DmScreenApp() {
         textTitle: payload.textTitle || "",
         textContent: payload.textContent || "",
         textImages: Array.isArray(payload.textImages) ? payload.textImages.map(storedImageSnapshot).filter(Boolean) : [],
-        mapImage,
-        mapTokens,
+        mapImage: activeMapPage?.mapImage || mapImage,
+        mapTokens: activeMapPage?.mapTokens || mapTokens,
+        mapGrid: activeMapPage?.mapGrid || mapGrid,
+        mapPages,
+        activeMapPageId: activeMapPage?.id || null,
         obsidian,
         obsidianMarkdown: payload.obsidianMarkdown || "",
         obsidianLoading: Boolean(payload.obsidianLoading),
@@ -6618,6 +7626,8 @@ function DmScreenApp() {
         parentNoteId: null,
         tabNoteIds: [],
         activeTabId: null,
+        linkedMapToken: normalizeLinkedMapTokenLink(payload.linkedMapToken),
+        tokenInitiative: payload.tokenInitiative ?? "",
         x: spawnPoint.x,
         y: spawnPoint.y,
         width,
@@ -6652,6 +7662,17 @@ function DmScreenApp() {
           id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
         }))
         : [],
+      mapGrid: source.mapGrid ? { ...source.mapGrid } : null,
+      mapPages: mapPagesForNote(source).map((page) => ({
+        ...page,
+        mapImage: page.mapImage ? { ...page.mapImage } : null,
+        mapTokens: (page.mapTokens || []).map((token) => ({
+          ...token,
+          id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
+        })),
+        mapGrid: page.mapGrid ? { ...page.mapGrid } : null
+      })),
+      activeMapPageId: source.activeMapPageId,
       titleOverride: source.titleOverride || "",
       width: source.width,
       height: source.height,
@@ -6688,9 +7709,70 @@ function DmScreenApp() {
     )));
   }
 
-  function updateMapNoteImage(noteId, mapImage) {
+  function addMapPage(noteId, mapImage = null) {
+    const pageId = `map-page-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== noteId) return note;
+      const pages = mapPagesForNote(note);
+      const firstPage = pages[0];
+      const shouldReplaceEmptyPage = pages.length === 1 && !firstPage.mapImage && !(firstPage.mapTokens || []).length;
+      const nextPage = normalizeMapPage({
+        id: shouldReplaceEmptyPage ? firstPage.id : pageId,
+        name: mapImage?.name || (shouldReplaceEmptyPage ? firstPage.name : `Mapa ${pages.length + 1}`),
+        mapImage: mapImage ? mapImageRuntimeSnapshot(mapImage) : null,
+        mapTokens: shouldReplaceEmptyPage ? firstPage.mapTokens : [],
+        mapGrid: shouldReplaceEmptyPage ? firstPage.mapGrid : normalizeMapGrid(null)
+      }, shouldReplaceEmptyPage ? firstPage.id : pageId, shouldReplaceEmptyPage ? 0 : pages.length);
+      return syncMapNoteActivePage(note, shouldReplaceEmptyPage ? [nextPage] : [
+        ...pages,
+        nextPage
+      ], nextPage.id);
+    }));
+  }
+
+  function selectMapPage(noteId, pageId) {
     setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? { ...note, mapImage: storedImageSnapshot(mapImage) } : note
+      note.id === noteId ? syncMapNoteActivePage(note, mapPagesForNote(note), pageId) : note
+    )));
+  }
+
+  function renameMapPage(noteId, pageId, name) {
+    const normalizedName = String(name || "").trim();
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        name: normalizedName || page.name
+      })) : note
+    )));
+  }
+
+  function closeMapPage(noteId, pageId) {
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== noteId) return note;
+      const pages = mapPagesForNote(note);
+      if (pages.length <= 1) return note;
+      const nextPages = pages.filter((page) => page.id !== pageId);
+      const nextActiveId = note.activeMapPageId === pageId ? nextPages[0]?.id : note.activeMapPageId;
+      return syncMapNoteActivePage(note, nextPages, nextActiveId);
+    }));
+  }
+
+  function updateMapNoteImage(noteId, mapImage, pageId = null) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        name: mapImage?.name || page.name,
+        mapImage: mapImageRuntimeSnapshot(mapImage)
+      })) : note
+    )));
+  }
+
+  function updateMapGrid(noteId, mapGrid, pageId = null) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapGrid: mapGridSnapshot(mapGrid)
+      })) : note
     )));
   }
 
@@ -6729,40 +7811,70 @@ function DmScreenApp() {
     };
   }
 
-  function clampMapTokenPoint(mapNote, x, y, size = MAP_TOKEN_SIZE) {
-    const metrics = mapBodyMetrics(mapNote);
+  function snapMapTokenPoint(mapNote, x, y, pageId = null) {
+    const page = pageId ? mapPagesForNote(mapNote).find((entry) => entry.id === pageId) : activeMapPageForNote(mapNote);
+    const grid = normalizeMapGrid(page?.mapGrid || mapNote.mapGrid);
+    if (!grid.enabled || !grid.snap) return { x, y };
     return {
-      x: clamp(x, 0, Math.max(0, metrics.width - size)),
-      y: clamp(y, 0, Math.max(0, metrics.height - size))
+      x: grid.offsetX + Math.round((x - grid.offsetX) / grid.cellWidth) * grid.cellWidth,
+      y: grid.offsetY + Math.round((y - grid.offsetY) / grid.cellHeight) * grid.cellHeight
     };
   }
 
-  function addMonsterTokenToMap(sourceRootId, targetRootId, clientX, clientY) {
+  function clampMapTokenPoint(mapNote, x, y, size = MAP_TOKEN_SIZE, pageId = null) {
+    const metrics = mapBodyMetrics(mapNote);
+    const snapped = snapMapTokenPoint(mapNote, x, y, pageId);
+    return {
+      x: clamp(snapped.x, 0, Math.max(0, metrics.width - size)),
+      y: clamp(snapped.y, 0, Math.max(0, metrics.height - size))
+    };
+  }
+
+  function addActorTokenToMap(sourceRootId, targetRootId, clientX, clientY) {
     const notes = monsterNotesRef.current;
     const sourceNote = activeNoteForRoot(sourceRootId, notes);
     const mapNote = activeNoteForRoot(targetRootId, notes);
-    if (sourceNote?.kind !== "monster" || mapNote?.kind !== "map" || !sourceNote.monster?.name) return false;
+    if (!["monster", "character"].includes(sourceNote?.kind) || mapNote?.kind !== "map") return false;
+    const page = activeMapPageForNote(mapNote);
+    if (!page) return false;
 
     const size = MAP_TOKEN_SIZE;
     const metrics = mapBodyMetrics(mapNote);
     const boardPoint = screenToBoardPoint(clientX, clientY);
     const localX = metrics.left == null ? boardPoint.x - mapNote.x : (clientX - metrics.left) / metrics.scale;
     const localY = metrics.top == null ? boardPoint.y - mapNote.y - 88 : (clientY - metrics.top) / metrics.scale;
-    const point = clampMapTokenPoint(mapNote, localX - size / 2, localY - size / 2, size);
-    const monster = mapTokenMonsterSnapshot(sourceNote.monster);
-    if (!monster) return false;
+    const point = clampMapTokenPoint(mapNote, localX - size / 2, localY - size / 2, size, page.id);
+    const isCharacter = sourceNote.kind === "character";
+    const monster = isCharacter ? null : mapTokenMonsterSnapshot(sourceNote.monster);
+    const character = isCharacter ? mapTokenCharacterSnapshot(sourceNote.character) : null;
+    if (!monster && !character) return false;
 
     const token = {
       id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      name: sourceNote.monster.name || "Monster",
+      kind: isCharacter ? "character" : "monster",
+      name: isCharacter
+        ? (sourceNote.character?.name || sourceNote.livePlayerName || "Player")
+        : (sourceNote.monster?.name || "Monster"),
       monster,
+      monsterCustom: sourceNote.monsterCustom ? cloneForBoardState(sourceNote.monsterCustom) : null,
+      character,
       x: point.x,
       y: point.y,
-      size
+      size,
+      ...mapActorCombatState({
+        kind: isCharacter ? "character" : "monster",
+        monster: isCharacter ? null : sourceNote.monster,
+        character,
+        hpCurrent: sourceNote.hpCurrent,
+        hpMax: sourceNote.hpMax
+      })
     };
 
     setMonsterNotes((notes) => notes.map((note) => (
-      note.id === mapNote.id ? { ...note, mapTokens: [...(note.mapTokens || []), token] } : note
+      note.id === mapNote.id ? updateMapNotePage(note, page.id, (page) => ({
+        ...page,
+        mapTokens: [...(page.mapTokens || []), token]
+      })) : note
     )));
     return true;
   }
@@ -6783,10 +7895,11 @@ function DmScreenApp() {
     }));
   }
 
-  function startMapTokenDrag(event, mapNoteId, tokenId) {
+  function startMapTokenDrag(event, mapNoteId, pageId, tokenId) {
     if (event.button != null && event.button !== 0) return;
     const mapNote = monsterNotesRef.current.find((note) => note.id === mapNoteId);
-    const token = mapNote?.mapTokens?.find((entry) => entry.id === tokenId);
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
+    const token = page?.mapTokens?.find((entry) => entry.id === tokenId);
     if (!mapNote || !token) return;
     event.preventDefault();
     event.stopPropagation();
@@ -6795,6 +7908,7 @@ function DmScreenApp() {
     mapTokenDragRef.current = {
       pointerId: event.pointerId,
       mapNoteId,
+      pageId: page?.id || null,
       tokenId,
       startClientX: event.clientX,
       startClientY: event.clientY,
@@ -6810,16 +7924,225 @@ function DmScreenApp() {
     if (!mapNote) return;
     const deltaX = (event.clientX - drag.startClientX) / drag.scale;
     const deltaY = (event.clientY - drag.startClientY) / drag.scale;
-    const point = clampMapTokenPoint(mapNote, drag.startX + deltaX, drag.startY + deltaY, drag.size);
+    const point = clampMapTokenPoint(mapNote, drag.startX + deltaX, drag.startY + deltaY, drag.size, drag.pageId);
     setMonsterNotes((notes) => notes.map((note) => {
       if (note.id !== drag.mapNoteId) return note;
-      return {
-        ...note,
-        mapTokens: (note.mapTokens || []).map((token) => (
+      return updateMapNotePage(note, drag.pageId, (page) => ({
+        ...page,
+        mapTokens: (page.mapTokens || []).map((token) => (
           token.id === drag.tokenId ? { ...token, x: point.x, y: point.y } : token
         ))
-      };
+      }));
     }));
+  }
+
+  function updateMapTokenHp(noteId, pageId, tokenId, value) {
+    const numericValue = value === "" ? "" : Number(value);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokens: (page.mapTokens || []).map((token) => (
+          token.id === tokenId ? {
+            ...token,
+            hpCurrent: numericValue,
+            actorNote: token.actorNote ? { ...token.actorNote, hpCurrent: numericValue } : token.actorNote
+          } : token
+        ))
+      })) : note
+    )));
+  }
+
+  function resizeMapTokenFromMenu(delta) {
+    const entry = findMapTokenContextEntry();
+    if (!entry) return;
+    const { mapNote, page, token } = entry;
+    const currentSize = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
+    const nextSize = clamp(currentSize + delta, 32, 140);
+    const point = clampMapTokenPoint(mapNote, Number(token.x) || 0, Number(token.y) || 0, nextSize, page.id);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === mapNote.id ? updateMapNotePage(note, page.id, (page) => ({
+        ...page,
+        mapTokens: (page.mapTokens || []).map((candidate) => (
+          candidate.id === token.id ? { ...candidate, size: nextSize, x: point.x, y: point.y } : candidate
+        ))
+      })) : note
+    )));
+  }
+
+  function noteLinkedToMapToken(note, link) {
+    const current = normalizeLinkedMapTokenLink(note?.linkedMapToken);
+    return Boolean(current && link
+      && current.mapNoteId === link.mapNoteId
+      && current.pageId === link.pageId
+      && current.tokenId === link.tokenId);
+  }
+
+  function combatFieldsFromActorNote(note, fallbackToken = {}) {
+    const monster = note?.kind === "monster" ? note.monster : null;
+    const character = note?.kind === "character" ? note.character : null;
+    const ac = note?.kind === "character"
+      ? (character?.ac || fallbackToken.ac || "Unknown")
+      : (monster ? formatAc(monster) : fallbackToken.ac || "Unknown");
+    return {
+      ac: String(ac || "Unknown"),
+      hpCurrent: note?.hpCurrent ?? fallbackToken.hpCurrent ?? "",
+      hpMax: note?.hpMax ?? fallbackToken.hpMax ?? ""
+    };
+  }
+
+  function applyActorNoteSnapshotToToken(token, actorNote) {
+    const snapshot = tokenActorNoteSnapshot(actorNote);
+    if (!snapshot) return token;
+    return {
+      ...token,
+      ...combatFieldsFromActorNote(actorNote, token),
+      actorNote: snapshot,
+      monsterCustom: snapshot.kind === "monster" && snapshot.monsterCustom ? cloneForBoardState(snapshot.monsterCustom) : token.monsterCustom,
+      character: snapshot.kind === "character" ? mapTokenCharacterSnapshot(snapshot.character) : token.character
+    };
+  }
+
+  function persistLinkedTokenNotesInCollection(notes, noteIds) {
+    const ids = new Set(Array.from(noteIds || []).filter(Boolean));
+    const linkedNotes = notes.filter((note) => ids.has(note.id) && normalizeLinkedMapTokenLink(note.linkedMapToken));
+    if (!linkedNotes.length) return notes;
+
+    return linkedNotes.reduce((nextNotes, linkedNote) => {
+      const link = normalizeLinkedMapTokenLink(linkedNote.linkedMapToken);
+      return nextNotes.map((note) => (
+        note.id === link.mapNoteId ? updateMapNotePage(note, link.pageId, (page) => ({
+          ...page,
+          mapTokens: (page.mapTokens || []).map((token) => (
+            token.id === link.tokenId ? applyActorNoteSnapshotToToken(token, linkedNote) : token
+          ))
+        })) : note
+      ));
+    }, notes);
+  }
+
+  function findMapTokenContextEntry(menu = tokenContextMenu) {
+    if (!menu?.mapNoteId || !menu.tokenId) return null;
+    const mapNote = monsterNotesRef.current.find((note) => note.id === menu.mapNoteId);
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === menu.pageId) || activeMapPageForNote(mapNote);
+    const token = page?.mapTokens?.find((entry) => entry.id === menu.tokenId);
+    return mapNote && page && token ? { mapNote, page, token } : null;
+  }
+
+  function monsterFromMapToken(token) {
+    if (token?.monsterCustom) return cloneForBoardState(token.monsterCustom);
+    return findLibraryEntryByRef("monster", token?.monster) || null;
+  }
+
+  function actorNotePayloadFromMapToken(token) {
+    const actorNote = tokenActorNoteFromToken(token);
+    if (!actorNote) return null;
+    return {
+      kind: actorNote.kind,
+      monster: actorNote.kind === "monster" ? actorNote.monster : null,
+      monsterCustom: actorNote.kind === "monster" && actorNote.monsterCustom ? cloneForBoardState(actorNote.monsterCustom) : null,
+      character: actorNote.kind === "character" ? actorNote.character : null,
+      titleOverride: actorNote.titleOverride,
+      hpCurrent: actorNote.hpCurrent,
+      hpMax: actorNote.hpMax,
+      rolls: actorNote.rolls || [],
+      dicePanelOpen: actorNote.dicePanelOpen,
+      tokenInitiative: token.initiative ?? ""
+    };
+  }
+
+  function openMapTokenContextMenu(event, mapNoteId, pageId, tokenId) {
+    event.preventDefault();
+    event.stopPropagation();
+    const viewportWidth = window.innerWidth || 1200;
+    const viewportHeight = window.innerHeight || 800;
+    const boardPoint = screenToBoardPoint(event.clientX, event.clientY);
+    setContextMenu(null);
+    setTokenContextMenu({
+      x: clamp(event.clientX, 8, viewportWidth - 210),
+      y: clamp(event.clientY, 8, viewportHeight - 260),
+      boardX: boardPoint.x,
+      boardY: boardPoint.y,
+      mapNoteId,
+      pageId,
+      tokenId
+    });
+  }
+
+  function duplicateMapTokenFromMenu() {
+    const entry = findMapTokenContextEntry();
+    if (!entry) return;
+    const { mapNote, page, token } = entry;
+    const grid = normalizeMapGrid(page.mapGrid);
+    const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
+    const offsetX = grid.enabled ? grid.cellWidth : size + 12;
+    const point = clampMapTokenPoint(mapNote, (Number(token.x) || 0) + offsetX, Number(token.y) || 0, size, page.id);
+    const duplicate = normalizeMapToken({
+      ...token,
+      id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      x: point.x,
+      y: point.y,
+      size,
+      ...mapActorCombatState({
+        kind: token.kind,
+        monster: token.kind === "character" ? null : monsterFromMapToken(token),
+        character: token.kind === "character" ? token.character : null,
+        hpMax: token.hpMax
+      })
+    });
+    if (!duplicate) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === mapNote.id ? updateMapNotePage(note, page.id, (page) => ({
+        ...page,
+        mapTokens: [...(page.mapTokens || []), duplicate]
+      })) : note
+    )));
+    setTokenContextMenu(null);
+  }
+
+  function openActorNoteFromMapToken() {
+    const entry = findMapTokenContextEntry();
+    if (!entry) return;
+    const payload = actorNotePayloadFromMapToken(entry.token);
+    if (!payload) return;
+    const link = {
+      mapNoteId: entry.mapNote.id,
+      pageId: entry.page.id,
+      tokenId: entry.token.id
+    };
+    const existingNote = monsterNotesRef.current.find((note) => noteLinkedToMapToken(note, link));
+    if (existingNote) {
+      restoreNote(existingNote.id);
+      focusNote(existingNote.id);
+      setTokenContextMenu(null);
+      return;
+    }
+    const width = NOTE_DEFAULT_WIDTH;
+    const height = NOTE_DEFAULT_HEIGHT;
+    const spawnPoint = clampBoardPoint({
+      x: tokenContextMenu.boardX + 24,
+      y: tokenContextMenu.boardY + 24
+    }, width, height);
+    addBoardNote({
+      ...payload,
+      width,
+      height,
+      linkedMapToken: link
+    }, spawnPoint);
+    setTokenContextMenu(null);
+  }
+
+  function removeMapTokenFromMenu() {
+    const entry = findMapTokenContextEntry();
+    if (!entry) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapTokens: (page.mapTokens || []).filter((token) => token.id !== entry.token.id)
+        }))
+        : note
+    )));
+    setTokenContextMenu(null);
   }
 
   function editMonsterNote(noteId, pathParts, value) {
@@ -6879,7 +8202,10 @@ function DmScreenApp() {
   }
 
   function closeSingleTab(noteId) {
-    setMonsterNotes((notes) => closeSingleNoteInCollection(notes, noteId));
+    setMonsterNotes((notes) => {
+      const preparedNotes = persistLinkedTokenNotesInCollection(notes, [noteId]);
+      return closeSingleNoteInCollection(preparedNotes, noteId);
+    });
   }
 
   function detachTabFromRoot(noteId, rootId, boardPoint = null) {
@@ -6998,7 +8324,8 @@ function DmScreenApp() {
       const root = notes.find((note) => note.id === rootId);
       if (!root) return notes;
       const idsToRemove = new Set(noteTabIds(root));
-      return notes.filter((note) => !idsToRemove.has(note.id));
+      const preparedNotes = persistLinkedTokenNotesInCollection(notes, idsToRemove);
+      return preparedNotes.filter((note) => !idsToRemove.has(note.id));
     });
   }
 
@@ -7146,6 +8473,7 @@ function DmScreenApp() {
   function openBoardContextMenu(event) {
     if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']")) return;
     event.preventDefault();
+    setTokenContextMenu(null);
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
     const boardPoint = clampBoardPoint(screenToBoardPoint(event.clientX, event.clientY), NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
@@ -7158,9 +8486,10 @@ function DmScreenApp() {
   }
 
   function closeBoardContextMenu(event) {
-    if (!contextMenu) return;
+    if (!contextMenu && !tokenContextMenu) return;
     if (event.target?.closest?.("[data-context-menu='true']")) return;
     setContextMenu(null);
+    setTokenContextMenu(null);
   }
 
   function openContextMonsterPicker() {
@@ -7188,13 +8517,22 @@ function DmScreenApp() {
     addMapNote({ x: contextMenu.boardX, y: contextMenu.boardY });
   }
 
-  function shouldIgnoreBoardPointer(event) {
-    return Boolean(event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']"));
+  function isBoardUiBlocker(event) {
+    return Boolean(event.target?.closest?.("[data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']"));
   }
 
-  function startBoardPan(event) {
+  function isPointerOverNote(event) {
+    return Boolean(event.target?.closest?.("[data-dm-note='true']"));
+  }
+
+  function shouldIgnoreBoardPointer(event, { allowNote = false } = {}) {
+    if (isBoardUiBlocker(event)) return true;
+    return !allowNote && isPointerOverNote(event);
+  }
+
+  function startBoardPan(event, { allowNote = false } = {}) {
     if (event.button != null && event.button !== 0 && event.button !== 1) return;
-    if (dragRef.current || resizeRef.current || selectionRef.current || shouldIgnoreBoardPointer(event)) return;
+    if (dragRef.current || resizeRef.current || selectionRef.current || shouldIgnoreBoardPointer(event, { allowNote })) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const view = boardViewRef.current;
@@ -7228,13 +8566,21 @@ function DmScreenApp() {
 
   function handleBoardPointerDown(event) {
     closeBoardContextMenu(event);
-    if (event.altKey || event.button === 1) startBoardPan(event);
+    if (event.shiftKey || event.altKey || event.button === 1) startBoardPan(event);
     else startBoardSelection(event);
   }
 
+  function handleBoardPointerDownCapture(event) {
+    if (!event.shiftKey || !isPointerOverNote(event) || isBoardUiBlocker(event)) return;
+    closeBoardContextMenu(event);
+    startBoardPan(event, { allowNote: true });
+    if (panRef.current?.pointerId === event.pointerId) event.stopPropagation();
+  }
+
   function handleBoardWheel(event) {
-    if (shouldIgnoreBoardPointer(event)) return;
-    event.preventDefault();
+    if (isBoardUiBlocker(event)) return;
+    if (isPointerOverNote(event) && !event.shiftKey) return;
+    if (event.cancelable) event.preventDefault();
     const direction = event.deltaY > 0 ? -1 : 1;
     zoomBoardBy(direction * BOARD_ZOOM_STEP, { x: event.clientX, y: event.clientY });
   }
@@ -7496,7 +8842,7 @@ function DmScreenApp() {
         const lastClientX = completedDrag.lastClientX ?? event.clientX;
         const lastClientY = completedDrag.lastClientY ?? event.clientY;
         const mapDropTargetId = findMapDropTargetAtPointer(completedDrag.noteId, lastClientX, lastClientY) || completedDrag.dropTargetNoteId;
-        if (addMonsterTokenToMap(
+        if (addActorTokenToMap(
           completedDrag.noteId,
           mapDropTargetId,
           lastClientX,
@@ -7512,15 +8858,18 @@ function DmScreenApp() {
     if (panRef.current?.pointerId === event.pointerId) panRef.current = null;
   }
 
+  const activeTokenContext = findMapTokenContextEntry();
+
   return (
     <main
+      ref={boardRootRef}
       className="relative min-h-screen overflow-hidden bg-neutral-950 text-neutral-200"
       onContextMenu={openBoardContextMenu}
+      onPointerDownCapture={handleBoardPointerDownCapture}
       onPointerDown={handleBoardPointerDown}
       onPointerMove={updateDrag}
       onPointerUp={stopDrag}
       onPointerCancel={stopDrag}
-      onWheel={handleBoardWheel}
     >
       <div
         className="fixed left-4 top-4 z-40 flex gap-2"
@@ -7663,7 +9012,14 @@ function DmScreenApp() {
             <MapNote
               {...sharedProps}
               onMapImageChange={updateMapNoteImage}
+              onMapGridChange={updateMapGrid}
+              onMapPageAdd={addMapPage}
+              onMapPageSelect={selectMapPage}
+              onMapPageRename={renameMapPage}
+              onMapPageClose={closeMapPage}
+              onMapTokenHpChange={updateMapTokenHp}
               onMapTokenDragStart={startMapTokenDrag}
+              onMapTokenContextMenu={openMapTokenContextMenu}
             />
           ) : activeNote.kind === "obsidian" ? (
             <ObsidianNote
@@ -7739,6 +9095,65 @@ function DmScreenApp() {
             </div>
           </div>
         </section>
+      ) : null}
+
+      {tokenContextMenu && activeTokenContext ? (
+        <div
+          className="fixed z-[10002] min-w-52 border border-neutral-700 bg-neutral-900 p-1 text-sm text-neutral-200 shadow-2xl"
+          data-context-menu="true"
+          style={{ left: tokenContextMenu.x, top: tokenContextMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div className="border-b border-neutral-800 px-3 py-2">
+            <p className="truncate font-serif text-base font-bold uppercase text-amber-500">
+              {activeTokenContext.token.name || activeTokenContext.token.character?.name || activeTokenContext.token.monster?.name || "Token"}
+            </p>
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">{activeTokenContext.token.kind === "character" ? "Player token" : "Monster token"}</p>
+          </div>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
+            onClick={duplicateMapTokenFromMenu}
+          >
+            <span>Multiplicar</span>
+            <span className="text-neutral-500">x2</span>
+          </button>
+          <div className="grid grid-cols-2 gap-1 border-y border-neutral-800 p-1">
+            <button
+              className="px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-600"
+              type="button"
+              onClick={() => resizeMapTokenFromMenu(-8)}
+              disabled={(Number(activeTokenContext.token.size) || MAP_TOKEN_SIZE) <= 32}
+            >
+              - Tamaño
+            </button>
+            <button
+              className="px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-600"
+              type="button"
+              onClick={() => resizeMapTokenFromMenu(8)}
+              disabled={(Number(activeTokenContext.token.size) || MAP_TOKEN_SIZE) >= 140}
+            >
+              + Tamaño
+            </button>
+          </div>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-600"
+            type="button"
+            onClick={openActorNoteFromMapToken}
+            disabled={!actorNotePayloadFromMapToken(activeTokenContext.token)}
+          >
+            <span>{activeTokenContext.token.kind === "character" ? "Ver nota del jugador" : "Ver nota del monstruo"}</span>
+            <span className="text-neutral-500">+</span>
+          </button>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-red-300 hover:bg-red-950/40 focus:bg-red-950/40 focus:outline-none"
+            type="button"
+            onClick={removeMapTokenFromMenu}
+          >
+            <span>Eliminar token</span>
+            <span className="text-neutral-500">X</span>
+          </button>
+        </div>
       ) : null}
 
       {contextMenu ? (
