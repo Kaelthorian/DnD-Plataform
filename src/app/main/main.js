@@ -104,6 +104,40 @@ function getPlatformBackgroundImageUrl() {
   return toFileUrl(resolvePlatformBackgroundImagePath());
 }
 
+function getMonsterTokenDirectoryCandidates() {
+  return uniquePaths([
+    path.join(process.cwd(), "Tokens"),
+    path.join(__dirname, "..", "..", "..", "Tokens"),
+    path.join(process.resourcesPath || "", "app.asar", "Tokens"),
+    path.join(path.dirname(app.getPath("exe")), "Tokens")
+  ]);
+}
+
+function normalizeTokenCandidate(value) {
+  return String(value || "")
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
+    .trim();
+}
+
+function resolveMonsterTokenPath({ sources = [], names = [] } = {}) {
+  const safeSources = [...new Set((Array.isArray(sources) ? sources : []).map(normalizeTokenCandidate).filter(Boolean))];
+  const safeNames = [...new Set((Array.isArray(names) ? names : []).map(normalizeTokenCandidate).filter(Boolean))];
+  const directories = getMonsterTokenDirectoryCandidates();
+  for (const directoryPath of directories) {
+    for (const source of safeSources) {
+      for (const name of safeNames) {
+        for (const extension of IMAGE_EXTENSIONS) {
+          const tokenPath = path.join(directoryPath, source, `${name}${extension}`);
+          if (fs.existsSync(tokenPath)) return tokenPath;
+        }
+      }
+    }
+    const defaultTokenPath = path.join(directoryPath, "default.png");
+    if (fs.existsSync(defaultTokenPath)) return defaultTokenPath;
+  }
+  return null;
+}
+
 function broadcastPlatformBackgroundChange() {
   scheduledPlatformBackgroundBroadcast = null;
   const nextUrl = getPlatformBackgroundImageUrl();
@@ -308,6 +342,10 @@ ipcMain.handle("background:image-url", async () => {
 
 ipcMain.handle("platform-background:image-url", async () => {
   return getPlatformBackgroundImageUrl();
+});
+
+ipcMain.handle("monster-token:image-url", async (_event, request) => {
+  return toFileUrl(resolveMonsterTokenPath(request));
 });
 
 ipcMain.handle("obsidian:get-vault", async () => {
