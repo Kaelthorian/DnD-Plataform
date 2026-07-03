@@ -9,6 +9,7 @@ const MAX_NAME_LENGTH = 80;
 const MAX_ROLL_TEXT_LENGTH = 600;
 const MAX_VVT_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_VVT_FOG_POINTS = 1200;
+const MAX_VVT_TOKENS = 200;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -141,6 +142,81 @@ function sanitizeVvtGrid(grid) {
   };
 }
 
+function rollEventPayload(roll) {
+  if (!roll) return null;
+  return {
+    playerId: sanitizePlayerId(roll.playerId),
+    playerName: sanitizeText(roll.playerName) || "Jugador",
+    title: sanitizeText(roll.title, 140) || "Tirada",
+    result: sanitizeText(roll.result, 80),
+    detail: sanitizeText(roll.detail, MAX_ROLL_TEXT_LENGTH),
+    timestamp: sanitizeText(roll.timestamp, 40) || new Date().toISOString(),
+    receivedAt: sanitizeText(roll.receivedAt, 40) || new Date().toISOString()
+  };
+}
+
+function sanitizeVvtViewport(viewport) {
+  const source = isPlainObject(viewport) ? viewport : {};
+  return {
+    width: clampNumber(source.width, 1, 20000, 1),
+    height: clampNumber(source.height, 1, 20000, 1)
+  };
+}
+
+function monsterTokenSourceCandidates(monster) {
+  const source = sanitizeText(monster?.source, 80);
+  const aliases = {
+    XMM: ["MM"],
+    XPHB: ["MM"],
+    MPMM: ["VGM", "MM"],
+    MTF: ["VGM", "MM"]
+  };
+  return unique([source, ...(aliases[source] || [])]);
+}
+
+function monsterTokenNameCandidates(monster) {
+  const name = sanitizeText(monster?.name, 140);
+  if (!name) return [];
+  return unique([
+    name,
+    name.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim(),
+    name.replace(/[/:]/g, "-")
+  ]);
+}
+
+function sanitizeVvtTokenImageRequest(token) {
+  const monster = isPlainObject(token?.monster) ? token.monster : {};
+  const sources = monsterTokenSourceCandidates(monster).slice(0, 6);
+  const names = monsterTokenNameCandidates(monster).slice(0, 8);
+  if (!sources.length || !names.length) return null;
+  return { sources, names };
+}
+
+function sanitizeVvtToken(token) {
+  if (!isPlainObject(token)) return null;
+  const id = sanitizeText(token.id, 120) || crypto.randomUUID?.() || `token-${Date.now()}`;
+  const name = sanitizeText(token.name || token.character?.name || token.monster?.name, 120);
+  if (!name) return null;
+  return {
+    id,
+    kind: token.kind === "character" ? "character" : "monster",
+    name,
+    x: clampNumber(token.x, 0, 20000, 0),
+    y: clampNumber(token.y, 0, 20000, 0),
+    size: clampNumber(token.size, 8, 500, 56),
+    ac: sanitizeText(token.ac, 40),
+    hpCurrent: sanitizeText(token.hpCurrent ?? token.hp, 40),
+    hpMax: sanitizeText(token.hpMax, 40),
+    initiative: sanitizeText(token.initiative, 40),
+    image: {
+      name: sanitizeText(token.image?.name, 180) || "",
+      type: sanitizeText(token.image?.type, 80) || "",
+      dataUrl: sanitizeDataUrl(token.image?.dataUrl)
+    },
+    imageRequest: sanitizeVvtTokenImageRequest(token)
+  };
+}
+
 function sanitizeVvtState(payload) {
   if (!isPlainObject(payload) || payload.active === false) {
     return {
@@ -166,6 +242,10 @@ function sanitizeVvtState(payload) {
     },
     fogOfWar: sanitizeVvtFog(payload.fogOfWar),
     grid: sanitizeVvtGrid(payload.grid),
+    tokens: Array.isArray(payload.tokens)
+      ? payload.tokens.slice(0, MAX_VVT_TOKENS).map(sanitizeVvtToken).filter(Boolean)
+      : [],
+    sourceViewport: sanitizeVvtViewport(payload.sourceViewport),
     updatedAt: sanitizeText(payload.updatedAt, 80) || new Date().toISOString()
   };
 }
@@ -447,8 +527,10 @@ class LiveSheetServer extends EventEmitter {
     return { ok: true, state };
   }
 
-  broadcastToPlayers(payload) {
+  broadcastToPlayers(payload, exceptPlayerId = "") {
+    const excludedId = sanitizePlayerId(exceptPlayerId);
     for (const player of this.players.values()) {
+      if (excludedId && player.playerId === excludedId) continue;
       if (player.connected && player.ws && player.ws.readyState === WebSocket.OPEN) {
         sendJson(player.ws, payload);
       }
@@ -534,13 +616,23 @@ class LiveSheetServer extends EventEmitter {
         });
       }
       if (validated.messageType === "roll:event") {
-        this.emit("player-roll", {
+        const roll = rollEventPayload({
           playerId: validated.playerId,
           playerName: validated.playerName,
           connected: true,
           remoteAddress: player.remoteAddress,
           ...validated.roll,
           receivedAt: now
+        });
+        this.broadcastToPlayers({
+          version: 1,
+          type: "player:roll",
+          roll
+        }, validated.playerId);
+        this.emit("player-roll", {
+          ...roll,
+          connected: true,
+          remoteAddress: player.remoteAddress
         });
       }
       this.emitStatus();

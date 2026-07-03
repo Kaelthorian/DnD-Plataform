@@ -118,6 +118,7 @@
     let liveSheetClientManualDisconnect = false;
     let liveVvtState = null;
     let liveVvtElements = null;
+    const liveVvtTokenImageCache = new Map();
 
     function loadUiSettings() {
       try {
@@ -233,6 +234,21 @@
           box-shadow: 0 22px 70px rgba(0, 0, 0, 0.72);
         }
         .live-vvt-window[hidden] { display: none; }
+        .live-vvt-window.is-minimized {
+          inset: auto 4vw 4vh auto;
+          width: min(360px, 92vw);
+          min-height: 0;
+        }
+        .live-vvt-window.is-minimized .live-vvt-body {
+          display: none;
+        }
+        .live-vvt-map[hidden],
+        .live-vvt-grid[hidden],
+        .live-vvt-tokens[hidden],
+        .live-vvt-fog[hidden],
+        .live-vvt-empty[hidden] {
+          display: none;
+        }
         .live-vvt-header {
           display: flex;
           align-items: center;
@@ -251,7 +267,12 @@
           text-transform: uppercase;
           color: #fbbf24;
         }
-        .live-vvt-close {
+        .live-vvt-window-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .live-vvt-minimize {
           width: 28px;
           height: 28px;
           border: 1px solid #4b5563;
@@ -274,10 +295,90 @@
         .live-vvt-fog {
           position: absolute;
           pointer-events: none;
+          z-index: 4;
         }
         .live-vvt-grid {
           position: absolute;
           pointer-events: none;
+          z-index: 2;
+        }
+        .live-vvt-tokens {
+          position: absolute;
+          pointer-events: none;
+          z-index: 3;
+        }
+        .live-vvt-token {
+          position: absolute;
+          transform-origin: 0 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #fcd34d;
+          border-radius: 999px;
+          background: radial-gradient(circle at 35% 25%, rgba(255,255,255,0.24), transparent 30%), #0f172a;
+          color: #f8fafc;
+          box-shadow: 0 5px 14px rgba(0, 0, 0, 0.72);
+          font: 800 12px/1 system-ui, sans-serif;
+        }
+        .live-vvt-token[data-kind="character"] {
+          border-color: #7dd3fc;
+          background: radial-gradient(circle at 35% 25%, rgba(255,255,255,0.28), transparent 30%), #075985;
+        }
+        .live-vvt-token[data-has-image="true"] .live-vvt-token-initials {
+          display: none;
+        }
+        .live-vvt-token-image {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: inherit;
+          object-fit: cover;
+        }
+        .live-vvt-token-initials {
+          position: relative;
+          z-index: 1;
+          text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+        }
+        .live-vvt-token-label {
+          position: absolute;
+          left: 50%;
+          top: calc(100% + 3px);
+          max-width: 92px;
+          transform: translateX(-50%);
+          overflow: hidden;
+          border: 1px solid rgba(75, 85, 99, 0.92);
+          background: rgba(2, 6, 23, 0.92);
+          padding: 2px 5px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: #f9fafb;
+          font: 700 10px/1.1 system-ui, sans-serif;
+        }
+        .live-vvt-token-health {
+          position: absolute;
+          left: 50%;
+          top: calc(100% + 18px);
+          display: grid;
+          width: 46px;
+          height: 7px;
+          transform: translateX(-50%);
+          grid-template-columns: repeat(5, 1fr);
+          gap: 2px;
+          pointer-events: none;
+        }
+        .live-vvt-token-health-segment {
+          border: 1px solid rgba(15, 23, 42, 0.95);
+          background: #111827;
+        }
+        .live-vvt-token-health-segment[data-filled="true"] {
+          background: #22c55e;
+        }
+        .live-vvt-token-health[data-state="wounded"] .live-vvt-token-health-segment[data-filled="true"] {
+          background: #f59e0b;
+        }
+        .live-vvt-token-health[data-state="critical"] .live-vvt-token-health-segment[data-filled="true"] {
+          background: #dc2626;
         }
         .live-vvt-empty {
           display: flex;
@@ -299,28 +400,36 @@
       root.innerHTML = `
         <header class="live-vvt-header">
           <div class="live-vvt-title"></div>
-          <button class="live-vvt-close" type="button" aria-label="Cerrar VVT">X</button>
+          <div class="live-vvt-window-actions">
+            <button class="live-vvt-minimize" type="button" aria-label="Minimizar VVT">-</button>
+          </div>
         </header>
         <div class="live-vvt-body">
           <div class="live-vvt-empty">Esperando mapa VVT del DM.</div>
           <img class="live-vvt-map" alt="Mapa VVT" draggable="false" hidden>
           <div class="live-vvt-grid" hidden></div>
-          <svg class="live-vvt-fog" viewBox="0 0 1 1" preserveAspectRatio="none" hidden></svg>
+          <div class="live-vvt-tokens" hidden></div>
+          <canvas class="live-vvt-fog" hidden></canvas>
         </div>
       `;
       document.body.appendChild(root);
       const elements = {
         root,
         title: root.querySelector(".live-vvt-title"),
-        close: root.querySelector(".live-vvt-close"),
+        minimize: root.querySelector(".live-vvt-minimize"),
         body: root.querySelector(".live-vvt-body"),
         empty: root.querySelector(".live-vvt-empty"),
         image: root.querySelector(".live-vvt-map"),
         grid: root.querySelector(".live-vvt-grid"),
+        tokens: root.querySelector(".live-vvt-tokens"),
         fog: root.querySelector(".live-vvt-fog")
       };
-      elements.close.addEventListener("click", () => {
-        root.hidden = true;
+      elements.minimize.addEventListener("click", () => {
+        const minimized = !root.classList.contains("is-minimized");
+        root.classList.toggle("is-minimized", minimized);
+        elements.minimize.textContent = minimized ? "+" : "-";
+        elements.minimize.setAttribute("aria-label", minimized ? "Restaurar VVT" : "Minimizar VVT");
+        if (!minimized) requestAnimationFrame(updateLiveVvtLayout);
       });
       elements.image.addEventListener("load", updateLiveVvtLayout);
       window.addEventListener("resize", updateLiveVvtLayout);
@@ -346,7 +455,7 @@
 
     function updateLiveVvtLayout() {
       const elements = liveVvtElements;
-      if (!elements || elements.root.hidden || elements.image.hidden) return;
+      if (!elements || elements.root.hidden || elements.root.classList.contains("is-minimized") || elements.image.hidden) return;
       const rect = elements.body.getBoundingClientRect();
       const layout = liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
       elements.fog.style.left = `${layout.left}px`;
@@ -357,6 +466,12 @@
       elements.grid.style.top = `${layout.top}px`;
       elements.grid.style.width = `${layout.width}px`;
       elements.grid.style.height = `${layout.height}px`;
+      elements.tokens.style.left = `${layout.left}px`;
+      elements.tokens.style.top = `${layout.top}px`;
+      elements.tokens.style.width = `${layout.width}px`;
+      elements.tokens.style.height = `${layout.height}px`;
+      renderLiveVvtTokens(elements.tokens, liveVvtState?.tokens, liveVvtState?.sourceViewport, layout);
+      renderLiveVvtFog(elements.fog, liveVvtState?.fogOfWar, layout);
     }
 
     function renderLiveVvtGrid(element, grid) {
@@ -371,58 +486,168 @@
       element.style.backgroundPosition = `${Number(grid.offsetX) || 0}px ${Number(grid.offsetY) || 0}px`;
     }
 
-    function renderLiveVvtFog(svg, fog) {
+    function liveVvtInitials(name) {
+      const parts = String(name || "Token").trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return "T";
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
+    }
+
+    function liveVvtHpRatio(token) {
+      const current = Number.parseFloat(String(token?.hpCurrent ?? "").replace(",", "."));
+      const max = Number.parseFloat(String(token?.hpMax ?? "").replace(",", "."));
+      if (!Number.isFinite(current) || !Number.isFinite(max) || max <= 0) return null;
+      return Math.max(0, Math.min(1, current / max));
+    }
+
+    function liveVvtTokenImageCacheKey(request) {
+      const sources = Array.isArray(request?.sources) ? request.sources.join("|") : "";
+      const names = Array.isArray(request?.names) ? request.names.join("|") : "";
+      return `${sources}::${names}`;
+    }
+
+    function resolveLiveVvtTokenImage(token, node) {
+      const request = token?.imageRequest;
+      if (!request || token.kind === "character") return;
+      const api = window.dndSheet?.getMonsterTokenUrl;
+      if (!api) return;
+      const cacheKey = liveVvtTokenImageCacheKey(request);
+      if (!cacheKey) return;
+
+      function attachImage(url) {
+        if (!url || node.querySelector(".live-vvt-token-image")) return;
+        const image = document.createElement("img");
+        image.className = "live-vvt-token-image";
+        image.alt = `${token.name || "Token"} token`;
+        image.draggable = false;
+        image.src = url;
+        node.dataset.hasImage = "true";
+        node.prepend(image);
+      }
+
+      if (token.image?.dataUrl) {
+        attachImage(token.image.dataUrl);
+        return;
+      }
+
+      const cached = liveVvtTokenImageCache.get(cacheKey);
+      if (typeof cached === "string") {
+        attachImage(cached);
+        return;
+      }
+      if (cached?.then) {
+        cached.then(attachImage).catch(() => {});
+        return;
+      }
+
+      const pending = api(request)
+        .then((url) => {
+          liveVvtTokenImageCache.set(cacheKey, url || "");
+          attachImage(url);
+          return url || "";
+        })
+        .catch(() => {
+          liveVvtTokenImageCache.delete(cacheKey);
+          return "";
+        });
+      liveVvtTokenImageCache.set(cacheKey, pending);
+    }
+
+    function renderLiveVvtTokens(element, tokens, sourceViewport, layout = null) {
+      const visibleTokens = Array.isArray(tokens) ? tokens : [];
+      if (!visibleTokens.length) {
+        element.hidden = true;
+        element.replaceChildren();
+        return;
+      }
+      element.hidden = false;
+      const width = Math.max(1, Number(sourceViewport?.width) || Number(layout?.width) || 1);
+      const height = Math.max(1, Number(sourceViewport?.height) || Number(layout?.height) || 1);
+      const scaleX = (Number(layout?.width) || element.clientWidth || width) / width;
+      const scaleY = (Number(layout?.height) || element.clientHeight || height) / height;
+      const scale = Math.min(scaleX, scaleY);
+      const nodes = visibleTokens.map((token) => {
+        const size = Math.max(8, Number(token.size) || 56);
+        const node = document.createElement("div");
+        node.className = "live-vvt-token";
+        node.dataset.kind = token.kind === "character" ? "character" : "monster";
+        node.title = [token.name || "Token", token.ac ? `AC ${token.ac}` : ""].filter(Boolean).join(" | ");
+        node.style.left = `${(Number(token.x) || 0) * scaleX}px`;
+        node.style.top = `${(Number(token.y) || 0) * scaleY}px`;
+        node.style.width = `${size * scale}px`;
+        node.style.height = `${size * scale}px`;
+
+        const initials = document.createElement("span");
+        initials.className = "live-vvt-token-initials";
+        initials.textContent = liveVvtInitials(token.name);
+        node.appendChild(initials);
+        resolveLiveVvtTokenImage(token, node);
+
+        const label = document.createElement("span");
+        label.className = "live-vvt-token-label";
+        label.textContent = token.name || "Token";
+        node.appendChild(label);
+
+        const hpRatio = liveVvtHpRatio(token);
+        if (hpRatio !== null) {
+          const health = document.createElement("div");
+          health.className = "live-vvt-token-health";
+          health.dataset.state = hpRatio <= 0.25 ? "critical" : (hpRatio <= 0.5 ? "wounded" : "healthy");
+          const filledSegments = hpRatio <= 0 ? 0 : Math.max(1, Math.ceil(hpRatio * 5));
+          for (let segmentIndex = 0; segmentIndex < 5; segmentIndex += 1) {
+            const segment = document.createElement("span");
+            segment.className = "live-vvt-token-health-segment";
+            segment.dataset.filled = String(segmentIndex < filledSegments);
+            health.appendChild(segment);
+          }
+          node.appendChild(health);
+        }
+        return node;
+      });
+      element.replaceChildren(...nodes);
+    }
+
+    function renderLiveVvtFog(canvas, fog, layout = null) {
       const enabled = fog?.enabled !== false;
       const revealed = Array.isArray(fog?.revealed) ? fog.revealed : [];
       if (!enabled) {
-        svg.hidden = true;
-        svg.replaceChildren();
+        canvas.hidden = true;
+        const context = canvas.getContext("2d");
+        context?.clearRect(0, 0, canvas.width || 1, canvas.height || 1);
         return;
       }
-      svg.hidden = false;
-      const namespace = "http://www.w3.org/2000/svg";
-      const defs = document.createElementNS(namespace, "defs");
-      const mask = document.createElementNS(namespace, "mask");
-      const maskId = "live-vvt-fog-mask";
-      mask.setAttribute("id", maskId);
-      const maskRect = document.createElementNS(namespace, "rect");
-      maskRect.setAttribute("x", "0");
-      maskRect.setAttribute("y", "0");
-      maskRect.setAttribute("width", "1");
-      maskRect.setAttribute("height", "1");
-      maskRect.setAttribute("fill", "white");
-      mask.appendChild(maskRect);
+      canvas.hidden = false;
+      const cssWidth = Math.max(1, Math.round(Number(layout?.width) || canvas.clientWidth || canvas.getBoundingClientRect().width || 1));
+      const cssHeight = Math.max(1, Math.round(Number(layout?.height) || canvas.clientHeight || canvas.getBoundingClientRect().height || 1));
+      if (canvas.width !== cssWidth) canvas.width = cssWidth;
+      if (canvas.height !== cssHeight) canvas.height = cssHeight;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.clearRect(0, 0, cssWidth, cssHeight);
+      context.globalCompositeOperation = "source-over";
+      context.fillStyle = "#000000";
+      context.fillRect(0, 0, cssWidth, cssHeight);
+
       revealed.forEach((point) => {
         const x = Math.min(1, Math.max(0, Number(point.x) || 0));
         const y = Math.min(1, Math.max(0, Number(point.y) || 0));
         const rx = Math.min(1, Math.max(0.001, Number(point.rx ?? point.r) || 0.06));
         const ry = Math.min(1, Math.max(0.001, Number(point.ry ?? point.r) || 0.06));
-        const shape = point.shape === "square"
-          ? document.createElementNS(namespace, "rect")
-          : document.createElementNS(namespace, "ellipse");
+        const centerX = x * cssWidth;
+        const centerY = y * cssHeight;
+        const radiusX = rx * cssWidth;
+        const radiusY = ry * cssHeight;
+        context.globalCompositeOperation = point.mode === "hide" ? "source-over" : "destination-out";
+        context.fillStyle = "#000000";
         if (point.shape === "square") {
-          shape.setAttribute("x", String(x - rx));
-          shape.setAttribute("y", String(y - ry));
-          shape.setAttribute("width", String(rx * 2));
-          shape.setAttribute("height", String(ry * 2));
+          context.fillRect(centerX - radiusX, centerY - radiusY, radiusX * 2, radiusY * 2);
         } else {
-          shape.setAttribute("cx", String(x));
-          shape.setAttribute("cy", String(y));
-          shape.setAttribute("rx", String(rx));
-          shape.setAttribute("ry", String(ry));
+          context.beginPath();
+          context.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+          context.fill();
         }
-        shape.setAttribute("fill", point.mode === "hide" ? "white" : "black");
-        mask.appendChild(shape);
       });
-      defs.appendChild(mask);
-      const fogRect = document.createElementNS(namespace, "rect");
-      fogRect.setAttribute("x", "0");
-      fogRect.setAttribute("y", "0");
-      fogRect.setAttribute("width", "1");
-      fogRect.setAttribute("height", "1");
-      fogRect.setAttribute("fill", "rgba(2, 6, 23, 0.94)");
-      fogRect.setAttribute("mask", `url(#${maskId})`);
-      svg.replaceChildren(defs, fogRect);
+      context.globalCompositeOperation = "source-over";
     }
 
     function renderLiveVvtState(state) {
@@ -434,6 +659,8 @@
         elements.empty.hidden = false;
         elements.fog.hidden = true;
         elements.grid.hidden = true;
+        elements.tokens.hidden = true;
+        elements.tokens.replaceChildren();
         return;
       }
       elements.title.textContent = [state.title || "Mapa VVT", state.pageName || ""].filter(Boolean).join(" - ");
@@ -443,6 +670,7 @@
       elements.empty.hidden = true;
       renderLiveVvtGrid(elements.grid, state.grid);
       renderLiveVvtFog(elements.fog, state.fogOfWar);
+      renderLiveVvtTokens(elements.tokens, state.tokens, state.sourceViewport);
       elements.root.hidden = false;
       requestAnimationFrame(updateLiveVvtLayout);
     }
@@ -486,6 +714,8 @@
       }
     }
     window.sendLiveSheetRollEvent = sendLiveSheetRollEvent;
+    window.isLiveSheetConnected = () => liveSheetClientSocket?.readyState === WebSocket.OPEN;
+    window.liveSheetPlayerDisplayName = () => defaultLiveSheetPlayerName();
 
     function scheduleLiveSheetUpdate() {
       if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) return;
@@ -599,6 +829,9 @@
           }
           if (payload?.type === "dm:vvt:state") {
             renderLiveVvtState(payload.state);
+          }
+          if (payload?.type === "player:roll") {
+            window.showLiveSheetRoll?.(payload.roll);
           }
         });
         socket.addEventListener("close", () => {

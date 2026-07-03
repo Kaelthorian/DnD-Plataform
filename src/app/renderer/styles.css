@@ -3024,20 +3024,57 @@
       bottom: 12px;
       z-index: 30;
       width: min(380px, calc(100vw - 24px));
-      padding: 12px 14px;
-      border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      background: linear-gradient(145deg, rgba(18, 18, 18, 0.96), rgba(5, 5, 5, 0.94));
       color: #fff;
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
       transform: translate(-120%, 120%);
       transition: transform 220ms ease;
       pointer-events: none;
-      backdrop-filter: blur(4px);
     }
 
     .dice-tray.visible {
       transform: translate(0, 0);
+    }
+
+    .dice-tray > .dice-title,
+    .dice-tray > .dice-result,
+    .dice-tray > .dice-detail {
+      display: none;
+    }
+
+    .dice-tray-list {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 8px;
+      max-height: min(58vh, 520px);
+      overflow: hidden;
+    }
+
+    .dice-tray-entry {
+      padding: 12px 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: linear-gradient(145deg, rgba(18, 18, 18, 0.96), rgba(5, 5, 5, 0.94));
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(4px);
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 2600ms ease, transform 2600ms ease, max-height 2600ms ease, margin 2600ms ease, padding 2600ms ease;
+      max-height: 180px;
+      overflow: hidden;
+    }
+
+    .dice-tray-entry.entering {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .dice-tray-entry.fading {
+      opacity: 0;
+      transform: translateY(-12px);
+      max-height: 0;
+      margin: 0;
+      padding-top: 0;
+      padding-bottom: 0;
     }
 
     .dice-roll-overlay {

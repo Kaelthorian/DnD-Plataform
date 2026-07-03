@@ -70,6 +70,31 @@ function toFileUrl(filePath) {
   return filePath ? pathToFileURL(filePath).toString() : null;
 }
 
+function imageMimeType(filePath) {
+  switch (path.extname(String(filePath || "")).toLowerCase()) {
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".webp":
+      return "image/webp";
+    case ".gif":
+      return "image/gif";
+    case ".png":
+    default:
+      return "image/png";
+  }
+}
+
+function imageFileDataUrl(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return null;
+  const data = fs.readFileSync(filePath);
+  return {
+    name: path.basename(filePath),
+    type: imageMimeType(filePath),
+    dataUrl: `data:${imageMimeType(filePath)};base64,${data.toString("base64")}`
+  };
+}
+
 function firstExistingPath(paths = []) {
   return paths.find((candidatePath) => fs.existsSync(candidatePath)) || null;
 }
@@ -371,6 +396,10 @@ ipcMain.handle("platform-background:image-url", async () => {
 
 ipcMain.handle("monster-token:image-url", async (_event, request) => {
   return toFileUrl(resolveMonsterTokenPath(request));
+});
+
+ipcMain.handle("monster-token:data-url", async (_event, request) => {
+  return imageFileDataUrl(resolveMonsterTokenPath(request));
 });
 
 ipcMain.handle("obsidian:get-vault", async () => {

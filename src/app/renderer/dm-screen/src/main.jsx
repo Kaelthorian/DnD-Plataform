@@ -127,6 +127,9 @@ const DM_MAP_IMAGE_STORE_NAME = "map-images";
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
 const FOG_REVEAL_POINT_LIMIT = 1200;
+const MAP_FOG_BRUSH_MIN_SIZE = 8;
+const MAP_FOG_BRUSH_MAX_SIZE = 360;
+const MAP_FOG_BRUSH_KEY_STEP = 10;
 const DEFAULT_MAP_GRID = {
   enabled: false,
   snap: false,
@@ -1236,6 +1239,48 @@ async function mapImageShareSnapshot(image) {
   return null;
 }
 
+async function mapTokenShareSnapshot(token) {
+  const snapshot = mapTokenSnapshot(token);
+  if (!snapshot) return null;
+  if (snapshot.kind !== "monster") return snapshot;
+  const request = monsterTokenRequest(snapshot.monster);
+  try {
+    const dataImage = await window.dndSheet?.getMonsterTokenDataUrl?.(request);
+    if (dataImage?.dataUrl) {
+      return {
+        ...snapshot,
+        image: {
+          name: dataImage.name || `${snapshot.name || "Token"}.png`,
+          type: dataImage.type || "image/png",
+          dataUrl: dataImage.dataUrl
+        }
+      };
+    }
+    const api = window.dndSheet?.getMonsterTokenUrl;
+    if (!api) return snapshot;
+    const tokenUrl = await api(request);
+    if (!tokenUrl) return snapshot;
+    const response = await fetch(tokenUrl);
+    const blob = await response.blob();
+    return {
+      ...snapshot,
+      image: {
+        name: `${snapshot.name || "Token"}.png`,
+        type: blob.type || "image/png",
+        dataUrl: await blobToDataUrl(blob)
+      }
+    };
+  } catch (error) {
+    console.error(error);
+    return snapshot;
+  }
+}
+
+async function mapTokensShareSnapshot(tokens) {
+  const list = Array.isArray(tokens) ? tokens : [];
+  return (await Promise.all(list.map(mapTokenShareSnapshot))).filter(Boolean);
+}
+
 function mapTokenMonsterSnapshot(monster) {
   if (!monster?.name) return null;
   return {
@@ -1417,7 +1462,7 @@ function normalizeMapFog(fog) {
     : [];
   return {
     enabled: source.enabled !== false,
-    brushSize: clamp(Number(source.brushSize) || DEFAULT_MAP_FOG.brushSize, 8, 360),
+    brushSize: clamp(Number(source.brushSize) || DEFAULT_MAP_FOG.brushSize, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE),
     brushShape,
     revealed
   };
@@ -4228,7 +4273,7 @@ function TextNote({
   );
 }
 
-function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu }) {
+function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu, onRollInitiativeAll }) {
   const [collapsed, setCollapsed] = useState(false);
   const visibleTokens = [...tokens].sort((left, right) => {
     const rightInitiative = Number(right.initiative);
@@ -4242,13 +4287,13 @@ function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu }) {
 
   return (
     <aside
-      className="absolute bottom-3 left-3 top-3 z-20"
+      className="pointer-events-none absolute bottom-3 left-3 top-3 z-20"
       data-board-control="true"
       onPointerDown={(event) => event.stopPropagation()}
       onWheel={(event) => event.stopPropagation()}
     >
       <button
-        className="absolute left-0 top-2 z-30 flex h-10 w-8 items-center justify-center border border-neutral-700 bg-neutral-950 text-base font-black text-amber-400 shadow-xl hover:border-amber-500 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/60"
+        className="pointer-events-auto absolute left-0 top-2 z-30 flex h-10 w-8 items-center justify-center border border-neutral-700 bg-neutral-950 text-base font-black text-amber-400 shadow-xl hover:border-amber-500 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/60"
         type="button"
         aria-label={collapsed ? "Mostrar lista de tokens" : "Ocultar lista de tokens"}
         title={collapsed ? "Mostrar tokens" : "Ocultar tokens"}
@@ -4257,13 +4302,21 @@ function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu }) {
         {collapsed ? ">" : "<"}
       </button>
       <div
-        className={`ml-8 flex h-full w-64 max-w-[calc(100vw-4rem)] flex-col border border-neutral-700 bg-neutral-950 text-neutral-200 shadow-xl transition duration-200 ease-out ${collapsed ? "pointer-events-none -translate-x-[calc(100%+2rem)] opacity-0" : "translate-x-0 opacity-100"}`}
+        className={`ml-8 flex h-full w-96 max-w-[calc(100vw-4rem)] flex-col border border-neutral-700 bg-neutral-950 text-neutral-200 shadow-xl transition duration-200 ease-out ${collapsed ? "pointer-events-none -translate-x-[calc(100%+2rem)] opacity-0" : "pointer-events-auto translate-x-0 opacity-100"}`}
       >
-        <div className="border-b border-neutral-800 px-3 py-2">
+        <div className="flex items-center justify-between gap-3 border-b border-neutral-800 px-3 py-2">
           <h3 className="font-serif text-sm font-bold uppercase text-amber-500">Tokens</h3>
+          <button
+            className="h-7 shrink-0 border border-amber-500/60 bg-amber-950/60 px-2 text-[11px] font-bold uppercase text-amber-100 hover:bg-amber-900 focus:outline-none focus:ring-1 focus:ring-amber-400"
+            type="button"
+            title="Tirar iniciativa de todos los tokens"
+            onClick={onRollInitiativeAll}
+          >
+            Roll Init
+          </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="grid grid-cols-[34px_1fr_38px_74px_38px] gap-2 border-b border-neutral-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+          <div className="grid grid-cols-[34px_minmax(0,1fr)_48px_92px_54px] gap-2 border-b border-neutral-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
             <span />
             <span>Nombre</span>
             <span className="text-center">AC</span>
@@ -4273,17 +4326,9 @@ function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu }) {
           {visibleTokens.map((token) => (
             <div
               key={token.id}
-              className="grid cursor-pointer grid-cols-[34px_1fr_38px_74px_38px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs transition hover:bg-neutral-900 focus-within:bg-neutral-900"
-              role="button"
-              tabIndex={0}
-              title="Abrir menu del token"
-              onClick={(event) => onTokenContextMenu?.(event, token.id)}
+              className="grid cursor-default grid-cols-[34px_minmax(0,1fr)_48px_92px_54px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs transition hover:bg-neutral-900 focus-within:bg-neutral-900"
+              title="Click derecho para abrir menu del token"
               onContextMenu={(event) => onTokenContextMenu?.(event, token.id)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                onTokenContextMenu?.(event, token.id);
-              }}
             >
               <MapTokenImage token={token} className="h-7 w-7" />
               <div className="min-w-0">
@@ -4431,6 +4476,7 @@ function MapNote({
   onShareVvtMap,
   isSharedVvtMap = false,
   onMapTokenHpChange,
+  onMapTokensRollInitiative,
   onMapTokenDragStart,
   onMapTokenContextMenu
 }) {
@@ -4564,6 +4610,40 @@ function MapNote({
     onMapFogChange?.(noteActionId, activePage.id, normalizeMapFog({ ...fog, ...patch }));
   }
 
+  function updateFogBrushSize(delta) {
+    const currentSize = clamp(Number(fog.brushSize) || DEFAULT_MAP_FOG.brushSize, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE);
+    const brushSize = clamp(currentSize + delta, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE);
+    if (brushSize === currentSize) return;
+    updateFog({ brushSize });
+    if (!imageLayout?.width || !imageLayout?.height) return;
+    setFogBrushPreview((preview) => (
+      preview
+        ? {
+            ...preview,
+            rx: (brushSize / 2) / imageLayout.width,
+            ry: (brushSize / 2) / imageLayout.height,
+            shape: fog.brushShape
+          }
+        : preview
+    ));
+  }
+
+  useEffect(() => {
+    if (!isFogBrushActive) return undefined;
+    function handleFogBrushKeyDown(event) {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (isEditablePasteTarget(event.target)) return;
+      const increase = event.key === "+" || event.key === "=" || event.code === "Equal" || event.code === "NumpadAdd";
+      const decrease = event.key === "-" || event.key === "_" || event.code === "Minus" || event.code === "NumpadSubtract";
+      if (!increase && !decrease) return;
+      event.preventDefault();
+      event.stopPropagation();
+      updateFogBrushSize(increase ? MAP_FOG_BRUSH_KEY_STEP : -MAP_FOG_BRUSH_KEY_STEP);
+    }
+    window.addEventListener("keydown", handleFogBrushKeyDown);
+    return () => window.removeEventListener("keydown", handleFogBrushKeyDown);
+  }, [activePage.id, fog.brushSize, fog.brushShape, fog.enabled, fog.revealed, imageLayout?.height, imageLayout?.width, isFogBrushActive, noteActionId]);
+
   function fogPointFromPointer(event, mode = fogBrushModeRef.current) {
     if (!imageLayout?.width || !imageLayout?.height || !bodyRef.current) return;
     const bodyRect = bodyRef.current.getBoundingClientRect();
@@ -4576,7 +4656,7 @@ function MapNote({
     const localX = localBodyX - imageLayout.left;
     const localY = localBodyY - imageLayout.top;
     if (localX < 0 || localY < 0 || localX > imageLayout.width || localY > imageLayout.height) return null;
-    const brushSize = clamp(Number(fog.brushSize) || DEFAULT_MAP_FOG.brushSize, 8, 360);
+    const brushSize = clamp(Number(fog.brushSize) || DEFAULT_MAP_FOG.brushSize, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE);
     return {
       x: localX / imageLayout.width,
       y: localY / imageLayout.height,
@@ -4930,8 +5010,8 @@ function MapNote({
                       <span className="font-bold uppercase text-neutral-400">Tamaño {Math.round(fog.brushSize)}px</span>
                       <input
                         type="range"
-                        min="16"
-                        max="260"
+                        min={MAP_FOG_BRUSH_MIN_SIZE}
+                        max={MAP_FOG_BRUSH_MAX_SIZE}
                         value={fog.brushSize}
                         onChange={(event) => updateFog({ brushSize: event.target.value })}
                       />
@@ -5021,6 +5101,7 @@ function MapNote({
             tokens={tokens}
             onHpChange={(tokenId, value) => onMapTokenHpChange?.(noteActionId, activePage.id, tokenId, value)}
             onTokenContextMenu={(event, tokenId) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, tokenId)}
+            onRollInitiativeAll={() => onMapTokensRollInitiative?.(noteActionId, activePage.id)}
           />
         ) : null}
         {imageSrc ? (
@@ -5137,13 +5218,79 @@ function CharacterResourceButton({ kind, label, onOpenResource, onRemoveResource
   );
 }
 
-function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onRemoveResource = null, dropNoteId = "" }) {
-  if (!String(text || "").trim()) return <p className="text-neutral-500">Sin datos.</p>;
+function CharacterEquipmentBlock({ text, context, onRoll, onOpenResource = null, onAddResource = null, onRemoveResource = null, dropNoteId = "" }) {
+  const [draft, setDraft] = useState("");
+  const lines = compactLines(text);
+  const candidates = equipmentResourceCandidates(text);
+  const canEdit = Boolean(onAddResource);
+  const entries = candidates.length
+    ? candidates.map((item) => ({ label: item.display, removable: true }))
+    : lines.map((line) => ({ label: line.replace(/^[-*]\s*/, ""), removable: false }));
+
+  function submitDraft(event) {
+    event.preventDefault();
+    const itemName = sanitizeDisplayText(draft, "");
+    if (!itemName) return;
+    onAddResource?.(itemName);
+    setDraft("");
+  }
+
+  return (
+    <div
+      className="grid gap-2"
+      data-character-equipment-drop={dropNoteId ? "true" : undefined}
+      data-drop-note-id={dropNoteId || undefined}
+    >
+      {canEdit ? (
+        <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={submitDraft}>
+          <input
+            className="h-9 min-w-0 border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
+            value={draft}
+            placeholder="Sumar item al inventario"
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <button
+            className="h-9 border border-amber-500/70 bg-amber-950/70 px-3 text-xs font-bold uppercase text-amber-100 hover:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:cursor-not-allowed disabled:opacity-50"
+            type="submit"
+            disabled={!draft.trim()}
+          >
+            Sumar
+          </button>
+        </form>
+      ) : null}
+      {entries.length ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {entries.map((item, index) => (
+            item.removable ? (
+              <CharacterResourceButton
+                key={`${item.label}-${index}`}
+                kind="item"
+                label={item.label}
+                onOpenResource={onOpenResource}
+                onRemoveResource={onRemoveResource}
+              />
+            ) : (
+              <div key={`${item.label}-${index}`} className="min-h-10 border border-neutral-800 bg-neutral-900/80 px-3 py-2 leading-relaxed text-neutral-200">
+                <InteractiveRulesText text={item.label} context={context} onRoll={onRoll} />
+              </div>
+            )
+          ))}
+        </div>
+      ) : (
+        <p className="text-neutral-500">Sin datos.</p>
+      )}
+    </div>
+  );
+}
+
+function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onAddResource = null, onRemoveResource = null, dropNoteId = "" }) {
   const lines = compactLines(text);
   const normalizedContext = normalizeSearch(context);
   const isFeatures = normalizedContext.includes("features");
   const isProficiencies = normalizedContext.includes("proficiencies");
   const isEquipment = normalizedContext.includes("equipment");
+  if (!String(text || "").trim() && !isEquipment) return <p className="text-neutral-500">Sin datos.</p>;
 
   if (isFeatures) {
     return (
@@ -5190,38 +5337,16 @@ function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onRe
   }
 
   if (isEquipment) {
-    const candidates = equipmentResourceCandidates(text);
-    if (candidates.length) {
-      return (
-        <div
-          className="grid gap-2 sm:grid-cols-2"
-          data-character-equipment-drop={dropNoteId ? "true" : undefined}
-          data-drop-note-id={dropNoteId || undefined}
-        >
-          {candidates.map((item, index) => (
-            <CharacterResourceButton
-              key={`${item.query}-${index}`}
-              kind="item"
-              label={item.display}
-              onOpenResource={onOpenResource}
-              onRemoveResource={onRemoveResource}
-            />
-          ))}
-        </div>
-      );
-    }
     return (
-      <div
-        className="grid gap-2 sm:grid-cols-2"
-        data-character-equipment-drop={dropNoteId ? "true" : undefined}
-        data-drop-note-id={dropNoteId || undefined}
-      >
-        {lines.map((line, index) => (
-          <div key={`${line}-${index}`} className="min-h-10 border border-neutral-800 bg-neutral-900/80 px-3 py-2 leading-relaxed text-neutral-200">
-            <InteractiveRulesText text={line.replace(/^[-*]\s*/, "")} context={context} onRoll={onRoll} />
-          </div>
-        ))}
-      </div>
+      <CharacterEquipmentBlock
+        text={text}
+        context={context}
+        onRoll={onRoll}
+        onOpenResource={onOpenResource}
+        onAddResource={onAddResource}
+        onRemoveResource={onRemoveResource}
+        dropNoteId={dropNoteId}
+      />
     );
   }
 
@@ -5401,6 +5526,11 @@ function CharacterNote({
     onCharacterFieldChange?.(noteActionId, fieldKey, value);
   }
   const canEditRemoteSheet = Boolean(note.livePlayerId && note.liveConnected !== false);
+  const characterSections = (() => {
+    const sections = Array.isArray(character.sections) ? character.sections : [];
+    const hasEquipment = sections.some(([title]) => normalizeSearch(title).includes("equipment"));
+    return canEditRemoteSheet && !hasEquipment ? [...sections, ["Equipment", ""]] : sections;
+  })();
 
   if (frameNote.minimized) {
     return (
@@ -5553,7 +5683,7 @@ function CharacterNote({
           </div>
         </CharacterDetailSection>
 
-        {character.sections.map(([title, text], index) => (
+        {characterSections.map(([title, text], index) => (
           <CharacterDetailSection
             key={`${title}-${index}`}
             title={title}
@@ -5564,6 +5694,9 @@ function CharacterNote({
               context={title}
               onRoll={addRoll}
               onOpenResource={(kind, label, event) => onOpenResource?.(kind, label, note, event)}
+              onAddResource={canEditRemoteSheet && normalizeSearch(title).includes("equipment")
+                ? (label) => commitCharacterField("Equipment", appendCharacterEquipmentItem(characterEquipmentText(character), label))
+                : null}
               onRemoveResource={canEditRemoteSheet && normalizeSearch(title).includes("equipment")
                 ? (label) => commitCharacterField("Equipment", removeCharacterEquipmentItem(characterEquipmentText(character), label))
                 : null}
@@ -7253,6 +7386,17 @@ function DmScreenApp() {
   }, [boardView]);
 
   useEffect(() => {
+    if (!contextMenu && !tokenContextMenu) return undefined;
+    function handleGlobalPointerDown(event) {
+      if (event.target?.closest?.("[data-context-menu='true']")) return;
+      setContextMenu(null);
+      setTokenContextMenu(null);
+    }
+    window.addEventListener("pointerdown", handleGlobalPointerDown, true);
+    return () => window.removeEventListener("pointerdown", handleGlobalPointerDown, true);
+  }, [contextMenu, tokenContextMenu]);
+
+  useEffect(() => {
     handleBoardWheelRef.current = handleBoardWheel;
   });
 
@@ -7305,6 +7449,8 @@ function DmScreenApp() {
         const { note, page } = sharedVvtTarget;
         const image = await mapImageShareSnapshot(page.mapImage);
         if (cancelled || !image?.dataUrl) return;
+        const tokens = await mapTokensShareSnapshot(page.mapTokens);
+        if (cancelled) return;
         await liveSheet.publishVvtState({
           active: true,
           title: noteDisplayName(note),
@@ -7312,6 +7458,11 @@ function DmScreenApp() {
           image,
           fogOfWar: mapFogSnapshot(page.fogOfWar),
           grid: mapGridSnapshot(page.mapGrid),
+          tokens,
+          sourceViewport: {
+            width: Math.max(1, Number(note.width) || NOTE_DEFAULT_WIDTH),
+            height: Math.max(1, (Number(note.height) || NOTE_DEFAULT_HEIGHT) - 88)
+          },
           updatedAt: new Date().toISOString()
         });
       } catch (error) {
@@ -8594,6 +8745,24 @@ function DmScreenApp() {
     )));
   }
 
+  function rollMapTokensInitiative(noteId, pageId) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokens: (page.mapTokens || []).map((token) => {
+          const modifier = Number(token.initiativeModifier) || 0;
+          const roll = rollD20(modifier);
+          return {
+            ...token,
+            initiative: roll.total,
+            initiativeDetail: roll.detail,
+            actorNote: token.actorNote ? { ...token.actorNote, initiative: roll.total, initiativeDetail: roll.detail } : token.actorNote
+          };
+        })
+      })) : note
+    )));
+  }
+
   function resizeMapTokenFromMenu(delta) {
     const entry = findMapTokenContextEntry();
     if (!entry) return;
@@ -8946,9 +9115,17 @@ function DmScreenApp() {
 
   function selectNoteTab(rootNoteId, tabNoteId) {
     focusNote(rootNoteId);
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === rootNoteId ? { ...note, activeTabId: tabNoteId } : note
-    )));
+    setMonsterNotes((notes) => {
+      const root = notes.find((note) => note.id === rootNoteId);
+      const tabIds = new Set(noteTabIds(root));
+      return notes.map((note) => {
+        if (note.id === rootNoteId) return { ...note, activeTabId: tabNoteId };
+        if (note.id === tabNoteId && tabIds.has(note.id) && root) {
+          return { ...note, width: root.width, height: root.height };
+        }
+        return note;
+      });
+    });
   }
 
   function groupNoteIntoRoot(dragNoteId, targetNoteId) {
@@ -9452,9 +9629,13 @@ function DmScreenApp() {
       const height = resize.edge === "bottom" || resize.edge === "corner"
         ? clamp(resize.startHeight + deltaY, NOTE_MIN_HEIGHT, maxHeight)
         : resize.startHeight;
-      setMonsterNotes((notes) => notes.map((note) => (
-        note.id === resize.noteId ? { ...note, width, height } : note
-      )));
+      setMonsterNotes((notes) => {
+        const root = notes.find((note) => note.id === resize.noteId);
+        const tabIds = new Set(noteTabIds(root));
+        return notes.map((note) => (
+          tabIds.has(note.id) ? { ...note, width, height } : note
+        ));
+      });
       return;
     }
 
@@ -9714,6 +9895,7 @@ function DmScreenApp() {
               onShareVvtMap={(noteId, pageId) => setSharedVvtMap({ noteId, pageId })}
               isSharedVvtMap={sharedVvtTarget?.note?.id === activeNote.id && sharedVvtTarget?.page?.id === activeMapPageForNote(activeNote)?.id}
               onMapTokenHpChange={updateMapTokenHp}
+              onMapTokensRollInitiative={rollMapTokensInitiative}
               onMapTokenDragStart={startMapTokenDrag}
               onMapTokenContextMenu={openMapTokenContextMenu}
             />

@@ -55,6 +55,10 @@ function send(socket, payload) {
   socket.send(JSON.stringify({ version: 1, playerId: "player-1", playerName: "Tester", ...payload }));
 }
 
+function sendAs(socket, playerId, playerName, payload) {
+  socket.send(JSON.stringify({ version: 1, playerId, playerName, ...payload }));
+}
+
 async function withServer(options, test) {
   const server = new LiveSheetServer();
   const port = await getFreePort();
@@ -202,13 +206,30 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
       fogOfWar: {
         enabled: true,
         revealed: [{ x: 0.5, y: 0.5, rx: 0.1, ry: 0.1 }]
-      }
+      },
+      tokens: [{
+        id: "goblin-1",
+        name: "Goblin",
+        monster: { name: "Goblin", source: "MM" },
+        image: { name: "Goblin.png", type: "image/png", dataUrl: tinyPng },
+        x: 120,
+        y: 80,
+        size: 56,
+        hpCurrent: 7,
+        hpMax: 7
+      }],
+      sourceViewport: { width: 760, height: 432 }
     });
     assert.strictEqual(result.ok, true);
     const broadcast = await broadcastPromise;
     assert.strictEqual(broadcast.type, "dm:vvt:state");
     assert.strictEqual(broadcast.state.active, true);
     assert.strictEqual(broadcast.state.fogOfWar.revealed.length, 1);
+    assert.strictEqual(broadcast.state.tokens.length, 1);
+    assert.strictEqual(broadcast.state.tokens[0].name, "Goblin");
+    assert.strictEqual(broadcast.state.tokens[0].image.dataUrl, tinyPng);
+    assert.deepStrictEqual(broadcast.state.tokens[0].imageRequest, { sources: ["MM"], names: ["Goblin"] });
+    assert.deepStrictEqual(broadcast.state.sourceViewport, { width: 760, height: 432 });
 
     const secondSocket = await openSocket(port);
     const replayMessagesPromise = nextMessages(secondSocket, 2);
@@ -222,12 +243,46 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
   });
 }
 
+async function testRollBroadcastToOtherPlayers() {
+  await withServer({ tokenEnabled: false }, async (server, port) => {
+    const alice = await openSocket(port);
+    const bob = await openSocket(port);
+    sendAs(alice, "alice", "Alice", { type: "player:hello" });
+    sendAs(bob, "bob", "Bob", { type: "player:hello" });
+    assert.strictEqual((await nextMessage(alice)).type, "server:welcome");
+    assert.strictEqual((await nextMessage(bob)).type, "server:welcome");
+
+    const dmRollPromise = new Promise((resolve) => server.once("player-roll", resolve));
+    const bobRollPromise = nextMessage(bob);
+    sendAs(alice, "alice", "Alice", {
+      type: "roll:event",
+      roll: {
+        title: "Attack",
+        result: "18",
+        detail: "1d20[15] + 3",
+        timestamp: "2026-06-30T00:00:00.000Z"
+      }
+    });
+
+    const [dmRoll, bobRoll] = await Promise.all([dmRollPromise, bobRollPromise]);
+    assert.strictEqual(dmRoll.playerName, "Alice");
+    assert.strictEqual(bobRoll.type, "player:roll");
+    assert.strictEqual(bobRoll.roll.playerName, "Alice");
+    assert.strictEqual(bobRoll.roll.title, "Attack");
+    assert.strictEqual(bobRoll.roll.result, "18");
+    assert.strictEqual(bobRoll.roll.detail, "1d20[15] + 3");
+    alice.close();
+    bob.close();
+  });
+}
+
 (async () => {
   await testAddressDetection();
   await testStartStopAndSelfTest();
   await testTokenRejection();
   await testTokenAcceptanceAndProtocol();
   await testVvtStateBroadcastAndWelcomeReplay();
+  await testRollBroadcastToOtherPlayers();
   console.log("live-sheet-server tests passed");
 })().catch((error) => {
   console.error(error);

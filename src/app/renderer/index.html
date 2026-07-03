@@ -96,6 +96,7 @@
     <div class="option-description" id="optionDescription"></div>
   </div>
   <div class="dice-tray" id="diceTray" aria-live="polite">
+    <div class="dice-tray-list" id="diceTrayList"></div>
     <div class="dice-title" id="diceTitle"></div>
     <div class="dice-result" id="diceResult"></div>
     <div class="dice-detail" id="diceDetail"></div>
@@ -4326,17 +4327,79 @@
       });
     }
 
-    function showDiceTray(title, result, detail, diceVisuals = []) {
-      diceTitle.textContent = title;
+    function liveRollDisplayName() {
+      if (!window.isLiveSheetConnected?.()) return "";
+      return typeof window.liveSheetPlayerDisplayName === "function" ? window.liveSheetPlayerDisplayName() : "";
+    }
+
+    function diceTrayListElement() {
+      return document.getElementById("diceTrayList");
+    }
+
+    function pruneDiceTrayEntries(limit = 8) {
+      const list = diceTrayListElement();
+      if (!list) return;
+      while (list.children.length > limit) {
+        list.firstElementChild?.remove();
+      }
+    }
+
+    function appendDiceTrayEntry(title, result, detail) {
+      const list = diceTrayListElement();
+      if (!list) return;
+      const entry = document.createElement("article");
+      entry.className = "dice-tray-entry entering";
+
+      const titleNode = document.createElement("div");
+      titleNode.className = "dice-title";
+      titleNode.textContent = title;
+
+      const resultNode = document.createElement("div");
+      resultNode.className = "dice-result";
+      resultNode.textContent = result;
+
+      const detailNode = document.createElement("div");
+      detailNode.className = "dice-detail";
+      detailNode.textContent = detail;
+
+      entry.append(titleNode, resultNode, detailNode);
+      list.appendChild(entry);
+      pruneDiceTrayEntries();
+      requestAnimationFrame(() => entry.classList.remove("entering"));
+      setTimeout(() => entry.classList.add("fading"), 11000);
+      setTimeout(() => {
+        entry.remove();
+        if (!list.children.length) diceTray.classList.remove("visible");
+      }, 14200);
+    }
+
+    function showDiceTray(title, result, detail, diceVisuals = [], options = {}) {
+      const sourceName = options.sourceName || (options.sendLive === false ? "" : liveRollDisplayName());
+      const displayTitle = sourceName ? `${sourceName}: ${title}` : title;
+      diceTitle.textContent = displayTitle;
       diceResult.textContent = result;
       diceDetail.textContent = detail;
+      appendDiceTrayEntry(displayTitle, result, detail);
       diceTray.classList.add("visible");
-      recordDiceRollLog(title, result, detail);
-      window.sendLiveSheetRollEvent?.(title, result, detail);
+      if (options.record !== false) recordDiceRollLog(displayTitle, result, detail);
+      if (options.sendLive !== false) window.sendLiveSheetRollEvent?.(title, result, detail);
       if (window.isDiceRollAnimationEnabled?.() && typeof animateDiceRoll3d === "function") animateDiceRoll3d(diceVisuals);
       clearTimeout(diceTimer);
-      diceTimer = setTimeout(() => diceTray.classList.remove("visible"), 12000);
+      diceTimer = setTimeout(() => {
+        if (!diceTrayListElement()?.children.length) diceTray.classList.remove("visible");
+      }, 15000);
     }
+
+    window.showLiveSheetRoll = function showLiveSheetRoll(roll) {
+      if (!roll) return;
+      showDiceTray(
+        roll.title || "Tirada",
+        roll.result || "",
+        roll.detail || "",
+        [],
+        { sendLive: false, sourceName: roll.playerName || "Jugador" }
+      );
+    };
 
     function rollAttack(attackName, bonus, label, event = null) {
       const statusContext = attackRollStatusContext();
