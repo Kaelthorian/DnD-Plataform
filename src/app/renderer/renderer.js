@@ -393,13 +393,26 @@
       maskRect.setAttribute("fill", "white");
       mask.appendChild(maskRect);
       revealed.forEach((point) => {
-        const ellipse = document.createElementNS(namespace, "ellipse");
-        ellipse.setAttribute("cx", String(Math.min(1, Math.max(0, Number(point.x) || 0))));
-        ellipse.setAttribute("cy", String(Math.min(1, Math.max(0, Number(point.y) || 0))));
-        ellipse.setAttribute("rx", String(Math.min(1, Math.max(0.001, Number(point.rx ?? point.r) || 0.06))));
-        ellipse.setAttribute("ry", String(Math.min(1, Math.max(0.001, Number(point.ry ?? point.r) || 0.06))));
-        ellipse.setAttribute("fill", "black");
-        mask.appendChild(ellipse);
+        const x = Math.min(1, Math.max(0, Number(point.x) || 0));
+        const y = Math.min(1, Math.max(0, Number(point.y) || 0));
+        const rx = Math.min(1, Math.max(0.001, Number(point.rx ?? point.r) || 0.06));
+        const ry = Math.min(1, Math.max(0.001, Number(point.ry ?? point.r) || 0.06));
+        const shape = point.shape === "square"
+          ? document.createElementNS(namespace, "rect")
+          : document.createElementNS(namespace, "ellipse");
+        if (point.shape === "square") {
+          shape.setAttribute("x", String(x - rx));
+          shape.setAttribute("y", String(y - ry));
+          shape.setAttribute("width", String(rx * 2));
+          shape.setAttribute("height", String(ry * 2));
+        } else {
+          shape.setAttribute("cx", String(x));
+          shape.setAttribute("cy", String(y));
+          shape.setAttribute("rx", String(rx));
+          shape.setAttribute("ry", String(ry));
+        }
+        shape.setAttribute("fill", point.mode === "hide" ? "white" : "black");
+        mask.appendChild(shape);
       });
       defs.appendChild(mask);
       const fogRect = document.createElementNS(namespace, "rect");

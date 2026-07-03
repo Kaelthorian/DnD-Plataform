@@ -117,12 +117,15 @@ function sanitizeVvtFog(fog) {
       x: clampNumber(point?.x, 0, 1, 0),
       y: clampNumber(point?.y, 0, 1, 0),
       rx: clampNumber(point?.rx ?? point?.r, 0.001, 1, 0.06),
-      ry: clampNumber(point?.ry ?? point?.r, 0.001, 1, 0.06)
+      ry: clampNumber(point?.ry ?? point?.r, 0.001, 1, 0.06),
+      shape: point?.shape === "square" ? "square" : "circle",
+      mode: point?.mode === "hide" ? "hide" : "reveal"
     }))
     : [];
   return {
     enabled: source.enabled !== false,
     brushSize: clampNumber(source.brushSize, 8, 360, 90),
+    brushShape: source.brushShape === "square" ? "square" : "circle",
     revealed
   };
 }

@@ -112,6 +112,7 @@ const SPELL_SOURCE_LABELS = {
 const NOTE_MIN_WIDTH = 340;
 const NOTE_MIN_HEIGHT = 280;
 const NOTE_DEFAULT_WIDTH = 560;
+const MONSTER_NOTE_DEFAULT_WIDTH = 680;
 const NOTE_DEFAULT_HEIGHT = 620;
 const BOARD_WIDTH = 20000;
 const BOARD_HEIGHT = 20000;
@@ -137,8 +138,10 @@ const DEFAULT_MAP_GRID = {
 const DEFAULT_MAP_FOG = {
   enabled: true,
   brushSize: 90,
+  brushShape: "circle",
   revealed: []
 };
+const MAP_FOG_BRUSH_SHAPES = new Set(["circle", "square"]);
 const CHARACTER_SHEET_CODE_PREFIX = "DNDCS1";
 const CHARACTER_SHEET_CODE_TYPE = "dnd-character-sheet";
 const OBSIDIAN_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
@@ -1209,6 +1212,16 @@ async function mapImageShareSnapshot(image) {
       dataUrl: snapshot.dataUrl
     };
   }
+  if (snapshot.assetId) {
+    const record = await getMapImageAsset(snapshot.assetId);
+    if (record?.blob) {
+      return {
+        name: snapshot.name || record.name,
+        type: snapshot.type || record.type || record.blob.type || "",
+        dataUrl: await blobToDataUrl(record.blob)
+      };
+    }
+  }
   if (snapshot.objectUrl) {
     const response = await fetch(snapshot.objectUrl);
     const blob = await response.blob();
@@ -1391,17 +1404,21 @@ function normalizeMapGrid(grid) {
 
 function normalizeMapFog(fog) {
   const source = isPlainObject(fog) ? fog : {};
+  const brushShape = MAP_FOG_BRUSH_SHAPES.has(source.brushShape) ? source.brushShape : DEFAULT_MAP_FOG.brushShape;
   const revealed = Array.isArray(source.revealed)
     ? source.revealed.slice(-FOG_REVEAL_POINT_LIMIT).map((point) => ({
       x: clamp(Number(point?.x) || 0, 0, 1),
       y: clamp(Number(point?.y) || 0, 0, 1),
       rx: clamp(Number(point?.rx ?? point?.r) || 0.06, 0.001, 1),
-      ry: clamp(Number(point?.ry ?? point?.r) || 0.06, 0.001, 1)
+      ry: clamp(Number(point?.ry ?? point?.r) || 0.06, 0.001, 1),
+      shape: MAP_FOG_BRUSH_SHAPES.has(point?.shape) ? point.shape : "circle",
+      mode: point?.mode === "hide" ? "hide" : "reveal"
     }))
     : [];
   return {
     enabled: source.enabled !== false,
     brushSize: clamp(Number(source.brushSize) || DEFAULT_MAP_FOG.brushSize, 8, 360),
+    brushShape,
     revealed
   };
 }
@@ -1416,11 +1433,18 @@ function appendMapFogPoint(fog, point) {
     x: clamp(Number(point?.x) || 0, 0, 1),
     y: clamp(Number(point?.y) || 0, 0, 1),
     rx: clamp(Number(point?.rx) || 0.06, 0.001, 1),
-    ry: clamp(Number(point?.ry) || 0.06, 0.001, 1)
+    ry: clamp(Number(point?.ry) || 0.06, 0.001, 1),
+    shape: MAP_FOG_BRUSH_SHAPES.has(point?.shape) ? point.shape : normalized.brushShape,
+    mode: point?.mode === "hide" ? "hide" : "reveal"
   };
   const last = normalized.revealed[normalized.revealed.length - 1];
   const minDelta = Math.max(nextPoint.rx, nextPoint.ry) * 0.28;
-  if (last && Math.hypot(last.x - nextPoint.x, last.y - nextPoint.y) < minDelta) return normalized;
+  if (
+    last
+    && last.mode === nextPoint.mode
+    && last.shape === nextPoint.shape
+    && Math.hypot(last.x - nextPoint.x, last.y - nextPoint.y) < minDelta
+  ) return normalized;
   return {
     ...normalized,
     revealed: [...normalized.revealed, nextPoint].slice(-FOG_REVEAL_POINT_LIMIT)
@@ -2011,6 +2035,62 @@ function equipmentResourceCandidates(text) {
       return true;
     })
     .map((display) => ({ display, query: display }));
+}
+
+function cleanEquipmentPartDisplay(part) {
+  const afterLabel = String(part || "").includes(":")
+    ? String(part || "").split(":").slice(1).join(":").trim()
+    : String(part || "");
+  return cleanRulesText(afterLabel)
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\bcontaining\b[\s\S]*$/i, "")
+    .replace(/^\s*(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+/i, "")
+    .replace(/^\s*(?:one set of|set of|pair of|a|an|the|one)\s+/i, "")
+    .trim();
+}
+
+function characterSectionText(character, sectionTitle) {
+  const normalizedTitle = normalizeSearch(sectionTitle);
+  const section = (character?.sections || []).find(([title]) => normalizeSearch(title) === normalizedTitle);
+  return String(section?.[1] || character?.rawData?.[sectionTitle] || "");
+}
+
+function characterEquipmentText(character) {
+  return characterSectionText(character, "Equipment");
+}
+
+function appendCharacterEquipmentItem(equipmentText, itemName) {
+  const cleanItem = sanitizeDisplayText(itemName, "");
+  if (!cleanItem) return String(equipmentText || "");
+  const existing = equipmentResourceCandidates(equipmentText).some((item) => normalizeResourceName(item.display) === normalizeResourceName(cleanItem));
+  if (existing) return String(equipmentText || "");
+  const current = String(equipmentText || "").trim();
+  return [current, `- ${cleanItem}`].filter(Boolean).join("\n");
+}
+
+function removeCharacterEquipmentItem(equipmentText, itemName) {
+  const target = normalizeResourceName(itemName);
+  if (!target) return String(equipmentText || "");
+  return compactLines(equipmentText)
+    .map((line) => {
+      const bullet = line.match(/^([-*]\s*)/)?.[1] || "";
+      const cleanLine = line.replace(/^[-*]\s*/, "");
+      if (normalizeResourceName(cleanEquipmentPartDisplay(cleanLine)) === target) return "";
+      const parts = cleanLine.split(/(\s*[,;]\s*)/);
+      const kept = [];
+      for (let index = 0; index < parts.length; index += 2) {
+        const part = parts[index] || "";
+        const separator = parts[index + 1] || "";
+        if (!part.trim()) continue;
+        if (normalizeResourceName(cleanEquipmentPartDisplay(part)) === target) continue;
+        kept.push(part.trim());
+        if (separator && parts.slice(index + 2).some((nextPart, nextIndex) => nextIndex % 2 === 0 && nextPart.trim())) kept.push(separator.trim() ? `${separator.trim()} ` : separator);
+      }
+      const nextLine = kept.join("").replace(/\s+([,;])/g, "$1").replace(/[,;]\s*$/g, "").trim();
+      return nextLine ? `${bullet}${nextLine}` : "";
+    })
+    .filter(Boolean)
+    .join("\n");
 }
 
 function searchMatchScore(name, query, fullText = "") {
@@ -2978,8 +3058,8 @@ function MonsterRollPanel({ note, onToggle, onResizeCorner = null, className = "
         />
       ) : null}
       {note.dicePanelOpen ? (
-        <div className="space-y-2 px-3 py-3 text-xs text-neutral-300">
-          <div className="min-h-20 rounded-sm bg-neutral-900 p-2">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 px-3 py-3 text-xs text-neutral-300">
+          <div className="shrink-0 rounded-sm bg-neutral-900 p-2">
             {latest ? (
               <div>
                 <div className="text-[11px] text-neutral-500">{note.monster?.name || note.entry?.name || note.character?.name}</div>
@@ -2993,7 +3073,7 @@ function MonsterRollPanel({ note, onToggle, onResizeCorner = null, className = "
               <div className="flex h-16 items-end text-neutral-500">Click a blue value to roll.</div>
             )}
           </div>
-          <div className="max-h-28 overflow-auto rounded-sm border border-neutral-700">
+          <div className="min-h-0 flex-1 overflow-auto rounded-sm border border-neutral-700">
             {(note.rolls || []).length ? note.rolls.map((entry) => (
               <div key={entry.id} className="grid grid-cols-[1fr_auto] gap-2 border-b border-neutral-800 px-2 py-1 last:border-b-0">
                 <span className="truncate">{entry.label}</span>
@@ -3777,7 +3857,7 @@ function MonsterNote({
           noteId={noteActionId}
           monster={note.monster}
           onRoll={addRoll}
-          className="min-h-0 flex-1 overflow-auto"
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
           hpState={{ current: note.hpCurrent, max: note.hpMax }}
           onHpChange={(field, value) => onHpChange(noteActionId, field, value)}
           onRollHp={() => onRollHp(noteActionId)}
@@ -3786,7 +3866,7 @@ function MonsterNote({
         <MonsterRollPanel
           note={note}
           onToggle={onToggleDice}
-          className="relative w-64 shrink-0 border-l border-neutral-700 bg-neutral-950"
+          className="relative flex h-full w-64 shrink-0 flex-col border-l border-neutral-700 bg-neutral-950"
         />
       </div>
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
@@ -4148,7 +4228,8 @@ function TextNote({
   );
 }
 
-function MapTokenTracker({ tokens, onHpChange }) {
+function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu }) {
+  const [collapsed, setCollapsed] = useState(false);
   const visibleTokens = [...tokens].sort((left, right) => {
     const rightInitiative = Number(right.initiative);
     const leftInitiative = Number(left.initiative);
@@ -4161,42 +4242,79 @@ function MapTokenTracker({ tokens, onHpChange }) {
 
   return (
     <aside
-      className="absolute bottom-3 left-3 top-3 z-20 flex w-64 max-w-[calc(100%-1.5rem)] flex-col border border-neutral-700 bg-neutral-950/92 text-neutral-200 shadow-xl"
+      className="absolute bottom-3 left-3 top-3 z-20"
       data-board-control="true"
       onPointerDown={(event) => event.stopPropagation()}
       onWheel={(event) => event.stopPropagation()}
     >
-      <div className="border-b border-neutral-800 px-3 py-2">
-        <h3 className="font-serif text-sm font-bold uppercase text-amber-500">Tokens</h3>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="grid grid-cols-[1fr_38px_74px_38px] gap-2 border-b border-neutral-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-          <span>Nombre</span>
-          <span className="text-center">AC</span>
-          <span className="text-center">HP</span>
-          <span className="text-center">Ini</span>
+      <button
+        className="absolute left-0 top-2 z-30 flex h-10 w-8 items-center justify-center border border-neutral-700 bg-neutral-950 text-base font-black text-amber-400 shadow-xl hover:border-amber-500 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/60"
+        type="button"
+        aria-label={collapsed ? "Mostrar lista de tokens" : "Ocultar lista de tokens"}
+        title={collapsed ? "Mostrar tokens" : "Ocultar tokens"}
+        onClick={() => setCollapsed((value) => !value)}
+      >
+        {collapsed ? ">" : "<"}
+      </button>
+      <div
+        className={`ml-8 flex h-full w-64 max-w-[calc(100vw-4rem)] flex-col border border-neutral-700 bg-neutral-950 text-neutral-200 shadow-xl transition duration-200 ease-out ${collapsed ? "pointer-events-none -translate-x-[calc(100%+2rem)] opacity-0" : "translate-x-0 opacity-100"}`}
+      >
+        <div className="border-b border-neutral-800 px-3 py-2">
+          <h3 className="font-serif text-sm font-bold uppercase text-amber-500">Tokens</h3>
         </div>
-        {visibleTokens.map((token) => (
-          <div key={token.id} className="grid grid-cols-[1fr_38px_74px_38px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs">
-            <div className="min-w-0">
-              <div className="truncate font-bold text-neutral-100" title={token.name || "Token"}>{token.name || "Token"}</div>
-              <div className="truncate text-[10px] uppercase text-neutral-500">{token.kind === "character" ? "PC" : "Monster"}</div>
-            </div>
-            <div className="truncate text-center font-bold text-sky-200" title={token.ac || "Unknown"}>{token.ac || "?"}</div>
-            <div className="flex items-center justify-center gap-1">
-              <NumericExpressionInput
-                className="h-7 w-10 border border-neutral-700 bg-neutral-900 px-1 text-center font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
-                value={token.hpCurrent}
-                integer
-                onChange={(value) => onHpChange?.(token.id, value)}
-              />
-              {token.hpMax !== "" ? <span className="min-w-0 text-[10px] text-neutral-500">/{token.hpMax}</span> : null}
-            </div>
-            <div className="text-center font-bold text-amber-300" title={token.initiativeDetail || ""}>
-              {token.initiative !== "" ? token.initiative : "--"}
-            </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-[34px_1fr_38px_74px_38px] gap-2 border-b border-neutral-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+            <span />
+            <span>Nombre</span>
+            <span className="text-center">AC</span>
+            <span className="text-center">HP</span>
+            <span className="text-center">Ini</span>
           </div>
-        ))}
+          {visibleTokens.map((token) => (
+            <div
+              key={token.id}
+              className="grid cursor-pointer grid-cols-[34px_1fr_38px_74px_38px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs transition hover:bg-neutral-900 focus-within:bg-neutral-900"
+              role="button"
+              tabIndex={0}
+              title="Abrir menu del token"
+              onClick={(event) => onTokenContextMenu?.(event, token.id)}
+              onContextMenu={(event) => onTokenContextMenu?.(event, token.id)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                onTokenContextMenu?.(event, token.id);
+              }}
+            >
+              <MapTokenImage token={token} className="h-7 w-7" />
+              <div className="min-w-0">
+                <div className="truncate font-bold text-neutral-100" title={token.name || "Token"}>{token.name || "Token"}</div>
+                <div className="truncate text-[10px] uppercase text-neutral-500">{token.kind === "character" ? "PC" : "Monster"}</div>
+              </div>
+              <div className="truncate text-center font-bold text-sky-200" title={token.ac || "Unknown"}>{token.ac || "?"}</div>
+              <div
+                className="flex items-center justify-center gap-1"
+                onClick={(event) => event.stopPropagation()}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                <NumericExpressionInput
+                  className="h-7 w-10 border border-neutral-700 bg-neutral-900 px-1 text-center font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
+                  value={token.hpCurrent}
+                  integer
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onChange={(value) => onHpChange?.(token.id, value)}
+                />
+                {token.hpMax !== "" ? <span className="min-w-0 text-[10px] text-neutral-500">/{token.hpMax}</span> : null}
+              </div>
+              <div className="text-center font-bold text-amber-300" title={token.initiativeDetail || ""}>
+                {token.initiative !== "" ? token.initiative : "--"}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </aside>
   );
@@ -4222,14 +4340,39 @@ function MapFogOverlay({
   fog,
   layout,
   maskId,
+  preview,
   opacity = 0.92,
   className = "z-20 pointer-events-none",
   onPointerDown,
   onPointerMove,
-  onPointerUp
+  onPointerUp,
+  onPointerLeave,
+  onContextMenu
 }) {
   const normalizedFog = normalizeMapFog(fog);
   if (!normalizedFog.enabled || !layout?.width || !layout?.height) return null;
+  function renderBrushShape(point, props = {}) {
+    if (point.shape === "square") {
+      return (
+        <rect
+          x={point.x - point.rx}
+          y={point.y - point.ry}
+          width={point.rx * 2}
+          height={point.ry * 2}
+          {...props}
+        />
+      );
+    }
+    return (
+      <ellipse
+        cx={point.x}
+        cy={point.y}
+        rx={point.rx}
+        ry={point.ry}
+        {...props}
+      />
+    );
+  }
   return (
     <div
       className={`absolute ${className}`}
@@ -4238,24 +4381,27 @@ function MapFogOverlay({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onPointerLeave={onPointerLeave}
+      onContextMenu={onContextMenu}
     >
       <svg className="h-full w-full" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <mask id={maskId}>
             <rect x="0" y="0" width="1" height="1" fill="white" />
             {normalizedFog.revealed.map((point, index) => (
-              <ellipse
-                key={`${index}-${point.x}-${point.y}`}
-                cx={point.x}
-                cy={point.y}
-                rx={point.rx}
-                ry={point.ry}
-                fill="black"
-              />
+              <g key={`${index}-${point.x}-${point.y}`}>
+                {renderBrushShape(point, { fill: point.mode === "hide" ? "white" : "black" })}
+              </g>
             ))}
           </mask>
         </defs>
         <rect x="0" y="0" width="1" height="1" fill={`rgba(2,6,23,${opacity})`} mask={`url(#${maskId})`} />
+        {preview ? renderBrushShape(preview, {
+          fill: preview.mode === "hide" ? "rgba(14,165,233,0.18)" : "rgba(250,204,21,0.16)",
+          stroke: preview.mode === "hide" ? "rgba(125,211,252,0.96)" : "rgba(250,204,21,0.96)",
+          strokeWidth: 0.004,
+          vectorEffect: "non-scaling-stroke"
+        }) : null}
       </svg>
     </div>
   );
@@ -4292,12 +4438,14 @@ function MapNote({
   const bodyRef = useRef(null);
   const imageRef = useRef(null);
   const fogBrushPointerRef = useRef(null);
+  const fogBrushModeRef = useRef("reveal");
   const pendingImageModeRef = useRef("replace");
   const [error, setError] = useState("");
   const [isAutoFittingGrid, setIsAutoFittingGrid] = useState(false);
   const [isGridPanelOpen, setIsGridPanelOpen] = useState(false);
   const [isFogPanelOpen, setIsFogPanelOpen] = useState(false);
   const [isFogBrushActive, setIsFogBrushActive] = useState(false);
+  const [fogBrushPreview, setFogBrushPreview] = useState(null);
   const [imageLayout, setImageLayout] = useState(null);
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
@@ -4338,12 +4486,13 @@ function MapNote({
         setImageLayout(null);
         return;
       }
-      const rect = body.getBoundingClientRect();
+      const bodyWidth = body.clientWidth || body.getBoundingClientRect().width;
+      const bodyHeight = body.clientHeight || body.getBoundingClientRect().height;
       const nextLayout = containedMediaRect(
-        rect.width,
-        rect.height,
-        imageElement.naturalWidth || rect.width,
-        imageElement.naturalHeight || rect.height
+        bodyWidth,
+        bodyHeight,
+        imageElement.naturalWidth || bodyWidth,
+        imageElement.naturalHeight || bodyHeight
       );
       setImageLayout((current) => (
         current
@@ -4415,36 +4564,59 @@ function MapNote({
     onMapFogChange?.(noteActionId, activePage.id, normalizeMapFog({ ...fog, ...patch }));
   }
 
-  function revealFogAtPointer(event) {
+  function fogPointFromPointer(event, mode = fogBrushModeRef.current) {
     if (!imageLayout?.width || !imageLayout?.height || !bodyRef.current) return;
     const bodyRect = bodyRef.current.getBoundingClientRect();
-    const localX = event.clientX - bodyRect.left - imageLayout.left;
-    const localY = event.clientY - bodyRect.top - imageLayout.top;
-    if (localX < 0 || localY < 0 || localX > imageLayout.width || localY > imageLayout.height) return;
+    const bodyWidth = bodyRef.current.clientWidth || bodyRect.width;
+    const bodyHeight = bodyRef.current.clientHeight || bodyRect.height;
+    const scaleX = bodyRect.width ? bodyWidth / bodyRect.width : 1;
+    const scaleY = bodyRect.height ? bodyHeight / bodyRect.height : 1;
+    const localBodyX = (event.clientX - bodyRect.left) * scaleX;
+    const localBodyY = (event.clientY - bodyRect.top) * scaleY;
+    const localX = localBodyX - imageLayout.left;
+    const localY = localBodyY - imageLayout.top;
+    if (localX < 0 || localY < 0 || localX > imageLayout.width || localY > imageLayout.height) return null;
     const brushSize = clamp(Number(fog.brushSize) || DEFAULT_MAP_FOG.brushSize, 8, 360);
-    const point = {
+    return {
       x: localX / imageLayout.width,
       y: localY / imageLayout.height,
       rx: (brushSize / 2) / imageLayout.width,
-      ry: (brushSize / 2) / imageLayout.height
+      ry: (brushSize / 2) / imageLayout.height,
+      shape: fog.brushShape,
+      mode: mode === "hide" ? "hide" : "reveal"
     };
+  }
+
+  function updateFogBrushPreview(event) {
+    if (!isFogBrushActive) return;
+    setFogBrushPreview(fogPointFromPointer(event));
+  }
+
+  function paintFogAtPointer(event) {
+    const point = fogPointFromPointer(event);
+    if (!point) return;
+    setFogBrushPreview(point);
     onMapFogChange?.(noteActionId, activePage.id, appendMapFogPoint(fog, point));
   }
 
   function startFogBrush(event) {
     if (!isFogBrushActive) return;
+    if (![0, 2].includes(event.button)) return;
     event.preventDefault();
     event.stopPropagation();
+    fogBrushModeRef.current = event.button === 2 ? "hide" : "reveal";
     fogBrushPointerRef.current = event.pointerId;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    revealFogAtPointer(event);
+    paintFogAtPointer(event);
   }
 
   function moveFogBrush(event) {
-    if (!isFogBrushActive || fogBrushPointerRef.current !== event.pointerId) return;
+    if (!isFogBrushActive) return;
+    updateFogBrushPreview(event);
+    if (fogBrushPointerRef.current !== event.pointerId) return;
     event.preventDefault();
     event.stopPropagation();
-    revealFogAtPointer(event);
+    paintFogAtPointer(event);
   }
 
   function stopFogBrush(event) {
@@ -4453,6 +4625,17 @@ function MapNote({
     event.stopPropagation();
     fogBrushPointerRef.current = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
+  }
+
+  function leaveFogBrush(event) {
+    if (fogBrushPointerRef.current === event.pointerId) return;
+    setFogBrushPreview(null);
+  }
+
+  function suppressFogBrushContextMenu(event) {
+    if (!isFogBrushActive) return;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   async function autoFitGrid(event) {
@@ -4558,50 +4741,214 @@ function MapNote({
       </header>
       {tabBar}
       <div
-        className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-neutral-800 bg-neutral-950 px-2 py-1"
+        className="relative shrink-0 border-b border-neutral-800 bg-neutral-950"
         data-board-control="true"
         onPointerDown={(event) => event.stopPropagation()}
         onWheel={(event) => event.stopPropagation()}
       >
-        {pages.map((page, index) => {
-          const isActive = page.id === activePage.id;
-          return (
-            <div key={page.id} className={`flex max-w-48 shrink-0 items-center border ${isActive ? "border-amber-500 bg-neutral-900 text-amber-200" : "border-neutral-800 bg-neutral-950 text-neutral-400"}`}>
-              <button
-                className="min-w-0 flex-1 truncate px-3 py-1.5 text-left text-xs font-bold uppercase hover:text-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                type="button"
-                title={page.name}
-                onClick={() => onMapPageSelect?.(noteActionId, page.id)}
-              >
-                <CtrlEditableText
-                  value={page.name || `Mapa ${index + 1}`}
-                  className="block truncate"
-                  inputClassName="w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-xs font-bold uppercase text-amber-100 focus:outline-none"
-                  onCommit={(value) => onMapPageRename?.(noteActionId, page.id, value)}
-                >
-                  {page.name || `Mapa ${index + 1}`}
-                </CtrlEditableText>
-              </button>
-              {pages.length > 1 ? (
+        <div className="flex items-center gap-2 px-2 py-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pr-2">
+            {pages.map((page, index) => {
+              const isActive = page.id === activePage.id;
+              return (
+                <div key={page.id} className={`flex max-w-48 shrink-0 items-center border ${isActive ? "border-amber-500 bg-neutral-900 text-amber-200" : "border-neutral-800 bg-neutral-950 text-neutral-400"}`}>
+                  <button
+                    className="min-w-0 flex-1 truncate px-3 py-1.5 text-left text-xs font-bold uppercase hover:text-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                    type="button"
+                    title={page.name}
+                    onClick={() => onMapPageSelect?.(noteActionId, page.id)}
+                  >
+                    <CtrlEditableText
+                      value={page.name || `Mapa ${index + 1}`}
+                      className="block truncate"
+                      inputClassName="w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-xs font-bold uppercase text-amber-100 focus:outline-none"
+                      onCommit={(value) => onMapPageRename?.(noteActionId, page.id, value)}
+                    >
+                      {page.name || `Mapa ${index + 1}`}
+                    </CtrlEditableText>
+                  </button>
+                  {pages.length > 1 ? (
+                    <button
+                      className="h-7 w-7 border-l border-neutral-800 text-xs font-bold text-neutral-500 hover:bg-red-950/40 hover:text-red-200 focus:outline-none focus:ring-1 focus:ring-red-400/50"
+                      type="button"
+                      aria-label={`Cerrar ${page.name || `Mapa ${index + 1}`}`}
+                      onClick={() => onMapPageClose?.(noteActionId, page.id)}
+                    >
+                      X
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })}
+            <button
+              className="h-8 shrink-0 border border-neutral-700 bg-neutral-900 px-3 text-xs font-bold uppercase text-sky-200 hover:border-sky-400 hover:bg-sky-950 focus:outline-none focus:ring-1 focus:ring-sky-300/60"
+              type="button"
+              onClick={(event) => openFilePicker(event, "add")}
+            >
+              + Mapa
+            </button>
+          </div>
+          {imageSrc ? (
+            <div className="flex shrink-0 items-center gap-1 text-[11px] text-neutral-200">
+              <div className="relative">
                 <button
-                  className="h-7 w-7 border-l border-neutral-800 text-xs font-bold text-neutral-500 hover:bg-red-950/40 hover:text-red-200 focus:outline-none focus:ring-1 focus:ring-red-400/50"
+                  className="flex h-8 min-w-24 items-center justify-between gap-3 border border-neutral-700 bg-neutral-900 px-3 font-bold uppercase text-amber-300 hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-amber-500/60"
                   type="button"
-                  aria-label={`Cerrar ${page.name || `Mapa ${index + 1}`}`}
-                  onClick={() => onMapPageClose?.(noteActionId, page.id)}
+                  onClick={() => {
+                    setIsFogPanelOpen(false);
+                    setIsGridPanelOpen((open) => !open);
+                  }}
                 >
-                  X
+                  <span>Grid</span>
+                  <span className="text-neutral-500">{isGridPanelOpen ? "-" : "+"}</span>
                 </button>
-              ) : null}
+                {isGridPanelOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+4px)] z-40 grid w-64 grid-cols-2 gap-2 border border-neutral-700 bg-neutral-950/95 p-3 shadow-xl">
+                    <label className="inline-flex items-center gap-1 font-bold uppercase text-amber-300">
+                      <input
+                        type="checkbox"
+                        checked={grid.enabled}
+                        onChange={(event) => updateGrid({ enabled: event.target.checked })}
+                      />
+                      Grid
+                    </label>
+                    <label className="inline-flex items-center gap-1 font-bold uppercase text-sky-300">
+                      <input
+                        type="checkbox"
+                        checked={grid.snap}
+                        onChange={(event) => updateGrid({ snap: event.target.checked })}
+                      />
+                      Snap
+                    </label>
+                    <button
+                      className="col-span-2 border border-sky-500/60 bg-sky-950/70 px-2 py-1 font-bold uppercase text-sky-100 hover:bg-sky-900 disabled:cursor-wait disabled:opacity-60"
+                      type="button"
+                      disabled={isAutoFittingGrid}
+                      onClick={autoFitGrid}
+                    >
+                      {isAutoFittingGrid ? "Analizando..." : "Auto"}
+                    </button>
+                    <label className="flex items-center justify-between gap-2">
+                      W
+                      <input
+                        className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                        type="number"
+                        min="8"
+                        max="500"
+                        value={grid.cellWidth}
+                        onChange={(event) => updateGrid({ cellWidth: event.target.value })}
+                      />
+                    </label>
+                    <label className="flex items-center justify-between gap-2">
+                      H
+                      <input
+                        className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                        type="number"
+                        min="8"
+                        max="500"
+                        value={grid.cellHeight}
+                        onChange={(event) => updateGrid({ cellHeight: event.target.value })}
+                      />
+                    </label>
+                    <label className="flex items-center justify-between gap-2">
+                      X
+                      <input
+                        className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                        type="number"
+                        min="-500"
+                        max="500"
+                        value={grid.offsetX}
+                        onChange={(event) => updateGrid({ offsetX: event.target.value })}
+                      />
+                    </label>
+                    <label className="flex items-center justify-between gap-2">
+                      Y
+                      <input
+                        className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
+                        type="number"
+                        min="-500"
+                        max="500"
+                        value={grid.offsetY}
+                        onChange={(event) => updateGrid({ offsetY: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+              <div className="relative">
+                <button
+                  className="flex h-8 min-w-24 items-center justify-between gap-3 border border-neutral-700 bg-neutral-900 px-3 font-bold uppercase text-amber-300 hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-amber-500/60"
+                  type="button"
+                  onClick={() => {
+                    setIsGridPanelOpen(false);
+                    setIsFogPanelOpen((open) => !open);
+                  }}
+                >
+                  <span>Fog</span>
+                  <span className="text-neutral-500">{isFogPanelOpen ? "-" : "+"}</span>
+                </button>
+                {isFogPanelOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+4px)] z-40 grid w-64 gap-2 border border-neutral-700 bg-neutral-950/95 p-3 shadow-xl">
+                    <label className="inline-flex items-center gap-2 font-bold uppercase text-amber-300">
+                      <input
+                        type="checkbox"
+                        checked={fog.enabled}
+                        onChange={(event) => updateFog({ enabled: event.target.checked })}
+                      />
+                      Activar niebla
+                    </label>
+                    <label className="inline-flex items-center gap-2 font-bold uppercase text-sky-300">
+                      <input
+                        type="checkbox"
+                        checked={isFogBrushActive}
+                        onChange={(event) => setIsFogBrushActive(event.target.checked)}
+                      />
+                      Pincel revelar
+                    </label>
+                    <div className="grid gap-1 text-neutral-300">
+                      <span className="font-bold uppercase text-neutral-400">Forma</span>
+                      <div className="grid grid-cols-2 gap-1">
+                        {[
+                          ["circle", "Círculo"],
+                          ["square", "Cuadrado"]
+                        ].map(([shape, label]) => {
+                          const active = fog.brushShape === shape;
+                          return (
+                            <button
+                              key={shape}
+                              className={`border px-2 py-1 font-bold uppercase focus:outline-none focus:ring-1 focus:ring-amber-400 ${active ? "border-amber-400 bg-amber-500 text-neutral-950" : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"}`}
+                              type="button"
+                              onClick={() => updateFog({ brushShape: shape })}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <label className="grid gap-1 text-neutral-300">
+                      <span className="font-bold uppercase text-neutral-400">Tamaño {Math.round(fog.brushSize)}px</span>
+                      <input
+                        type="range"
+                        min="16"
+                        max="260"
+                        value={fog.brushSize}
+                        onChange={(event) => updateFog({ brushSize: event.target.value })}
+                      />
+                    </label>
+                    <button
+                      className="border border-red-500/50 bg-red-950/60 px-2 py-1 font-bold uppercase text-red-100 hover:bg-red-900"
+                      type="button"
+                      onClick={() => updateFog({ revealed: [] })}
+                    >
+                      Oscurecer todo
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
-          );
-        })}
-        <button
-          className="h-8 shrink-0 border border-neutral-700 bg-neutral-900 px-3 text-xs font-bold uppercase text-sky-200 hover:border-sky-400 hover:bg-sky-950 focus:outline-none focus:ring-1 focus:ring-sky-300/60"
-          type="button"
-          onClick={(event) => openFilePicker(event, "add")}
-        >
-          + Mapa
-        </button>
+          ) : null}
+        </div>
       </div>
       <input
         ref={inputRef}
@@ -4624,9 +4971,12 @@ function MapNote({
             alt={image.name || title}
             draggable={false}
             onLoad={(event) => {
-              const rect = bodyRef.current?.getBoundingClientRect?.();
-              if (!rect) return;
-              setImageLayout(containedMediaRect(rect.width, rect.height, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight));
+              const body = bodyRef.current;
+              if (!body) return;
+              const bodyRect = body.getBoundingClientRect();
+              const bodyWidth = body.clientWidth || bodyRect.width;
+              const bodyHeight = body.clientHeight || bodyRect.height;
+              setImageLayout(containedMediaRect(bodyWidth, bodyHeight, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight));
             }}
             onPointerDown={(event) => event.stopPropagation()}
           />
@@ -4656,161 +5006,22 @@ function MapNote({
             fog={fog}
             layout={imageLayout}
             maskId={fogMaskId}
+            preview={isFogBrushActive ? fogBrushPreview : null}
             opacity={0.76}
             className={isFogBrushActive ? "z-[25] cursor-crosshair" : "z-20 pointer-events-none"}
             onPointerDown={startFogBrush}
             onPointerMove={moveFogBrush}
             onPointerUp={stopFogBrush}
+            onPointerLeave={leaveFogBrush}
+            onContextMenu={suppressFogBrushContextMenu}
           />
         ) : null}
         {imageSrc ? (
           <MapTokenTracker
             tokens={tokens}
             onHpChange={(tokenId, value) => onMapTokenHpChange?.(noteActionId, activePage.id, tokenId, value)}
+            onTokenContextMenu={(event, tokenId) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, tokenId)}
           />
-        ) : null}
-        {imageSrc ? (
-          <div
-            className="absolute right-3 top-3 z-30 border border-neutral-700 bg-neutral-950/92 text-[11px] text-neutral-200 shadow-lg"
-            data-board-control="true"
-            onPointerDown={(event) => event.stopPropagation()}
-            onWheel={(event) => event.stopPropagation()}
-          >
-            <button
-              className="flex w-full min-w-32 items-center justify-between gap-3 px-3 py-2 font-bold uppercase text-amber-300 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-              type="button"
-              onClick={() => setIsGridPanelOpen((open) => !open)}
-            >
-              <span>Grid</span>
-              <span className="text-neutral-500">{isGridPanelOpen ? "-" : "+"}</span>
-            </button>
-            {isGridPanelOpen ? (
-              <div className="grid w-64 grid-cols-2 gap-2 border-t border-neutral-800 p-3">
-                <label className="inline-flex items-center gap-1 font-bold uppercase text-amber-300">
-                  <input
-                    type="checkbox"
-                    checked={grid.enabled}
-                    onChange={(event) => updateGrid({ enabled: event.target.checked })}
-                  />
-                  Grid
-                </label>
-                <label className="inline-flex items-center gap-1 font-bold uppercase text-sky-300">
-                  <input
-                    type="checkbox"
-                    checked={grid.snap}
-                    onChange={(event) => updateGrid({ snap: event.target.checked })}
-                  />
-                  Snap
-                </label>
-                <button
-                  className="col-span-2 border border-sky-500/60 bg-sky-950/70 px-2 py-1 font-bold uppercase text-sky-100 hover:bg-sky-900 disabled:cursor-wait disabled:opacity-60"
-                  type="button"
-                  disabled={isAutoFittingGrid}
-                  onClick={autoFitGrid}
-                >
-                  {isAutoFittingGrid ? "Analizando..." : "Auto"}
-                </button>
-                <label className="flex items-center justify-between gap-2">
-                  W
-                  <input
-                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
-                    type="number"
-                    min="8"
-                    max="500"
-                    value={grid.cellWidth}
-                    onChange={(event) => updateGrid({ cellWidth: event.target.value })}
-                  />
-                </label>
-                <label className="flex items-center justify-between gap-2">
-                  H
-                  <input
-                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
-                    type="number"
-                    min="8"
-                    max="500"
-                    value={grid.cellHeight}
-                    onChange={(event) => updateGrid({ cellHeight: event.target.value })}
-                  />
-                </label>
-                <label className="flex items-center justify-between gap-2">
-                  X
-                  <input
-                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
-                    type="number"
-                    min="-500"
-                    max="500"
-                    value={grid.offsetX}
-                    onChange={(event) => updateGrid({ offsetX: event.target.value })}
-                  />
-                </label>
-                <label className="flex items-center justify-between gap-2">
-                  Y
-                  <input
-                    className="w-16 border border-neutral-700 bg-neutral-900 px-1 py-0.5 text-right text-neutral-100 focus:outline-none focus:ring-1 focus:ring-sky-300"
-                    type="number"
-                    min="-500"
-                    max="500"
-                    value={grid.offsetY}
-                    onChange={(event) => updateGrid({ offsetY: event.target.value })}
-                  />
-                </label>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-        {imageSrc ? (
-          <div
-            className="absolute left-3 top-3 z-30 border border-neutral-700 bg-neutral-950/92 text-[11px] text-neutral-200 shadow-lg"
-            data-board-control="true"
-            onPointerDown={(event) => event.stopPropagation()}
-            onWheel={(event) => event.stopPropagation()}
-          >
-            <button
-              className="flex w-full min-w-36 items-center justify-between gap-3 px-3 py-2 font-bold uppercase text-amber-300 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-              type="button"
-              onClick={() => setIsFogPanelOpen((open) => !open)}
-            >
-              <span>Fog</span>
-              <span className="text-neutral-500">{isFogPanelOpen ? "-" : "+"}</span>
-            </button>
-            {isFogPanelOpen ? (
-              <div className="grid w-64 gap-2 border-t border-neutral-800 p-3">
-                <label className="inline-flex items-center gap-2 font-bold uppercase text-amber-300">
-                  <input
-                    type="checkbox"
-                    checked={fog.enabled}
-                    onChange={(event) => updateFog({ enabled: event.target.checked })}
-                  />
-                  Activar niebla
-                </label>
-                <label className="inline-flex items-center gap-2 font-bold uppercase text-sky-300">
-                  <input
-                    type="checkbox"
-                    checked={isFogBrushActive}
-                    onChange={(event) => setIsFogBrushActive(event.target.checked)}
-                  />
-                  Pincel revelar
-                </label>
-                <label className="grid gap-1 text-neutral-300">
-                  <span className="font-bold uppercase text-neutral-400">Tamaño {Math.round(fog.brushSize)}px</span>
-                  <input
-                    type="range"
-                    min="16"
-                    max="260"
-                    value={fog.brushSize}
-                    onChange={(event) => updateFog({ brushSize: event.target.value })}
-                  />
-                </label>
-                <button
-                  className="border border-red-500/50 bg-red-950/60 px-2 py-1 font-bold uppercase text-red-100 hover:bg-red-900"
-                  type="button"
-                  onClick={() => updateFog({ revealed: [] })}
-                >
-                  Oscurecer todo
-                </button>
-              </div>
-            ) : null}
-          </div>
         ) : null}
         {imageSrc ? (
           <>
@@ -4883,9 +5094,9 @@ function CharacterAbilityCell({ character, ability, onRoll }) {
   );
 }
 
-function CharacterDetailSection({ title, children, defaultOpen = false }) {
+function CharacterDetailSection({ title, children, defaultOpen = false, ...props }) {
   return (
-    <details className="mt-3 border border-neutral-800 bg-neutral-950/45" defaultOpen={defaultOpen}>
+    <details className="mt-3 border border-neutral-800 bg-neutral-950/45" defaultOpen={defaultOpen} {...props}>
       <summary className="cursor-pointer select-none border-b border-neutral-800 px-3 py-2 font-serif text-base uppercase leading-none text-amber-500 hover:bg-neutral-900">
         {title}
       </summary>
@@ -4896,24 +5107,37 @@ function CharacterDetailSection({ title, children, defaultOpen = false }) {
   );
 }
 
-function CharacterResourceButton({ kind, label, onOpenResource }) {
+function CharacterResourceButton({ kind, label, onOpenResource, onRemoveResource = null }) {
   if (!onOpenResource) {
     return <InteractiveRulesText text={label} context={kind} onRoll={() => {}} />;
   }
   return (
-    <button
-      className="min-h-10 border border-neutral-800 bg-neutral-900/80 px-3 py-2 text-left leading-relaxed text-neutral-200 transition hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-      type="button"
-      title={`Agregar nota de ${kind === "spell" ? "spell" : "item"}: ${label}`}
-      onPointerDown={(event) => event.stopPropagation()}
-      onClick={(event) => onOpenResource(kind, label, event)}
-    >
-      {label}
-    </button>
+    <div className="grid min-h-10 grid-cols-[minmax(0,1fr)_auto] border border-neutral-800 bg-neutral-900/80">
+      <button
+        className="min-w-0 px-3 py-2 text-left leading-relaxed text-neutral-200 transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500/40"
+        type="button"
+        title={`Agregar nota de ${kind === "spell" ? "spell" : "item"}: ${label}`}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => onOpenResource(kind, label, event)}
+      >
+        <span className="block truncate">{label}</span>
+      </button>
+      {onRemoveResource ? (
+        <button
+          className="w-9 border-l border-neutral-800 text-xs font-bold text-neutral-500 hover:bg-red-950/40 hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-400/50"
+          type="button"
+          title={`Remover ${label}`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => onRemoveResource(label)}
+        >
+          X
+        </button>
+      ) : null}
+    </div>
   );
 }
 
-function CharacterTextBlock({ text, context, onRoll, onOpenResource = null }) {
+function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onRemoveResource = null, dropNoteId = "" }) {
   if (!String(text || "").trim()) return <p className="text-neutral-500">Sin datos.</p>;
   const lines = compactLines(text);
   const normalizedContext = normalizeSearch(context);
@@ -4969,20 +5193,29 @@ function CharacterTextBlock({ text, context, onRoll, onOpenResource = null }) {
     const candidates = equipmentResourceCandidates(text);
     if (candidates.length) {
       return (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div
+          className="grid gap-2 sm:grid-cols-2"
+          data-character-equipment-drop={dropNoteId ? "true" : undefined}
+          data-drop-note-id={dropNoteId || undefined}
+        >
           {candidates.map((item, index) => (
             <CharacterResourceButton
               key={`${item.query}-${index}`}
               kind="item"
               label={item.display}
               onOpenResource={onOpenResource}
+              onRemoveResource={onRemoveResource}
             />
           ))}
         </div>
       );
     }
     return (
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div
+        className="grid gap-2 sm:grid-cols-2"
+        data-character-equipment-drop={dropNoteId ? "true" : undefined}
+        data-drop-note-id={dropNoteId || undefined}
+      >
         {lines.map((line, index) => (
           <div key={`${line}-${index}`} className="min-h-10 border border-neutral-800 bg-neutral-900/80 px-3 py-2 leading-relaxed text-neutral-200">
             <InteractiveRulesText text={line.replace(/^[-*]\s*/, "")} context={context} onRoll={onRoll} />
@@ -4995,6 +5228,28 @@ function CharacterTextBlock({ text, context, onRoll, onOpenResource = null }) {
   return (
     <div className="space-y-1 whitespace-pre-line leading-relaxed">
       <InteractiveRulesText text={text} context={context} onRoll={onRoll} />
+    </div>
+  );
+}
+
+function CharacterMoneyEditor({ character, noteId, onCharacterFieldChange }) {
+  const moneyByKey = new Map(character.money || []);
+  if (!onCharacterFieldChange && !moneyByKey.size) return null;
+  return (
+    <div className="mt-2 grid grid-cols-5 gap-1">
+      {["CP", "SP", "EP", "GP", "PP"].map((key) => (
+        <label key={key} className="grid gap-1 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+          {key}
+          <NumericExpressionInput
+            className="h-7 min-w-0 border border-neutral-700 bg-neutral-950 px-1 text-center text-sm font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
+            value={moneyByKey.get(key) || character.rawData?.[key] || ""}
+            min={0}
+            integer
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(value) => onCharacterFieldChange?.(noteId, key, value)}
+          />
+        </label>
+      ))}
     </div>
   );
 }
@@ -5096,9 +5351,7 @@ function CharacterMonsterVitals({ character, monster, note, onRoll, onHpChange, 
         {character.profBonus ? <>{" | "}Prof <CtrlEditableText value={character.profBonus || ""} onCommit={editField("ProfBonus")}>{character.profBonus}</CtrlEditableText></> : null}
         {character.hitDice ? <>{" | "}HD {character.hitDice}</> : null}
       </p>
-      {character.money.length ? (
-        <p className="leading-snug"><strong className="text-neutral-200">Money</strong> {character.money.map(([key, value]) => `${value} ${key}`).join(", ")}</p>
-      ) : null}
+      <CharacterMoneyEditor character={character} noteId={note.id} onCharacterFieldChange={onCharacterFieldChange} />
     </div>
   );
 }
@@ -5311,6 +5564,10 @@ function CharacterNote({
               context={title}
               onRoll={addRoll}
               onOpenResource={(kind, label, event) => onOpenResource?.(kind, label, note, event)}
+              onRemoveResource={canEditRemoteSheet && normalizeSearch(title).includes("equipment")
+                ? (label) => commitCharacterField("Equipment", removeCharacterEquipmentItem(characterEquipmentText(character), label))
+                : null}
+              dropNoteId={normalizeSearch(title).includes("equipment") ? noteActionId : ""}
             />
           </CharacterDetailSection>
         ))}
@@ -7917,25 +8174,30 @@ function DmScreenApp() {
 
   function updateLiveCharacterField(noteId, fieldKey, value) {
     const patch = normalizeLiveSheetPatch({ [fieldKey]: value });
-    if (!Object.keys(patch).length) return;
+    if (!Object.keys(patch).length) return false;
     const note = monsterNotesRef.current.find((entry) => entry.id === noteId);
-    if (!note?.livePlayerId || note.liveConnected === false) return;
+    if (!note?.livePlayerId || note.liveConnected === false) return false;
 
-    setMonsterNotes((notes) => notes.map((entry) => (
-      entry.id === noteId ? applyLivePatchToNote(entry, patch) : entry
-    )));
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((entry) => (
+        entry.id === noteId ? applyLivePatchToNote(entry, patch) : entry
+      ));
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
 
     const liveSheet = window.dndSheet?.liveSheet;
-    if (!liveSheet?.updatePlayerSheet) return;
+    if (!liveSheet?.updatePlayerSheet) return true;
     liveSheet.updatePlayerSheet(note.livePlayerId, patch).catch((error) => {
       console.error(error);
     });
+    return true;
   }
 
   function addBoardNote(payload, positionOverride = null) {
     zRef.current += 1;
     const offset = monsterNotes.length % 6;
-    const width = clamp(payload.width || NOTE_DEFAULT_WIDTH, NOTE_MIN_WIDTH, BOARD_WIDTH - BOARD_PADDING * 2);
+    const defaultWidth = payload.kind === "monster" ? MONSTER_NOTE_DEFAULT_WIDTH : NOTE_DEFAULT_WIDTH;
+    const width = clamp(payload.width || defaultWidth, NOTE_MIN_WIDTH, BOARD_WIDTH - BOARD_PADDING * 2);
     const height = clamp(payload.height || NOTE_DEFAULT_HEIGHT, NOTE_MIN_HEIGHT, BOARD_HEIGHT - BOARD_PADDING * 2);
     const spawnX = positionOverride?.x ?? noteSpawnPoint?.x ?? (96 + offset * 34);
     const spawnY = positionOverride?.y ?? noteSpawnPoint?.y ?? (96 + offset * 28);
@@ -8375,8 +8637,10 @@ function DmScreenApp() {
     if (!snapshot) return token;
     return {
       ...token,
+      name: noteDisplayName(actorNote),
       ...combatFieldsFromActorNote(actorNote, token),
       actorNote: snapshot,
+      monster: snapshot.kind === "monster" ? mapTokenMonsterSnapshot(snapshot.monster) : token.monster,
       monsterCustom: snapshot.kind === "monster" && snapshot.monsterCustom ? cloneForBoardState(snapshot.monsterCustom) : token.monsterCustom,
       character: snapshot.kind === "character" ? mapTokenCharacterSnapshot(snapshot.character) : token.character
     };
@@ -8435,11 +8699,14 @@ function DmScreenApp() {
     event.stopPropagation();
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
-    const boardPoint = screenToBoardPoint(event.clientX, event.clientY);
+    const targetRect = event.currentTarget?.getBoundingClientRect?.();
+    const clientX = Number.isFinite(Number(event.clientX)) ? Number(event.clientX) : (targetRect ? targetRect.left + targetRect.width / 2 : viewportWidth / 2);
+    const clientY = Number.isFinite(Number(event.clientY)) ? Number(event.clientY) : (targetRect ? targetRect.top + targetRect.height / 2 : viewportHeight / 2);
+    const boardPoint = screenToBoardPoint(clientX, clientY);
     setContextMenu(null);
     setTokenContextMenu({
-      x: clamp(event.clientX, 8, viewportWidth - 210),
-      y: clamp(event.clientY, 8, viewportHeight - 260),
+      x: clamp(clientX, 8, viewportWidth - 210),
+      y: clamp(clientY, 8, viewportHeight - 260),
       boardX: boardPoint.x,
       boardY: boardPoint.y,
       mapNoteId,
@@ -8496,7 +8763,7 @@ function DmScreenApp() {
       setTokenContextMenu(null);
       return;
     }
-    const width = NOTE_DEFAULT_WIDTH;
+    const width = payload.kind === "monster" ? MONSTER_NOTE_DEFAULT_WIDTH : NOTE_DEFAULT_WIDTH;
     const height = NOTE_DEFAULT_HEIGHT;
     const spawnPoint = clampBoardPoint({
       x: tokenContextMenu.boardX + 24,
@@ -8527,16 +8794,19 @@ function DmScreenApp() {
 
   function editMonsterNote(noteId, pathParts, value) {
     if (!Array.isArray(pathParts) || !pathParts.length) return;
-    setMonsterNotes((notes) => notes.map((note) => {
-      if (note.id !== noteId || note.kind !== "monster") return note;
-      const baseMonster = cloneForBoardState(note.monsterCustom || note.monster) || {};
-      const monsterCustom = updateObjectPath(baseMonster, pathParts, value);
-      return {
-        ...note,
-        monster: monsterCustom,
-        monsterCustom
-      };
-    }));
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId || note.kind !== "monster") return note;
+        const baseMonster = cloneForBoardState(note.monsterCustom || note.monster) || {};
+        const monsterCustom = updateObjectPath(baseMonster, pathParts, value);
+        return {
+          ...note,
+          monster: monsterCustom,
+          monsterCustom
+        };
+      });
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
   }
 
   function findMonsterSectionDropTarget(clientX, clientY, sourceNoteId = "") {
@@ -8570,11 +8840,35 @@ function DmScreenApp() {
     return true;
   }
 
+  function findCharacterEquipmentDropTarget(clientX, clientY, sourceNoteId = "") {
+    const sections = Array.from(document.querySelectorAll("[data-character-equipment-drop='true']"));
+    return sections.find((section) => {
+      const targetNoteId = section.dataset.dropNoteId || "";
+      if (!targetNoteId || targetNoteId === sourceNoteId) return false;
+      const rect = section.getBoundingClientRect();
+      return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+    }) || null;
+  }
+
+  function addItemNoteToCharacterEquipment(itemNoteId, targetNoteId) {
+    if (!itemNoteId || !targetNoteId || itemNoteId === targetNoteId) return false;
+    const notes = monsterNotesRef.current;
+    const itemNote = notes.find((note) => note.id === itemNoteId);
+    const targetNote = notes.find((note) => note.id === targetNoteId);
+    if (itemNote?.kind !== "item" || !itemNote.entry || targetNote?.kind !== "character" || !targetNote.character) return false;
+    const itemName = itemNote.entry.name || noteDisplayName(itemNote);
+    const nextEquipment = appendCharacterEquipmentItem(characterEquipmentText(targetNote.character), itemName);
+    return updateLiveCharacterField(targetNote.id, "Equipment", nextEquipment);
+  }
+
   function renameNote(noteId, nextTitle) {
     const normalizedTitle = String(nextTitle || "").trim();
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? { ...note, titleOverride: normalizedTitle } : note
-    )));
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => (
+        note.id === noteId ? { ...note, titleOverride: normalizedTitle } : note
+      ));
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
   }
 
   function promoteTabToRoot(notes, rootId, nextRootId) {
@@ -8758,9 +9052,12 @@ function DmScreenApp() {
       return;
     }
     const numericValue = value === "" ? "" : Number(value);
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? { ...note, [field === "max" ? "hpMax" : "hpCurrent"]: numericValue } : note
-    )));
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => (
+        note.id === noteId ? { ...note, [field === "max" ? "hpMax" : "hpCurrent"]: numericValue } : note
+      ));
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
   }
 
   function rollNoteHp(noteId) {
@@ -8768,40 +9065,49 @@ function DmScreenApp() {
     const expression = note?.monster?.hp?.formula;
     if (!note || !expression) return;
     const roll = rollDiceExpression(expression);
-    setMonsterNotes((notes) => notes.map((entry) => (
-      entry.id === noteId ? {
-        ...entry,
-        hpCurrent: roll.total,
-        hpMax: roll.total,
-        dicePanelOpen: true,
-        rolls: [{
-          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-          label: "HP",
-          roll
-        }, ...(entry.rolls || [])].slice(0, 20)
-      } : entry
-    )));
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((entry) => (
+        entry.id === noteId ? {
+          ...entry,
+          hpCurrent: roll.total,
+          hpMax: roll.total,
+          dicePanelOpen: true,
+          rolls: [{
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            label: "HP",
+            roll
+          }, ...(entry.rolls || [])].slice(0, 20)
+        } : entry
+      ));
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
   }
 
   function recordMonsterRoll(noteId, label, roll) {
-    setMonsterNotes((notes) => notes.map((note) => {
-      if (note.id !== noteId) return note;
-      return {
-        ...note,
-        dicePanelOpen: true,
-        rolls: [{
-          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-          label,
-          roll
-        }, ...(note.rolls || [])].slice(0, 20)
-      };
-    }));
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId) return note;
+        return {
+          ...note,
+          dicePanelOpen: true,
+          rolls: [{
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            label,
+            roll
+          }, ...(note.rolls || [])].slice(0, 20)
+        };
+      });
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
   }
 
   function toggleMonsterDicePanel(noteId) {
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? { ...note, dicePanelOpen: !note.dicePanelOpen } : note
-    )));
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => (
+        note.id === noteId ? { ...note, dicePanelOpen: !note.dicePanelOpen } : note
+      ));
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
   }
 
   function recordPreviewRoll(label, roll) {
@@ -9221,6 +9527,13 @@ function DmScreenApp() {
       if (completedDrag.moved && (!completedDrag.noteIds || completedDrag.noteIds.length <= 1)) {
         const lastClientX = completedDrag.lastClientX ?? event.clientX;
         const lastClientY = completedDrag.lastClientY ?? event.clientY;
+        const characterEquipmentDropTarget = findCharacterEquipmentDropTarget(lastClientX, lastClientY, completedDrag.noteId);
+        if (characterEquipmentDropTarget && addItemNoteToCharacterEquipment(completedDrag.noteId, characterEquipmentDropTarget.dataset.dropNoteId)) {
+          return;
+        }
+        if (addItemNoteToCharacterEquipment(completedDrag.noteId, completedDrag.dropTargetNoteId)) {
+          return;
+        }
         const mapDropTargetId = findMapDropTargetAtPointer(completedDrag.noteId, lastClientX, lastClientY) || completedDrag.dropTargetNoteId;
         if (addActorTokenToMap(
           completedDrag.noteId,

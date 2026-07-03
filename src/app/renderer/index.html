@@ -923,6 +923,44 @@
         });
     }
 
+    function activeSubclassSpellGrants() {
+      const subclass = selectedSubclassForCharacter();
+      const characterLevel = getCharacterLevel();
+      if (!subclass || !Array.isArray(subclass.additionalSpells)) return [];
+      return subclass.additionalSpells.flatMap((group) => {
+        const grants = [];
+        const collectBucket = (bucket, prepared) => {
+          if (!bucket) return;
+          Object.entries(bucket).forEach(([levelKey, value]) => {
+            const requiredLevel = levelKey === "_" ? 1 : Number.parseInt(levelKey, 10);
+            if (Number.isFinite(requiredLevel) && characterLevel < requiredLevel) return;
+            collectAdditionalSpellItems(value, prepared).forEach((grant) => {
+              if (!grant?.spellName) return;
+              grants.push({
+                ...grant,
+                prepared: prepared || grant.prepared,
+                fromSubclass: true,
+                sourceLabel: subclass.name || subclass.shortName || "Subclass",
+                key: [
+                  "subclass-spell",
+                  subclass.className || "",
+                  subclass.classSource || "",
+                  subclass.shortName || subclass.name || "",
+                  subclass.source || "",
+                  levelKey,
+                  grant.spellName
+                ].map((item) => normalizeName(String(item))).join("|")
+              });
+            });
+          });
+        };
+        collectBucket(group.known, false);
+        collectBucket(group.prepared, true);
+        collectBucket(group.innate, true);
+        return grants;
+      });
+    }
+
     function featGrantedSpellChoiceLimit(level) {
       return activeFeatSpellGrants()
         .filter((grant) => grant.level === level && !grant.spellName && (level === 0 || grant.prepared))
@@ -1456,7 +1494,9 @@
       const classMatches = className && spell.classes?.some((name) => normalizeName(name) === className);
       const raceMatches = raceName && spell.races?.some((name) => normalizeName(name) === raceName);
       const featMatches = featGrantsSpell(spell, level);
-      if (className || raceName || activeFeatSpellGrants().length) return Boolean(classMatches || raceMatches || featMatches);
+      const subclassGrants = activeSubclassSpellGrants();
+      const subclassMatches = subclassGrants.some((grant) => grant.level === level && normalizeName(grant.spellName || "") === normalizeName(spell.name));
+      if (className || raceName || activeFeatSpellGrants().length || subclassGrants.length) return Boolean(classMatches || raceMatches || featMatches || subclassMatches);
       return true;
     }
 
@@ -1611,6 +1651,9 @@
       activeFeatSpellGrants()
         .filter((grant) => grant.spellName)
         .forEach((grant) => names.push(grant.spellName));
+      activeSubclassSpellGrants()
+        .filter((grant) => grant.spellName)
+        .forEach((grant) => names.push(grant.spellName));
       choosableFeatureEntriesForCharacter()
         .flatMap((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)))
         .filter((value) => String(value).startsWith("spell:"))
@@ -1666,6 +1709,9 @@
       const className = normalizeName(getSelectedClassName());
       (ALWAYS_PREPARED_SPELLS_BY_CLASS[className] || []).forEach((name) => names.push(name));
       activeFeatSpellGrants()
+        .filter((grant) => grant.prepared && grant.spellName)
+        .forEach((grant) => names.push(grant.spellName));
+      activeSubclassSpellGrants()
         .filter((grant) => grant.prepared && grant.spellName)
         .forEach((grant) => names.push(grant.spellName));
       const texts = [
@@ -3608,13 +3654,31 @@
       return /\b(action|magic action|bonus action|reaction)\b|\bwhile active\b|\bactivate\b|\benter (?:it|your)\b|\buse this feature\b|\bexpend\b/i.test(text);
     }
 
+    function consumedResourceInfoForEntry(entry, entries = []) {
+      const consumeName = entry?.feature?.consumes?.name || entry?.optionalFeature?.consumes?.name || "";
+      if (!consumeName) return null;
+      const resourceEntry = findTurnActionEntryByNames(consumeName, entries);
+      const resourceName = turnActionEntryName(resourceEntry) || consumeName;
+      const resourceDescription = turnActionEntryDescription(resourceEntry);
+      const usesMax = featureUseMaximum(resourceName, resourceDescription, resourceEntry?.feature || resourceEntry?.optionalFeature);
+      if (!Number.isFinite(usesMax) || usesMax <= 0) return null;
+      return {
+        key: resourceEntry ? activationKeyForEntry(resourceEntry) : normalizeName(`resource:${consumeName}`),
+        name: resourceName,
+        usesMax
+      };
+    }
+
     function featureActivationSelections() {
-      return generatedFeaturesAndTraitsEntries()
+      const entries = generatedFeaturesAndTraitsEntries();
+      return entries
         .filter(isActivatableFeature)
         .map((entry) => {
-          const key = activationKeyForEntry(entry);
+          const consumedResource = consumedResourceInfoForEntry(entry, entries);
+          const key = consumedResource?.key || activationKeyForEntry(entry);
           const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "Feature";
           const description = entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "");
+          const usesMax = consumedResource?.usesMax ?? featureUseMaximum(title, description, entry.feature || entry.optionalFeature);
           return {
             kind: "activation",
             key,
@@ -3623,9 +3687,9 @@
             damage: "",
             damageLabel: "--",
             damageType: "",
-            description,
+            description: consumedResource ? `${description}\nConsume: ${consumedResource.name}.` : description,
             active: Boolean(activeFeatureState()[key]),
-            usesMax: featureUseMaximum(title, description),
+            usesMax,
             level: 0
           };
         });
@@ -9270,6 +9334,22 @@
       return options.length ? { label: "Language", count, options } : null;
     }
 
+    function skillChoiceSpecForFeatureText(text, featureName = "Feature") {
+      const source = String(text || "");
+      const match = source.match(/\b(?:gain|have|gain proficiency in|have proficiency in|you also gain proficiency in|you have proficiency in)\s+(?:proficiency in\s+)?(one|two|three|four|\d+)\s+of the following skills(?: of your choice)?:\s*([^.;]+)/i)
+        || source.match(/\bproficiency in\s+(one|two|three|four|\d+)\s+of the following skills(?: of your choice)?:\s*([^.;]+)/i);
+      if (!match) return null;
+      const count = countWordToNumber(match[1]) || Number.parseInt(match[1], 10) || 1;
+      const options = skillChoiceOptions(parseSkillListText(match[2]))
+        .map((option) => ({
+          value: `skill:${option.value}`,
+          label: option.label,
+          type: "skill",
+          description: `${featureName}: skill proficiency.`
+        }));
+      return options.length ? { label: "Skill", count, options } : null;
+    }
+
     function abilityScoreIncreaseOptions() {
       const options = ABILITY_KEYS.map((ability) => ({
         value: `asi:${ability}+2`,
@@ -9388,6 +9468,36 @@
       return options;
     }
 
+    function collectLineageTableChoiceOptions(entries) {
+      const options = [];
+      const list = Array.isArray(entries) ? entries : [entries];
+      list.forEach((entry) => {
+        if (!entry || typeof entry !== "object") return;
+        if (entry.type === "table" && Array.isArray(entry.rows)) {
+          entry.rows.forEach((row) => {
+            if (!Array.isArray(row) || !row[0]) return;
+            const value = strip5eTags(row[0]);
+            const level1 = strip5eTags(row[1] || "");
+            const level3 = strip5eTags(row[2] || "");
+            const level5 = strip5eTags(row[3] || "");
+            options.push({
+              value,
+              label: value,
+              type: "raceChoice",
+              description: [
+                level1,
+                level3 ? `Starting at 3rd level, you always have the ${level3} spell prepared.` : "",
+                level5 ? `Starting at 5th level, you always have the ${level5} spell prepared.` : ""
+              ].filter(Boolean).join(" ")
+            });
+          });
+        }
+        collectLineageTableChoiceOptions(entry.entries).forEach((option) => options.push(option));
+        collectLineageTableChoiceOptions(entry.items).forEach((option) => options.push(option));
+      });
+      return options;
+    }
+
     function expertiseSkillCountForFeature(feature, text) {
       const level = Number(feature?.level) || 0;
       const normalizedText = String(text || "");
@@ -9474,6 +9584,10 @@
       if (cantripSpec) specs.push(cantripSpec);
       const languageSpec = languageChoiceSpecForFeatureText(flattenEntryText(feature?.entries || ""));
       if (languageSpec) specs.push(languageSpec);
+      const genericSkillSpec = !feature?.isFeatFeature && !feature?.isRaceFeature && !feature?.isClassStartingSkillChoice
+        ? skillChoiceSpecForFeatureText(flattenEntryText(feature?.entries || ""), feature?.name || "Feature")
+        : null;
+      if (genericSkillSpec) specs.push(genericSkillSpec);
       const hasOptionalSpecByType = (featureType) => specs.some((spec) => (spec.options || []).some((option) => {
         const optional = option.type === "optionalfeature" ? optionalFeatureByName(option.value) : null;
         return (optional?.featureType || []).includes(featureType);
@@ -11046,7 +11160,10 @@
         .map((entry) => {
           const text = flattenEntryText(entry.entries || entry.entry || "");
           if (!/choose (?:one of the following options|(?:a )?(?:lineage|legacy))/i.test(text)) return null;
-          const options = collectNamedListChoiceOptions(entry.entries || entry.entry || [])
+          const options = [
+            ...collectLineageTableChoiceOptions(entry.entries || entry.entry || []),
+            ...collectNamedListChoiceOptions(entry.entries || entry.entry || [])
+          ]
             .map((option) => ({ ...option, text: option.value }));
           if (!options.length) return null;
           const label = entry.name || "Race Choice";
@@ -12566,7 +12683,15 @@
       const race = selectedRaceDetail();
       const structured = fixedRaceProficiencyValues(race, "skillProficiencies", (key) => titleCaseWords([key])[0]);
       const description = selectedOptionDescription("race", getSelectedRaceName());
-      const text = extractRaceProficiencyText(description)
+      const structuredChoiceSkills = (Array.isArray(race?.skillProficiencies) ? race.skillProficiencies : [])
+        .flatMap((group) => Array.isArray(group?.choose?.from) ? group.choose.from : [])
+        .map(normalizeName);
+      const text = extractRaceProficiencyText(description, (sentence) => {
+        if (!structuredChoiceSkills.length) return false;
+        if (!/\bor\b|\bchoice\b|\bchoose\b/i.test(sentence)) return false;
+        const mentioned = skillsFromText(sentence).map(normalizeName);
+        return mentioned.length > 0 && mentioned.every((skill) => structuredChoiceSkills.includes(skill));
+      })
         .replace(/proficiency in one of the following skills of your choice:\s*[^.;]+/gi, "")
         .replace(/proficiency in one skill of your choice/gi, "");
       return [...structured, ...skillsFromText(text)];
@@ -13175,11 +13300,12 @@
       return cleaned.split(/(?<=[.!?])\s+/)[0] || "";
     }
 
-    function extractRaceProficiencyText(description) {
+    function extractRaceProficiencyText(description, shouldSkipSentence = null) {
       return String(description || "")
         .split(/(?<=[.!?])\s+/)
         .map((sentence) => sentence.trim())
         .filter((sentence) => /\bproficien(?:cy|cies|t)\b/i.test(sentence) && !/proficiency bonus/i.test(sentence))
+        .filter((sentence) => !(typeof shouldSkipSentence === "function" && shouldSkipSentence(sentence)))
         .map(cleanExtractedProficiencyText)
         .filter(Boolean)
         .join(" ");
@@ -13405,9 +13531,11 @@
 
     function selectedSubclassForCharacter() {
       const detail = classDetailByName(getMainClassName() || getSelectedClassName());
+      if (!detail) return null;
       const choiceFeature = classSubclassChoiceFeature(detail);
+      if (!choiceFeature) return null;
       const selected = selectedFeatureChoices(featureChoiceKey(choiceFeature))[0];
-      if (!detail || !selected) return null;
+      if (!selected) return null;
       return subclassesForClassDetail(detail)
         .filter((subclass) => normalizeName(subclass.shortName || subclass.name || "") === normalizeName(selected))
         .reduce((best, subclass) => preferSubclassVariant(best, subclass, detail.classItem), null);
