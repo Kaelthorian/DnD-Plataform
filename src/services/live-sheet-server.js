@@ -7,6 +7,8 @@ const DEFAULT_PORT = 8787;
 const MAX_MESSAGE_BYTES = 512 * 1024;
 const MAX_NAME_LENGTH = 80;
 const MAX_ROLL_TEXT_LENGTH = 600;
+const MAX_VVT_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_VVT_FOG_POINTS = 1200;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -95,6 +97,76 @@ function sanitizeSheetPatch(patch) {
   return Object.keys(sanitized).length ? sanitized : null;
 }
 
+function clampNumber(value, min, max, fallback = min) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
+}
+
+function sanitizeDataUrl(value) {
+  const text = String(value || "");
+  if (!/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(text)) return "";
+  if (Buffer.byteLength(text, "utf8") > MAX_VVT_IMAGE_BYTES) return "";
+  return text;
+}
+
+function sanitizeVvtFog(fog) {
+  const source = isPlainObject(fog) ? fog : {};
+  const revealed = Array.isArray(source.revealed)
+    ? source.revealed.slice(-MAX_VVT_FOG_POINTS).map((point) => ({
+      x: clampNumber(point?.x, 0, 1, 0),
+      y: clampNumber(point?.y, 0, 1, 0),
+      rx: clampNumber(point?.rx ?? point?.r, 0.001, 1, 0.06),
+      ry: clampNumber(point?.ry ?? point?.r, 0.001, 1, 0.06)
+    }))
+    : [];
+  return {
+    enabled: source.enabled !== false,
+    brushSize: clampNumber(source.brushSize, 8, 360, 90),
+    revealed
+  };
+}
+
+function sanitizeVvtGrid(grid) {
+  const source = isPlainObject(grid) ? grid : {};
+  return {
+    enabled: Boolean(source.enabled),
+    cellWidth: clampNumber(source.cellWidth, 8, 500, 70),
+    cellHeight: clampNumber(source.cellHeight, 8, 500, 70),
+    offsetX: clampNumber(source.offsetX, -500, 500, 0),
+    offsetY: clampNumber(source.offsetY, -500, 500, 0)
+  };
+}
+
+function sanitizeVvtState(payload) {
+  if (!isPlainObject(payload) || payload.active === false) {
+    return {
+      active: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+  const dataUrl = sanitizeDataUrl(payload.image?.dataUrl || payload.imageDataUrl);
+  if (!dataUrl) {
+    return {
+      active: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+  return {
+    active: true,
+    title: sanitizeText(payload.title, 140) || "Mapa VVT",
+    pageName: sanitizeText(payload.pageName, 140) || "",
+    image: {
+      name: sanitizeText(payload.image?.name, 180) || "Mapa",
+      type: sanitizeText(payload.image?.type, 80) || "",
+      dataUrl
+    },
+    fogOfWar: sanitizeVvtFog(payload.fogOfWar),
+    grid: sanitizeVvtGrid(payload.grid),
+    updatedAt: sanitizeText(payload.updatedAt, 80) || new Date().toISOString()
+  };
+}
+
 function localLanAddresses() {
   return listLocalAddresses().lanAddresses;
 }
@@ -154,6 +226,7 @@ class LiveSheetServer extends EventEmitter {
     this.players = new Map();
     this.tokenEnabled = false;
     this.sessionToken = "";
+    this.vvtState = { active: false, updatedAt: new Date().toISOString() };
     this.selfTests = {
       local: null,
       tailscale: null
@@ -291,9 +364,14 @@ class LiveSheetServer extends EventEmitter {
     this.tokenEnabled = false;
     this.sessionToken = "";
     this.selfTests = { local: null, tailscale: null };
+    for (const socket of server.clients || []) {
+      if (socket.readyState !== WebSocket.CLOSED) {
+        socket.terminate();
+      }
+    }
     for (const player of this.players.values()) {
-      if (player.ws && player.ws.readyState === WebSocket.OPEN) {
-        player.ws.close(1001, "Host stopped");
+      if (player.ws && player.ws.readyState !== WebSocket.CLOSED) {
+        player.ws.terminate?.();
       }
       if (player.connected) {
         player.connected = false;
@@ -355,6 +433,25 @@ class LiveSheetServer extends EventEmitter {
     return { ok: true, player: this.playerSnapshot(player) };
   }
 
+  setVvtState(payload) {
+    const state = sanitizeVvtState(payload);
+    this.vvtState = state;
+    this.broadcastToPlayers({
+      version: 1,
+      type: "dm:vvt:state",
+      state
+    });
+    return { ok: true, state };
+  }
+
+  broadcastToPlayers(payload) {
+    for (const player of this.players.values()) {
+      if (player.connected && player.ws && player.ws.readyState === WebSocket.OPEN) {
+        sendJson(player.ws, payload);
+      }
+    }
+  }
+
   handleConnection(socket, request) {
     let activePlayerId = null;
     socket.on("message", (rawMessage, isBinary) => {
@@ -414,6 +511,13 @@ class LiveSheetServer extends EventEmitter {
           serverTime: now,
           recommendedMode: this.status().recommendedConnectionMode
         });
+        if (this.vvtState?.active) {
+          sendJson(socket, {
+            version: 1,
+            type: "dm:vvt:state",
+            state: this.vvtState
+          });
+        }
       }
       if (validated.messageType !== "roll:event" || !previous || !previous.connected || previous.playerName !== validated.playerName) {
         this.emit("player-updated", this.playerSnapshot(player));

@@ -163,11 +163,71 @@ async function testTokenAcceptanceAndProtocol() {
   });
 }
 
+function nextMessages(socket, count) {
+  return new Promise((resolve, reject) => {
+    const messages = [];
+    const onMessage = (raw) => {
+      messages.push(JSON.parse(raw.toString("utf8")));
+      if (messages.length >= count) {
+        cleanup();
+        resolve(messages);
+      }
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      socket.off("message", onMessage);
+      socket.off("error", onError);
+    };
+    socket.on("message", onMessage);
+    socket.once("error", onError);
+  });
+}
+
+async function testVvtStateBroadcastAndWelcomeReplay() {
+  await withServer({ tokenEnabled: false }, async (server, port) => {
+    const socket = await openSocket(port);
+    send(socket, { type: "player:hello" });
+    const welcome = await nextMessage(socket);
+    assert.strictEqual(welcome.type, "server:welcome");
+
+    const broadcastPromise = nextMessage(socket);
+    const tinyPng = "data:image/png;base64,iVBORw0KGgo=";
+    const result = server.setVvtState({
+      active: true,
+      title: "Dungeon",
+      image: { name: "map.png", type: "image/png", dataUrl: tinyPng },
+      fogOfWar: {
+        enabled: true,
+        revealed: [{ x: 0.5, y: 0.5, rx: 0.1, ry: 0.1 }]
+      }
+    });
+    assert.strictEqual(result.ok, true);
+    const broadcast = await broadcastPromise;
+    assert.strictEqual(broadcast.type, "dm:vvt:state");
+    assert.strictEqual(broadcast.state.active, true);
+    assert.strictEqual(broadcast.state.fogOfWar.revealed.length, 1);
+
+    const secondSocket = await openSocket(port);
+    const replayMessagesPromise = nextMessages(secondSocket, 2);
+    send(secondSocket, { type: "player:hello" });
+    const [secondWelcome, replay] = await replayMessagesPromise;
+    assert.strictEqual(secondWelcome.type, "server:welcome");
+    assert.strictEqual(replay.type, "dm:vvt:state");
+    assert.strictEqual(replay.state.title, "Dungeon");
+    socket.close();
+    secondSocket.close();
+  });
+}
+
 (async () => {
   await testAddressDetection();
   await testStartStopAndSelfTest();
   await testTokenRejection();
   await testTokenAcceptanceAndProtocol();
+  await testVvtStateBroadcastAndWelcomeReplay();
   console.log("live-sheet-server tests passed");
 })().catch((error) => {
   console.error(error);

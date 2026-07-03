@@ -16,6 +16,31 @@ let scheduledPlatformBackgroundBroadcast = null;
 let lastPlatformBackgroundUrl = null;
 let obsidianService = null;
 
+function safePathSegment(value, fallback) {
+  return String(value || fallback)
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
+    .trim() || fallback;
+}
+
+function configureChromiumStoragePaths() {
+  const appDataRoot = process.env.LOCALAPPDATA || app.getPath("appData");
+  const appFolder = safePathSegment(app.getName(), "Planilla DnD");
+  const sessionDataPath = path.join(appDataRoot, appFolder, "SessionData");
+  const cachePath = path.join(sessionDataPath, "Cache");
+  const mediaCachePath = path.join(sessionDataPath, "MediaCache");
+  try {
+    fs.mkdirSync(cachePath, { recursive: true });
+    fs.mkdirSync(mediaCachePath, { recursive: true });
+    app.setPath("sessionData", sessionDataPath);
+    app.commandLine.appendSwitch("disk-cache-dir", cachePath);
+    app.commandLine.appendSwitch("media-cache-dir", mediaCachePath);
+  } catch (error) {
+    console.warn(`No se pudo configurar la cache de Electron: ${error?.message || error}`);
+  }
+}
+
+configureChromiumStoragePaths();
+
 const WINDOW_ROUTES = {
   characterSheet: {
     fileName: "index.html",
@@ -462,6 +487,10 @@ ipcMain.handle("live-sheet:kick-player", async (_event, playerId) => {
 
 ipcMain.handle("live-sheet:update-player-sheet", async (_event, { playerId, patch } = {}) => {
   return liveSheetServer.updatePlayerSheet(playerId, patch);
+});
+
+ipcMain.handle("live-sheet:publish-vvt-state", async (_event, state) => {
+  return liveSheetServer.setVvtState(state);
 });
 
 liveSheetServer.on("player-updated", (player) => {

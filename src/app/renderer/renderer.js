@@ -116,6 +116,8 @@
     let liveSheetClientSocket = null;
     let liveSheetClientSendTimer = null;
     let liveSheetClientManualDisconnect = false;
+    let liveVvtState = null;
+    let liveVvtElements = null;
 
     function loadUiSettings() {
       try {
@@ -213,6 +215,225 @@
       return publicData;
     }
 
+    function ensureLiveVvtWindow() {
+      if (liveVvtElements) return liveVvtElements;
+      const style = document.createElement("style");
+      style.textContent = `
+        .live-vvt-window {
+          position: fixed;
+          inset: 4vh 4vw;
+          z-index: 9998;
+          display: flex;
+          flex-direction: column;
+          min-width: 280px;
+          min-height: 220px;
+          border: 1px solid rgba(245, 158, 11, 0.72);
+          background: #020617;
+          color: #e5e7eb;
+          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.72);
+        }
+        .live-vvt-window[hidden] { display: none; }
+        .live-vvt-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          border-bottom: 2px solid #f59e0b;
+          padding: 10px 12px;
+          background: #111827;
+        }
+        .live-vvt-title {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font: 700 14px/1.1 system-ui, sans-serif;
+          text-transform: uppercase;
+          color: #fbbf24;
+        }
+        .live-vvt-close {
+          width: 28px;
+          height: 28px;
+          border: 1px solid #4b5563;
+          background: #1f2937;
+          color: #f9fafb;
+          font-weight: 700;
+        }
+        .live-vvt-body {
+          position: relative;
+          flex: 1;
+          overflow: hidden;
+          background: #020617;
+        }
+        .live-vvt-map {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+        }
+        .live-vvt-fog {
+          position: absolute;
+          pointer-events: none;
+        }
+        .live-vvt-grid {
+          position: absolute;
+          pointer-events: none;
+        }
+        .live-vvt-empty {
+          display: flex;
+          height: 100%;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          text-align: center;
+          color: #9ca3af;
+          font: 600 14px/1.35 system-ui, sans-serif;
+        }
+      `;
+      document.head.appendChild(style);
+
+      const root = document.createElement("section");
+      root.className = "live-vvt-window";
+      root.hidden = true;
+      root.setAttribute("aria-label", "VVT map");
+      root.innerHTML = `
+        <header class="live-vvt-header">
+          <div class="live-vvt-title"></div>
+          <button class="live-vvt-close" type="button" aria-label="Cerrar VVT">X</button>
+        </header>
+        <div class="live-vvt-body">
+          <div class="live-vvt-empty">Esperando mapa VVT del DM.</div>
+          <img class="live-vvt-map" alt="Mapa VVT" draggable="false" hidden>
+          <div class="live-vvt-grid" hidden></div>
+          <svg class="live-vvt-fog" viewBox="0 0 1 1" preserveAspectRatio="none" hidden></svg>
+        </div>
+      `;
+      document.body.appendChild(root);
+      const elements = {
+        root,
+        title: root.querySelector(".live-vvt-title"),
+        close: root.querySelector(".live-vvt-close"),
+        body: root.querySelector(".live-vvt-body"),
+        empty: root.querySelector(".live-vvt-empty"),
+        image: root.querySelector(".live-vvt-map"),
+        grid: root.querySelector(".live-vvt-grid"),
+        fog: root.querySelector(".live-vvt-fog")
+      };
+      elements.close.addEventListener("click", () => {
+        root.hidden = true;
+      });
+      elements.image.addEventListener("load", updateLiveVvtLayout);
+      window.addEventListener("resize", updateLiveVvtLayout);
+      liveVvtElements = elements;
+      return elements;
+    }
+
+    function liveVvtContainedRect(containerWidth, containerHeight, naturalWidth, naturalHeight) {
+      const safeContainerWidth = Math.max(1, Number(containerWidth) || 1);
+      const safeContainerHeight = Math.max(1, Number(containerHeight) || 1);
+      const safeNaturalWidth = Math.max(1, Number(naturalWidth) || safeContainerWidth);
+      const safeNaturalHeight = Math.max(1, Number(naturalHeight) || safeContainerHeight);
+      const scale = Math.min(safeContainerWidth / safeNaturalWidth, safeContainerHeight / safeNaturalHeight);
+      const width = safeNaturalWidth * scale;
+      const height = safeNaturalHeight * scale;
+      return {
+        left: (safeContainerWidth - width) / 2,
+        top: (safeContainerHeight - height) / 2,
+        width,
+        height
+      };
+    }
+
+    function updateLiveVvtLayout() {
+      const elements = liveVvtElements;
+      if (!elements || elements.root.hidden || elements.image.hidden) return;
+      const rect = elements.body.getBoundingClientRect();
+      const layout = liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
+      elements.fog.style.left = `${layout.left}px`;
+      elements.fog.style.top = `${layout.top}px`;
+      elements.fog.style.width = `${layout.width}px`;
+      elements.fog.style.height = `${layout.height}px`;
+      elements.grid.style.left = `${layout.left}px`;
+      elements.grid.style.top = `${layout.top}px`;
+      elements.grid.style.width = `${layout.width}px`;
+      elements.grid.style.height = `${layout.height}px`;
+    }
+
+    function renderLiveVvtGrid(element, grid) {
+      if (!grid?.enabled) {
+        element.hidden = true;
+        element.removeAttribute("style");
+        return;
+      }
+      element.hidden = false;
+      element.style.backgroundImage = "linear-gradient(rgba(56,189,248,0.58) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.58) 1px, transparent 1px)";
+      element.style.backgroundSize = `${Number(grid.cellWidth) || 70}px ${Number(grid.cellHeight) || 70}px`;
+      element.style.backgroundPosition = `${Number(grid.offsetX) || 0}px ${Number(grid.offsetY) || 0}px`;
+    }
+
+    function renderLiveVvtFog(svg, fog) {
+      const enabled = fog?.enabled !== false;
+      const revealed = Array.isArray(fog?.revealed) ? fog.revealed : [];
+      if (!enabled) {
+        svg.hidden = true;
+        svg.replaceChildren();
+        return;
+      }
+      svg.hidden = false;
+      const namespace = "http://www.w3.org/2000/svg";
+      const defs = document.createElementNS(namespace, "defs");
+      const mask = document.createElementNS(namespace, "mask");
+      const maskId = "live-vvt-fog-mask";
+      mask.setAttribute("id", maskId);
+      const maskRect = document.createElementNS(namespace, "rect");
+      maskRect.setAttribute("x", "0");
+      maskRect.setAttribute("y", "0");
+      maskRect.setAttribute("width", "1");
+      maskRect.setAttribute("height", "1");
+      maskRect.setAttribute("fill", "white");
+      mask.appendChild(maskRect);
+      revealed.forEach((point) => {
+        const ellipse = document.createElementNS(namespace, "ellipse");
+        ellipse.setAttribute("cx", String(Math.min(1, Math.max(0, Number(point.x) || 0))));
+        ellipse.setAttribute("cy", String(Math.min(1, Math.max(0, Number(point.y) || 0))));
+        ellipse.setAttribute("rx", String(Math.min(1, Math.max(0.001, Number(point.rx ?? point.r) || 0.06))));
+        ellipse.setAttribute("ry", String(Math.min(1, Math.max(0.001, Number(point.ry ?? point.r) || 0.06))));
+        ellipse.setAttribute("fill", "black");
+        mask.appendChild(ellipse);
+      });
+      defs.appendChild(mask);
+      const fogRect = document.createElementNS(namespace, "rect");
+      fogRect.setAttribute("x", "0");
+      fogRect.setAttribute("y", "0");
+      fogRect.setAttribute("width", "1");
+      fogRect.setAttribute("height", "1");
+      fogRect.setAttribute("fill", "rgba(2, 6, 23, 0.94)");
+      fogRect.setAttribute("mask", `url(#${maskId})`);
+      svg.replaceChildren(defs, fogRect);
+    }
+
+    function renderLiveVvtState(state) {
+      liveVvtState = state || null;
+      const elements = ensureLiveVvtWindow();
+      if (!state?.active || !state.image?.dataUrl) {
+        elements.root.hidden = true;
+        elements.image.hidden = true;
+        elements.empty.hidden = false;
+        elements.fog.hidden = true;
+        elements.grid.hidden = true;
+        return;
+      }
+      elements.title.textContent = [state.title || "Mapa VVT", state.pageName || ""].filter(Boolean).join(" - ");
+      elements.image.src = state.image.dataUrl;
+      elements.image.alt = state.image.name || "Mapa VVT";
+      elements.image.hidden = false;
+      elements.empty.hidden = true;
+      renderLiveVvtGrid(elements.grid, state.grid);
+      renderLiveVvtFog(elements.fog, state.fogOfWar);
+      elements.root.hidden = false;
+      requestAnimationFrame(updateLiveVvtLayout);
+    }
+
     function sendLiveSheetMessage(payload) {
       if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) return false;
       liveSheetClientSocket.send(JSON.stringify({
@@ -301,6 +522,7 @@
         }
       }
       liveSheetClientSocket = null;
+      renderLiveVvtState({ active: false });
       setLiveSheetClientStatus("Disconnected", "neutral");
       showStatus("Live sheet desconectada");
     }
@@ -362,9 +584,13 @@
             const applied = typeof applyLiveSheetPatch === "function" ? applyLiveSheetPatch(payload.patch) : false;
             setLiveSheetClientStatus(applied ? "Synced with DM" : "DM edit received, no matching fields", applied ? "ok" : "error");
           }
+          if (payload?.type === "dm:vvt:state") {
+            renderLiveVvtState(payload.state);
+          }
         });
         socket.addEventListener("close", () => {
           if (liveSheetClientSocket === socket) liveSheetClientSocket = null;
+          renderLiveVvtState({ active: false });
           setLiveSheetClientStatus(liveSheetClientManualDisconnect ? "Disconnected" : "Disconnected from DM.", liveSheetClientManualDisconnect ? "neutral" : "error");
         });
         socket.addEventListener("error", () => {

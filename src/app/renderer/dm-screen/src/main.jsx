@@ -125,6 +125,7 @@ const DM_MAP_IMAGE_DB_NAME = "dnd-dm-screen-map-images-v1";
 const DM_MAP_IMAGE_STORE_NAME = "map-images";
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
+const FOG_REVEAL_POINT_LIMIT = 1200;
 const DEFAULT_MAP_GRID = {
   enabled: false,
   snap: false,
@@ -132,6 +133,11 @@ const DEFAULT_MAP_GRID = {
   cellHeight: 70,
   offsetX: 0,
   offsetY: 0
+};
+const DEFAULT_MAP_FOG = {
+  enabled: true,
+  brushSize: 90,
+  revealed: []
 };
 const CHARACTER_SHEET_CODE_PREFIX = "DNDCS1";
 const CHARACTER_SHEET_CODE_TYPE = "dnd-character-sheet";
@@ -1184,6 +1190,39 @@ async function hydrateMapImage(image) {
   return snapshot;
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("No se pudo preparar la imagen para compartir."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function mapImageShareSnapshot(image) {
+  const snapshot = mapImageRuntimeSnapshot(image);
+  if (!snapshot) return null;
+  if (snapshot.dataUrl) {
+    return {
+      name: snapshot.name,
+      type: snapshot.type,
+      dataUrl: snapshot.dataUrl
+    };
+  }
+  if (snapshot.objectUrl) {
+    const response = await fetch(snapshot.objectUrl);
+    const blob = await response.blob();
+    return {
+      name: snapshot.name,
+      type: snapshot.type || blob.type || "",
+      dataUrl: await blobToDataUrl(blob)
+    };
+  }
+  const hydrated = await hydrateMapImage(snapshot);
+  if (hydrated?.dataUrl || hydrated?.objectUrl) return mapImageShareSnapshot(hydrated);
+  return null;
+}
+
 function mapTokenMonsterSnapshot(monster) {
   if (!monster?.name) return null;
   return {
@@ -1350,6 +1389,44 @@ function normalizeMapGrid(grid) {
   };
 }
 
+function normalizeMapFog(fog) {
+  const source = isPlainObject(fog) ? fog : {};
+  const revealed = Array.isArray(source.revealed)
+    ? source.revealed.slice(-FOG_REVEAL_POINT_LIMIT).map((point) => ({
+      x: clamp(Number(point?.x) || 0, 0, 1),
+      y: clamp(Number(point?.y) || 0, 0, 1),
+      rx: clamp(Number(point?.rx ?? point?.r) || 0.06, 0.001, 1),
+      ry: clamp(Number(point?.ry ?? point?.r) || 0.06, 0.001, 1)
+    }))
+    : [];
+  return {
+    enabled: source.enabled !== false,
+    brushSize: clamp(Number(source.brushSize) || DEFAULT_MAP_FOG.brushSize, 8, 360),
+    revealed
+  };
+}
+
+function mapFogSnapshot(fog) {
+  return normalizeMapFog(fog);
+}
+
+function appendMapFogPoint(fog, point) {
+  const normalized = normalizeMapFog(fog);
+  const nextPoint = {
+    x: clamp(Number(point?.x) || 0, 0, 1),
+    y: clamp(Number(point?.y) || 0, 0, 1),
+    rx: clamp(Number(point?.rx) || 0.06, 0.001, 1),
+    ry: clamp(Number(point?.ry) || 0.06, 0.001, 1)
+  };
+  const last = normalized.revealed[normalized.revealed.length - 1];
+  const minDelta = Math.max(nextPoint.rx, nextPoint.ry) * 0.28;
+  if (last && Math.hypot(last.x - nextPoint.x, last.y - nextPoint.y) < minDelta) return normalized;
+  return {
+    ...normalized,
+    revealed: [...normalized.revealed, nextPoint].slice(-FOG_REVEAL_POINT_LIMIT)
+  };
+}
+
 function mapGridSnapshot(grid) {
   return normalizeMapGrid(grid);
 }
@@ -1369,7 +1446,8 @@ function normalizeMapPage(page, fallbackId = "map-page-default", index = 0) {
     name: mapPageName(source, index),
     mapImage: source.mapImage ? mapImageRuntimeSnapshot(source.mapImage) : null,
     mapTokens: Array.isArray(source.mapTokens) ? source.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
-    mapGrid: normalizeMapGrid(source.mapGrid)
+    mapGrid: normalizeMapGrid(source.mapGrid),
+    fogOfWar: normalizeMapFog(source.fogOfWar)
   };
 }
 
@@ -1384,7 +1462,8 @@ function mapPagesForNote(note) {
     name: note.mapImage?.name || "Mapa 1",
     mapImage: note.mapImage || null,
     mapTokens: note.mapTokens || [],
-    mapGrid: note.mapGrid
+    mapGrid: note.mapGrid,
+    fogOfWar: note.fogOfWar
   }, defaultMapPageId(note.id), 0)];
 }
 
@@ -1404,7 +1483,8 @@ function syncMapNoteActivePage(note, pages, activePageId = null) {
     activeMapPageId: activePage?.id || null,
     mapImage: activePage?.mapImage || null,
     mapTokens: activePage?.mapTokens || [],
-    mapGrid: activePage?.mapGrid ? mapGridSnapshot(activePage.mapGrid) : normalizeMapGrid(null)
+    mapGrid: activePage?.mapGrid ? mapGridSnapshot(activePage.mapGrid) : normalizeMapGrid(null),
+    fogOfWar: activePage?.fogOfWar ? mapFogSnapshot(activePage.fogOfWar) : normalizeMapFog(null)
   };
 }
 
@@ -1424,7 +1504,8 @@ function mapPageStorageSnapshot(page) {
     name: normalized.name,
     mapImage: normalized.mapImage ? mapImageStorageSnapshot(normalized.mapImage) : null,
     mapTokens: normalized.mapTokens.map(mapTokenSnapshot).filter(Boolean),
-    mapGrid: mapGridSnapshot(normalized.mapGrid)
+    mapGrid: mapGridSnapshot(normalized.mapGrid),
+    fogOfWar: mapFogSnapshot(normalized.fogOfWar)
   };
 }
 
@@ -1434,7 +1515,8 @@ function restoreStoredMapPage(page, fallbackId, index = 0) {
     name: page?.name,
     mapImage: page?.mapImage ? restoreStoredMapImage(page.mapImage) : null,
     mapTokens: Array.isArray(page?.mapTokens) ? page.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
-    mapGrid: page?.mapGrid
+    mapGrid: page?.mapGrid,
+    fogOfWar: page?.fogOfWar
   }, fallbackId, index);
 }
 
@@ -1716,6 +1798,7 @@ function noteStorageSnapshot(note) {
     mapImage: activeMapPage?.mapImage ? mapImageStorageSnapshot(activeMapPage.mapImage) : null,
     mapTokens: activeMapPage ? activeMapPage.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [],
     mapGrid: activeMapPage ? mapGridSnapshot(activeMapPage.mapGrid) : null,
+    fogOfWar: activeMapPage ? mapFogSnapshot(activeMapPage.fogOfWar) : null,
     mapPages,
     activeMapPageId: note.kind === "map" ? (activeMapPage?.id || note.activeMapPageId || null) : null,
     obsidian: note.kind === "obsidian" ? {
@@ -1757,6 +1840,7 @@ function restoreStoredNote(note) {
     ? note.mapTokens.map(normalizeMapToken).filter(Boolean)
     : [];
   const mapGrid = note.kind === "map" ? normalizeMapGrid(note.mapGrid) : null;
+  const fogOfWar = note.kind === "map" ? normalizeMapFog(note.fogOfWar) : null;
   const restoredMapPages = note.kind === "map" && Array.isArray(note.mapPages) && note.mapPages.length
     ? note.mapPages.map((page, index) => restoreStoredMapPage(page, page.id || `${defaultMapPageId(note.id)}-${index + 1}`, index)).filter(Boolean)
     : note.kind === "map"
@@ -1765,7 +1849,8 @@ function restoreStoredNote(note) {
         name: mapImage?.name || "Mapa 1",
         mapImage,
         mapTokens,
-        mapGrid
+        mapGrid,
+        fogOfWar
       }, defaultMapPageId(note.id), 0)]
       : [];
   const activeMapPage = restoredMapPages.find((page) => page.id === note.activeMapPageId) || restoredMapPages[0] || null;
@@ -1803,6 +1888,7 @@ function restoreStoredNote(note) {
     mapImage: activeMapPage?.mapImage || mapImage,
     mapTokens: activeMapPage?.mapTokens || mapTokens,
     mapGrid: activeMapPage?.mapGrid || mapGrid,
+    fogOfWar: activeMapPage?.fogOfWar || fogOfWar,
     mapPages: restoredMapPages,
     activeMapPageId: activeMapPage?.id || null,
     obsidian,
@@ -4116,6 +4202,65 @@ function MapTokenTracker({ tokens, onHpChange }) {
   );
 }
 
+function containedMediaRect(containerWidth, containerHeight, naturalWidth, naturalHeight) {
+  const safeContainerWidth = Math.max(1, Number(containerWidth) || 1);
+  const safeContainerHeight = Math.max(1, Number(containerHeight) || 1);
+  const safeNaturalWidth = Math.max(1, Number(naturalWidth) || safeContainerWidth);
+  const safeNaturalHeight = Math.max(1, Number(naturalHeight) || safeContainerHeight);
+  const scale = Math.min(safeContainerWidth / safeNaturalWidth, safeContainerHeight / safeNaturalHeight);
+  const width = safeNaturalWidth * scale;
+  const height = safeNaturalHeight * scale;
+  return {
+    left: (safeContainerWidth - width) / 2,
+    top: (safeContainerHeight - height) / 2,
+    width,
+    height
+  };
+}
+
+function MapFogOverlay({
+  fog,
+  layout,
+  maskId,
+  opacity = 0.92,
+  className = "z-20 pointer-events-none",
+  onPointerDown,
+  onPointerMove,
+  onPointerUp
+}) {
+  const normalizedFog = normalizeMapFog(fog);
+  if (!normalizedFog.enabled || !layout?.width || !layout?.height) return null;
+  return (
+    <div
+      className={`absolute ${className}`}
+      style={{ left: layout.left, top: layout.top, width: layout.width, height: layout.height }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      <svg className="h-full w-full" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <mask id={maskId}>
+            <rect x="0" y="0" width="1" height="1" fill="white" />
+            {normalizedFog.revealed.map((point, index) => (
+              <ellipse
+                key={`${index}-${point.x}-${point.y}`}
+                cx={point.x}
+                cy={point.y}
+                rx={point.rx}
+                ry={point.ry}
+                fill="black"
+              />
+            ))}
+          </mask>
+        </defs>
+        <rect x="0" y="0" width="1" height="1" fill={`rgba(2,6,23,${opacity})`} mask={`url(#${maskId})`} />
+      </svg>
+    </div>
+  );
+}
+
 function MapNote({
   note,
   shellNote = null,
@@ -4136,16 +4281,24 @@ function MapNote({
   onMapPageSelect,
   onMapPageRename,
   onMapPageClose,
+  onMapFogChange,
+  onShareVvtMap,
+  isSharedVvtMap = false,
   onMapTokenHpChange,
   onMapTokenDragStart,
   onMapTokenContextMenu
 }) {
   const inputRef = useRef(null);
   const bodyRef = useRef(null);
+  const imageRef = useRef(null);
+  const fogBrushPointerRef = useRef(null);
   const pendingImageModeRef = useRef("replace");
   const [error, setError] = useState("");
   const [isAutoFittingGrid, setIsAutoFittingGrid] = useState(false);
   const [isGridPanelOpen, setIsGridPanelOpen] = useState(false);
+  const [isFogPanelOpen, setIsFogPanelOpen] = useState(false);
+  const [isFogBrushActive, setIsFogBrushActive] = useState(false);
+  const [imageLayout, setImageLayout] = useState(null);
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
   const noteActionId = actionNoteId || note.id;
@@ -4156,6 +4309,8 @@ function MapNote({
   const imageSrc = mapImageUrl(image);
   const tokens = Array.isArray(activePage.mapTokens) ? activePage.mapTokens : [];
   const grid = normalizeMapGrid(activePage.mapGrid);
+  const fog = normalizeMapFog(activePage.fogOfWar);
+  const fogMaskId = `map-fog-${noteActionId}-${activePage.id}`.replace(/[^a-zA-Z0-9_-]/g, "-");
 
   useEffect(() => {
     if (!image || image.objectUrl || (!image.assetId && !image.dataUrl)) return undefined;
@@ -4174,6 +4329,46 @@ function MapNote({
       cancelled = true;
     };
   }, [activePage.id, image?.assetId, image?.dataUrl, image?.objectUrl, noteActionId]);
+
+  useEffect(() => {
+    function updateImageLayout() {
+      const body = bodyRef.current;
+      const imageElement = imageRef.current;
+      if (!body || !imageElement || !imageSrc) {
+        setImageLayout(null);
+        return;
+      }
+      const rect = body.getBoundingClientRect();
+      const nextLayout = containedMediaRect(
+        rect.width,
+        rect.height,
+        imageElement.naturalWidth || rect.width,
+        imageElement.naturalHeight || rect.height
+      );
+      setImageLayout((current) => (
+        current
+          && Math.abs(current.left - nextLayout.left) < 0.5
+          && Math.abs(current.top - nextLayout.top) < 0.5
+          && Math.abs(current.width - nextLayout.width) < 0.5
+          && Math.abs(current.height - nextLayout.height) < 0.5
+          ? current
+          : nextLayout
+      ));
+    }
+
+    updateImageLayout();
+    if (!bodyRef.current || typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateImageLayout);
+      return () => window.removeEventListener("resize", updateImageLayout);
+    }
+    const resizeObserver = new ResizeObserver(updateImageLayout);
+    resizeObserver.observe(bodyRef.current);
+    window.addEventListener("resize", updateImageLayout);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateImageLayout);
+    };
+  }, [frameNote.height, frameNote.width, imageSrc, image?.updatedAt]);
 
   function openFilePicker(event, mode = "replace") {
     event?.stopPropagation?.();
@@ -4214,6 +4409,50 @@ function MapNote({
 
   function updateGrid(patch) {
     onMapGridChange?.(noteActionId, normalizeMapGrid({ ...grid, ...patch }), activePage.id);
+  }
+
+  function updateFog(patch) {
+    onMapFogChange?.(noteActionId, activePage.id, normalizeMapFog({ ...fog, ...patch }));
+  }
+
+  function revealFogAtPointer(event) {
+    if (!imageLayout?.width || !imageLayout?.height || !bodyRef.current) return;
+    const bodyRect = bodyRef.current.getBoundingClientRect();
+    const localX = event.clientX - bodyRect.left - imageLayout.left;
+    const localY = event.clientY - bodyRect.top - imageLayout.top;
+    if (localX < 0 || localY < 0 || localX > imageLayout.width || localY > imageLayout.height) return;
+    const brushSize = clamp(Number(fog.brushSize) || DEFAULT_MAP_FOG.brushSize, 8, 360);
+    const point = {
+      x: localX / imageLayout.width,
+      y: localY / imageLayout.height,
+      rx: (brushSize / 2) / imageLayout.width,
+      ry: (brushSize / 2) / imageLayout.height
+    };
+    onMapFogChange?.(noteActionId, activePage.id, appendMapFogPoint(fog, point));
+  }
+
+  function startFogBrush(event) {
+    if (!isFogBrushActive) return;
+    event.preventDefault();
+    event.stopPropagation();
+    fogBrushPointerRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    revealFogAtPointer(event);
+  }
+
+  function moveFogBrush(event) {
+    if (!isFogBrushActive || fogBrushPointerRef.current !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    revealFogAtPointer(event);
+  }
+
+  function stopFogBrush(event) {
+    if (fogBrushPointerRef.current !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    fogBrushPointerRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
 
   async function autoFitGrid(event) {
@@ -4302,6 +4541,15 @@ function MapNote({
           <p className="mt-2 text-sm italic text-neutral-500">VVT map note</p>
         </div>
         <div className="flex shrink-0 gap-1">
+          <button
+            className={`h-7 border px-2 text-xs font-bold uppercase ${isSharedVvtMap ? "border-emerald-400 bg-emerald-950 text-emerald-100" : "border-neutral-600 bg-neutral-800 text-neutral-100 hover:bg-neutral-700"}`}
+            type="button"
+            title="Compartir este mapa con jugadores conectados"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => onShareVvtMap?.(noteActionId, activePage.id)}
+          >
+            {isSharedVvtMap ? "LIVE" : "Share"}
+          </button>
           <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => openFilePicker(event, "add")}>MAP +</button>
           <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
           <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>D</button>
@@ -4370,10 +4618,16 @@ function MapNote({
       >
         {imageSrc ? (
           <img
+            ref={imageRef}
             className="h-full w-full object-contain"
             src={imageSrc}
             alt={image.name || title}
             draggable={false}
+            onLoad={(event) => {
+              const rect = bodyRef.current?.getBoundingClientRect?.();
+              if (!rect) return;
+              setImageLayout(containedMediaRect(rect.width, rect.height, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight));
+            }}
             onPointerDown={(event) => event.stopPropagation()}
           />
         ) : (
@@ -4395,6 +4649,18 @@ function MapNote({
               backgroundSize: `${grid.cellWidth}px ${grid.cellHeight}px`,
               backgroundPosition: `${grid.offsetX}px ${grid.offsetY}px`
             }}
+          />
+        ) : null}
+        {imageSrc ? (
+          <MapFogOverlay
+            fog={fog}
+            layout={imageLayout}
+            maskId={fogMaskId}
+            opacity={0.76}
+            className={isFogBrushActive ? "z-[25] cursor-crosshair" : "z-20 pointer-events-none"}
+            onPointerDown={startFogBrush}
+            onPointerMove={moveFogBrush}
+            onPointerUp={stopFogBrush}
           />
         ) : null}
         {imageSrc ? (
@@ -4488,6 +4754,60 @@ function MapNote({
                     onChange={(event) => updateGrid({ offsetY: event.target.value })}
                   />
                 </label>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {imageSrc ? (
+          <div
+            className="absolute left-3 top-3 z-30 border border-neutral-700 bg-neutral-950/92 text-[11px] text-neutral-200 shadow-lg"
+            data-board-control="true"
+            onPointerDown={(event) => event.stopPropagation()}
+            onWheel={(event) => event.stopPropagation()}
+          >
+            <button
+              className="flex w-full min-w-36 items-center justify-between gap-3 px-3 py-2 font-bold uppercase text-amber-300 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              type="button"
+              onClick={() => setIsFogPanelOpen((open) => !open)}
+            >
+              <span>Fog</span>
+              <span className="text-neutral-500">{isFogPanelOpen ? "-" : "+"}</span>
+            </button>
+            {isFogPanelOpen ? (
+              <div className="grid w-64 gap-2 border-t border-neutral-800 p-3">
+                <label className="inline-flex items-center gap-2 font-bold uppercase text-amber-300">
+                  <input
+                    type="checkbox"
+                    checked={fog.enabled}
+                    onChange={(event) => updateFog({ enabled: event.target.checked })}
+                  />
+                  Activar niebla
+                </label>
+                <label className="inline-flex items-center gap-2 font-bold uppercase text-sky-300">
+                  <input
+                    type="checkbox"
+                    checked={isFogBrushActive}
+                    onChange={(event) => setIsFogBrushActive(event.target.checked)}
+                  />
+                  Pincel revelar
+                </label>
+                <label className="grid gap-1 text-neutral-300">
+                  <span className="font-bold uppercase text-neutral-400">Tamaño {Math.round(fog.brushSize)}px</span>
+                  <input
+                    type="range"
+                    min="16"
+                    max="260"
+                    value={fog.brushSize}
+                    onChange={(event) => updateFog({ brushSize: event.target.value })}
+                  />
+                </label>
+                <button
+                  className="border border-red-500/50 bg-red-950/60 px-2 py-1 font-bold uppercase text-red-100 hover:bg-red-900"
+                  type="button"
+                  onClick={() => updateFog({ revealed: [] })}
+                >
+                  Oscurecer todo
+                </button>
               </div>
             ) : null}
           </div>
@@ -6593,6 +6913,7 @@ function DmScreenApp() {
   const [liveHostTokenEnabled, setLiveHostTokenEnabled] = useState(true);
   const [liveHostError, setLiveHostError] = useState("");
   const [livePlayersCollapsed, setLivePlayersCollapsed] = useState(loadLivePlayersPanelCollapsed);
+  const [sharedVvtMap, setSharedVvtMap] = useState(null);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
   const [selectedRootNoteIds, setSelectedRootNoteIds] = useState([]);
   const [selectionBox, setSelectionBox] = useState(null);
@@ -6698,11 +7019,53 @@ function DmScreenApp() {
     () => monsterNotes.filter((note) => !note.parentNoteId),
     [monsterNotes]
   );
+  const sharedVvtTarget = useMemo(() => {
+    const maps = monsterNotes.filter((note) => note.kind === "map");
+    if (!maps.length) return null;
+    const explicitNote = sharedVvtMap?.noteId ? maps.find((note) => note.id === sharedVvtMap.noteId) : null;
+    const note = explicitNote || maps.find((entry) => activeMapPageForNote(entry)?.mapImage) || maps[0];
+    const pages = mapPagesForNote(note);
+    const explicitPage = sharedVvtMap?.pageId ? pages.find((page) => page.id === sharedVvtMap.pageId) : null;
+    const page = explicitPage || activeMapPageForNote(note) || pages[0] || null;
+    return note && page ? { note, page } : null;
+  }, [monsterNotes, sharedVvtMap]);
   const selectedRootNoteIdSet = useMemo(() => new Set(selectedRootNoteIds), [selectedRootNoteIds]);
 
   useEffect(() => {
     saveDmBoardState(monsterNotes, boardView);
   }, [boardView, monsterNotes]);
+
+  useEffect(() => {
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet?.publishVvtState) return undefined;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        if (!sharedVvtTarget?.page?.mapImage) {
+          await liveSheet.publishVvtState({ active: false });
+          return;
+        }
+        const { note, page } = sharedVvtTarget;
+        const image = await mapImageShareSnapshot(page.mapImage);
+        if (cancelled || !image?.dataUrl) return;
+        await liveSheet.publishVvtState({
+          active: true,
+          title: noteDisplayName(note),
+          pageName: page.name || "",
+          image,
+          fogOfWar: mapFogSnapshot(page.fogOfWar),
+          grid: mapGridSnapshot(page.mapGrid),
+          updatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }, 280);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [sharedVvtTarget]);
 
   useEffect(() => {
     saveLivePlayersPanelCollapsed(livePlayersCollapsed);
@@ -7092,12 +7455,14 @@ function DmScreenApp() {
       mapImage,
       mapTokens: [],
       mapGrid: normalizeMapGrid(null),
+      fogOfWar: normalizeMapFog(null),
       mapPages: [{
         id: pageId,
         name: mapImage?.name || "Mapa 1",
         mapImage,
         mapTokens: [],
-        mapGrid: normalizeMapGrid(null)
+        mapGrid: normalizeMapGrid(null),
+        fogOfWar: normalizeMapFog(null)
       }],
       activeMapPageId: pageId,
       width,
@@ -7581,6 +7946,7 @@ function DmScreenApp() {
     const mapImage = payload.mapImage ? mapImageRuntimeSnapshot(payload.mapImage) : null;
     const mapTokens = Array.isArray(payload.mapTokens) ? payload.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [];
     const mapGrid = payload.kind === "map" ? mapGridSnapshot(payload.mapGrid) : null;
+    const fogOfWar = payload.kind === "map" ? mapFogSnapshot(payload.fogOfWar) : null;
     const noteId = `${payload.kind}-${(monster || payload.entry || character)?.name || obsidian?.relativePath || mapImage?.name || "note"}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const mapPages = payload.kind === "map"
       ? (Array.isArray(payload.mapPages) && payload.mapPages.length
@@ -7590,7 +7956,8 @@ function DmScreenApp() {
           name: mapImage?.name || "Mapa 1",
           mapImage,
           mapTokens,
-          mapGrid
+          mapGrid,
+          fogOfWar
         }, payload.activeMapPageId || defaultMapPageId(noteId), 0)])
       : [];
     const activeMapPage = mapPages.find((page) => page.id === payload.activeMapPageId) || mapPages[0] || null;
@@ -7612,6 +7979,7 @@ function DmScreenApp() {
         mapImage: activeMapPage?.mapImage || mapImage,
         mapTokens: activeMapPage?.mapTokens || mapTokens,
         mapGrid: activeMapPage?.mapGrid || mapGrid,
+        fogOfWar: activeMapPage?.fogOfWar || fogOfWar,
         mapPages,
         activeMapPageId: activeMapPage?.id || null,
         obsidian,
@@ -7663,6 +8031,7 @@ function DmScreenApp() {
         }))
         : [],
       mapGrid: source.mapGrid ? { ...source.mapGrid } : null,
+      fogOfWar: source.fogOfWar ? { ...source.fogOfWar, revealed: [...(source.fogOfWar.revealed || [])] } : null,
       mapPages: mapPagesForNote(source).map((page) => ({
         ...page,
         mapImage: page.mapImage ? { ...page.mapImage } : null,
@@ -7670,7 +8039,8 @@ function DmScreenApp() {
           ...token,
           id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
         })),
-        mapGrid: page.mapGrid ? { ...page.mapGrid } : null
+        mapGrid: page.mapGrid ? { ...page.mapGrid } : null,
+        fogOfWar: page.fogOfWar ? { ...page.fogOfWar, revealed: [...(page.fogOfWar.revealed || [])] } : null
       })),
       activeMapPageId: source.activeMapPageId,
       titleOverride: source.titleOverride || "",
@@ -7721,7 +8091,8 @@ function DmScreenApp() {
         name: mapImage?.name || (shouldReplaceEmptyPage ? firstPage.name : `Mapa ${pages.length + 1}`),
         mapImage: mapImage ? mapImageRuntimeSnapshot(mapImage) : null,
         mapTokens: shouldReplaceEmptyPage ? firstPage.mapTokens : [],
-        mapGrid: shouldReplaceEmptyPage ? firstPage.mapGrid : normalizeMapGrid(null)
+        mapGrid: shouldReplaceEmptyPage ? firstPage.mapGrid : normalizeMapGrid(null),
+        fogOfWar: shouldReplaceEmptyPage ? firstPage.fogOfWar : normalizeMapFog(null)
       }, shouldReplaceEmptyPage ? firstPage.id : pageId, shouldReplaceEmptyPage ? 0 : pages.length);
       return syncMapNoteActivePage(note, shouldReplaceEmptyPage ? [nextPage] : [
         ...pages,
@@ -7772,6 +8143,15 @@ function DmScreenApp() {
       note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
         ...page,
         mapGrid: mapGridSnapshot(mapGrid)
+      })) : note
+    )));
+  }
+
+  function updateMapFog(noteId, pageId, fogOfWar) {
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        fogOfWar: mapFogSnapshot(fogOfWar)
       })) : note
     )));
   }
@@ -9017,6 +9397,9 @@ function DmScreenApp() {
               onMapPageSelect={selectMapPage}
               onMapPageRename={renameMapPage}
               onMapPageClose={closeMapPage}
+              onMapFogChange={updateMapFog}
+              onShareVvtMap={(noteId, pageId) => setSharedVvtMap({ noteId, pageId })}
+              isSharedVvtMap={sharedVvtTarget?.note?.id === activeNote.id && sharedVvtTarget?.page?.id === activeMapPageForNote(activeNote)?.id}
               onMapTokenHpChange={updateMapTokenHp}
               onMapTokenDragStart={startMapTokenDrag}
               onMapTokenContextMenu={openMapTokenContextMenu}
