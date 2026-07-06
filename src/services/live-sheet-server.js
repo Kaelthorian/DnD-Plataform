@@ -10,6 +10,7 @@ const MAX_ROLL_TEXT_LENGTH = 600;
 const MAX_VVT_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_VVT_FOG_POINTS = 1200;
 const MAX_VVT_TOKENS = 200;
+const MAX_VVT_PING_AGE_MS = 5000;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -214,6 +215,17 @@ function sanitizeVvtToken(token) {
       dataUrl: sanitizeDataUrl(token.image?.dataUrl)
     },
     imageRequest: sanitizeVvtTokenImageRequest(token)
+  };
+}
+
+function sanitizeVvtPing(ping) {
+  if (!isPlainObject(ping)) return null;
+  return {
+    id: sanitizeText(ping.id, 120) || crypto.randomUUID?.() || `ping-${Date.now()}`,
+    x: clampNumber(ping.x, 0, 1, 0),
+    y: clampNumber(ping.y, 0, 1, 0),
+    color: sanitizeText(ping.color, 40) || "sky",
+    createdAt: sanitizeText(ping.createdAt, 40) || new Date().toISOString()
   };
 }
 
@@ -604,7 +616,12 @@ class LiveSheetServer extends EventEmitter {
           });
         }
       }
-      if (validated.messageType !== "roll:event" || !previous || !previous.connected || previous.playerName !== validated.playerName) {
+      if (
+        !["roll:event", "vvt:ping"].includes(validated.messageType)
+        || !previous
+        || !previous.connected
+        || previous.playerName !== validated.playerName
+      ) {
         this.emit("player-updated", this.playerSnapshot(player));
       }
       if (validated.messageType === "sheet:update") {
@@ -635,6 +652,21 @@ class LiveSheetServer extends EventEmitter {
           remoteAddress: player.remoteAddress
         });
       }
+      if (validated.messageType === "vvt:ping") {
+        const ping = {
+          ...validated.ping,
+          playerId: validated.playerId,
+          playerName: validated.playerName,
+          receivedAt: now,
+          expiresAt: new Date(Date.now() + MAX_VVT_PING_AGE_MS).toISOString()
+        };
+        this.broadcastToPlayers({
+          version: 1,
+          type: "dm:vvt:ping",
+          ping
+        });
+        this.emit("vvt-ping", ping);
+      }
       this.emitStatus();
     });
 
@@ -656,7 +688,7 @@ class LiveSheetServer extends EventEmitter {
 
   validatePayload(payload) {
     if (!isPlainObject(payload)) return { ok: false, error: "Payload invalido." };
-    if (!["player:hello", "sheet:update", "roll:event"].includes(payload.type) || payload.version !== 1) {
+    if (!["player:hello", "sheet:update", "roll:event", "vvt:ping"].includes(payload.type) || payload.version !== 1) {
       return { ok: false, error: "Tipo de mensaje no compatible." };
     }
     const playerId = sanitizePlayerId(payload.playerId);
@@ -664,6 +696,8 @@ class LiveSheetServer extends EventEmitter {
     if (payload.type === "sheet:update" && !isPlainObject(payload.data)) return { ok: false, error: "Falta data de planilla." };
     const roll = payload.type === "roll:event" ? sanitizeRollEvent(payload.roll) : null;
     if (payload.type === "roll:event" && !roll) return { ok: false, error: "Falta tirada." };
+    const ping = payload.type === "vvt:ping" ? sanitizeVvtPing(payload.ping) : null;
+    if (payload.type === "vvt:ping" && !ping) return { ok: false, error: "Falta ping de mapa." };
     return {
       ok: true,
       messageType: payload.type,
@@ -671,7 +705,8 @@ class LiveSheetServer extends EventEmitter {
       playerName: sanitizeText(payload.playerName) || "Jugador",
       sessionToken: sanitizeText(payload.sessionToken, 128),
       data: payload.type === "sheet:update" ? payload.data : null,
-      roll
+      roll,
+      ping
     };
   }
 }

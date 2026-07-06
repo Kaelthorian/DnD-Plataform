@@ -118,7 +118,9 @@
     let liveSheetClientManualDisconnect = false;
     let liveVvtState = null;
     let liveVvtElements = null;
+    let liveVvtPings = [];
     const liveVvtTokenImageCache = new Map();
+    const LIVE_VVT_PING_TTL_MS = 5000;
 
     function loadUiSettings() {
       try {
@@ -297,6 +299,60 @@
           pointer-events: none;
           z-index: 4;
         }
+        .live-vvt-pings {
+          position: absolute;
+          pointer-events: none;
+          z-index: 5;
+        }
+        .live-vvt-pings[hidden] {
+          display: none;
+        }
+        .live-vvt-ping {
+          position: absolute;
+          width: 54px;
+          height: 54px;
+          transform: translate(-50%, -50%);
+          border: 3px solid #38bdf8;
+          border-radius: 999px;
+          box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.2), 0 0 28px rgba(56, 189, 248, 0.74);
+          animation: live-vvt-ping-fade 5s ease-out forwards;
+        }
+        .live-vvt-ping::before,
+        .live-vvt-ping::after {
+          content: "";
+          position: absolute;
+          inset: 50% auto auto 50%;
+          width: 18px;
+          height: 3px;
+          transform: translate(-50%, -50%);
+          border-radius: 999px;
+          background: #e0f2fe;
+          box-shadow: 0 0 10px rgba(14, 165, 233, 0.9);
+        }
+        .live-vvt-ping::after {
+          transform: translate(-50%, -50%) rotate(90deg);
+        }
+        .live-vvt-ping-label {
+          position: absolute;
+          left: 50%;
+          top: calc(100% + 4px);
+          max-width: 140px;
+          transform: translateX(-50%);
+          overflow: hidden;
+          border: 1px solid rgba(56, 189, 248, 0.8);
+          background: rgba(2, 6, 23, 0.92);
+          padding: 3px 7px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: #e0f2fe;
+          font: 800 11px/1.1 system-ui, sans-serif;
+        }
+        @keyframes live-vvt-ping-fade {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.72); }
+          8% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          72% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(1.22); }
+        }
         .live-vvt-grid {
           position: absolute;
           pointer-events: none;
@@ -410,6 +466,7 @@
           <div class="live-vvt-grid" hidden></div>
           <div class="live-vvt-tokens" hidden></div>
           <canvas class="live-vvt-fog" hidden></canvas>
+          <div class="live-vvt-pings" hidden></div>
         </div>
       `;
       document.body.appendChild(root);
@@ -422,7 +479,8 @@
         image: root.querySelector(".live-vvt-map"),
         grid: root.querySelector(".live-vvt-grid"),
         tokens: root.querySelector(".live-vvt-tokens"),
-        fog: root.querySelector(".live-vvt-fog")
+        fog: root.querySelector(".live-vvt-fog"),
+        pings: root.querySelector(".live-vvt-pings")
       };
       elements.minimize.addEventListener("click", () => {
         const minimized = !root.classList.contains("is-minimized");
@@ -431,6 +489,7 @@
         elements.minimize.setAttribute("aria-label", minimized ? "Restaurar VVT" : "Minimizar VVT");
         if (!minimized) requestAnimationFrame(updateLiveVvtLayout);
       });
+      elements.body.addEventListener("pointerdown", sendLiveVvtPingFromPointer);
       elements.image.addEventListener("load", updateLiveVvtLayout);
       window.addEventListener("resize", updateLiveVvtLayout);
       liveVvtElements = elements;
@@ -470,8 +529,13 @@
       elements.tokens.style.top = `${layout.top}px`;
       elements.tokens.style.width = `${layout.width}px`;
       elements.tokens.style.height = `${layout.height}px`;
+      elements.pings.style.left = `${layout.left}px`;
+      elements.pings.style.top = `${layout.top}px`;
+      elements.pings.style.width = `${layout.width}px`;
+      elements.pings.style.height = `${layout.height}px`;
       renderLiveVvtTokens(elements.tokens, liveVvtState?.tokens, liveVvtState?.sourceViewport, layout);
       renderLiveVvtFog(elements.fog, liveVvtState?.fogOfWar, layout);
+      renderLiveVvtPings(elements.pings, layout);
     }
 
     function renderLiveVvtGrid(element, grid) {
@@ -650,6 +714,80 @@
       context.globalCompositeOperation = "source-over";
     }
 
+    function normalizeLiveVvtPing(ping) {
+      const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + LIVE_VVT_PING_TTL_MS);
+      return {
+        id: String(ping?.id || `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        x: Math.min(1, Math.max(0, Number(ping?.x) || 0)),
+        y: Math.min(1, Math.max(0, Number(ping?.y) || 0)),
+        playerName: String(ping?.playerName || "Jugador").slice(0, 80),
+        expiresAt
+      };
+    }
+
+    function pruneLiveVvtPings(now = Date.now()) {
+      liveVvtPings = liveVvtPings.filter((ping) => Number(ping.expiresAt) > now);
+      return liveVvtPings;
+    }
+
+    function renderLiveVvtPings(element, layout = null) {
+      if (!element) return;
+      const pings = pruneLiveVvtPings();
+      if (!pings.length) {
+        element.hidden = true;
+        element.replaceChildren();
+        return;
+      }
+      const width = Number(layout?.width) || element.clientWidth || 1;
+      const height = Number(layout?.height) || element.clientHeight || 1;
+      element.hidden = false;
+      const nodes = pings.map((ping) => {
+        const node = document.createElement("div");
+        node.className = "live-vvt-ping";
+        node.style.left = `${ping.x * width}px`;
+        node.style.top = `${ping.y * height}px`;
+        node.title = `Ping: ${ping.playerName}`;
+        const label = document.createElement("span");
+        label.className = "live-vvt-ping-label";
+        label.textContent = ping.playerName;
+        node.appendChild(label);
+        return node;
+      });
+      element.replaceChildren(...nodes);
+    }
+
+    function addLiveVvtPing(ping) {
+      const normalized = normalizeLiveVvtPing(ping);
+      liveVvtPings = [...pruneLiveVvtPings().filter((entry) => entry.id !== normalized.id), normalized].slice(-16);
+      requestAnimationFrame(updateLiveVvtLayout);
+      const timeout = Math.max(0, normalized.expiresAt - Date.now());
+      window.setTimeout(() => {
+        pruneLiveVvtPings();
+        requestAnimationFrame(updateLiveVvtLayout);
+      }, timeout + 40);
+    }
+
+    function sendLiveVvtPingFromPointer(event) {
+      if (event.button != null && event.button !== 0) return;
+      if (!liveVvtState?.active || !liveVvtElements || liveVvtElements.image.hidden) return;
+      if (event.target?.closest?.(".live-vvt-window-actions")) return;
+      const elements = liveVvtElements;
+      const rect = elements.body.getBoundingClientRect();
+      const layout = liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
+      const x = (event.clientX - rect.left - layout.left) / layout.width;
+      const y = (event.clientY - rect.top - layout.top) / layout.height;
+      if (x < 0 || y < 0 || x > 1 || y > 1) return;
+      sendLiveSheetMessage({
+        type: "vvt:ping",
+        ping: {
+          id: `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          x,
+          y,
+          createdAt: new Date().toISOString()
+        }
+      });
+    }
+
     function renderLiveVvtState(state) {
       liveVvtState = state || null;
       const elements = ensureLiveVvtWindow();
@@ -660,7 +798,10 @@
         elements.fog.hidden = true;
         elements.grid.hidden = true;
         elements.tokens.hidden = true;
+        elements.pings.hidden = true;
         elements.tokens.replaceChildren();
+        elements.pings.replaceChildren();
+        liveVvtPings = [];
         return;
       }
       elements.title.textContent = [state.title || "Mapa VVT", state.pageName || ""].filter(Boolean).join(" - ");
@@ -829,6 +970,9 @@
           }
           if (payload?.type === "dm:vvt:state") {
             renderLiveVvtState(payload.state);
+          }
+          if (payload?.type === "dm:vvt:ping") {
+            addLiveVvtPing(payload.ping);
           }
           if (payload?.type === "player:roll") {
             window.showLiveSheetRoll?.(payload.roll);

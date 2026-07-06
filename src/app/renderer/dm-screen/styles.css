@@ -18,3 +18,25 @@
     font: inherit;
   }
 }
+
+@keyframes mapPingFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+
+  8% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.22);
+  }
+}

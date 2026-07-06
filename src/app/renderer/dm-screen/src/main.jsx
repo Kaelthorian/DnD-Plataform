@@ -130,6 +130,7 @@ const FOG_REVEAL_POINT_LIMIT = 1200;
 const MAP_FOG_BRUSH_MIN_SIZE = 8;
 const MAP_FOG_BRUSH_MAX_SIZE = 360;
 const MAP_FOG_BRUSH_KEY_STEP = 10;
+const VVT_PING_TTL_MS = 5000;
 const DEFAULT_MAP_GRID = {
   enabled: false,
   snap: false,
@@ -4452,6 +4453,30 @@ function MapFogOverlay({
   );
 }
 
+function MapPingOverlay({ pings, layout }) {
+  const visiblePings = Array.isArray(pings) ? pings : [];
+  if (!visiblePings.length || !layout?.width || !layout?.height) return null;
+  return (
+    <div
+      className="pointer-events-none absolute z-[35]"
+      style={{ left: layout.left, top: layout.top, width: layout.width, height: layout.height }}
+      aria-hidden="true"
+    >
+      {visiblePings.map((ping) => (
+        <div
+          key={ping.id}
+          className="absolute h-14 w-14 -translate-x-1/2 -translate-y-1/2 animate-[mapPingFade_5s_ease-out_forwards] rounded-full border-[3px] border-sky-300 shadow-[0_0_0_6px_rgba(56,189,248,0.20),0_0_28px_rgba(56,189,248,0.74)] before:absolute before:left-1/2 before:top-1/2 before:h-[3px] before:w-5 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-sky-100 before:shadow-[0_0_10px_rgba(14,165,233,0.9)] after:absolute after:left-1/2 after:top-1/2 after:h-[3px] after:w-5 after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-90 after:rounded-full after:bg-sky-100 after:shadow-[0_0_10px_rgba(14,165,233,0.9)]"
+          style={{ left: `${ping.x * layout.width}px`, top: `${ping.y * layout.height}px` }}
+        >
+          <span className="absolute left-1/2 top-[calc(100%+4px)] max-w-36 -translate-x-1/2 truncate border border-sky-400/80 bg-neutral-950/95 px-2 py-1 text-[11px] font-extrabold leading-none text-sky-100 shadow">
+            {ping.playerName || "Jugador"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MapNote({
   note,
   shellNote = null,
@@ -4478,7 +4503,8 @@ function MapNote({
   onMapTokenHpChange,
   onMapTokensRollInitiative,
   onMapTokenDragStart,
-  onMapTokenContextMenu
+  onMapTokenContextMenu,
+  vvtPings = []
 }) {
   const inputRef = useRef(null);
   const bodyRef = useRef(null);
@@ -4492,6 +4518,7 @@ function MapNote({
   const [isFogPanelOpen, setIsFogPanelOpen] = useState(false);
   const [isFogBrushActive, setIsFogBrushActive] = useState(false);
   const [fogBrushPreview, setFogBrushPreview] = useState(null);
+  const [fogContextMenu, setFogContextMenu] = useState(null);
   const [imageLayout, setImageLayout] = useState(null);
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
@@ -4644,6 +4671,27 @@ function MapNote({
     return () => window.removeEventListener("keydown", handleFogBrushKeyDown);
   }, [activePage.id, fog.brushSize, fog.brushShape, fog.enabled, fog.revealed, imageLayout?.height, imageLayout?.width, isFogBrushActive, noteActionId]);
 
+  useEffect(() => {
+    setFogContextMenu(null);
+  }, [activePage.id, imageSrc, noteActionId]);
+
+  useEffect(() => {
+    if (!fogContextMenu) return undefined;
+    function handlePointerDown(event) {
+      if (event.target?.closest?.("[data-map-fog-menu='true']")) return;
+      setFogContextMenu(null);
+    }
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setFogContextMenu(null);
+    }
+    window.addEventListener("pointerdown", handlePointerDown, true);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown, true);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [fogContextMenu]);
+
   function fogPointFromPointer(event, mode = fogBrushModeRef.current) {
     if (!imageLayout?.width || !imageLayout?.height || !bodyRef.current) return;
     const bodyRect = bodyRef.current.getBoundingClientRect();
@@ -4681,10 +4729,10 @@ function MapNote({
 
   function startFogBrush(event) {
     if (!isFogBrushActive) return;
-    if (![0, 2].includes(event.button)) return;
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    fogBrushModeRef.current = event.button === 2 ? "hide" : "reveal";
+    fogBrushModeRef.current = "reveal";
     fogBrushPointerRef.current = event.pointerId;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     paintFogAtPointer(event);
@@ -4712,10 +4760,31 @@ function MapNote({
     setFogBrushPreview(null);
   }
 
-  function suppressFogBrushContextMenu(event) {
-    if (!isFogBrushActive) return;
+  function openFogContextMenu(event) {
+    if (!imageSrc || event.target?.closest?.("[data-map-fog-menu='true'], button, input, select, textarea")) return;
+    const point = fogPointFromPointer(event, "reveal");
+    if (!point) return;
     event.preventDefault();
     event.stopPropagation();
+    const viewportWidth = window.innerWidth || 1200;
+    const viewportHeight = window.innerHeight || 800;
+    setIsGridPanelOpen(false);
+    setIsFogPanelOpen(false);
+    setFogContextMenu({
+      x: clamp(event.clientX, 8, viewportWidth - 230),
+      y: clamp(event.clientY, 8, viewportHeight - 180),
+      point
+    });
+  }
+
+  function applyFogContextAction(mode) {
+    if (!fogContextMenu?.point) return;
+    const point = {
+      ...fogContextMenu.point,
+      mode: mode === "hide" ? "hide" : "reveal"
+    };
+    onMapFogChange?.(noteActionId, activePage.id, appendMapFogPoint({ ...fog, enabled: true }, point));
+    setFogContextMenu(null);
   }
 
   async function autoFitGrid(event) {
@@ -5042,6 +5111,7 @@ function MapNote({
         ref={bodyRef}
         className="relative min-h-0 flex-1 overflow-hidden bg-neutral-950"
         data-map-body-note-id={noteActionId}
+        onContextMenu={openFogContextMenu}
       >
         {imageSrc ? (
           <img
@@ -5093,8 +5163,11 @@ function MapNote({
             onPointerMove={moveFogBrush}
             onPointerUp={stopFogBrush}
             onPointerLeave={leaveFogBrush}
-            onContextMenu={suppressFogBrushContextMenu}
+            onContextMenu={openFogContextMenu}
           />
+        ) : null}
+        {imageSrc ? (
+          <MapPingOverlay pings={vvtPings} layout={imageLayout} />
         ) : null}
         {imageSrc ? (
           <MapTokenTracker
@@ -5146,6 +5219,53 @@ function MapNote({
           <p className="absolute bottom-3 left-3 max-w-[calc(100%-140px)] border border-red-500/40 bg-red-950/90 px-3 py-2 text-xs text-red-100">
             {error}
           </p>
+        ) : null}
+        {fogContextMenu ? (
+          <div
+            className="fixed z-[10003] w-56 border border-neutral-700 bg-neutral-950 p-1 text-xs text-neutral-200 shadow-2xl"
+            data-board-control="true"
+            data-map-fog-menu="true"
+            style={{ left: fogContextMenu.x, top: fogContextMenu.y }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
+            <div className="border-b border-neutral-800 px-3 py-2">
+              <p className="font-serif text-sm font-bold uppercase leading-none text-amber-500">Fog</p>
+              <p className="mt-1 text-[11px] text-neutral-500">
+                {Math.round(fog.brushSize)}px | {fog.brushShape === "square" ? "Cuadrado" : "Circulo"}
+              </p>
+            </div>
+            <button
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              type="button"
+              onClick={() => applyFogContextAction("reveal")}
+            >
+              <span>Borrar fog aca</span>
+              <span className="text-neutral-500">Reveal</span>
+            </button>
+            <button
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-300 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              type="button"
+              onClick={() => applyFogContextAction("hide")}
+            >
+              <span>Agregar fog aca</span>
+              <span className="text-neutral-500">Hide</span>
+            </button>
+            <button
+              className="flex w-full items-center justify-between border-t border-neutral-800 px-3 py-2 text-left font-bold text-neutral-300 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              type="button"
+              onClick={() => {
+                setIsFogPanelOpen(true);
+                setFogContextMenu(null);
+              }}
+            >
+              <span>Abrir controles</span>
+              <span className="text-neutral-500">+</span>
+            </button>
+          </div>
         ) : null}
       </div>
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
@@ -7304,6 +7424,7 @@ function DmScreenApp() {
   const [liveHostError, setLiveHostError] = useState("");
   const [livePlayersCollapsed, setLivePlayersCollapsed] = useState(loadLivePlayersPanelCollapsed);
   const [sharedVvtMap, setSharedVvtMap] = useState(null);
+  const [vvtPings, setVvtPings] = useState([]);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
   const [selectedRootNoteIds, setSelectedRootNoteIds] = useState([]);
   const [selectionBox, setSelectionBox] = useState(null);
@@ -7480,6 +7601,19 @@ function DmScreenApp() {
   }, [livePlayersCollapsed]);
 
   useEffect(() => {
+    if (!vvtPings.length) return undefined;
+    const timer = window.setTimeout(() => {
+      const now = Date.now();
+      setVvtPings((pings) => pings.filter((ping) => ping.expiresAt > now));
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [vvtPings]);
+
+  useEffect(() => {
+    setVvtPings([]);
+  }, [sharedVvtTarget?.note?.id, sharedVvtTarget?.page?.id]);
+
+  useEffect(() => {
     function activeNoteFromPasteTarget(target) {
       const targetElement = target instanceof Element ? target : null;
       const directNoteId = targetElement?.closest?.("[data-note-action-id]")?.dataset?.noteActionId || "";
@@ -7626,6 +7760,9 @@ function DmScreenApp() {
       if (!roll) return;
       appendLivePlayerRoll(roll);
     });
+    const unsubscribeVvtPing = liveSheet.onVvtPing?.((ping) => {
+      appendVvtPing(ping);
+    });
 
     return () => {
       disposed = true;
@@ -7633,8 +7770,29 @@ function DmScreenApp() {
       unsubscribeUpdated?.();
       unsubscribeDisconnected?.();
       unsubscribeRoll?.();
+      unsubscribeVvtPing?.();
     };
   }, []);
+
+  function normalizeVvtPing(ping) {
+    const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + VVT_PING_TTL_MS);
+    return {
+      id: String(ping?.id || `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+      x: clamp(Number(ping?.x) || 0, 0, 1),
+      y: clamp(Number(ping?.y) || 0, 0, 1),
+      playerName: String(ping?.playerName || "Jugador").slice(0, 80),
+      expiresAt
+    };
+  }
+
+  function appendVvtPing(ping) {
+    const normalized = normalizeVvtPing(ping);
+    const now = Date.now();
+    setVvtPings((pings) => [
+      ...pings.filter((entry) => entry.id !== normalized.id && entry.expiresAt > now),
+      normalized
+    ].slice(-16));
+  }
 
   async function returnToCharacterSheet() {
     setIsReturning(true);
@@ -9834,6 +9992,9 @@ function DmScreenApp() {
         {visibleNotes.map((rootNote) => {
           const tabs = groupTabNotes(rootNote, monsterNotes);
           const activeNote = tabs.find((note) => note.id === rootNote.activeTabId) || rootNote;
+          const isActiveSharedMap = activeNote.kind === "map"
+            && sharedVvtTarget?.note?.id === activeNote.id
+            && sharedVvtTarget?.page?.id === activeMapPageForNote(activeNote)?.id;
           const tabBar = tabs.length > 1 ? (
             <NoteTabBar
               notes={tabs}
@@ -9893,7 +10054,8 @@ function DmScreenApp() {
               onMapPageClose={closeMapPage}
               onMapFogChange={updateMapFog}
               onShareVvtMap={(noteId, pageId) => setSharedVvtMap({ noteId, pageId })}
-              isSharedVvtMap={sharedVvtTarget?.note?.id === activeNote.id && sharedVvtTarget?.page?.id === activeMapPageForNote(activeNote)?.id}
+              isSharedVvtMap={isActiveSharedMap}
+              vvtPings={isActiveSharedMap ? vvtPings : []}
               onMapTokenHpChange={updateMapTokenHp}
               onMapTokensRollInitiative={rollMapTokensInitiative}
               onMapTokenDragStart={startMapTokenDrag}

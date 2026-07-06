@@ -534,6 +534,10 @@ liveSheetServer.on("player-roll", (roll) => {
   broadcastToRenderers("live-sheet:player-roll", roll);
 });
 
+liveSheetServer.on("vvt-ping", (ping) => {
+  broadcastToRenderers("live-sheet:vvt-ping", ping);
+});
+
 liveSheetServer.on("server-status", (status) => {
   broadcastToRenderers("live-sheet:server-status", status);
 });

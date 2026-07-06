@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld("dndSheet", {
     onPlayerUpdated: (callback) => onRendererEvent("live-sheet:player-updated", callback),
     onPlayerDisconnected: (callback) => onRendererEvent("live-sheet:player-disconnected", callback),
     onPlayerRoll: (callback) => onRendererEvent("live-sheet:player-roll", callback),
+    onVvtPing: (callback) => onRendererEvent("live-sheet:vvt-ping", callback),
     onServerStatus: (callback) => onRendererEvent("live-sheet:server-status", callback)
   },
   obsidian: {
