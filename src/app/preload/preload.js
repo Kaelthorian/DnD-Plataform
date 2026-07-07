@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld("dndSheet", {
   getPlatformBackgroundImageUrl: () => ipcRenderer.invoke("platform-background:image-url"),
   getMonsterTokenUrl: (request) => ipcRenderer.invoke("monster-token:image-url", request),
   getMonsterTokenDataUrl: (request) => ipcRenderer.invoke("monster-token:data-url", request),
+  listTokenLibrary: () => ipcRenderer.invoke("token-library:list"),
+  getTokenLibraryImage: (tokenId) => ipcRenderer.invoke("token-library:data-url", tokenId),
   onPlatformBackgroundChanged: (callback) => {
     return onRendererEvent("platform-background:changed", callback);
   },

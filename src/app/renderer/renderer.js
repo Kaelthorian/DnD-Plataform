@@ -247,6 +247,7 @@
         .live-vvt-map[hidden],
         .live-vvt-grid[hidden],
         .live-vvt-tokens[hidden],
+        .live-vvt-markers[hidden],
         .live-vvt-fog[hidden],
         .live-vvt-empty[hidden] {
           display: none;
@@ -363,6 +364,48 @@
           pointer-events: none;
           z-index: 3;
         }
+        .live-vvt-markers {
+          position: absolute;
+          pointer-events: none;
+          z-index: 4;
+        }
+        .live-vvt-marker {
+          position: absolute;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transform: translate(-50%, -100%);
+          color: #fef3c7;
+          font: 800 10px/1.1 system-ui, sans-serif;
+          text-transform: uppercase;
+        }
+        .live-vvt-marker-pin {
+          display: flex;
+          width: 28px;
+          height: 28px;
+          align-items: center;
+          justify-content: center;
+          transform: rotate(-45deg);
+          border: 2px solid #020617;
+          border-radius: 9999px 9999px 9999px 2px;
+          background: #fbbf24;
+          color: #020617;
+          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.7);
+          font: 900 11px/1 system-ui, sans-serif;
+        }
+        .live-vvt-marker-pin span {
+          transform: rotate(45deg);
+        }
+        .live-vvt-marker-label {
+          max-width: 128px;
+          margin-top: 4px;
+          overflow: hidden;
+          border: 1px solid rgba(75, 85, 99, 0.92);
+          background: rgba(2, 6, 23, 0.92);
+          padding: 2px 6px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .live-vvt-token {
           position: absolute;
           transform-origin: 0 0;
@@ -465,6 +508,7 @@
           <img class="live-vvt-map" alt="Mapa VVT" draggable="false" hidden>
           <div class="live-vvt-grid" hidden></div>
           <div class="live-vvt-tokens" hidden></div>
+          <div class="live-vvt-markers" hidden></div>
           <canvas class="live-vvt-fog" hidden></canvas>
           <div class="live-vvt-pings" hidden></div>
         </div>
@@ -479,6 +523,7 @@
         image: root.querySelector(".live-vvt-map"),
         grid: root.querySelector(".live-vvt-grid"),
         tokens: root.querySelector(".live-vvt-tokens"),
+        markers: root.querySelector(".live-vvt-markers"),
         fog: root.querySelector(".live-vvt-fog"),
         pings: root.querySelector(".live-vvt-pings")
       };
@@ -529,11 +574,16 @@
       elements.tokens.style.top = `${layout.top}px`;
       elements.tokens.style.width = `${layout.width}px`;
       elements.tokens.style.height = `${layout.height}px`;
+      elements.markers.style.left = `${layout.left}px`;
+      elements.markers.style.top = `${layout.top}px`;
+      elements.markers.style.width = `${layout.width}px`;
+      elements.markers.style.height = `${layout.height}px`;
       elements.pings.style.left = `${layout.left}px`;
       elements.pings.style.top = `${layout.top}px`;
       elements.pings.style.width = `${layout.width}px`;
       elements.pings.style.height = `${layout.height}px`;
       renderLiveVvtTokens(elements.tokens, liveVvtState?.tokens, liveVvtState?.sourceViewport, layout);
+      renderLiveVvtMarkers(elements.markers, liveVvtState?.markers, liveVvtState?.sourceViewport, layout);
       renderLiveVvtFog(elements.fog, liveVvtState?.fogOfWar, layout);
       renderLiveVvtPings(elements.pings, layout);
     }
@@ -671,6 +721,44 @@
       element.replaceChildren(...nodes);
     }
 
+    function renderLiveVvtMarkers(element, markers, sourceViewport, layout = null) {
+      const visibleMarkers = Array.isArray(markers) ? markers : [];
+      if (!visibleMarkers.length) {
+        element.hidden = true;
+        element.replaceChildren();
+        return;
+      }
+      element.hidden = false;
+      const width = Math.max(1, Number(sourceViewport?.width) || Number(layout?.width) || 1);
+      const height = Math.max(1, Number(sourceViewport?.height) || Number(layout?.height) || 1);
+      const scaleX = (Number(layout?.width) || element.clientWidth || width) / width;
+      const scaleY = (Number(layout?.height) || element.clientHeight || height) / height;
+      const scale = Math.min(scaleX, scaleY);
+      const nodes = visibleMarkers.map((marker) => {
+        const node = document.createElement("div");
+        node.className = "live-vvt-marker";
+        node.title = marker.label || "Marker";
+        node.style.left = `${(Number(marker.x) || 0) * scaleX}px`;
+        node.style.top = `${(Number(marker.y) || 0) * scaleY}px`;
+
+        const pin = document.createElement("span");
+        pin.className = "live-vvt-marker-pin";
+        pin.style.width = `${28 * scale}px`;
+        pin.style.height = `${28 * scale}px`;
+        const pinText = document.createElement("span");
+        pinText.textContent = "M";
+        pin.appendChild(pinText);
+        node.appendChild(pin);
+
+        const label = document.createElement("span");
+        label.className = "live-vvt-marker-label";
+        label.textContent = marker.label || "Marker";
+        node.appendChild(label);
+        return node;
+      });
+      element.replaceChildren(...nodes);
+    }
+
     function renderLiveVvtFog(canvas, fog, layout = null) {
       const enabled = fog?.enabled !== false;
       const revealed = Array.isArray(fog?.revealed) ? fog.revealed : [];
@@ -718,6 +806,7 @@
       const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + LIVE_VVT_PING_TTL_MS);
       return {
         id: String(ping?.id || `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        playerId: String(ping?.playerId || ""),
         x: Math.min(1, Math.max(0, Number(ping?.x) || 0)),
         y: Math.min(1, Math.max(0, Number(ping?.y) || 0)),
         playerName: String(ping?.playerName || "Jugador").slice(0, 80),
@@ -758,7 +847,14 @@
 
     function addLiveVvtPing(ping) {
       const normalized = normalizeLiveVvtPing(ping);
-      liveVvtPings = [...pruneLiveVvtPings().filter((entry) => entry.id !== normalized.id), normalized].slice(-16);
+      liveVvtPings = [
+        ...pruneLiveVvtPings().filter((entry) => (
+          normalized.playerId
+            ? entry.playerId !== normalized.playerId
+            : entry.id !== normalized.id
+        )),
+        normalized
+      ].slice(-16);
       requestAnimationFrame(updateLiveVvtLayout);
       const timeout = Math.max(0, normalized.expiresAt - Date.now());
       window.setTimeout(() => {
@@ -798,8 +894,10 @@
         elements.fog.hidden = true;
         elements.grid.hidden = true;
         elements.tokens.hidden = true;
+        elements.markers.hidden = true;
         elements.pings.hidden = true;
         elements.tokens.replaceChildren();
+        elements.markers.replaceChildren();
         elements.pings.replaceChildren();
         liveVvtPings = [];
         return;
@@ -812,6 +910,7 @@
       renderLiveVvtGrid(elements.grid, state.grid);
       renderLiveVvtFog(elements.fog, state.fogOfWar);
       renderLiveVvtTokens(elements.tokens, state.tokens, state.sourceViewport);
+      renderLiveVvtMarkers(elements.markers, state.markers, state.sourceViewport);
       elements.root.hidden = false;
       requestAnimationFrame(updateLiveVvtLayout);
     }

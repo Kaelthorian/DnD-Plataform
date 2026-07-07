@@ -1,4 +1,5 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import bestiary from "../../../../data/bestiary/bestiary-sublist-data.json";
 import spells from "../../../../data/spells/spells.json";
@@ -126,6 +127,7 @@ const DM_MAP_IMAGE_DB_NAME = "dnd-dm-screen-map-images-v1";
 const DM_MAP_IMAGE_STORE_NAME = "map-images";
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
+const MAP_MARKER_SIZE = 28;
 const FOG_REVEAL_POINT_LIMIT = 1200;
 const MAP_FOG_BRUSH_MIN_SIZE = 8;
 const MAP_FOG_BRUSH_MAX_SIZE = 360;
@@ -878,6 +880,21 @@ function noteTabIds(note) {
   return [note?.id, ...(Array.isArray(note?.tabNoteIds) ? note.tabNoteIds : [])].filter(Boolean);
 }
 
+function noteTabFrameSize(note, fallback = null) {
+  return {
+    width: clamp(
+      Number(note?.tabFrameWidth ?? note?.width ?? fallback?.width) || NOTE_DEFAULT_WIDTH,
+      NOTE_MIN_WIDTH,
+      BOARD_WIDTH - BOARD_PADDING * 2
+    ),
+    height: clamp(
+      Number(note?.tabFrameHeight ?? note?.height ?? fallback?.height) || NOTE_DEFAULT_HEIGHT,
+      NOTE_MIN_HEIGHT,
+      BOARD_HEIGHT - BOARD_PADDING * 2
+    )
+  };
+}
+
 function groupTabNotes(rootNote, notes) {
   const ids = new Set(noteTabIds(rootNote));
   return (notes || []).filter((note) => ids.has(note.id));
@@ -899,6 +916,7 @@ function promoteTabToRootInCollection(notes, rootId, nextRootId) {
   const nextActiveTabId = root.activeTabId && root.activeTabId !== rootId && root.activeTabId !== nextRootId
     ? root.activeTabId
     : nextRootId;
+  const nextRootSize = noteTabFrameSize(nextRoot, root);
 
   return notes.map((note) => {
     if (note.id === nextRootId) {
@@ -909,8 +927,8 @@ function promoteTabToRootInCollection(notes, rootId, nextRootId) {
         activeTabId: nextActiveTabId,
         x: root.x,
         y: root.y,
-        width: root.width,
-        height: root.height,
+        width: nextRootSize.width,
+        height: nextRootSize.height,
         z: root.z,
         minimized: root.minimized
       };
@@ -924,6 +942,8 @@ function closeSingleNoteInCollection(notes, noteId) {
   const rootId = resolveRootNoteId(noteId, notes);
   const root = notes.find((note) => note.id === rootId);
   if (!root) return notes;
+  const noteToClose = notes.find((note) => note.id === noteId) || root;
+  if (mapNoteHasTokens(noteToClose)) return notes;
   const groupedIds = noteTabIds(root);
   if (groupedIds.length <= 1) return notes.filter((note) => note.id !== rootId);
 
@@ -937,6 +957,8 @@ function closeSingleNoteInCollection(notes, noteId) {
   const fallbackActiveId = root.activeTabId === noteId
     ? (groupedIds.find((id) => id !== noteId && id !== rootId) || rootId)
     : root.activeTabId;
+  const fallbackActiveNote = notes.find((note) => note.id === fallbackActiveId) || root;
+  const fallbackSize = noteTabFrameSize(fallbackActiveNote, root);
 
   return notes
     .filter((note) => note.id !== noteId)
@@ -945,7 +967,9 @@ function closeSingleNoteInCollection(notes, noteId) {
         ? {
           ...note,
           tabNoteIds: (note.tabNoteIds || []).filter((id) => id !== noteId),
-          activeTabId: fallbackActiveId
+          activeTabId: fallbackActiveId,
+          width: fallbackSize.width,
+          height: fallbackSize.height
         }
         : note
     ));
@@ -1243,6 +1267,7 @@ async function mapImageShareSnapshot(image) {
 async function mapTokenShareSnapshot(token) {
   const snapshot = mapTokenSnapshot(token);
   if (!snapshot) return null;
+  if (snapshot.image?.dataUrl) return snapshot;
   if (snapshot.kind !== "monster") return snapshot;
   const request = monsterTokenRequest(snapshot.monster);
   try {
@@ -1331,6 +1356,16 @@ function normalizeMapTokenCombatFields(token) {
     initiative: normalizeCombatNumber(token?.initiative, ""),
     initiativeModifier: normalizeCombatNumber(token?.initiativeModifier, 0),
     initiativeDetail: String(token?.initiativeDetail || "")
+  };
+}
+
+function normalizeMapTokenImage(image) {
+  if (!image?.dataUrl) return null;
+  return {
+    id: String(image.id || `map-token-image-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    name: String(image.name || "Token.png"),
+    type: String(image.type || "image/png"),
+    dataUrl: String(image.dataUrl || "")
   };
 }
 
@@ -1427,6 +1462,7 @@ function normalizeMapToken(token) {
     x: Number.isFinite(Number(token.x)) ? Number(token.x) : 0,
     y: Number.isFinite(Number(token.y)) ? Number(token.y) : 0,
     size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140),
+    image: normalizeMapTokenImage(token.image),
     ...normalizeMapTokenCombatFields(token),
     actorNote: normalizeTokenActorNote(token.actorNote, token)
   };
@@ -1434,6 +1470,25 @@ function normalizeMapToken(token) {
 
 function mapTokenSnapshot(token) {
   return normalizeMapToken(token);
+}
+
+function normalizeMapMarker(marker, index = 0) {
+  const source = isPlainObject(marker) ? marker : {};
+  return {
+    id: String(source.id || `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    label: String(source.label || source.name || `Marker ${index + 1}`).slice(0, 80),
+    x: Number.isFinite(Number(source.x)) ? Number(source.x) : 0,
+    y: Number.isFinite(Number(source.y)) ? Number(source.y) : 0,
+    color: String(source.color || "amber")
+  };
+}
+
+function mapMarkerSnapshot(marker, index = 0) {
+  return normalizeMapMarker(marker, index);
+}
+
+function mapMarkersSnapshot(markers) {
+  return Array.isArray(markers) ? markers.map(mapMarkerSnapshot).filter(Boolean) : [];
 }
 
 function normalizeMapGrid(grid) {
@@ -1516,8 +1571,11 @@ function normalizeMapPage(page, fallbackId = "map-page-default", index = 0) {
     name: mapPageName(source, index),
     mapImage: source.mapImage ? mapImageRuntimeSnapshot(source.mapImage) : null,
     mapTokens: Array.isArray(source.mapTokens) ? source.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
+    mapMarkers: Array.isArray(source.mapMarkers) ? source.mapMarkers.map((marker, markerIndex) => normalizeMapMarker(marker, markerIndex)).filter(Boolean) : [],
     mapGrid: normalizeMapGrid(source.mapGrid),
-    fogOfWar: normalizeMapFog(source.fogOfWar)
+    fogOfWar: normalizeMapFog(source.fogOfWar),
+    frameWidth: Number(source.frameWidth) || null,
+    frameHeight: Number(source.frameHeight) || null
   };
 }
 
@@ -1532,9 +1590,18 @@ function mapPagesForNote(note) {
     name: note.mapImage?.name || "Mapa 1",
     mapImage: note.mapImage || null,
     mapTokens: note.mapTokens || [],
+    mapMarkers: note.mapMarkers || [],
     mapGrid: note.mapGrid,
     fogOfWar: note.fogOfWar
   }, defaultMapPageId(note.id), 0)];
+}
+
+function mapPageHasTokens(page) {
+  return Array.isArray(page?.mapTokens) && page.mapTokens.length > 0;
+}
+
+function mapNoteHasTokens(note) {
+  return note?.kind === "map" && mapPagesForNote(note).some(mapPageHasTokens);
 }
 
 function activeMapPageForNote(note) {
@@ -1547,14 +1614,21 @@ function syncMapNoteActivePage(note, pages, activePageId = null) {
   const safePages = normalizedPages.length ? normalizedPages : mapPagesForNote(note);
   const nextActiveId = activePageId || note?.activeMapPageId || safePages[0]?.id || null;
   const activePage = safePages.find((page) => page.id === nextActiveId) || safePages[0] || null;
+  const frameWidth = activePage?.frameWidth || note.width;
+  const frameHeight = activePage?.frameHeight || note.height;
   return {
     ...note,
     mapPages: safePages,
     activeMapPageId: activePage?.id || null,
     mapImage: activePage?.mapImage || null,
     mapTokens: activePage?.mapTokens || [],
+    mapMarkers: activePage?.mapMarkers || [],
     mapGrid: activePage?.mapGrid ? mapGridSnapshot(activePage.mapGrid) : normalizeMapGrid(null),
-    fogOfWar: activePage?.fogOfWar ? mapFogSnapshot(activePage.fogOfWar) : normalizeMapFog(null)
+    fogOfWar: activePage?.fogOfWar ? mapFogSnapshot(activePage.fogOfWar) : normalizeMapFog(null),
+    width: frameWidth,
+    height: frameHeight,
+    tabFrameWidth: frameWidth,
+    tabFrameHeight: frameHeight
   };
 }
 
@@ -1574,8 +1648,11 @@ function mapPageStorageSnapshot(page) {
     name: normalized.name,
     mapImage: normalized.mapImage ? mapImageStorageSnapshot(normalized.mapImage) : null,
     mapTokens: normalized.mapTokens.map(mapTokenSnapshot).filter(Boolean),
+    mapMarkers: mapMarkersSnapshot(normalized.mapMarkers),
     mapGrid: mapGridSnapshot(normalized.mapGrid),
-    fogOfWar: mapFogSnapshot(normalized.fogOfWar)
+    fogOfWar: mapFogSnapshot(normalized.fogOfWar),
+    frameWidth: normalized.frameWidth || null,
+    frameHeight: normalized.frameHeight || null
   };
 }
 
@@ -1585,8 +1662,11 @@ function restoreStoredMapPage(page, fallbackId, index = 0) {
     name: page?.name,
     mapImage: page?.mapImage ? restoreStoredMapImage(page.mapImage) : null,
     mapTokens: Array.isArray(page?.mapTokens) ? page.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
+    mapMarkers: mapMarkersSnapshot(page?.mapMarkers),
     mapGrid: page?.mapGrid,
-    fogOfWar: page?.fogOfWar
+    fogOfWar: page?.fogOfWar,
+    frameWidth: page?.frameWidth,
+    frameHeight: page?.frameHeight
   }, fallbackId, index);
 }
 
@@ -1867,6 +1947,7 @@ function noteStorageSnapshot(note) {
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(storedImageSnapshot).filter(Boolean) : [],
     mapImage: activeMapPage?.mapImage ? mapImageStorageSnapshot(activeMapPage.mapImage) : null,
     mapTokens: activeMapPage ? activeMapPage.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [],
+    mapMarkers: activeMapPage ? mapMarkersSnapshot(activeMapPage.mapMarkers) : [],
     mapGrid: activeMapPage ? mapGridSnapshot(activeMapPage.mapGrid) : null,
     fogOfWar: activeMapPage ? mapFogSnapshot(activeMapPage.fogOfWar) : null,
     mapPages,
@@ -1883,6 +1964,8 @@ function noteStorageSnapshot(note) {
     activeTabId: note.activeTabId || null,
     linkedMapToken: normalizeLinkedMapTokenLink(note.linkedMapToken),
     tokenInitiative: note.tokenInitiative ?? "",
+    tabFrameWidth: note.tabFrameWidth ?? note.width,
+    tabFrameHeight: note.tabFrameHeight ?? note.height,
     x: note.x,
     y: note.y,
     width: note.width,
@@ -1909,6 +1992,7 @@ function restoreStoredNote(note) {
   const mapTokens = note.kind === "map" && Array.isArray(note.mapTokens)
     ? note.mapTokens.map(normalizeMapToken).filter(Boolean)
     : [];
+  const mapMarkers = note.kind === "map" ? mapMarkersSnapshot(note.mapMarkers) : [];
   const mapGrid = note.kind === "map" ? normalizeMapGrid(note.mapGrid) : null;
   const fogOfWar = note.kind === "map" ? normalizeMapFog(note.fogOfWar) : null;
   const restoredMapPages = note.kind === "map" && Array.isArray(note.mapPages) && note.mapPages.length
@@ -1919,8 +2003,11 @@ function restoreStoredNote(note) {
         name: mapImage?.name || "Mapa 1",
         mapImage,
         mapTokens,
+        mapMarkers,
         mapGrid,
-        fogOfWar
+        fogOfWar,
+        frameWidth: Number(note.width) || NOTE_DEFAULT_WIDTH,
+        frameHeight: Number(note.height) || NOTE_DEFAULT_HEIGHT
       }, defaultMapPageId(note.id), 0)]
       : [];
   const activeMapPage = restoredMapPages.find((page) => page.id === note.activeMapPageId) || restoredMapPages[0] || null;
@@ -1957,6 +2044,7 @@ function restoreStoredNote(note) {
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(restoreStoredImage).filter(Boolean) : [],
     mapImage: activeMapPage?.mapImage || mapImage,
     mapTokens: activeMapPage?.mapTokens || mapTokens,
+    mapMarkers: activeMapPage?.mapMarkers || mapMarkers,
     mapGrid: activeMapPage?.mapGrid || mapGrid,
     fogOfWar: activeMapPage?.fogOfWar || fogOfWar,
     mapPages: restoredMapPages,
@@ -1975,6 +2063,8 @@ function restoreStoredNote(note) {
     activeTabId: note.activeTabId ? String(note.activeTabId) : null,
     linkedMapToken: normalizeLinkedMapTokenLink(note.linkedMapToken),
     tokenInitiative: note.tokenInitiative ?? "",
+    tabFrameWidth: Number(note.tabFrameWidth) || width,
+    tabFrameHeight: Number(note.tabFrameHeight) || height,
     x: point.x,
     y: point.y,
     width,
@@ -2975,6 +3065,7 @@ function CtrlEditableText({
   inputClassName = "",
   multiline = false,
   title = "Ctrl+click para editar",
+  editOnDoubleClick = false,
   onCommit,
   children
 }) {
@@ -3031,6 +3122,12 @@ function CtrlEditableText({
       }}
       onClick={(event) => {
         if (!onCommit || (!event.ctrlKey && !event.metaKey)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setEditing(true);
+      }}
+      onDoubleClick={(event) => {
+        if (!onCommit || !editOnDoubleClick) return;
         event.preventDefault();
         event.stopPropagation();
         setEditing(true);
@@ -3336,6 +3433,16 @@ function CharacterTokenImage({ character, className = "" }) {
 }
 
 function MapTokenImage({ token, className = "" }) {
+  if (token?.image?.dataUrl) {
+    return (
+      <img
+        className={`shrink-0 rounded-full border-2 border-amber-300 bg-neutral-950 object-cover ${className}`}
+        src={token.image.dataUrl}
+        alt={`${token.name || "Token"} token`}
+        draggable={false}
+      />
+    );
+  }
   if (token?.kind === "character") return <CharacterTokenImage character={token.character} className={className} />;
   return <MonsterTokenImage monster={token?.monster} className={className} />;
 }
@@ -4504,6 +4611,12 @@ function MapNote({
   onMapTokensRollInitiative,
   onMapTokenDragStart,
   onMapTokenContextMenu,
+  onMapContextAddMonster,
+  onMapContextAddNpc,
+  onMapMarkerAdd,
+  onMapMarkerRename,
+  onMapMarkerDragStart,
+  onMapMarkerContextMenu,
   vvtPings = []
 }) {
   const inputRef = useRef(null);
@@ -4517,8 +4630,10 @@ function MapNote({
   const [isGridPanelOpen, setIsGridPanelOpen] = useState(false);
   const [isFogPanelOpen, setIsFogPanelOpen] = useState(false);
   const [isFogBrushActive, setIsFogBrushActive] = useState(false);
+  const [fogBrushMode, setFogBrushMode] = useState("reveal");
   const [fogBrushPreview, setFogBrushPreview] = useState(null);
   const [fogContextMenu, setFogContextMenu] = useState(null);
+  const [contextMenuOpenSections, setContextMenuOpenSections] = useState({ fog: true, token: false, markers: false });
   const [imageLayout, setImageLayout] = useState(null);
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
@@ -4529,9 +4644,14 @@ function MapNote({
   const image = activePage.mapImage || null;
   const imageSrc = mapImageUrl(image);
   const tokens = Array.isArray(activePage.mapTokens) ? activePage.mapTokens : [];
+  const markers = Array.isArray(activePage.mapMarkers) ? activePage.mapMarkers : [];
   const grid = normalizeMapGrid(activePage.mapGrid);
   const fog = normalizeMapFog(activePage.fogOfWar);
   const fogMaskId = `map-fog-${noteActionId}-${activePage.id}`.replace(/[^a-zA-Z0-9_-]/g, "-");
+
+  useEffect(() => {
+    fogBrushModeRef.current = fogBrushMode;
+  }, [fogBrushMode]);
 
   useEffect(() => {
     if (!image || image.objectUrl || (!image.assetId && !image.dataUrl)) return undefined;
@@ -4732,7 +4852,6 @@ function MapNote({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    fogBrushModeRef.current = "reveal";
     fogBrushPointerRef.current = event.pointerId;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     paintFogAtPointer(event);
@@ -4773,7 +4892,11 @@ function MapNote({
     setFogContextMenu({
       x: clamp(event.clientX, 8, viewportWidth - 230),
       y: clamp(event.clientY, 8, viewportHeight - 180),
-      point
+      point,
+      tokenPoint: imageLayout ? {
+        x: imageLayout.left + point.x * imageLayout.width,
+        y: imageLayout.top + point.y * imageLayout.height
+      } : null
     });
   }
 
@@ -4784,6 +4907,49 @@ function MapNote({
       mode: mode === "hide" ? "hide" : "reveal"
     };
     onMapFogChange?.(noteActionId, activePage.id, appendMapFogPoint({ ...fog, enabled: true }, point));
+    setFogContextMenu(null);
+  }
+
+  function mapContextTokenTarget() {
+    if (!fogContextMenu?.tokenPoint) return null;
+    const size = MAP_TOKEN_SIZE;
+    return {
+      mapNoteId: noteActionId,
+      pageId: activePage.id,
+      x: fogContextMenu.tokenPoint.x - size / 2,
+      y: fogContextMenu.tokenPoint.y - size / 2,
+      size
+    };
+  }
+
+  function mapContextMarkerTarget() {
+    if (!fogContextMenu?.tokenPoint) return null;
+    return {
+      mapNoteId: noteActionId,
+      pageId: activePage.id,
+      x: fogContextMenu.tokenPoint.x,
+      y: fogContextMenu.tokenPoint.y
+    };
+  }
+
+  function requestContextMonsterToken() {
+    const target = mapContextTokenTarget();
+    if (!target) return;
+    onMapContextAddMonster?.(target);
+    setFogContextMenu(null);
+  }
+
+  function requestContextNpcToken() {
+    const target = mapContextTokenTarget();
+    if (!target) return;
+    onMapContextAddNpc?.(target);
+    setFogContextMenu(null);
+  }
+
+  function requestContextMarker() {
+    const target = mapContextMarkerTarget();
+    if (!target) return;
+    onMapMarkerAdd?.(target);
     setFogContextMenu(null);
   }
 
@@ -4911,6 +5077,8 @@ function MapNote({
                       value={page.name || `Mapa ${index + 1}`}
                       className="block truncate"
                       inputClassName="w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-xs font-bold uppercase text-amber-100 focus:outline-none"
+                      title="Doble click o Ctrl+click para editar"
+                      editOnDoubleClick
                       onCommit={(value) => onMapPageRename?.(noteActionId, page.id, value)}
                     >
                       {page.name || `Mapa ${index + 1}`}
@@ -5179,6 +5347,42 @@ function MapNote({
         ) : null}
         {imageSrc ? (
           <>
+            {markers.map((marker) => (
+              <div
+                key={marker.id}
+                className="absolute z-[9] flex -translate-x-1/2 -translate-y-full flex-col items-center"
+                data-board-control="true"
+                title={marker.label || "Marker"}
+                style={{
+                  left: marker.x,
+                  top: marker.y
+                }}
+                onPointerDown={(event) => onMapMarkerDragStart?.(event, noteActionId, activePage.id, marker.id)}
+                onContextMenu={(event) => onMapMarkerContextMenu?.(event, noteActionId, activePage.id, marker.id)}
+              >
+                <div
+                  className="flex items-center justify-center border-2 border-neutral-950 bg-amber-400 text-[11px] font-black leading-none text-neutral-950 shadow-[0_3px_10px_rgba(0,0,0,0.7)]"
+                  style={{
+                    width: MAP_MARKER_SIZE,
+                    height: MAP_MARKER_SIZE,
+                    borderRadius: "9999px 9999px 9999px 2px",
+                    transform: "rotate(-45deg)"
+                  }}
+                >
+                  <span style={{ transform: "rotate(45deg)" }}>M</span>
+                </div>
+                <CtrlEditableText
+                  value={marker.label || "Marker"}
+                  className="mt-1 max-w-32 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow"
+                  inputClassName="mt-1 w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow focus:outline-none"
+                  title="Doble click o Ctrl+click para editar"
+                  editOnDoubleClick
+                  onCommit={(value) => onMapMarkerRename?.(noteActionId, activePage.id, marker.id, value)}
+                >
+                  {marker.label || "Marker"}
+                </CtrlEditableText>
+              </div>
+            ))}
             {tokens.map((token) => {
               const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
               return (
@@ -5205,24 +5409,14 @@ function MapNote({
             })}
           </>
         ) : null}
-        {imageSrc ? (
-          <button
-            className="absolute bottom-3 right-3 border border-neutral-700 bg-neutral-950/90 px-3 py-2 text-xs font-bold uppercase text-neutral-200 shadow-lg hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-            type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={openFilePicker}
-          >
-            Cambiar imagen
-          </button>
-        ) : null}
         {error ? (
           <p className="absolute bottom-3 left-3 max-w-[calc(100%-140px)] border border-red-500/40 bg-red-950/90 px-3 py-2 text-xs text-red-100">
             {error}
           </p>
         ) : null}
-        {fogContextMenu ? (
+        {fogContextMenu ? createPortal((
           <div
-            className="fixed z-[10003] w-56 border border-neutral-700 bg-neutral-950 p-1 text-xs text-neutral-200 shadow-2xl"
+            className="fixed z-[10003] w-64 border border-neutral-700 bg-neutral-950 p-1 text-xs text-neutral-200 shadow-2xl"
             data-board-control="true"
             data-map-fog-menu="true"
             style={{ left: fogContextMenu.x, top: fogContextMenu.y }}
@@ -5232,41 +5426,85 @@ function MapNote({
               event.stopPropagation();
             }}
           >
-            <div className="border-b border-neutral-800 px-3 py-2">
-              <p className="font-serif text-sm font-bold uppercase leading-none text-amber-500">Fog</p>
-              <p className="mt-1 text-[11px] text-neutral-500">
-                {Math.round(fog.brushSize)}px | {fog.brushShape === "square" ? "Cuadrado" : "Circulo"}
-              </p>
-            </div>
             <button
-              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              className="flex w-full items-center justify-between border-b border-neutral-800 px-3 py-2 text-left font-serif text-sm font-bold uppercase leading-none text-amber-500 hover:bg-neutral-900 focus:bg-neutral-900 focus:outline-none"
               type="button"
-              onClick={() => applyFogContextAction("reveal")}
+              onClick={() => setContextMenuOpenSections((sections) => ({ ...sections, fog: !sections.fog }))}
             >
-              <span>Borrar fog aca</span>
-              <span className="text-neutral-500">Reveal</span>
+              <span>FOG</span>
+              <span className="font-sans text-xs text-neutral-500">{contextMenuOpenSections.fog ? "-" : "+"}</span>
             </button>
+            {contextMenuOpenSections.fog ? (
+              <div className="border-b border-neutral-800 pb-1">
+                <p className="px-3 py-2 text-[11px] text-neutral-500">{Math.round(fog.brushSize)}px | {fog.brushShape === "square" ? "Cuadrado" : "Circulo"}</p>
+                <button
+                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={() => setIsFogBrushActive((active) => !active)}
+                >
+                  <span>Pinzel</span>
+                  <span className={isFogBrushActive ? "text-emerald-300" : "text-neutral-500"}>{isFogBrushActive ? "ON" : "OFF"}</span>
+                </button>
+                <button
+                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-300 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={() => setFogBrushMode((mode) => (mode === "hide" ? "reveal" : "hide"))}
+                >
+                  <span>Add/Remove Fog</span>
+                  <span className="text-neutral-500">{fogBrushMode === "hide" ? "Add" : "Remove"}</span>
+                </button>
+              </div>
+            ) : null}
             <button
-              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-300 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-serif text-sm font-bold uppercase leading-none text-amber-500 hover:bg-neutral-900 focus:bg-neutral-900 focus:outline-none"
               type="button"
-              onClick={() => applyFogContextAction("hide")}
+              onClick={() => setContextMenuOpenSections((sections) => ({ ...sections, token: !sections.token }))}
             >
-              <span>Agregar fog aca</span>
-              <span className="text-neutral-500">Hide</span>
+              <span>TOKEN</span>
+              <span className="font-sans text-xs text-neutral-500">{contextMenuOpenSections.token ? "-" : "+"}</span>
             </button>
+            {contextMenuOpenSections.token ? (
+              <div className="border-t border-neutral-800 pt-1">
+                <button
+                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-neutral-100 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={requestContextNpcToken}
+                >
+                  <span>Add NPC</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+                <button
+                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-neutral-100 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={requestContextMonsterToken}
+                >
+                  <span>Add Monster</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+              </div>
+            ) : null}
             <button
-              className="flex w-full items-center justify-between border-t border-neutral-800 px-3 py-2 text-left font-bold text-neutral-300 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-serif text-sm font-bold uppercase leading-none text-amber-500 hover:bg-neutral-900 focus:bg-neutral-900 focus:outline-none"
               type="button"
-              onClick={() => {
-                setIsFogPanelOpen(true);
-                setFogContextMenu(null);
-              }}
+              onClick={() => setContextMenuOpenSections((sections) => ({ ...sections, markers: !sections.markers }))}
             >
-              <span>Abrir controles</span>
-              <span className="text-neutral-500">+</span>
+              <span>Makers</span>
+              <span className="font-sans text-xs text-neutral-500">{contextMenuOpenSections.markers ? "-" : "+"}</span>
             </button>
+            {contextMenuOpenSections.markers ? (
+              <div className="border-t border-neutral-800 pt-1">
+                <button
+                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-neutral-100 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={requestContextMarker}
+                >
+                  <span>Add Marker</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        ), document.body) : null}
       </div>
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
@@ -6372,6 +6610,98 @@ function MonsterPicker({
   );
 }
 
+function NpcTokenPicker({
+  isOpen,
+  tokens,
+  selectedToken,
+  searchQuery,
+  loading,
+  error,
+  onSearch,
+  onSelect,
+  onAdd,
+  onClose
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4" data-monster-picker="true">
+      <section className="grid h-[min(720px,calc(100vh-32px))] w-[min(980px,calc(100vw-32px))] grid-cols-1 overflow-hidden border border-neutral-700 bg-neutral-900 text-neutral-300 shadow-2xl md:grid-cols-[430px_1fr]">
+        <div className="flex min-h-0 flex-col border-r border-neutral-700">
+          <header className="border-b-2 border-amber-500 bg-neutral-950 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add NPC</h1>
+                <p className="text-sm text-neutral-500">{tokens.length} tokens</p>
+              </div>
+              <button
+                className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                type="button"
+                aria-label="Cerrar"
+                onClick={onClose}
+              >
+                X
+              </button>
+            </div>
+            <input
+              className="mt-4 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              value={searchQuery}
+              onChange={(event) => onSearch(event.target.value)}
+              placeholder="Search tokens"
+              autoFocus
+            />
+          </header>
+          <div className="min-h-0 flex-1 overflow-auto bg-neutral-900">
+            {loading ? <p className="px-4 py-6 text-sm text-neutral-500">Cargando tokens...</p> : null}
+            {!loading && tokens.length ? tokens.map((token) => {
+              const active = selectedToken?.id === token.id;
+              return (
+                <button
+                  key={token.id}
+                  className={`grid w-full grid-cols-[48px_1fr] items-center gap-3 border-b border-neutral-800 px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-300 ${active ? "bg-amber-500 text-neutral-950 hover:bg-amber-400" : "text-neutral-300 hover:bg-neutral-800"}`}
+                  type="button"
+                  onClick={() => onSelect(token)}
+                >
+                  <img className="h-10 w-10 rounded-full border border-neutral-700 bg-neutral-950 object-cover" src={token.url} alt="" draggable={false} />
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold">{token.name}</span>
+                    <span className={`block truncate text-[11px] ${active ? "text-neutral-800" : "text-neutral-500"}`}>{token.relativePath}</span>
+                  </span>
+                </button>
+              );
+            }) : null}
+            {!loading && !tokens.length ? <p className="px-4 py-6 text-sm text-neutral-500">No matches.</p> : null}
+          </div>
+        </div>
+        <div className="flex min-h-0 flex-col bg-neutral-900 p-5">
+          {selectedToken ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="flex min-h-0 flex-1 items-center justify-center border border-neutral-800 bg-neutral-950/70 p-5">
+                <img className="max-h-full max-w-full rounded border border-neutral-700 bg-neutral-950 object-contain" src={selectedToken.url} alt={`${selectedToken.name} preview`} draggable={false} />
+              </div>
+              <div className="border-t border-neutral-700 pt-4">
+                <p className="truncate font-serif text-xl font-bold uppercase text-amber-500">{selectedToken.name}</p>
+                <p className="mt-1 truncate text-sm text-neutral-500">{selectedToken.relativePath}</p>
+                {error ? <p className="mt-3 border border-red-500/40 bg-red-950/70 px-3 py-2 text-sm text-red-100">{error}</p> : null}
+                <button
+                  className="mt-4 inline-flex h-10 items-center bg-amber-500 px-4 text-sm font-bold text-neutral-950 shadow-sm transition hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-neutral-900"
+                  type="button"
+                  onClick={() => onAdd(selectedToken)}
+                >
+                  Crear NPC
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-neutral-500">
+              Selecciona un token.
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sortField, sortDirection, onSearch, onSortField, onSortDirection, onSelect, onAdd, onClose }) {
   if (!isOpen) return null;
   const isSpell = kind === "spell";
@@ -7390,6 +7720,7 @@ function DmScreenApp() {
   const [freeDiceRolls, setFreeDiceRolls] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [tokenContextMenu, setTokenContextMenu] = useState(null);
+  const [markerContextMenu, setMarkerContextMenu] = useState(null);
   const [noteSpawnPoint, setNoteSpawnPoint] = useState(null);
   const [resourcePickerKind, setResourcePickerKind] = useState(null);
   const [resourceSearchQuery, setResourceSearchQuery] = useState("");
@@ -7416,6 +7747,13 @@ function DmScreenApp() {
   const [homebrewItemDraft, setHomebrewItemDraft] = useState(HOMEBREW_ITEM_DEFAULTS);
   const [homebrewSpellDraft, setHomebrewSpellDraft] = useState(HOMEBREW_SPELL_DEFAULTS);
   const [homebrewMonsterSpawnPoint, setHomebrewMonsterSpawnPoint] = useState(null);
+  const [pendingMapTokenTarget, setPendingMapTokenTarget] = useState(null);
+  const [isNpcTokenPickerOpen, setIsNpcTokenPickerOpen] = useState(false);
+  const [npcTokenLibrary, setNpcTokenLibrary] = useState([]);
+  const [npcTokenSearchQuery, setNpcTokenSearchQuery] = useState("");
+  const [selectedNpcToken, setSelectedNpcToken] = useState(null);
+  const [npcTokenPickerLoading, setNpcTokenPickerLoading] = useState(false);
+  const [npcTokenPickerError, setNpcTokenPickerError] = useState("");
   const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], tailscaleAddresses: [], lanAddresses: [], playerCount: 0 });
   const [liveDiagnostics, setLiveDiagnostics] = useState(null);
   const [livePlayers, setLivePlayers] = useState([]);
@@ -7435,10 +7773,12 @@ function DmScreenApp() {
   const boardRootRef = useRef(null);
   const dragRef = useRef(null);
   const mapTokenDragRef = useRef(null);
+  const mapMarkerDragRef = useRef(null);
   const tabDragRef = useRef(null);
   const resizeRef = useRef(null);
   const panRef = useRef(null);
   const selectionRef = useRef(null);
+  const tokenContextPointerRef = useRef(null);
   const boardViewRef = useRef(boardView);
   const handleBoardWheelRef = useRef(null);
   const monsterNotesRef = useRef(monsterNotes);
@@ -7487,6 +7827,17 @@ function DmScreenApp() {
       note.excerpt
     ].join(" ")).includes(query));
   }, [deferredObsidianSearchQuery, obsidianNotes]);
+  const filteredNpcTokens = useMemo(() => {
+    const query = normalizeSearch(npcTokenSearchQuery);
+    const tokens = Array.isArray(npcTokenLibrary) ? npcTokenLibrary : [];
+    if (!query) return tokens;
+    return tokens.filter((token) => normalizeSearch([
+      token.name,
+      token.fileName,
+      token.source,
+      token.relativePath
+    ].join(" ")).includes(query));
+  }, [npcTokenLibrary, npcTokenSearchQuery]);
 
   useEffect(() => {
     if (!isPickerOpen) return;
@@ -7503,19 +7854,26 @@ function DmScreenApp() {
   }, [filteredResources, resourcePickerKind, selectedItem, selectedSpell]);
 
   useEffect(() => {
+    if (!isNpcTokenPickerOpen) return;
+    if (selectedNpcToken && filteredNpcTokens.some((token) => token.id === selectedNpcToken.id)) return;
+    setSelectedNpcToken(filteredNpcTokens[0] || null);
+  }, [filteredNpcTokens, isNpcTokenPickerOpen, selectedNpcToken]);
+
+  useEffect(() => {
     boardViewRef.current = boardView;
   }, [boardView]);
 
   useEffect(() => {
-    if (!contextMenu && !tokenContextMenu) return undefined;
+    if (!contextMenu && !tokenContextMenu && !markerContextMenu) return undefined;
     function handleGlobalPointerDown(event) {
       if (event.target?.closest?.("[data-context-menu='true']")) return;
       setContextMenu(null);
       setTokenContextMenu(null);
+      setMarkerContextMenu(null);
     }
     window.addEventListener("pointerdown", handleGlobalPointerDown, true);
     return () => window.removeEventListener("pointerdown", handleGlobalPointerDown, true);
-  }, [contextMenu, tokenContextMenu]);
+  }, [contextMenu, tokenContextMenu, markerContextMenu]);
 
   useEffect(() => {
     handleBoardWheelRef.current = handleBoardWheel;
@@ -7580,6 +7938,7 @@ function DmScreenApp() {
           fogOfWar: mapFogSnapshot(page.fogOfWar),
           grid: mapGridSnapshot(page.mapGrid),
           tokens,
+          markers: mapMarkersSnapshot(page.mapMarkers),
           sourceViewport: {
             width: Math.max(1, Number(note.width) || NOTE_DEFAULT_WIDTH),
             height: Math.max(1, (Number(note.height) || NOTE_DEFAULT_HEIGHT) - 88)
@@ -7778,6 +8137,7 @@ function DmScreenApp() {
     const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + VVT_PING_TTL_MS);
     return {
       id: String(ping?.id || `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+      playerId: String(ping?.playerId || ""),
       x: clamp(Number(ping?.x) || 0, 0, 1),
       y: clamp(Number(ping?.y) || 0, 0, 1),
       playerName: String(ping?.playerName || "Jugador").slice(0, 80),
@@ -7789,7 +8149,14 @@ function DmScreenApp() {
     const normalized = normalizeVvtPing(ping);
     const now = Date.now();
     setVvtPings((pings) => [
-      ...pings.filter((entry) => entry.id !== normalized.id && entry.expiresAt > now),
+      ...pings.filter((entry) => (
+        entry.expiresAt > now
+        && (
+          normalized.playerId
+            ? entry.playerId !== normalized.playerId
+            : entry.id !== normalized.id
+        )
+      )),
       normalized
     ].slice(-16));
   }
@@ -7892,6 +8259,31 @@ function DmScreenApp() {
     if (!selectedMonster && bestiary[0]) setSelectedMonster(bestiary[0]);
   }
 
+  function openMonsterTokenPicker(target) {
+    setPendingMapTokenTarget(target);
+    openMonsterPicker(null);
+  }
+
+  async function openNpcTokenPicker(target) {
+    setPendingMapTokenTarget(target);
+    setNpcTokenSearchQuery("");
+    setNpcTokenPickerError("");
+    setIsNpcTokenPickerOpen(true);
+    if (!npcTokenLibrary.length) {
+      setNpcTokenPickerLoading(true);
+      try {
+        const tokens = await window.dndSheet?.listTokenLibrary?.();
+        const list = Array.isArray(tokens) ? tokens : [];
+        setNpcTokenLibrary(list);
+        setSelectedNpcToken(list[0] || null);
+      } catch (error) {
+        setNpcTokenPickerError(error?.message || "No se pudo cargar la lista de tokens.");
+      } finally {
+        setNpcTokenPickerLoading(false);
+      }
+    }
+  }
+
   function openResourcePicker(kind, spawnPoint = null, { search = "", selectedEntry = null } = {}) {
     setNoteSpawnPoint(spawnPoint);
     setResourcePickerKind(kind);
@@ -7982,7 +8374,105 @@ function DmScreenApp() {
     setPreviewDicePanelOpen(false);
   }
 
+  function addMonsterTokenToMap(monster, target) {
+    if (!monster?.name || !target?.mapNoteId || !target.pageId) return false;
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== target.mapNoteId) return note;
+      const page = mapPagesForNote(note).find((entry) => entry.id === target.pageId) || activeMapPageForNote(note);
+      if (!page) return note;
+      const size = clamp(Number(target.size) || MAP_TOKEN_SIZE, 32, 140);
+      const point = clampMapTokenPoint(note, Number(target.x) || 0, Number(target.y) || 0, size, page.id);
+      const token = normalizeMapToken({
+        id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        kind: "monster",
+        name: monster.name || "Monster",
+        monster: mapTokenMonsterSnapshot(monster),
+        monsterCustom: monster.__homebrew ? cloneForBoardState(monster) : null,
+        x: point.x,
+        y: point.y,
+        size,
+        ...mapActorCombatState({ kind: "monster", monster })
+      });
+      if (!token) return note;
+      return updateMapNotePage(note, page.id, (page) => ({
+        ...page,
+        mapTokens: [...(page.mapTokens || []), token]
+      }));
+    }));
+    return true;
+  }
+
+  function genericNpcMonster(name = "NPC") {
+    return {
+      name,
+      source: "NPC",
+      size: ["M"],
+      type: "humanoid",
+      alignment: "Unaligned",
+      ac: [10],
+      hp: { average: 1, formula: "1d8" },
+      speed: { walk: 30 },
+      cr: "0",
+      str: 10,
+      dex: 10,
+      con: 10,
+      int: 10,
+      wis: 10,
+      cha: 10,
+      trait: [],
+      action: []
+    };
+  }
+
+  async function addNpcTokenToMap(tokenEntry) {
+    if (!tokenEntry?.id || !pendingMapTokenTarget) return;
+    setNpcTokenPickerError("");
+    try {
+      const image = await window.dndSheet?.getTokenLibraryImage?.(tokenEntry.id);
+      if (!image?.dataUrl) {
+        setNpcTokenPickerError("No se pudo cargar la imagen del token.");
+        return;
+      }
+      const monster = genericNpcMonster(tokenEntry.name || "NPC");
+      const target = pendingMapTokenTarget;
+      setMonsterNotes((notes) => notes.map((note) => {
+        if (note.id !== target.mapNoteId) return note;
+        const page = mapPagesForNote(note).find((entry) => entry.id === target.pageId) || activeMapPageForNote(note);
+        if (!page) return note;
+        const size = clamp(Number(target.size) || MAP_TOKEN_SIZE, 32, 140);
+        const point = clampMapTokenPoint(note, Number(target.x) || 0, Number(target.y) || 0, size, page.id);
+        const mapToken = normalizeMapToken({
+          id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          kind: "monster",
+          name: tokenEntry.name || "NPC",
+          monster: mapTokenMonsterSnapshot(monster),
+          monsterCustom: monster,
+          image,
+          x: point.x,
+          y: point.y,
+          size,
+          ...mapActorCombatState({ kind: "monster", monster, rollInitiative: false })
+        });
+        if (!mapToken) return note;
+        return updateMapNotePage(note, page.id, (page) => ({
+          ...page,
+          mapTokens: [...(page.mapTokens || []), mapToken]
+        }));
+      }));
+      setPendingMapTokenTarget(null);
+      setIsNpcTokenPickerOpen(false);
+    } catch (error) {
+      setNpcTokenPickerError(error?.message || "No se pudo crear el token NPC.");
+    }
+  }
+
   function addMonsterNote(monster) {
+    if (pendingMapTokenTarget) {
+      addMonsterTokenToMap(monster, pendingMapTokenTarget);
+      setPendingMapTokenTarget(null);
+      setIsPickerOpen(false);
+      return;
+    }
     addBoardNote({ kind: "monster", monster });
     setIsPickerOpen(false);
     setNoteSpawnPoint(null);
@@ -8020,6 +8510,7 @@ function DmScreenApp() {
       titleOverride: "Mapa VVT",
       mapImage,
       mapTokens: [],
+      mapMarkers: [],
       mapGrid: normalizeMapGrid(null),
       fogOfWar: normalizeMapFog(null),
       mapPages: [{
@@ -8027,8 +8518,11 @@ function DmScreenApp() {
         name: mapImage?.name || "Mapa 1",
         mapImage,
         mapTokens: [],
+        mapMarkers: [],
         mapGrid: normalizeMapGrid(null),
-        fogOfWar: normalizeMapFog(null)
+        fogOfWar: normalizeMapFog(null),
+        frameWidth: width,
+        frameHeight: height
       }],
       activeMapPageId: pageId,
       width,
@@ -8516,6 +9010,7 @@ function DmScreenApp() {
     const obsidian = payload.obsidian || null;
     const mapImage = payload.mapImage ? mapImageRuntimeSnapshot(payload.mapImage) : null;
     const mapTokens = Array.isArray(payload.mapTokens) ? payload.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [];
+    const mapMarkers = mapMarkersSnapshot(payload.mapMarkers);
     const mapGrid = payload.kind === "map" ? mapGridSnapshot(payload.mapGrid) : null;
     const fogOfWar = payload.kind === "map" ? mapFogSnapshot(payload.fogOfWar) : null;
     const noteId = `${payload.kind}-${(monster || payload.entry || character)?.name || obsidian?.relativePath || mapImage?.name || "note"}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -8527,8 +9022,11 @@ function DmScreenApp() {
           name: mapImage?.name || "Mapa 1",
           mapImage,
           mapTokens,
+          mapMarkers,
           mapGrid,
-          fogOfWar
+          fogOfWar,
+          frameWidth: width,
+          frameHeight: height
         }, payload.activeMapPageId || defaultMapPageId(noteId), 0)])
       : [];
     const activeMapPage = mapPages.find((page) => page.id === payload.activeMapPageId) || mapPages[0] || null;
@@ -8549,6 +9047,7 @@ function DmScreenApp() {
         textImages: Array.isArray(payload.textImages) ? payload.textImages.map(storedImageSnapshot).filter(Boolean) : [],
         mapImage: activeMapPage?.mapImage || mapImage,
         mapTokens: activeMapPage?.mapTokens || mapTokens,
+        mapMarkers: activeMapPage?.mapMarkers || mapMarkers,
         mapGrid: activeMapPage?.mapGrid || mapGrid,
         fogOfWar: activeMapPage?.fogOfWar || fogOfWar,
         mapPages,
@@ -8567,6 +9066,8 @@ function DmScreenApp() {
         activeTabId: null,
         linkedMapToken: normalizeLinkedMapTokenLink(payload.linkedMapToken),
         tokenInitiative: payload.tokenInitiative ?? "",
+        tabFrameWidth: payload.tabFrameWidth ?? width,
+        tabFrameHeight: payload.tabFrameHeight ?? height,
         x: spawnPoint.x,
         y: spawnPoint.y,
         width,
@@ -8601,6 +9102,10 @@ function DmScreenApp() {
           id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
         }))
         : [],
+      mapMarkers: mapMarkersSnapshot(source.mapMarkers).map((marker) => ({
+        ...marker,
+        id: `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`
+      })),
       mapGrid: source.mapGrid ? { ...source.mapGrid } : null,
       fogOfWar: source.fogOfWar ? { ...source.fogOfWar, revealed: [...(source.fogOfWar.revealed || [])] } : null,
       mapPages: mapPagesForNote(source).map((page) => ({
@@ -8609,6 +9114,10 @@ function DmScreenApp() {
         mapTokens: (page.mapTokens || []).map((token) => ({
           ...token,
           id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
+        })),
+        mapMarkers: mapMarkersSnapshot(page.mapMarkers).map((marker) => ({
+          ...marker,
+          id: `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`
         })),
         mapGrid: page.mapGrid ? { ...page.mapGrid } : null,
         fogOfWar: page.fogOfWar ? { ...page.fogOfWar, revealed: [...(page.fogOfWar.revealed || [])] } : null
@@ -8625,6 +9134,8 @@ function DmScreenApp() {
       obsidianDraft: "",
       obsidianSaving: false,
       obsidianUpdatedAt: source.obsidianUpdatedAt,
+      tabFrameWidth: source.tabFrameWidth ?? source.width,
+      tabFrameHeight: source.tabFrameHeight ?? source.height,
       hpCurrent: source.hpCurrent,
       hpMax: source.hpMax
     }, { x: source.x + 28, y: source.y + 28 });
@@ -8662,8 +9173,11 @@ function DmScreenApp() {
         name: mapImage?.name || (shouldReplaceEmptyPage ? firstPage.name : `Mapa ${pages.length + 1}`),
         mapImage: mapImage ? mapImageRuntimeSnapshot(mapImage) : null,
         mapTokens: shouldReplaceEmptyPage ? firstPage.mapTokens : [],
+        mapMarkers: shouldReplaceEmptyPage ? firstPage.mapMarkers : [],
         mapGrid: shouldReplaceEmptyPage ? firstPage.mapGrid : normalizeMapGrid(null),
-        fogOfWar: shouldReplaceEmptyPage ? firstPage.fogOfWar : normalizeMapFog(null)
+        fogOfWar: shouldReplaceEmptyPage ? firstPage.fogOfWar : normalizeMapFog(null),
+        frameWidth: shouldReplaceEmptyPage ? (firstPage.frameWidth || note.width) : note.width,
+        frameHeight: shouldReplaceEmptyPage ? (firstPage.frameHeight || note.height) : note.height
       }, shouldReplaceEmptyPage ? firstPage.id : pageId, shouldReplaceEmptyPage ? 0 : pages.length);
       return syncMapNoteActivePage(note, shouldReplaceEmptyPage ? [nextPage] : [
         ...pages,
@@ -8673,9 +9187,33 @@ function DmScreenApp() {
   }
 
   function selectMapPage(noteId, pageId) {
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? syncMapNoteActivePage(note, mapPagesForNote(note), pageId) : note
-    )));
+    setMonsterNotes((notes) => {
+      let nextMapNote = null;
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId) return note;
+        const pages = mapPagesForNote(note);
+        const activeId = note.activeMapPageId || activeMapPageForNote(note)?.id;
+        const pagesWithCurrentSize = pages.map((page) => (
+          page.id === activeId
+            ? { ...page, frameWidth: note.width, frameHeight: note.height }
+            : page
+        ));
+        nextMapNote = syncMapNoteActivePage(note, pagesWithCurrentSize, pageId);
+        return nextMapNote;
+      });
+      if (!nextMapNote) return nextNotes;
+      const rootId = resolveRootNoteId(noteId, nextNotes);
+      if (!rootId || rootId === noteId) return nextNotes;
+      return nextNotes.map((note) => (
+        note.id === rootId && (note.activeTabId || note.id) === noteId
+          ? {
+            ...note,
+            width: nextMapNote.width,
+            height: nextMapNote.height
+          }
+          : note
+      ));
+    });
   }
 
   function renameMapPage(noteId, pageId, name) {
@@ -8693,6 +9231,8 @@ function DmScreenApp() {
       if (note.id !== noteId) return note;
       const pages = mapPagesForNote(note);
       if (pages.length <= 1) return note;
+      const pageToClose = pages.find((page) => page.id === pageId);
+      if (mapPageHasTokens(pageToClose)) return note;
       const nextPages = pages.filter((page) => page.id !== pageId);
       const nextActiveId = note.activeMapPageId === pageId ? nextPages[0]?.id : note.activeMapPageId;
       return syncMapNoteActivePage(note, nextPages, nextActiveId);
@@ -8725,6 +9265,47 @@ function DmScreenApp() {
         fogOfWar: mapFogSnapshot(fogOfWar)
       })) : note
     )));
+  }
+
+  function addMapMarker(target) {
+    if (!target?.mapNoteId || !target.pageId) return;
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== target.mapNoteId) return note;
+      const metrics = mapBodyMetrics(note);
+      const markerCount = mapPagesForNote(note).reduce((count, page) => count + (page.mapMarkers || []).length, 0);
+      const marker = normalizeMapMarker({
+        id: `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        label: `Marker ${markerCount + 1}`,
+        x: clamp(Number(target.x) || 0, 0, Math.max(1, metrics.width)),
+        y: clamp(Number(target.y) || 0, 0, Math.max(1, metrics.height))
+      }, markerCount);
+      return updateMapNotePage(note, target.pageId, (page) => ({
+        ...page,
+        mapMarkers: [...(page.mapMarkers || []), marker]
+      }));
+    }));
+  }
+
+  function renameMapMarker(noteId, pageId, markerId, label) {
+    const normalizedLabel = String(label || "").trim();
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapMarkers: (page.mapMarkers || []).map((marker) => (
+          marker.id === markerId
+            ? { ...marker, label: normalizedLabel || marker.label || "Marker" }
+            : marker
+        ))
+      })) : note
+    )));
+  }
+
+  function clampMapMarkerPoint(mapNote, x, y) {
+    const metrics = mapBodyMetrics(mapNote);
+    return {
+      x: clamp(Number(x) || 0, 0, Math.max(1, metrics.width)),
+      y: clamp(Number(y) || 0, 0, Math.max(1, metrics.height))
+    };
   }
 
   function activeNoteForRoot(noteId, notes = monsterNotesRef.current) {
@@ -8847,7 +9428,19 @@ function DmScreenApp() {
   }
 
   function startMapTokenDrag(event, mapNoteId, pageId, tokenId) {
-    if (event.button != null && event.button !== 0) return;
+    if (event.button != null && event.button !== 0) {
+      if (event.button === 2) {
+        const rect = event.currentTarget?.getBoundingClientRect?.();
+        tokenContextPointerRef.current = {
+          mapNoteId,
+          pageId,
+          tokenId,
+          x: Number(event.clientX) || (rect ? rect.left + rect.width / 2 : 0),
+          y: Number(event.clientY) || (rect ? rect.top + rect.height / 2 : 0)
+        };
+      }
+      return;
+    }
     const mapNote = monsterNotesRef.current.find((note) => note.id === mapNoteId);
     const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
     const token = page?.mapTokens?.find((entry) => entry.id === tokenId);
@@ -8885,6 +9478,47 @@ function DmScreenApp() {
         ))
       }));
     }));
+  }
+
+  function startMapMarkerDrag(event, mapNoteId, pageId, markerId) {
+    if (event.button != null && event.button !== 0) return;
+    const mapNote = monsterNotesRef.current.find((note) => note.id === mapNoteId);
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
+    const marker = page?.mapMarkers?.find((entry) => entry.id === markerId);
+    if (!mapNote || !marker) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    focusNote(resolveRootNoteId(mapNoteId, monsterNotesRef.current) || mapNoteId);
+    mapMarkerDragRef.current = {
+      pointerId: event.pointerId,
+      mapNoteId,
+      pageId: page?.id || null,
+      markerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: Number(marker.x) || 0,
+      startY: Number(marker.y) || 0,
+      scale: boardViewRef.current.scale || 1
+    };
+  }
+
+  function moveMapMarker(event, drag) {
+    const mapNote = monsterNotesRef.current.find((note) => note.id === drag.mapNoteId);
+    if (!mapNote) return;
+    const deltaX = (event.clientX - drag.startClientX) / drag.scale;
+    const deltaY = (event.clientY - drag.startClientY) / drag.scale;
+    const point = clampMapMarkerPoint(mapNote, drag.startX + deltaX, drag.startY + deltaY);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === drag.mapNoteId
+        ? updateMapNotePage(note, drag.pageId, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === drag.markerId ? { ...marker, x: point.x, y: point.y } : marker
+          ))
+        }))
+        : note
+    )));
   }
 
   function updateMapTokenHp(noteId, pageId, tokenId, value) {
@@ -8999,6 +9633,14 @@ function DmScreenApp() {
     return mapNote && page && token ? { mapNote, page, token } : null;
   }
 
+  function findMapMarkerContextEntry(menu = markerContextMenu) {
+    if (!menu?.mapNoteId || !menu.markerId) return null;
+    const mapNote = monsterNotesRef.current.find((note) => note.id === menu.mapNoteId);
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === menu.pageId) || activeMapPageForNote(mapNote);
+    const marker = page?.mapMarkers?.find((entry) => entry.id === menu.markerId);
+    return mapNote && page && marker ? { mapNote, page, marker } : null;
+  }
+
   function monsterFromMapToken(token) {
     if (token?.monsterCustom) return cloneForBoardState(token.monsterCustom);
     return findLibraryEntryByRef("monster", token?.monster) || null;
@@ -9027,18 +9669,65 @@ function DmScreenApp() {
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
     const targetRect = event.currentTarget?.getBoundingClientRect?.();
-    const clientX = Number.isFinite(Number(event.clientX)) ? Number(event.clientX) : (targetRect ? targetRect.left + targetRect.width / 2 : viewportWidth / 2);
-    const clientY = Number.isFinite(Number(event.clientY)) ? Number(event.clientY) : (targetRect ? targetRect.top + targetRect.height / 2 : viewportHeight / 2);
+    const pointer = tokenContextPointerRef.current;
+    const hasPointer = pointer
+      && pointer.mapNoteId === mapNoteId
+      && pointer.pageId === pageId
+      && pointer.tokenId === tokenId;
+    const eventX = Number(event.clientX);
+    const eventY = Number(event.clientY);
+    const eventLooksValid = Number.isFinite(eventX)
+      && Number.isFinite(eventY)
+      && eventX > 0
+      && eventY > 0
+      && eventX < viewportWidth
+      && eventY < viewportHeight
+      && (!targetRect || (
+        eventX >= targetRect.left - 6
+        && eventX <= targetRect.right + 6
+        && eventY >= targetRect.top - 6
+        && eventY <= targetRect.bottom + 6
+      ));
+    const clientX = hasPointer
+      ? pointer.x
+      : eventLooksValid
+        ? eventX
+        : (targetRect ? targetRect.left + targetRect.width / 2 : viewportWidth / 2);
+    const clientY = hasPointer
+      ? pointer.y
+      : eventLooksValid
+        ? eventY
+        : (targetRect ? targetRect.top + targetRect.height / 2 : viewportHeight / 2);
     const boardPoint = screenToBoardPoint(clientX, clientY);
     setContextMenu(null);
+    setMarkerContextMenu(null);
     setTokenContextMenu({
-      x: clamp(clientX, 8, viewportWidth - 210),
-      y: clamp(clientY, 8, viewportHeight - 260),
+      x: clamp(clientX, 0, viewportWidth - 1),
+      y: clamp(clientY, 0, viewportHeight - 1),
       boardX: boardPoint.x,
       boardY: boardPoint.y,
       mapNoteId,
       pageId,
       tokenId
+    });
+    tokenContextPointerRef.current = null;
+  }
+
+  function openMapMarkerContextMenu(event, mapNoteId, pageId, markerId) {
+    event.preventDefault();
+    event.stopPropagation();
+    const viewportWidth = window.innerWidth || 1200;
+    const viewportHeight = window.innerHeight || 800;
+    const clientX = clamp(Number(event.clientX) || 0, 0, viewportWidth - 1);
+    const clientY = clamp(Number(event.clientY) || 0, 0, viewportHeight - 1);
+    setContextMenu(null);
+    setTokenContextMenu(null);
+    setMarkerContextMenu({
+      x: clientX,
+      y: clientY,
+      mapNoteId,
+      pageId,
+      markerId
     });
   }
 
@@ -9117,6 +9806,20 @@ function DmScreenApp() {
         : note
     )));
     setTokenContextMenu(null);
+  }
+
+  function removeMapMarkerFromMenu() {
+    const entry = findMapMarkerContextEntry();
+    if (!entry) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).filter((marker) => marker.id !== entry.marker.id)
+        }))
+        : note
+    )));
+    setMarkerContextMenu(null);
   }
 
   function editMonsterNote(noteId, pathParts, value) {
@@ -9276,10 +9979,35 @@ function DmScreenApp() {
     setMonsterNotes((notes) => {
       const root = notes.find((note) => note.id === rootNoteId);
       const tabIds = new Set(noteTabIds(root));
+      if (!root || !tabIds.has(tabNoteId)) return notes;
+      const currentActiveTabId = root.activeTabId || root.id;
+      if (currentActiveTabId === tabNoteId) return notes;
+      const targetNote = notes.find((note) => note.id === tabNoteId) || root;
+      const targetSize = noteTabFrameSize(targetNote, root);
       return notes.map((note) => {
-        if (note.id === rootNoteId) return { ...note, activeTabId: tabNoteId };
-        if (note.id === tabNoteId && tabIds.has(note.id) && root) {
-          return { ...note, width: root.width, height: root.height };
+        if (note.id === rootNoteId) {
+          const nextRoot = {
+            ...note,
+            activeTabId: tabNoteId,
+            width: targetSize.width,
+            height: targetSize.height
+          };
+          return currentActiveTabId === rootNoteId
+            ? {
+              ...nextRoot,
+              tabFrameWidth: root.width,
+              tabFrameHeight: root.height
+            }
+            : nextRoot;
+        }
+        if (note.id === currentActiveTabId && tabIds.has(note.id)) {
+          return {
+            ...note,
+            width: root.width,
+            height: root.height,
+            tabFrameWidth: root.width,
+            tabFrameHeight: root.height
+          };
         }
         return note;
       });
@@ -9300,16 +10028,37 @@ function DmScreenApp() {
       const targetTabIds = new Set(noteTabIds(targetRoot));
       const movedIds = noteTabIds(dragRoot).filter((id) => !targetTabIds.has(id));
       if (!movedIds.length) return notes;
+      const currentTargetActiveTabId = targetRoot.activeTabId || targetRootId;
       const nextActiveTabId = movedIds.includes(dragRoot.activeTabId) ? dragRoot.activeTabId : dragRootId;
+      const nextActiveNote = notes.find((note) => note.id === nextActiveTabId) || dragRoot;
+      const nextActiveSize = noteTabFrameSize(nextActiveNote, targetRoot);
 
       return notes.map((note) => {
         if (note.id === targetRootId) {
-          return {
+          const nextRoot = {
             ...note,
             tabNoteIds: [...(note.tabNoteIds || []), ...movedIds],
             activeTabId: nextActiveTabId,
+            width: nextActiveSize.width,
+            height: nextActiveSize.height,
             minimized: false,
             z: nextZ
+          };
+          return currentTargetActiveTabId === targetRootId
+            ? {
+              ...nextRoot,
+              tabFrameWidth: targetRoot.width,
+              tabFrameHeight: targetRoot.height
+            }
+            : nextRoot;
+        }
+        if (note.id === currentTargetActiveTabId && targetTabIds.has(note.id)) {
+          return {
+            ...note,
+            width: targetRoot.width,
+            height: targetRoot.height,
+            tabFrameWidth: targetRoot.width,
+            tabFrameHeight: targetRoot.height
           };
         }
         if (movedIds.includes(note.id)) {
@@ -9333,6 +10082,7 @@ function DmScreenApp() {
       const root = notes.find((note) => note.id === rootId);
       if (!root) return notes;
       const idsToRemove = new Set(noteTabIds(root));
+      if (notes.some((note) => idsToRemove.has(note.id) && mapNoteHasTokens(note))) return notes;
       const preparedNotes = persistLinkedTokenNotesInCollection(notes, idsToRemove);
       return preparedNotes.filter((note) => !idsToRemove.has(note.id));
     });
@@ -9495,22 +10245,24 @@ function DmScreenApp() {
     if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']")) return;
     event.preventDefault();
     setTokenContextMenu(null);
+    setMarkerContextMenu(null);
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
     const boardPoint = clampBoardPoint(screenToBoardPoint(event.clientX, event.clientY), NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
     setContextMenu({
-      x: clamp(event.clientX, 8, viewportWidth - 180),
-      y: clamp(event.clientY, 8, viewportHeight - 320),
+      x: clamp(event.clientX, 0, viewportWidth - 1),
+      y: clamp(event.clientY, 0, viewportHeight - 1),
       boardX: boardPoint.x,
       boardY: boardPoint.y
     });
   }
 
   function closeBoardContextMenu(event) {
-    if (!contextMenu && !tokenContextMenu) return;
+    if (!contextMenu && !tokenContextMenu && !markerContextMenu) return;
     if (event.target?.closest?.("[data-context-menu='true']")) return;
     setContextMenu(null);
     setTokenContextMenu(null);
+    setMarkerContextMenu(null);
   }
 
   function openContextMonsterPicker() {
@@ -9718,6 +10470,12 @@ function DmScreenApp() {
   }
 
   function updateDrag(event) {
+    const mapMarkerDrag = mapMarkerDragRef.current;
+    if (mapMarkerDrag?.pointerId === event.pointerId) {
+      moveMapMarker(event, mapMarkerDrag);
+      return;
+    }
+
     const mapTokenDrag = mapTokenDragRef.current;
     if (mapTokenDrag?.pointerId === event.pointerId) {
       moveMapToken(event, mapTokenDrag);
@@ -9789,10 +10547,42 @@ function DmScreenApp() {
         : resize.startHeight;
       setMonsterNotes((notes) => {
         const root = notes.find((note) => note.id === resize.noteId);
+        const activeTabId = root?.activeTabId || resize.noteId;
         const tabIds = new Set(noteTabIds(root));
-        return notes.map((note) => (
-          tabIds.has(note.id) ? { ...note, width, height } : note
-        ));
+        return notes.map((note) => {
+          if (note.id === resize.noteId) {
+            const nextRoot = { ...note, width, height };
+            if (note.kind === "map") {
+              const activePageId = note.activeMapPageId || activeMapPageForNote(note)?.id;
+              const nextMapRoot = updateMapNotePage(nextRoot, activePageId, (page) => ({
+                ...page,
+                frameWidth: width,
+                frameHeight: height
+              }));
+              return { ...nextMapRoot, tabFrameWidth: width, tabFrameHeight: height };
+            }
+            return activeTabId === resize.noteId
+              ? { ...nextRoot, tabFrameWidth: width, tabFrameHeight: height }
+              : nextRoot;
+          }
+          if (note.id === activeTabId && tabIds.has(note.id)) {
+            const nextActiveTab = {
+              ...note,
+              width,
+              height,
+              tabFrameWidth: width,
+              tabFrameHeight: height
+            };
+            if (note.kind !== "map") return nextActiveTab;
+            const activePageId = note.activeMapPageId || activeMapPageForNote(note)?.id;
+            return updateMapNotePage(nextActiveTab, activePageId, (page) => ({
+              ...page,
+              frameWidth: width,
+              frameHeight: height
+            }));
+          }
+          return note;
+        });
       });
       return;
     }
@@ -9838,6 +10628,7 @@ function DmScreenApp() {
   }
 
   function stopDrag(event) {
+    if (mapMarkerDragRef.current?.pointerId === event.pointerId) mapMarkerDragRef.current = null;
     if (mapTokenDragRef.current?.pointerId === event.pointerId) mapTokenDragRef.current = null;
     if (selectionRef.current?.pointerId === event.pointerId) {
       const completedSelection = selectionRef.current;
@@ -9891,6 +10682,7 @@ function DmScreenApp() {
   }
 
   const activeTokenContext = findMapTokenContextEntry();
+  const activeMarkerContext = findMapMarkerContextEntry();
 
   return (
     <main
@@ -9992,6 +10784,14 @@ function DmScreenApp() {
         {visibleNotes.map((rootNote) => {
           const tabs = groupTabNotes(rootNote, monsterNotes);
           const activeNote = tabs.find((note) => note.id === rootNote.activeTabId) || rootNote;
+          const activeFrameSize = activeNote.id === rootNote.id
+            ? { width: rootNote.width, height: rootNote.height }
+            : noteTabFrameSize(activeNote, rootNote);
+          const activeFrameNote = {
+            ...rootNote,
+            width: activeFrameSize.width,
+            height: activeFrameSize.height
+          };
           const isActiveSharedMap = activeNote.kind === "map"
             && sharedVvtTarget?.note?.id === activeNote.id
             && sharedVvtTarget?.page?.id === activeMapPageForNote(activeNote)?.id;
@@ -10007,7 +10807,7 @@ function DmScreenApp() {
           const sharedProps = {
             key: rootNote.id,
             note: activeNote,
-            shellNote: rootNote,
+            shellNote: activeFrameNote,
             actionNoteId: activeNote.id,
             tabBar,
             isDropTarget: dropTargetNoteId === rootNote.id,
@@ -10060,6 +10860,12 @@ function DmScreenApp() {
               onMapTokensRollInitiative={rollMapTokensInitiative}
               onMapTokenDragStart={startMapTokenDrag}
               onMapTokenContextMenu={openMapTokenContextMenu}
+              onMapContextAddMonster={openMonsterTokenPicker}
+              onMapContextAddNpc={openNpcTokenPicker}
+              onMapMarkerAdd={addMapMarker}
+              onMapMarkerRename={renameMapMarker}
+              onMapMarkerDragStart={startMapMarkerDrag}
+              onMapMarkerContextMenu={openMapMarkerContextMenu}
             />
           ) : activeNote.kind === "obsidian" ? (
             <ObsidianNote
@@ -10081,7 +10887,16 @@ function DmScreenApp() {
         })}
 
         {visibleNotes.filter((note) => selectedRootNoteIdSet.has(note.id)).map((note) => {
-          const rect = noteFrameRect(note);
+          const tabs = groupTabNotes(note, monsterNotes);
+          const activeNote = tabs.find((entry) => entry.id === note.activeTabId) || note;
+          const activeFrameSize = activeNote.id === note.id
+            ? { width: note.width, height: note.height }
+            : noteTabFrameSize(activeNote, note);
+          const rect = noteFrameRect({
+            ...note,
+            width: activeFrameSize.width,
+            height: activeFrameSize.height
+          });
           return (
             <div
               key={`selected-${note.id}`}
@@ -10137,7 +10952,31 @@ function DmScreenApp() {
         </section>
       ) : null}
 
-      {tokenContextMenu && activeTokenContext ? (
+      {markerContextMenu && activeMarkerContext ? createPortal((
+        <div
+          className="fixed z-[10002] min-w-48 border border-neutral-700 bg-neutral-900 p-1 text-sm text-neutral-200 shadow-2xl"
+          data-context-menu="true"
+          style={{ left: markerContextMenu.x, top: markerContextMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div className="border-b border-neutral-800 px-3 py-2">
+            <p className="truncate font-serif text-base font-bold uppercase text-amber-500">
+              {activeMarkerContext.marker.label || "Marker"}
+            </p>
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Map marker</p>
+          </div>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-red-300 hover:bg-red-950/40 focus:bg-red-950/40 focus:outline-none"
+            type="button"
+            onClick={removeMapMarkerFromMenu}
+          >
+            <span>Eliminar marker</span>
+            <span className="text-neutral-500">X</span>
+          </button>
+        </div>
+      ), document.body) : null}
+
+      {tokenContextMenu && activeTokenContext ? createPortal((
         <div
           className="fixed z-[10002] min-w-52 border border-neutral-700 bg-neutral-900 p-1 text-sm text-neutral-200 shadow-2xl"
           data-context-menu="true"
@@ -10194,9 +11033,9 @@ function DmScreenApp() {
             <span className="text-neutral-500">X</span>
           </button>
         </div>
-      ) : null}
+      ), document.body) : null}
 
-      {contextMenu ? (
+      {contextMenu ? createPortal((
         <div
           className="fixed z-[10001] min-w-44 border border-neutral-700 bg-neutral-900 p-1 text-sm text-neutral-200 shadow-2xl"
           data-context-menu="true"
@@ -10268,7 +11107,7 @@ function DmScreenApp() {
             <span className="text-neutral-500">+</span>
           </button>
         </div>
-      ) : null}
+      ), document.body) : null}
 
       <CharacterCodeModal
         isOpen={isCharacterCodeModalOpen}
@@ -10317,7 +11156,25 @@ function DmScreenApp() {
         onAdd={addMonsterNote}
         onPreviewRoll={recordPreviewRoll}
         onTogglePreviewDice={togglePreviewDicePanel}
-        onClose={() => setIsPickerOpen(false)}
+        onClose={() => {
+          setIsPickerOpen(false);
+          setPendingMapTokenTarget(null);
+        }}
+      />
+      <NpcTokenPicker
+        isOpen={isNpcTokenPickerOpen}
+        tokens={filteredNpcTokens}
+        selectedToken={selectedNpcToken}
+        searchQuery={npcTokenSearchQuery}
+        loading={npcTokenPickerLoading}
+        error={npcTokenPickerError}
+        onSearch={setNpcTokenSearchQuery}
+        onSelect={setSelectedNpcToken}
+        onAdd={addNpcTokenToMap}
+        onClose={() => {
+          setIsNpcTokenPickerOpen(false);
+          setPendingMapTokenTarget(null);
+        }}
       />
       <ResourcePicker
         isOpen={Boolean(resourcePickerKind)}

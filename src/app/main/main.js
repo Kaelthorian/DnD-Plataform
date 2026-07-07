@@ -188,6 +188,57 @@ function resolveMonsterTokenPath({ sources = [], names = [] } = {}) {
   return null;
 }
 
+function listTokenLibrary() {
+  const roots = getMonsterTokenDirectoryCandidates().filter((directoryPath) => fs.existsSync(directoryPath));
+  const seenPaths = new Set();
+  const tokens = [];
+  const walk = (directoryPath, rootPath) => {
+    let entries = [];
+    try {
+      entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+    } catch (_error) {
+      return;
+    }
+    entries.forEach((entry) => {
+      const entryPath = path.join(directoryPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath, rootPath);
+        return;
+      }
+      if (!entry.isFile() || !isImageFile(entry.name)) return;
+      const resolvedPath = path.resolve(entryPath);
+      if (seenPaths.has(resolvedPath)) return;
+      seenPaths.add(resolvedPath);
+      const relativePath = path.relative(rootPath, resolvedPath).replace(/\\/g, "/");
+      const source = path.dirname(relativePath) === "." ? "" : path.dirname(relativePath).split("/")[0] || "";
+      tokens.push({
+        id: resolvedPath,
+        name: path.parse(entry.name).name,
+        fileName: entry.name,
+        source,
+        relativePath,
+        url: toFileUrl(resolvedPath)
+      });
+    });
+  };
+  roots.forEach((rootPath) => walk(rootPath, rootPath));
+  return tokens.sort((left, right) => (
+    left.name.localeCompare(right.name, undefined, { sensitivity: "base" })
+    || left.relativePath.localeCompare(right.relativePath, undefined, { sensitivity: "base" })
+  ));
+}
+
+function tokenLibraryImageDataUrl(tokenId) {
+  const targetPath = path.resolve(String(tokenId || ""));
+  const allowedRoots = getMonsterTokenDirectoryCandidates().filter((directoryPath) => fs.existsSync(directoryPath));
+  const isAllowed = allowedRoots.some((rootPath) => {
+    const relative = path.relative(rootPath, targetPath);
+    return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+  });
+  if (!isAllowed || !isImageFile(targetPath)) return null;
+  return imageFileDataUrl(targetPath);
+}
+
 function broadcastPlatformBackgroundChange() {
   scheduledPlatformBackgroundBroadcast = null;
   const nextUrl = getPlatformBackgroundImageUrl();
@@ -400,6 +451,14 @@ ipcMain.handle("monster-token:image-url", async (_event, request) => {
 
 ipcMain.handle("monster-token:data-url", async (_event, request) => {
   return imageFileDataUrl(resolveMonsterTokenPath(request));
+});
+
+ipcMain.handle("token-library:list", async () => {
+  return listTokenLibrary();
+});
+
+ipcMain.handle("token-library:data-url", async (_event, tokenId) => {
+  return tokenLibraryImageDataUrl(tokenId);
 });
 
 ipcMain.handle("obsidian:get-vault", async () => {
