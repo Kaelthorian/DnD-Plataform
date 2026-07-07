@@ -1221,7 +1221,7 @@
       }
       scheduleSave();
       showStatus(sheetMeta.longRestActive
-        ? isBardCharacter() ? "Long rest iniciado: Bard no cambia magias" : "Long rest iniciado: podes cambiar magias"
+        ? isBardCharacter() && !usesManagedPreparedSpells() ? "Long rest iniciado: Bard no cambia magias" : "Long rest iniciado: podes cambiar magias"
         : "Long rest terminado: vida y spell slots restaurados");
     }
 
@@ -1291,19 +1291,26 @@
     function bardKnownSpellLimit() {
       const level = Math.min(20, Math.max(1, getCharacterLevel()));
       const detail = classDetailByName("Bard");
-      const progression = detail?.classItem?.spellsKnownProgression;
+      const progression = detail?.classItem?.spellsKnownProgression || detail?.classItem?.preparedSpellsProgression;
       const base = Array.isArray(progression) ? progression[level - 1] : BARD_SPELLS_KNOWN[level - 1];
       return (base || 0) + extraKnownSpellLimit();
     }
 
-    function managedPreparedSpellLimit() {
-      if (isWizardCharacter() || isBardCharacter()) return null;
-      const className = normalizeName(getMainClassName() || getSelectedClassName());
-      if (className !== "paladin") return null;
-      const level = Math.min(20, Math.max(1, getCharacterLevel()));
+    function preparedSpellsProgressionForCharacter() {
       const detail = classDetailByName(getMainClassName() || getSelectedClassName());
       const progression = detail?.classItem?.preparedSpellsProgression;
-      if (!Array.isArray(progression) || !progression.length) return null;
+      return Array.isArray(progression) && progression.length ? progression : null;
+    }
+
+    function usesManagedPreparedSpells() {
+      if (isWizardCharacter()) return false;
+      return Boolean(preparedSpellsProgressionForCharacter());
+    }
+
+    function managedPreparedSpellLimit() {
+      if (!usesManagedPreparedSpells()) return null;
+      const level = Math.min(20, Math.max(1, getCharacterLevel()));
+      const progression = preparedSpellsProgressionForCharacter();
       const base = Number(progression[level - 1]) || 0;
       const featBonus = Array.from({ length: 9 }, (_item, index) => featGrantedSpellChoiceLimit(index + 1))
         .reduce((total, count) => total + count, 0);
@@ -2579,10 +2586,13 @@
           const description = String(entry?.description || flattenEntryText(feature?.entries || feature?.entry || "") || "");
           const preparedMatch = description.match(/\byou (?:also )?(?:always have|have) the ([A-Za-z' -]+?) spell prepared\b/i);
           if (!preparedMatch) return null;
-          if (!/\byou can (?:also )?cast (?:the spell|it)(?: once)? without expending a spell slot\b/i.test(description)) return null;
+          const freeCastMatch = description.match(/\byou can (?:also )?cast (?:the spell|it)(?:\s+(once|twice|thrice|one|two|three|four|five|six|seven|eight|nine|ten|\d+)(?:\s+times?)?)? without expending a spell slot\b/i);
+          if (!freeCastMatch) return null;
           if (!/\bfinish a long rest\b/i.test(description)) return null;
           const spell = findSpellByName(preparedMatch[1]);
           if (!spell || spell.level <= 0) return null;
+          const tableMaximum = classTableUseMaximumForFeature(feature?.name || entry?.title || "", feature);
+          const freeUses = tableMaximum ?? countWordToNumber(freeCastMatch[1] || "once");
           const key = [
             "class-spell-free-use",
             feature?.className || getMainClassName() || getSelectedClassName(),
@@ -2597,6 +2607,7 @@
             key,
             spellName: spell.name,
             level: spell.level,
+            max: Math.max(1, freeUses || 1),
             prepared: true,
             sourceLabel: feature?.name || entry?.title || "Class Feature",
             fromClassFeature: true
@@ -2625,7 +2636,7 @@
             const info = getMagicInitiateUseInfo({ grant, state: featureUseState() });
             return info ? { ...info, grant, sourceLabel: grant.sourceLabel || "Magic Initiate" } : null;
           }
-          const info = getResourceUseInfo({ key: grant.key, max: 1, state: featureUseState() });
+          const info = getResourceUseInfo({ key: grant.key, max: Math.max(1, grant.max || 1), state: featureUseState() });
           return info ? { ...info, grant, sourceLabel: grant.sourceLabel || "Class Feature" } : null;
         })
         .filter(Boolean);
@@ -3366,7 +3377,7 @@
         const key = normalizeName(`${title}:${description.slice(0, 80)}`);
         if (seen.has(key)) return;
         seen.add(key);
-        const usesMax = featureUseMaximum(title, description);
+        const usesMax = featureUseMaximum(title, description, entry.feature || entry.optionalFeature);
         const resourceKey = activationKeyForEntry(entry);
 
         if (normalizeName(title).includes("sneak attack")) {
@@ -3571,6 +3582,8 @@
     function featureUseMaximum(title, description, feature = null) {
       const text = `${title}\n${description}`;
       const normalizedTitle = normalizeName(title);
+      const tableMaximum = classTableUseMaximumForFeature(title, feature);
+      if (tableMaximum != null) return tableMaximum;
       if (normalizedTitle === "rage") return rageUsesForCharacter();
       if (normalizedTitle === "channel divinity") {
         return channelDivinityUsesForCharacter(feature || {
@@ -4878,7 +4891,7 @@
         const types = turnActionTypesFromText(`${name}\n${description}`);
         const actionTypes = types.length ? types : isActivatableFeature(entry) ? [ACTION_TYPES.action] : [];
         if (!actionTypes.length) return [];
-        const usesMax = featureUseMaximum(name, description);
+        const usesMax = featureUseMaximum(name, description, entry.feature || entry.optionalFeature || entry.feat);
         const resourceRow = { key: activationKeyForEntry(entry), name, usesMax };
         const uses = featureUseInfo(resourceRow);
         if (uses && uses.remaining <= 0) return [];
@@ -4931,7 +4944,7 @@
       if (!entry) return null;
       const name = turnActionEntryName(entry);
       const description = turnActionEntryDescription(entry);
-      const usesMax = featureUseMaximum(name, description);
+      const usesMax = featureUseMaximum(name, description, entry.feature || entry.optionalFeature || entry.feat);
       if (!Number.isFinite(usesMax) || usesMax <= 0) return null;
       return {
         key: activationKeyForEntry(entry),
@@ -5300,7 +5313,7 @@
         .forEach((entry) => {
           const name = turnActionEntryName(entry);
           const description = turnActionEntryDescription(entry);
-          const usesMax = featureUseMaximum(name, description);
+          const usesMax = featureUseMaximum(name, description, entry.feature || entry.optionalFeature || entry.feat);
           if (!Number.isFinite(usesMax) || usesMax <= 0) return;
           const resourceRow = { key: activationKeyForEntry(entry), name, usesMax };
           const uses = featureUseInfo(resourceRow);
@@ -7175,7 +7188,7 @@
     }
 
     function canModifySpells() {
-      if (isBardCharacter()) return !isCharacterReady();
+      if (isBardCharacter() && !usesManagedPreparedSpells()) return !isCharacterReady();
       return !isCharacterReady() || isLongRestActive();
     }
 
@@ -7195,7 +7208,7 @@
 
     function ensureCanModifySpells() {
       if (canModifySpells()) return true;
-      showStatus(isBardCharacter()
+      showStatus(isBardCharacter() && !usesManagedPreparedSpells()
         ? "Bard solo cambia magias al subir de nivel."
         : "Las magias solo se cambian durante long rest.");
       return false;
@@ -9286,6 +9299,16 @@
       return null;
     }
 
+    function escapeRegExpText(value) {
+      return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function classTableUseMaximumForFeature(title, feature = null) {
+      const name = strip5eTags(title || feature?.name || "").replace(/^Level \d+:\s*/i, "").trim();
+      if (!["second wind", "favored enemy"].includes(normalizeName(name))) return null;
+      return classTableValueForFeature(feature || { name, className: getMainClassName() || getSelectedClassName() }, new RegExp(`^${escapeRegExpText(name)}$`, "i"));
+    }
+
     function optionalFeatureOptionsByType(featureType) {
       const type = String(featureType || "").toUpperCase();
       const seen = new Set();
@@ -10964,7 +10987,7 @@
       const text = String(value || "").toLowerCase();
       const parsed = Number.parseInt(text, 10);
       if (Number.isFinite(parsed)) return parsed;
-      return { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }[text] || 1;
+      return { once: 1, one: 1, twice: 2, two: 2, thrice: 3, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }[text] || 1;
     }
 
     function languageChoiceOptions() {
@@ -12070,15 +12093,6 @@
         return;
       }
 
-      if (isBardCharacter()) {
-        const maxKnown = bardKnownSpellLimit();
-        const known = selectedKnownSpellNames().length;
-        if (known < maxKnown) {
-          addAlert(alerts, "important", "Elegir spells conocidos", `Tu Bard puede conocer ${maxKnown} spell(s) para este nivel; conoce ${known}.`, null, alertSpellsAction());
-        }
-        return;
-      }
-
       const managedLimit = managedPreparedSpellLimit();
       if (managedLimit != null) {
         const selected = selectedManagedSpellCount();
@@ -12087,6 +12101,15 @@
           addAlert(alerts, "important", "Elegir spells preparadas", `Tu ${className} puede preparar ${managedLimit} spell(s); preparaste ${selected}.`, null, alertSpellsAction());
         } else if (selected > managedLimit) {
           addAlert(alerts, "critical", "Demasiadas spells preparadas", `Preparaste ${selected}; tu limite actual es ${managedLimit}.`, null, alertSpellsAction());
+        }
+        return;
+      }
+
+      if (isBardCharacter()) {
+        const maxKnown = bardKnownSpellLimit();
+        const known = selectedKnownSpellNames().length;
+        if (known < maxKnown) {
+          addAlert(alerts, "important", "Elegir spells conocidos", `Tu Bard puede conocer ${maxKnown} spell(s) para este nivel; conoce ${known}.`, null, alertSpellsAction());
         }
         return;
       }
