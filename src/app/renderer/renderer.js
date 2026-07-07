@@ -119,8 +119,14 @@
     let liveVvtState = null;
     let liveVvtElements = null;
     let liveVvtPings = [];
+    let liveVvtBaseLayout = null;
+    let liveVvtView = { scale: 1, x: 0, y: 0 };
+    let liveVvtViewKey = "";
+    let liveVvtPointer = null;
     const liveVvtTokenImageCache = new Map();
     const LIVE_VVT_PING_TTL_MS = 5000;
+    const LIVE_VVT_MIN_ZOOM = 1;
+    const LIVE_VVT_MAX_ZOOM = 4;
 
     function loadUiSettings() {
       try {
@@ -290,8 +296,7 @@
           background: #020617;
         }
         .live-vvt-map {
-          width: 100%;
-          height: 100%;
+          position: absolute;
           object-fit: contain;
           display: block;
         }
@@ -534,7 +539,11 @@
         elements.minimize.setAttribute("aria-label", minimized ? "Restaurar VVT" : "Minimizar VVT");
         if (!minimized) requestAnimationFrame(updateLiveVvtLayout);
       });
-      elements.body.addEventListener("pointerdown", sendLiveVvtPingFromPointer);
+      elements.body.addEventListener("pointerdown", handleLiveVvtPointerDown);
+      elements.body.addEventListener("pointermove", handleLiveVvtPointerMove);
+      elements.body.addEventListener("pointerup", handleLiveVvtPointerUp);
+      elements.body.addEventListener("pointercancel", handleLiveVvtPointerUp);
+      elements.body.addEventListener("wheel", handleLiveVvtWheel, { passive: false });
       elements.image.addEventListener("load", updateLiveVvtLayout);
       window.addEventListener("resize", updateLiveVvtLayout);
       liveVvtElements = elements;
@@ -557,11 +566,53 @@
       };
     }
 
+    function liveVvtClamp(value, min, max) {
+      return Math.min(max, Math.max(min, Number(value) || 0));
+    }
+
+    function liveVvtClampView(view, baseLayout = liveVvtBaseLayout) {
+      const elements = liveVvtElements;
+      if (!elements || !baseLayout) return { scale: 1, x: 0, y: 0 };
+      const rect = elements.body.getBoundingClientRect();
+      const scale = liveVvtClamp(view.scale || 1, LIVE_VVT_MIN_ZOOM, LIVE_VVT_MAX_ZOOM);
+      const width = baseLayout.width * scale;
+      const height = baseLayout.height * scale;
+
+      function clampAxis(offset, baseStart, scaledSize, containerSize) {
+        const currentStart = baseStart + (Number(offset) || 0);
+        if (scaledSize <= containerSize) return (containerSize - scaledSize) / 2 - baseStart;
+        return liveVvtClamp(currentStart, containerSize - scaledSize, 0) - baseStart;
+      }
+
+      return {
+        scale,
+        x: clampAxis(view.x, baseLayout.left, width, rect.width || 1),
+        y: clampAxis(view.y, baseLayout.top, height, rect.height || 1)
+      };
+    }
+
+    function liveVvtZoomedLayout(baseLayout = liveVvtBaseLayout) {
+      if (!baseLayout) return null;
+      const view = liveVvtClampView(liveVvtView, baseLayout);
+      liveVvtView = view;
+      return {
+        left: baseLayout.left + view.x,
+        top: baseLayout.top + view.y,
+        width: baseLayout.width * view.scale,
+        height: baseLayout.height * view.scale
+      };
+    }
+
     function updateLiveVvtLayout() {
       const elements = liveVvtElements;
       if (!elements || elements.root.hidden || elements.root.classList.contains("is-minimized") || elements.image.hidden) return;
       const rect = elements.body.getBoundingClientRect();
-      const layout = liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
+      liveVvtBaseLayout = liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
+      const layout = liveVvtZoomedLayout(liveVvtBaseLayout);
+      elements.image.style.left = `${layout.left}px`;
+      elements.image.style.top = `${layout.top}px`;
+      elements.image.style.width = `${layout.width}px`;
+      elements.image.style.height = `${layout.height}px`;
       elements.fog.style.left = `${layout.left}px`;
       elements.fog.style.top = `${layout.top}px`;
       elements.fog.style.width = `${layout.width}px`;
@@ -586,6 +637,29 @@
       renderLiveVvtMarkers(elements.markers, liveVvtState?.markers, liveVvtState?.sourceViewport, layout);
       renderLiveVvtFog(elements.fog, liveVvtState?.fogOfWar, layout);
       renderLiveVvtPings(elements.pings, layout);
+    }
+
+    function handleLiveVvtWheel(event) {
+      if (!liveVvtState?.active || !liveVvtElements || liveVvtElements.image.hidden || !liveVvtBaseLayout) return;
+      const elements = liveVvtElements;
+      const rect = elements.body.getBoundingClientRect();
+      const layout = liveVvtZoomedLayout(liveVvtBaseLayout);
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+      if (localX < layout.left || localY < layout.top || localX > layout.left + layout.width || localY > layout.top + layout.height) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const oldScale = liveVvtView.scale || 1;
+      const nextScale = liveVvtClamp(oldScale * (event.deltaY < 0 ? 1.12 : 1 / 1.12), LIVE_VVT_MIN_ZOOM, LIVE_VVT_MAX_ZOOM);
+      if (Math.abs(nextScale - oldScale) < 0.001) return;
+      const nx = liveVvtClamp((localX - layout.left) / layout.width, 0, 1);
+      const ny = liveVvtClamp((localY - layout.top) / layout.height, 0, 1);
+      liveVvtView = liveVvtClampView({
+        scale: nextScale,
+        x: localX - liveVvtBaseLayout.left - nx * liveVvtBaseLayout.width * nextScale,
+        y: localY - liveVvtBaseLayout.top - ny * liveVvtBaseLayout.height * nextScale
+      }, liveVvtBaseLayout);
+      updateLiveVvtLayout();
     }
 
     function renderLiveVvtGrid(element, grid) {
@@ -863,31 +937,91 @@
       }, timeout + 40);
     }
 
-    function sendLiveVvtPingFromPointer(event) {
-      if (event.button != null && event.button !== 0) return;
-      if (!liveVvtState?.active || !liveVvtElements || liveVvtElements.image.hidden) return;
-      if (event.target?.closest?.(".live-vvt-window-actions")) return;
+    function liveVvtPointFromEvent(event) {
+      if (!liveVvtState?.active || !liveVvtElements || liveVvtElements.image.hidden) return null;
       const elements = liveVvtElements;
       const rect = elements.body.getBoundingClientRect();
-      const layout = liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
-      const x = (event.clientX - rect.left - layout.left) / layout.width;
-      const y = (event.clientY - rect.top - layout.top) / layout.height;
-      if (x < 0 || y < 0 || x > 1 || y > 1) return;
+      const layout = liveVvtZoomedLayout(liveVvtBaseLayout || liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight));
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+      const x = (localX - layout.left) / layout.width;
+      const y = (localY - layout.top) / layout.height;
+      if (x < 0 || y < 0 || x > 1 || y > 1) return null;
+      return { x, y, localX, localY };
+    }
+
+    function sendLiveVvtPing(point) {
+      if (!point) return;
       sendLiveSheetMessage({
         type: "vvt:ping",
         ping: {
           id: `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-          x,
-          y,
+          x: point.x,
+          y: point.y,
           createdAt: new Date().toISOString()
         }
       });
+    }
+
+    function handleLiveVvtPointerDown(event) {
+      if (event.button != null && event.button !== 0 && event.button !== 1) return;
+      if (event.target?.closest?.(".live-vvt-window-actions")) return;
+      const point = liveVvtPointFromEvent(event);
+      if (!point) return;
+      if (event.button === 1 && liveVvtView.scale <= 1.001) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      liveVvtPointer = {
+        pointerId: event.pointerId,
+        button: event.button || 0,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startLocalX: point.localX,
+        startLocalY: point.localY,
+        startView: { ...liveVvtView },
+        moved: false
+      };
+    }
+
+    function handleLiveVvtPointerMove(event) {
+      if (!liveVvtPointer || liveVvtPointer.pointerId !== event.pointerId) return;
+      if (Math.abs(event.clientX - liveVvtPointer.startClientX) > 4 || Math.abs(event.clientY - liveVvtPointer.startClientY) > 4) {
+        liveVvtPointer.moved = true;
+      }
+      if (liveVvtPointer.button !== 1 || !liveVvtPointer.moved || liveVvtView.scale <= 1.001) return;
+      const elements = liveVvtElements;
+      if (!elements || !liveVvtBaseLayout) return;
+      const rect = elements.body.getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+      event.preventDefault();
+      event.stopPropagation();
+      liveVvtView = liveVvtClampView({
+        ...liveVvtPointer.startView,
+        x: liveVvtPointer.startView.x + localX - liveVvtPointer.startLocalX,
+        y: liveVvtPointer.startView.y + localY - liveVvtPointer.startLocalY
+      }, liveVvtBaseLayout);
+      updateLiveVvtLayout();
+    }
+
+    function handleLiveVvtPointerUp(event) {
+      if (!liveVvtPointer || liveVvtPointer.pointerId !== event.pointerId) return;
+      const completed = liveVvtPointer;
+      liveVvtPointer = null;
+      event.preventDefault();
+      event.stopPropagation();
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      if (completed.button === 0 && !completed.moved) sendLiveVvtPing(liveVvtPointFromEvent(event));
     }
 
     function renderLiveVvtState(state) {
       liveVvtState = state || null;
       const elements = ensureLiveVvtWindow();
       if (!state?.active || !state.image?.dataUrl) {
+        liveVvtView = { scale: 1, x: 0, y: 0 };
+        liveVvtBaseLayout = null;
+        liveVvtViewKey = "";
         elements.root.hidden = true;
         elements.image.hidden = true;
         elements.empty.hidden = false;
@@ -901,6 +1035,11 @@
         elements.pings.replaceChildren();
         liveVvtPings = [];
         return;
+      }
+      const nextViewKey = [state.title || "", state.pageName || "", state.image?.name || "", String(state.image?.dataUrl || "").slice(0, 96)].join("|");
+      if (nextViewKey !== liveVvtViewKey) {
+        liveVvtView = { scale: 1, x: 0, y: 0 };
+        liveVvtViewKey = nextViewKey;
       }
       elements.title.textContent = [state.title || "Mapa VVT", state.pageName || ""].filter(Boolean).join(" - ");
       elements.image.src = state.image.dataUrl;

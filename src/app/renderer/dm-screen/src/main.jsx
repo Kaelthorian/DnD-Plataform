@@ -133,6 +133,8 @@ const MAP_FOG_BRUSH_MIN_SIZE = 8;
 const MAP_FOG_BRUSH_MAX_SIZE = 360;
 const MAP_FOG_BRUSH_KEY_STEP = 10;
 const VVT_PING_TTL_MS = 5000;
+const MAP_LOCAL_MIN_ZOOM = 1;
+const MAP_LOCAL_MAX_ZOOM = 4;
 const DEFAULT_MAP_GRID = {
   enabled: false,
   snap: false,
@@ -1393,11 +1395,17 @@ function normalizeTokenActorNote(actorNote, token = {}) {
   const hpFallback = kind === "character"
     ? (character.hpMax || character.hpCurrent || "")
     : (monster?.hp?.average ?? "");
+  const monsterTextNotes = kind === "monster" ? normalizeMonsterTextNotes(actorNote.monsterTextNotes) : [];
+  const monsterActiveTabId = kind === "monster"
+    ? (actorNote.monsterActiveTabId === "stats" || monsterTextNotes.some((entry) => entry.id === actorNote.monsterActiveTabId) ? String(actorNote.monsterActiveTabId || "stats") : "stats")
+    : "stats";
   return {
     kind,
     monster,
     monsterCustom,
     character,
+    monsterTextNotes,
+    monsterActiveTabId,
     titleOverride: String(actorNote.titleOverride || ""),
     hpCurrent: actorNote.hpCurrent ?? token.hpCurrent ?? hpFallback,
     hpMax: actorNote.hpMax ?? token.hpMax ?? hpFallback,
@@ -1437,6 +1445,8 @@ function tokenActorNoteSnapshot(note) {
     monster: note.kind === "monster" ? note.monster : null,
     monsterCustom: note.kind === "monster" && note.monsterCustom ? cloneForBoardState(note.monsterCustom) : null,
     character: note.kind === "character" ? note.character : null,
+    monsterTextNotes: note.kind === "monster" ? normalizeMonsterTextNotes(note.monsterTextNotes) : [],
+    monsterActiveTabId: note.kind === "monster" ? monsterActivePanelId(note) : "stats",
     titleOverride: note.titleOverride || "",
     hpCurrent: note.hpCurrent,
     hpMax: note.hpMax,
@@ -1463,6 +1473,7 @@ function normalizeMapToken(token) {
     y: Number.isFinite(Number(token.y)) ? Number(token.y) : 0,
     size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140),
     image: normalizeMapTokenImage(token.image),
+    groupId: String(token.groupId || ""),
     ...normalizeMapTokenCombatFields(token),
     actorNote: normalizeTokenActorNote(token.actorNote, token)
   };
@@ -1470,6 +1481,55 @@ function normalizeMapToken(token) {
 
 function mapTokenSnapshot(token) {
   return normalizeMapToken(token);
+}
+
+function normalizeMapTokenGroup(group, index = 0) {
+  const source = isPlainObject(group) ? group : {};
+  const fallbackName = `Grupo ${index + 1}`;
+  return {
+    id: String(source.id || `map-token-group-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    name: String(source.name || fallbackName).trim().slice(0, 80) || fallbackName,
+    global: Boolean(source.global || source.crossPage || source.sharedAcrossMaps),
+    sourcePageId: source.sourcePageId ? String(source.sourcePageId) : "",
+    sourcePageName: source.sourcePageName ? String(source.sourcePageName) : ""
+  };
+}
+
+function normalizeMapTokenGroups(groups) {
+  if (!Array.isArray(groups)) return [];
+  const seen = new Set();
+  return groups
+    .map((group, index) => normalizeMapTokenGroup(group, index))
+    .filter((group) => {
+      if (!group.id || seen.has(group.id)) return false;
+      seen.add(group.id);
+      return true;
+    });
+}
+
+function mapTokenGroupsSnapshot(groups) {
+  return normalizeMapTokenGroups(groups);
+}
+
+function serializeMapTokenDragPayload(payload = {}) {
+  return [
+    "dm-map-token",
+    encodeURIComponent(String(payload.mapNoteId || "")),
+    encodeURIComponent(String(payload.sourcePageId || "")),
+    encodeURIComponent(String(payload.tokenId || ""))
+  ].join(":");
+}
+
+function parseMapTokenDragPayload(value) {
+  const text = String(value || "");
+  if (!text.startsWith("dm-map-token:")) return null;
+  const [, mapNoteId = "", sourcePageId = "", tokenId = ""] = text.split(":");
+  const payload = {
+    mapNoteId: decodeURIComponent(mapNoteId),
+    sourcePageId: decodeURIComponent(sourcePageId),
+    tokenId: decodeURIComponent(tokenId)
+  };
+  return payload.sourcePageId && payload.tokenId ? payload : null;
 }
 
 function normalizeMapMarker(marker, index = 0) {
@@ -1571,6 +1631,7 @@ function normalizeMapPage(page, fallbackId = "map-page-default", index = 0) {
     name: mapPageName(source, index),
     mapImage: source.mapImage ? mapImageRuntimeSnapshot(source.mapImage) : null,
     mapTokens: Array.isArray(source.mapTokens) ? source.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
+    mapTokenGroups: mapTokenGroupsSnapshot(source.mapTokenGroups),
     mapMarkers: Array.isArray(source.mapMarkers) ? source.mapMarkers.map((marker, markerIndex) => normalizeMapMarker(marker, markerIndex)).filter(Boolean) : [],
     mapGrid: normalizeMapGrid(source.mapGrid),
     fogOfWar: normalizeMapFog(source.fogOfWar),
@@ -1590,6 +1651,7 @@ function mapPagesForNote(note) {
     name: note.mapImage?.name || "Mapa 1",
     mapImage: note.mapImage || null,
     mapTokens: note.mapTokens || [],
+    mapTokenGroups: note.mapTokenGroups || [],
     mapMarkers: note.mapMarkers || [],
     mapGrid: note.mapGrid,
     fogOfWar: note.fogOfWar
@@ -1622,6 +1684,7 @@ function syncMapNoteActivePage(note, pages, activePageId = null) {
     activeMapPageId: activePage?.id || null,
     mapImage: activePage?.mapImage || null,
     mapTokens: activePage?.mapTokens || [],
+    mapTokenGroups: activePage?.mapTokenGroups || [],
     mapMarkers: activePage?.mapMarkers || [],
     mapGrid: activePage?.mapGrid ? mapGridSnapshot(activePage.mapGrid) : normalizeMapGrid(null),
     fogOfWar: activePage?.fogOfWar ? mapFogSnapshot(activePage.fogOfWar) : normalizeMapFog(null),
@@ -1648,6 +1711,7 @@ function mapPageStorageSnapshot(page) {
     name: normalized.name,
     mapImage: normalized.mapImage ? mapImageStorageSnapshot(normalized.mapImage) : null,
     mapTokens: normalized.mapTokens.map(mapTokenSnapshot).filter(Boolean),
+    mapTokenGroups: mapTokenGroupsSnapshot(normalized.mapTokenGroups),
     mapMarkers: mapMarkersSnapshot(normalized.mapMarkers),
     mapGrid: mapGridSnapshot(normalized.mapGrid),
     fogOfWar: mapFogSnapshot(normalized.fogOfWar),
@@ -1662,6 +1726,7 @@ function restoreStoredMapPage(page, fallbackId, index = 0) {
     name: page?.name,
     mapImage: page?.mapImage ? restoreStoredMapImage(page.mapImage) : null,
     mapTokens: Array.isArray(page?.mapTokens) ? page.mapTokens.map(normalizeMapToken).filter(Boolean) : [],
+    mapTokenGroups: mapTokenGroupsSnapshot(page?.mapTokenGroups),
     mapMarkers: mapMarkersSnapshot(page?.mapMarkers),
     mapGrid: page?.mapGrid,
     fogOfWar: page?.fogOfWar,
@@ -1931,6 +1996,35 @@ function updateObjectPath(source, pathParts, value) {
   return root;
 }
 
+function normalizeMonsterTextNote(entry, index = 0) {
+  const source = isPlainObject(entry) ? entry : {};
+  const fallbackTitle = `Nota ${index + 1}`;
+  return {
+    id: String(source.id || `monster-text-note-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    title: String(source.title || fallbackTitle).trim().slice(0, 80) || fallbackTitle,
+    content: String(source.content || "")
+  };
+}
+
+function normalizeMonsterTextNotes(notes) {
+  if (!Array.isArray(notes)) return [];
+  const seen = new Set();
+  return notes
+    .map((entry, index) => normalizeMonsterTextNote(entry, index))
+    .filter((entry) => {
+      if (!entry.id || seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    });
+}
+
+function monsterActivePanelId(note) {
+  const textNotes = normalizeMonsterTextNotes(note?.monsterTextNotes);
+  const activeId = String(note?.monsterActiveTabId || "stats");
+  if (activeId === "stats") return "stats";
+  return textNotes.some((entry) => entry.id === activeId) ? activeId : "stats";
+}
+
 function noteStorageSnapshot(note) {
   const activeMapPage = note.kind === "map" ? activeMapPageForNote(note) : null;
   const mapPages = note.kind === "map" ? mapPagesForNote(note).map(mapPageStorageSnapshot).filter(Boolean) : [];
@@ -1939,6 +2033,8 @@ function noteStorageSnapshot(note) {
     kind: note.kind,
     monsterRef: libraryRef(note.monster),
     monsterCustom: note.kind === "monster" && note.monsterCustom ? cloneForBoardState(note.monsterCustom) : null,
+    monsterTextNotes: note.kind === "monster" ? normalizeMonsterTextNotes(note.monsterTextNotes) : [],
+    monsterActiveTabId: note.kind === "monster" ? monsterActivePanelId(note) : "stats",
     entryRef: libraryRef(note.entry),
     entryCustom: (note.kind === "spell" || note.kind === "item") && note.entryCustom ? cloneForBoardState(note.entryCustom) : null,
     character: note.character || null,
@@ -1947,6 +2043,7 @@ function noteStorageSnapshot(note) {
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(storedImageSnapshot).filter(Boolean) : [],
     mapImage: activeMapPage?.mapImage ? mapImageStorageSnapshot(activeMapPage.mapImage) : null,
     mapTokens: activeMapPage ? activeMapPage.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [],
+    mapTokenGroups: activeMapPage ? mapTokenGroupsSnapshot(activeMapPage.mapTokenGroups) : [],
     mapMarkers: activeMapPage ? mapMarkersSnapshot(activeMapPage.mapMarkers) : [],
     mapGrid: activeMapPage ? mapGridSnapshot(activeMapPage.mapGrid) : null,
     fogOfWar: activeMapPage ? mapFogSnapshot(activeMapPage.fogOfWar) : null,
@@ -1992,6 +2089,7 @@ function restoreStoredNote(note) {
   const mapTokens = note.kind === "map" && Array.isArray(note.mapTokens)
     ? note.mapTokens.map(normalizeMapToken).filter(Boolean)
     : [];
+  const mapTokenGroups = note.kind === "map" ? mapTokenGroupsSnapshot(note.mapTokenGroups) : [];
   const mapMarkers = note.kind === "map" ? mapMarkersSnapshot(note.mapMarkers) : [];
   const mapGrid = note.kind === "map" ? normalizeMapGrid(note.mapGrid) : null;
   const fogOfWar = note.kind === "map" ? normalizeMapFog(note.fogOfWar) : null;
@@ -2003,6 +2101,7 @@ function restoreStoredNote(note) {
         name: mapImage?.name || "Mapa 1",
         mapImage,
         mapTokens,
+        mapTokenGroups,
         mapMarkers,
         mapGrid,
         fogOfWar,
@@ -2031,11 +2130,17 @@ function restoreStoredNote(note) {
   }, width, height);
   const hpAverage = monster?.hp?.average ?? "";
   const characterHp = character?.hpMax || character?.hpCurrent || "";
+  const monsterTextNotes = note.kind === "monster" ? normalizeMonsterTextNotes(note.monsterTextNotes) : [];
+  const monsterActiveTabId = note.kind === "monster"
+    ? (note.monsterActiveTabId === "stats" || monsterTextNotes.some((entry) => entry.id === note.monsterActiveTabId) ? String(note.monsterActiveTabId || "stats") : "stats")
+    : "stats";
   return {
     id: String(note.id),
     kind: note.kind,
     monster,
     monsterCustom,
+    monsterTextNotes,
+    monsterActiveTabId,
     character,
     entry,
     entryCustom,
@@ -2044,6 +2149,7 @@ function restoreStoredNote(note) {
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(restoreStoredImage).filter(Boolean) : [],
     mapImage: activeMapPage?.mapImage || mapImage,
     mapTokens: activeMapPage?.mapTokens || mapTokens,
+    mapTokenGroups: activeMapPage?.mapTokenGroups || mapTokenGroups,
     mapMarkers: activeMapPage?.mapMarkers || mapMarkers,
     mapGrid: activeMapPage?.mapGrid || mapGrid,
     fogOfWar: activeMapPage?.fogOfWar || fogOfWar,
@@ -3938,11 +4044,19 @@ function MonsterNote({
   onDuplicate,
   onHpChange,
   onRollHp,
-  onMonsterEdit
+  onMonsterEdit,
+  onMonsterPanelSelect,
+  onMonsterTextNoteAdd,
+  onMonsterTextNoteRename,
+  onMonsterTextNoteChange,
+  onMonsterTextNoteRemove
 }) {
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
   const noteActionId = actionNoteId || note.id;
+  const monsterTextNotes = normalizeMonsterTextNotes(note.monsterTextNotes);
+  const activeMonsterPanelId = monsterActivePanelId(note);
+  const activeMonsterTextNote = monsterTextNotes.find((entry) => entry.id === activeMonsterPanelId) || null;
 
   function addRoll(label, roll) {
     onRoll(noteActionId, label, roll);
@@ -3998,6 +4112,62 @@ function MonsterNote({
         onClose={(event) => onClose(noteActionId, event)}
       />
       {tabBar}
+      <div
+        className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-neutral-800 bg-neutral-950/90 px-2 py-1.5"
+        data-board-control="true"
+        onPointerDown={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}
+      >
+        <button
+          className={`h-8 shrink-0 border px-3 text-xs font-bold uppercase transition focus:outline-none focus:ring-1 focus:ring-amber-400 ${activeMonsterPanelId === "stats" ? "border-amber-500 bg-amber-500/15 text-amber-100" : "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-neutral-100"}`}
+          type="button"
+          onClick={() => onMonsterPanelSelect?.(noteActionId, "stats")}
+        >
+          Ficha
+        </button>
+        {monsterTextNotes.map((textNote) => {
+          const isActive = activeMonsterPanelId === textNote.id;
+          return (
+            <div
+              key={textNote.id}
+              className={`flex h-8 max-w-48 shrink-0 items-center border text-xs transition ${isActive ? "border-amber-500 bg-amber-500/15 text-amber-100" : "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-neutral-100"}`}
+            >
+              <button
+                className="min-w-0 flex-1 px-2 text-left"
+                type="button"
+                title={textNote.title}
+                onClick={() => onMonsterPanelSelect?.(noteActionId, textNote.id)}
+              >
+                <CtrlEditableText
+                  value={textNote.title}
+                  className="block max-w-32 truncate font-bold uppercase"
+                  inputClassName="w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-xs font-bold uppercase text-amber-100 focus:outline-none"
+                  title="Doble click o Ctrl+click para renombrar"
+                  editOnDoubleClick
+                  onCommit={(value) => onMonsterTextNoteRename?.(noteActionId, textNote.id, value)}
+                >
+                  {textNote.title}
+                </CtrlEditableText>
+              </button>
+              <button
+                className="h-full w-7 border-l border-neutral-800 text-[11px] font-bold text-neutral-500 hover:bg-red-950/40 hover:text-red-200 focus:outline-none focus:ring-1 focus:ring-red-400/50"
+                type="button"
+                title="Eliminar nota"
+                onClick={() => onMonsterTextNoteRemove?.(noteActionId, textNote.id)}
+              >
+                X
+              </button>
+            </div>
+          );
+        })}
+        <button
+          className="h-8 shrink-0 border border-sky-500/60 bg-sky-950/60 px-3 text-xs font-bold uppercase text-sky-100 hover:bg-sky-900 focus:outline-none focus:ring-1 focus:ring-sky-400"
+          type="button"
+          onClick={() => onMonsterTextNoteAdd?.(noteActionId)}
+        >
+          + Nota
+        </button>
+      </div>
       {note.linkedMapToken ? (
         <div className="grid shrink-0 grid-cols-3 border-b border-neutral-800 bg-neutral-950/90 px-3 py-2 text-xs text-neutral-300">
           <div><span className="font-bold uppercase text-neutral-500">AC</span> <span className="font-bold text-sky-200">{formatAc(note.monster)}</span></div>
@@ -4005,23 +4175,41 @@ function MonsterNote({
           <div><span className="font-bold uppercase text-neutral-500">Ini</span> <span className="font-bold text-amber-300">{note.tokenInitiative ?? "Token"}</span></div>
         </div>
       ) : null}
-      <div className="min-h-0 flex flex-1">
-        <MonsterStatBlockBody
-          noteId={noteActionId}
-          monster={note.monster}
-          onRoll={addRoll}
-          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-          hpState={{ current: note.hpCurrent, max: note.hpMax }}
-          onHpChange={(field, value) => onHpChange(noteActionId, field, value)}
-          onRollHp={() => onRollHp(noteActionId)}
-          onMonsterEdit={(path, value) => onMonsterEdit?.(noteActionId, path, value)}
-        />
-        <MonsterRollPanel
-          note={note}
-          onToggle={onToggleDice}
-          className="relative flex h-full w-64 shrink-0 flex-col border-l border-neutral-700 bg-neutral-950"
-        />
-      </div>
+      {activeMonsterTextNote ? (
+        <div className="min-h-0 flex flex-1 flex-col bg-neutral-950/80">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-800 px-3 py-2">
+            <div className="min-w-0">
+              <div className="truncate font-serif text-base font-bold uppercase text-amber-500">{activeMonsterTextNote.title}</div>
+              <div className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Notas de {noteDisplayName(note)}</div>
+            </div>
+          </div>
+          <textarea
+            className="min-h-0 flex-1 resize-none bg-neutral-950 px-4 py-3 text-sm leading-relaxed text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500/30"
+            value={activeMonsterTextNote.content}
+            placeholder="Escribi notas privadas de este monstruo..."
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => onMonsterTextNoteChange?.(noteActionId, activeMonsterTextNote.id, event.target.value)}
+          />
+        </div>
+      ) : (
+        <div className="min-h-0 flex flex-1">
+          <MonsterStatBlockBody
+            noteId={noteActionId}
+            monster={note.monster}
+            onRoll={addRoll}
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+            hpState={{ current: note.hpCurrent, max: note.hpMax }}
+            onHpChange={(field, value) => onHpChange(noteActionId, field, value)}
+            onRollHp={() => onRollHp(noteActionId)}
+            onMonsterEdit={(path, value) => onMonsterEdit?.(noteActionId, path, value)}
+          />
+          <MonsterRollPanel
+            note={note}
+            onToggle={onToggleDice}
+            className="relative flex h-full w-64 shrink-0 flex-col border-l border-neutral-700 bg-neutral-950"
+          />
+        </div>
+      )}
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
@@ -4381,8 +4569,26 @@ function TextNote({
   );
 }
 
-function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu, onRollInitiativeAll }) {
+function MapTokenTracker({
+  mapNoteId = "",
+  activePageId = "",
+  tokens,
+  tokenGroups = [],
+  onHpChange,
+  onTokenContextMenu,
+  onRollInitiativeTokens,
+  onTokenGroupAdd,
+  onTokenGroupRename,
+  onTokenGroupRemove,
+  onTokenGroupChange,
+  onTokenGroupGlobalChange
+}) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isAddingGroup, setIsAddingGroup] = useState(false);
+  const [groupDraft, setGroupDraft] = useState("");
+  const [draggedTokenId, setDraggedTokenId] = useState("");
+  const [dragOverGroupId, setDragOverGroupId] = useState(null);
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState({});
   const visibleTokens = [...tokens].sort((left, right) => {
     const rightInitiative = Number(right.initiative);
     const leftInitiative = Number(left.initiative);
@@ -4391,7 +4597,179 @@ function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu, onRollInitiat
     }
     return String(left.name || "").localeCompare(String(right.name || ""));
   });
+  const groups = normalizeMapTokenGroups(tokenGroups);
+  const groupIds = new Set(groups.map((group) => group.id));
+  const tokensByGroup = groups.map((group) => ({
+    ...group,
+    tokens: visibleTokens.filter((token) => token.groupId === group.id)
+  }));
+  const ungroupedTokens = visibleTokens.filter((token) => !token.groupId || !groupIds.has(token.groupId));
+  const sections = groups.length
+    ? [
+        ...tokensByGroup,
+        ...(ungroupedTokens.length ? [{ id: "", name: "Sin grupo", tokens: ungroupedTokens, ungrouped: true }] : [])
+      ]
+    : [{ id: "", name: "Tokens", tokens: visibleTokens, ungrouped: true }];
   if (!visibleTokens.length) return null;
+
+  function addGroup() {
+    setGroupDraft(`Grupo ${groups.length + 1}`);
+    setIsAddingGroup(true);
+  }
+
+  function commitGroupDraft() {
+    const trimmed = String(groupDraft || "").trim();
+    if (!trimmed) {
+      setIsAddingGroup(false);
+      setGroupDraft("");
+      return;
+    }
+    onTokenGroupAdd?.(trimmed);
+    setIsAddingGroup(false);
+    setGroupDraft("");
+  }
+
+  function removeGroup(group) {
+    if (!group?.id) return;
+    onTokenGroupRemove?.(group.id, group.sourcePageId || activePageId);
+  }
+
+  function draggedTokenIdFromEvent(event) {
+    const plainPayload = parseMapTokenDragPayload(event.dataTransfer?.getData?.("text/plain"));
+    return draggedTokenId || event.dataTransfer?.getData?.("application/x-dm-map-token") || plainPayload?.tokenId || event.dataTransfer?.getData?.("text/plain") || "";
+  }
+
+  function draggedTokenPageIdFromEvent(event) {
+    const plainPayload = parseMapTokenDragPayload(event.dataTransfer?.getData?.("text/plain"));
+    return event.dataTransfer?.getData?.("application/x-dm-map-token-page") || plainPayload?.sourcePageId || activePageId || "";
+  }
+
+  function startTokenDrag(event, token) {
+    if (!token?.id) return;
+    const sourcePageId = token.sourcePageId || activePageId;
+    const plainPayload = serializeMapTokenDragPayload({ mapNoteId, sourcePageId, tokenId: token.id });
+    setDraggedTokenId(token.id);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-dm-map-token", token.id);
+    event.dataTransfer.setData("application/x-dm-map-token-note", mapNoteId);
+    event.dataTransfer.setData("application/x-dm-map-token-page", sourcePageId);
+    event.dataTransfer.setData("text/plain", plainPayload);
+  }
+
+  function handleGroupDragOver(event, section) {
+    if (!groups.length) return;
+    const tokenId = draggedTokenIdFromEvent(event);
+    if (!tokenId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    setDragOverGroupId(section.id || "");
+  }
+
+  function handleGroupDrop(event, section) {
+    if (!groups.length) return;
+    const tokenId = draggedTokenIdFromEvent(event);
+    if (!tokenId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onTokenGroupChange?.(tokenId, section.id || "", draggedTokenPageIdFromEvent(event));
+    setDraggedTokenId("");
+    setDragOverGroupId(null);
+  }
+
+  function stopTokenDrag() {
+    setDraggedTokenId("");
+    setDragOverGroupId(null);
+  }
+
+  function toggleGroupCollapsed(section) {
+    const sectionId = section.id || "__ungrouped__";
+    setCollapsedGroupIds((current) => ({
+      ...current,
+      [sectionId]: !current[sectionId]
+    }));
+  }
+
+  function isGroupCollapsed(section) {
+    return Boolean(collapsedGroupIds[section.id || "__ungrouped__"]);
+  }
+
+  function rollSectionInitiative(section) {
+    const tokenTargets = (section.tokens || [])
+      .map((token) => ({ tokenId: token.id, pageId: token.sourcePageId || activePageId }))
+      .filter((target) => target.tokenId && target.pageId);
+    if (!tokenTargets.length) return;
+    onRollInitiativeTokens?.(tokenTargets);
+  }
+
+  function renderTokenRow(token) {
+    const isDragging = draggedTokenId === token.id;
+    return (
+      <div
+        key={token.id}
+        className={`grid cursor-grab grid-cols-[34px_minmax(0,1fr)_48px_92px_54px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs transition hover:bg-neutral-900 focus-within:bg-neutral-900 active:cursor-grabbing ${isDragging ? "bg-sky-950/40 opacity-60" : ""}`}
+        title="Arrastrar a un grupo o click derecho para abrir menu del token"
+        draggable
+        onDragStart={(event) => startTokenDrag(event, token)}
+        onDragEnd={stopTokenDrag}
+        onContextMenu={(event) => onTokenContextMenu?.(event, token.id, token.sourcePageId || activePageId)}
+      >
+        <MapTokenImage token={token} className="h-7 w-7" />
+        <div className="min-w-0">
+          <div className="truncate font-bold text-neutral-100" title={token.name || "Token"}>{token.name || "Token"}</div>
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="shrink-0 text-[10px] uppercase text-neutral-500">{token.kind === "character" ? "PC" : "Monster"}</span>
+            {token.isCrossPageToken ? (
+              <span className="min-w-0 truncate text-[10px] font-bold uppercase text-sky-300" title={token.sourcePageName || "Otro mapa"}>
+                {token.sourcePageName || "Otro mapa"}
+              </span>
+            ) : null}
+            {groups.length ? (
+              <select
+                className="min-w-0 flex-1 border border-neutral-800 bg-neutral-950 px-1 py-0.5 text-[10px] font-bold uppercase text-neutral-300 focus:border-amber-500 focus:outline-none"
+                title="Mover a grupo"
+                value={groupIds.has(token.groupId) ? token.groupId : ""}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onChange={(event) => onTokenGroupChange?.(token.id, event.target.value, token.sourcePageId || activePageId)}
+              >
+                <option value="">Sin grupo</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>{group.name}</option>
+                ))}
+              </select>
+            ) : null}
+          </div>
+        </div>
+        <div className="truncate text-center font-bold text-sky-200" title={token.ac || "Unknown"}>{token.ac || "?"}</div>
+        <div
+          className="flex items-center justify-center gap-1"
+          onClick={(event) => event.stopPropagation()}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <NumericExpressionInput
+            className="h-7 w-10 border border-neutral-700 bg-neutral-900 px-1 text-center font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
+            value={token.hpCurrent}
+            integer
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(value) => onHpChange?.(token.id, value, token.sourcePageId || activePageId)}
+          />
+          {token.hpMax !== "" ? <span className="min-w-0 text-[10px] text-neutral-500">/{token.hpMax}</span> : null}
+        </div>
+        <div className="text-center font-bold text-amber-300" title={token.initiativeDetail || ""}>
+          {token.initiative !== "" ? token.initiative : "--"}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <aside
@@ -4414,15 +4792,58 @@ function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu, onRollInitiat
       >
         <div className="flex items-center justify-between gap-3 border-b border-neutral-800 px-3 py-2">
           <h3 className="font-serif text-sm font-bold uppercase text-amber-500">Tokens</h3>
-          <button
-            className="h-7 shrink-0 border border-amber-500/60 bg-amber-950/60 px-2 text-[11px] font-bold uppercase text-amber-100 hover:bg-amber-900 focus:outline-none focus:ring-1 focus:ring-amber-400"
-            type="button"
-            title="Tirar iniciativa de todos los tokens"
-            onClick={onRollInitiativeAll}
-          >
-            Roll Init
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              className="h-7 shrink-0 border border-sky-500/60 bg-sky-950/60 px-2 text-[11px] font-bold uppercase text-sky-100 hover:bg-sky-900 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              type="button"
+              title="Agregar subdivision"
+              onClick={addGroup}
+            >
+              Grupo +
+            </button>
+          </div>
         </div>
+        {isAddingGroup ? (
+          <div
+            className="flex items-center gap-1 border-b border-neutral-800 bg-neutral-900/70 px-3 py-2"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <input
+              className="min-w-0 flex-1 border border-sky-500 bg-neutral-950 px-2 py-1 text-xs font-bold uppercase text-sky-100 placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-sky-300"
+              value={groupDraft}
+              autoFocus
+              placeholder="Nombre del grupo"
+              onChange={(event) => setGroupDraft(event.target.value)}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                if (event.key === "Enter") commitGroupDraft();
+                if (event.key === "Escape") {
+                  setIsAddingGroup(false);
+                  setGroupDraft("");
+                }
+              }}
+            />
+            <button
+              className="h-7 border border-sky-500/60 bg-sky-950/60 px-2 text-[11px] font-bold uppercase text-sky-100 hover:bg-sky-900 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              type="button"
+              onClick={commitGroupDraft}
+            >
+              OK
+            </button>
+            <button
+              className="h-7 border border-neutral-700 bg-neutral-950 px-2 text-[11px] font-bold uppercase text-neutral-300 hover:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+              type="button"
+              onClick={() => {
+                setIsAddingGroup(false);
+                setGroupDraft("");
+              }}
+            >
+              X
+            </button>
+          </div>
+        ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="grid grid-cols-[34px_minmax(0,1fr)_48px_92px_54px] gap-2 border-b border-neutral-800 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
             <span />
@@ -4431,42 +4852,87 @@ function MapTokenTracker({ tokens, onHpChange, onTokenContextMenu, onRollInitiat
             <span className="text-center">HP</span>
             <span className="text-center">Ini</span>
           </div>
-          {visibleTokens.map((token) => (
-            <div
-              key={token.id}
-              className="grid cursor-default grid-cols-[34px_minmax(0,1fr)_48px_92px_54px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs transition hover:bg-neutral-900 focus-within:bg-neutral-900"
-              title="Click derecho para abrir menu del token"
-              onContextMenu={(event) => onTokenContextMenu?.(event, token.id)}
+          {sections.map((section) => {
+            const isDropTarget = groups.length > 0 && dragOverGroupId === (section.id || "");
+            const isCollapsed = isGroupCollapsed(section);
+            return (
+            <section
+              key={section.id || "ungrouped"}
+              className={`border-b border-neutral-800/80 transition ${isDropTarget ? "bg-sky-950/30 ring-1 ring-inset ring-sky-400/70" : ""}`}
+              onDragOver={(event) => handleGroupDragOver(event, section)}
+              onDragEnter={(event) => handleGroupDragOver(event, section)}
+              onDragLeave={(event) => {
+                if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+                setDragOverGroupId(null);
+              }}
+              onDrop={(event) => handleGroupDrop(event, section)}
             >
-              <MapTokenImage token={token} className="h-7 w-7" />
-              <div className="min-w-0">
-                <div className="truncate font-bold text-neutral-100" title={token.name || "Token"}>{token.name || "Token"}</div>
-                <div className="truncate text-[10px] uppercase text-neutral-500">{token.kind === "character" ? "PC" : "Monster"}</div>
-              </div>
-              <div className="truncate text-center font-bold text-sky-200" title={token.ac || "Unknown"}>{token.ac || "?"}</div>
-              <div
-                className="flex items-center justify-center gap-1"
-                onClick={(event) => event.stopPropagation()}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onKeyDown={(event) => event.stopPropagation()}
-              >
-                <NumericExpressionInput
-                  className="h-7 w-10 border border-neutral-700 bg-neutral-900 px-1 text-center font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
-                  value={token.hpCurrent}
-                  integer
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onChange={(value) => onHpChange?.(token.id, value)}
-                />
-                {token.hpMax !== "" ? <span className="min-w-0 text-[10px] text-neutral-500">/{token.hpMax}</span> : null}
-              </div>
-              <div className="text-center font-bold text-amber-300" title={token.initiativeDetail || ""}>
-                {token.initiative !== "" ? token.initiative : "--"}
-              </div>
-            </div>
-          ))}
+              {groups.length ? (
+                <div className="flex items-center justify-between gap-2 border-b border-neutral-900 bg-neutral-900/70 px-3 py-1.5">
+                  <button
+                    className="h-6 w-6 shrink-0 border border-neutral-700 bg-neutral-950 text-[11px] font-black text-amber-300 hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    type="button"
+                    title={isCollapsed ? "Expandir grupo" : "Colapsar grupo"}
+                    onClick={() => toggleGroupCollapsed(section)}
+                  >
+                    {isCollapsed ? "+" : "-"}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    {section.ungrouped ? (
+                      <span className="block truncate text-[11px] font-black uppercase tracking-wide text-neutral-400">{section.name}</span>
+                    ) : (
+                      <CtrlEditableText
+                        value={section.name}
+                        className="block truncate text-[11px] font-black uppercase tracking-wide text-amber-300"
+                        inputClassName="w-full border border-amber-500 bg-neutral-950 px-1 py-0.5 text-[11px] font-black uppercase tracking-wide text-amber-100 focus:outline-none"
+                        title="Doble click o Ctrl+click para renombrar"
+                        editOnDoubleClick
+                        onCommit={(value) => onTokenGroupRename?.(section.id, value, section.sourcePageId || activePageId)}
+                      >
+                        {section.name}
+                      </CtrlEditableText>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-[10px] font-bold uppercase text-neutral-500">{section.tokens.length}</span>
+                  <button
+                    className="h-6 shrink-0 border border-amber-500/60 bg-amber-950/60 px-2 text-[10px] font-bold uppercase text-amber-100 hover:bg-amber-900 focus:outline-none focus:ring-1 focus:ring-amber-400 disabled:cursor-not-allowed disabled:border-neutral-700 disabled:bg-neutral-950 disabled:text-neutral-600"
+                    type="button"
+                    title="Tirar iniciativa de este grupo"
+                    disabled={!section.tokens.length}
+                    onClick={() => rollSectionInitiative(section)}
+                  >
+                    Roll
+                  </button>
+                  {!section.ungrouped ? (
+                    <button
+                      className={`h-6 shrink-0 border px-2 text-[10px] font-bold uppercase focus:outline-none focus:ring-1 ${section.global ? "border-emerald-400/70 bg-emerald-950/70 text-emerald-100 hover:bg-emerald-900 focus:ring-emerald-400" : "border-neutral-700 bg-neutral-950 text-neutral-400 hover:border-sky-400 hover:text-sky-100 focus:ring-sky-400"}`}
+                      type="button"
+                      title={section.global ? "Este grupo se ve en todos los mapas" : "Hacer visible este grupo en todos los mapas"}
+                      onClick={() => onTokenGroupGlobalChange?.(section.id, !section.global, section.sourcePageId || activePageId)}
+                    >
+                      {section.global ? "Global" : "Local"}
+                    </button>
+                  ) : null}
+                  {!section.ungrouped ? (
+                    <button
+                      className="h-6 w-6 shrink-0 border border-neutral-700 bg-neutral-950 text-[11px] font-bold text-neutral-400 hover:border-red-400 hover:bg-red-950/50 hover:text-red-100 focus:outline-none focus:ring-1 focus:ring-red-400"
+                      type="button"
+                      title="Eliminar grupo"
+                      onClick={() => removeGroup(section)}
+                    >
+                      X
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+              {isCollapsed ? null : (
+                section.tokens.length ? section.tokens.map(renderTokenRow) : (
+                  <div className="px-3 py-3 text-center text-[11px] font-bold uppercase text-neutral-600">Sin tokens</div>
+                )
+              )}
+            </section>
+            );
+          })}
         </div>
       </div>
     </aside>
@@ -4606,9 +5072,18 @@ function MapNote({
   onMapPageClose,
   onMapFogChange,
   onShareVvtMap,
+  onMapPing,
   isSharedVvtMap = false,
   onMapTokenHpChange,
   onMapTokensRollInitiative,
+  onMapTokenGroupAdd,
+  onMapTokenGroupRename,
+  onMapTokenGroupRemove,
+  onMapTokenGroupChange,
+  onMapTokenGroupGlobalChange,
+  onMapTrackerTokenDrop,
+  selectedMapTokenIds = [],
+  onMapTokenSelectionChange,
   onMapTokenDragStart,
   onMapTokenContextMenu,
   onMapContextAddMonster,
@@ -4625,6 +5100,9 @@ function MapNote({
   const fogBrushPointerRef = useRef(null);
   const fogBrushModeRef = useRef("reveal");
   const pendingImageModeRef = useRef("replace");
+  const leftControlDownRef = useRef(false);
+  const handleMapWheelRef = useRef(null);
+  const mapPanRef = useRef(null);
   const [error, setError] = useState("");
   const [isAutoFittingGrid, setIsAutoFittingGrid] = useState(false);
   const [isGridPanelOpen, setIsGridPanelOpen] = useState(false);
@@ -4634,7 +5112,10 @@ function MapNote({
   const [fogBrushPreview, setFogBrushPreview] = useState(null);
   const [fogContextMenu, setFogContextMenu] = useState(null);
   const [contextMenuOpenSections, setContextMenuOpenSections] = useState({ fog: true, token: false, markers: false });
-  const [imageLayout, setImageLayout] = useState(null);
+  const [baseImageLayout, setBaseImageLayout] = useState(null);
+  const [mapView, setMapView] = useState({ scale: 1, x: 0, y: 0 });
+  const [mapTokenSelectionBox, setMapTokenSelectionBox] = useState(null);
+  const mapTokenSelectionRef = useRef(null);
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
   const noteActionId = actionNoteId || note.id;
@@ -4644,14 +5125,97 @@ function MapNote({
   const image = activePage.mapImage || null;
   const imageSrc = mapImageUrl(image);
   const tokens = Array.isArray(activePage.mapTokens) ? activePage.mapTokens : [];
+  const activePageId = activePage.id;
+  const tokenGroups = mapTokenGroupsSnapshot(activePage.mapTokenGroups).map((group) => ({
+    ...group,
+    sourcePageId: activePageId,
+    sourcePageName: activePage.name
+  }));
+  const activeGroupIds = new Set(tokenGroups.map((group) => group.id));
+  const globalTokenGroups = pages.flatMap((page) => (
+    mapTokenGroupsSnapshot(page.mapTokenGroups)
+      .filter((group) => group.global && !activeGroupIds.has(group.id))
+      .map((group) => ({
+        ...group,
+        sourcePageId: page.id,
+        sourcePageName: page.name
+      }))
+  ));
+  const visibleTokenGroups = [...tokenGroups, ...globalTokenGroups];
+  const visibleGlobalGroupIds = new Set(visibleTokenGroups.filter((group) => group.global).map((group) => group.id));
+  const visibleTokens = [
+    ...tokens.map((token) => ({
+      ...token,
+      sourcePageId: activePageId,
+      sourcePageName: activePage.name,
+      isCrossPageToken: false
+    })),
+    ...pages
+      .filter((page) => page.id !== activePageId)
+      .flatMap((page) => (page.mapTokens || [])
+        .filter((token) => token.groupId && visibleGlobalGroupIds.has(token.groupId))
+        .map((token) => ({
+          ...token,
+          sourcePageId: page.id,
+          sourcePageName: page.name,
+          isCrossPageToken: true
+        })))
+  ];
   const markers = Array.isArray(activePage.mapMarkers) ? activePage.mapMarkers : [];
   const grid = normalizeMapGrid(activePage.mapGrid);
   const fog = normalizeMapFog(activePage.fogOfWar);
   const fogMaskId = `map-fog-${noteActionId}-${activePage.id}`.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const imageLayout = baseImageLayout ? {
+    left: baseImageLayout.left + mapView.x,
+    top: baseImageLayout.top + mapView.y,
+    width: baseImageLayout.width * mapView.scale,
+    height: baseImageLayout.height * mapView.scale
+  } : null;
+  const mapVisualScale = imageLayout?.width && baseImageLayout?.width ? imageLayout.width / baseImageLayout.width : 1;
+  const localImageLayout = imageLayout ? { left: 0, top: 0, width: imageLayout.width, height: imageLayout.height } : null;
 
   useEffect(() => {
     fogBrushModeRef.current = fogBrushMode;
   }, [fogBrushMode]);
+
+  useEffect(() => {
+    handleMapWheelRef.current = handleMapWheel;
+  });
+
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return undefined;
+    const handleNativeWheel = (event) => {
+      handleMapWheelRef.current?.(event);
+    };
+    body.addEventListener("wheel", handleNativeWheel, { passive: false });
+    return () => {
+      body.removeEventListener("wheel", handleNativeWheel);
+    };
+  });
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.code === "ControlLeft") leftControlDownRef.current = true;
+    }
+
+    function handleKeyUp(event) {
+      if (event.code === "ControlLeft") leftControlDownRef.current = false;
+    }
+
+    function clearLeftControl() {
+      leftControlDownRef.current = false;
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", clearLeftControl);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", clearLeftControl);
+    };
+  }, []);
 
   useEffect(() => {
     if (!image || image.objectUrl || (!image.assetId && !image.dataUrl)) return undefined;
@@ -4676,7 +5240,7 @@ function MapNote({
       const body = bodyRef.current;
       const imageElement = imageRef.current;
       if (!body || !imageElement || !imageSrc) {
-        setImageLayout(null);
+        setBaseImageLayout(null);
         return;
       }
       const bodyWidth = body.clientWidth || body.getBoundingClientRect().width;
@@ -4687,7 +5251,7 @@ function MapNote({
         imageElement.naturalWidth || bodyWidth,
         imageElement.naturalHeight || bodyHeight
       );
-      setImageLayout((current) => (
+      setBaseImageLayout((current) => (
         current
           && Math.abs(current.left - nextLayout.left) < 0.5
           && Math.abs(current.top - nextLayout.top) < 0.5
@@ -4711,6 +5275,10 @@ function MapNote({
       window.removeEventListener("resize", updateImageLayout);
     };
   }, [frameNote.height, frameNote.width, imageSrc, image?.updatedAt]);
+
+  useEffect(() => {
+    setMapView({ scale: 1, x: 0, y: 0 });
+  }, [activePage.id, imageSrc, noteActionId]);
 
   function openFilePicker(event, mode = "replace") {
     event?.stopPropagation?.();
@@ -4893,9 +5461,9 @@ function MapNote({
       x: clamp(event.clientX, 8, viewportWidth - 230),
       y: clamp(event.clientY, 8, viewportHeight - 180),
       point,
-      tokenPoint: imageLayout ? {
-        x: imageLayout.left + point.x * imageLayout.width,
-        y: imageLayout.top + point.y * imageLayout.height
+      tokenPoint: baseImageLayout ? {
+        x: baseImageLayout.left + point.x * baseImageLayout.width,
+        y: baseImageLayout.top + point.y * baseImageLayout.height
       } : null
     });
   }
@@ -4951,6 +5519,287 @@ function MapNote({
     if (!target) return;
     onMapMarkerAdd?.(target);
     setFogContextMenu(null);
+  }
+
+  function mapTrackerTokenDragPayload(event) {
+    const types = Array.from(event.dataTransfer?.types || []);
+    const plainPayload = parseMapTokenDragPayload(event.dataTransfer?.getData?.("text/plain"));
+    if (!types.includes("application/x-dm-map-token") && !plainPayload) return null;
+    const mapNoteId = event.dataTransfer.getData("application/x-dm-map-token-note") || plainPayload?.mapNoteId || "";
+    const sourcePageId = event.dataTransfer.getData("application/x-dm-map-token-page") || plainPayload?.sourcePageId || "";
+    const tokenId = event.dataTransfer.getData("application/x-dm-map-token") || plainPayload?.tokenId || "";
+    if (mapNoteId && mapNoteId !== noteActionId) return null;
+    if (!sourcePageId || !tokenId) return null;
+    return { sourcePageId, tokenId };
+  }
+
+  function hasMapTrackerTokenDragData(event) {
+    const types = Array.from(event.dataTransfer?.types || []);
+    return types.includes("application/x-dm-map-token") || types.includes("text/plain");
+  }
+
+  function mapTrackerTokenSize(payload) {
+    const token = visibleTokens.find((entry) => entry.id === payload?.tokenId && (entry.sourcePageId || activePage.id) === payload?.sourcePageId)
+      || visibleTokens.find((entry) => entry.id === payload?.tokenId);
+    return clamp(Number(token?.size) || MAP_TOKEN_SIZE, 32, 140);
+  }
+
+  function mapTokenDropPointFromPointer(event, size = MAP_TOKEN_SIZE) {
+    const basePoint = basePointFromVisualPoint(bodyPointFromPointer(event));
+    if (!basePoint) return null;
+    const tokenSize = clamp(Number(size) || MAP_TOKEN_SIZE, 32, 140);
+    return {
+      x: basePoint.x - tokenSize / 2,
+      y: basePoint.y - tokenSize / 2,
+      size: tokenSize
+    };
+  }
+
+  function bodyPointFromPointer(event) {
+    if (!bodyRef.current) return null;
+    const bodyRect = bodyRef.current.getBoundingClientRect();
+    const bodyWidth = bodyRef.current.clientWidth || bodyRect.width;
+    const bodyHeight = bodyRef.current.clientHeight || bodyRect.height;
+    const scaleX = bodyRect.width ? bodyWidth / bodyRect.width : 1;
+    const scaleY = bodyRect.height ? bodyHeight / bodyRect.height : 1;
+    return {
+      x: (event.clientX - bodyRect.left) * scaleX,
+      y: (event.clientY - bodyRect.top) * scaleY
+    };
+  }
+
+  function clampMapView(nextView) {
+    if (!bodyRef.current || !baseImageLayout) return { scale: 1, x: 0, y: 0 };
+    const bodyWidth = bodyRef.current.clientWidth || bodyRef.current.getBoundingClientRect().width || 1;
+    const bodyHeight = bodyRef.current.clientHeight || bodyRef.current.getBoundingClientRect().height || 1;
+    const scale = clamp(Number(nextView.scale) || 1, MAP_LOCAL_MIN_ZOOM, MAP_LOCAL_MAX_ZOOM);
+    const width = baseImageLayout.width * scale;
+    const height = baseImageLayout.height * scale;
+
+    function clampAxis(offset, baseStart, scaledSize, containerSize) {
+      const currentStart = baseStart + (Number(offset) || 0);
+      if (scaledSize <= containerSize) return (containerSize - scaledSize) / 2 - baseStart;
+      return clamp(currentStart, containerSize - scaledSize, 0) - baseStart;
+    }
+
+    return {
+      scale,
+      x: clampAxis(nextView.x, baseImageLayout.left, width, bodyWidth),
+      y: clampAxis(nextView.y, baseImageLayout.top, height, bodyHeight)
+    };
+  }
+
+  function basePointFromVisualPoint(point) {
+    if (!pointIsInsideMapImage(point) || !baseImageLayout || !imageLayout) return null;
+    return {
+      x: baseImageLayout.left + ((point.x - imageLayout.left) / imageLayout.width) * baseImageLayout.width,
+      y: baseImageLayout.top + ((point.y - imageLayout.top) / imageLayout.height) * baseImageLayout.height
+    };
+  }
+
+  function visualPointFromBasePoint(point) {
+    if (!point || !baseImageLayout || !imageLayout) return point;
+    return {
+      x: imageLayout.left + ((Number(point.x) || 0) - baseImageLayout.left) / baseImageLayout.width * imageLayout.width,
+      y: imageLayout.top + ((Number(point.y) || 0) - baseImageLayout.top) / baseImageLayout.height * imageLayout.height
+    };
+  }
+
+  function localVisualPointFromBasePoint(point) {
+    const visualPoint = visualPointFromBasePoint(point);
+    if (!visualPoint || !imageLayout) return visualPoint;
+    return {
+      x: visualPoint.x - imageLayout.left,
+      y: visualPoint.y - imageLayout.top
+    };
+  }
+
+  function visualSizeFromBaseSize(size) {
+    return clamp(Number(size) || 0, 0, 10000) * mapVisualScale;
+  }
+
+  function handleMapWheel(event) {
+    if (!imageSrc || !baseImageLayout || !imageLayout) return;
+    const point = bodyPointFromPointer(event);
+    if (!pointIsInsideMapImage(point)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const zoomFactor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
+    setMapView((current) => {
+      const oldScale = clamp(Number(current.scale) || 1, MAP_LOCAL_MIN_ZOOM, MAP_LOCAL_MAX_ZOOM);
+      const nextScale = clamp(oldScale * zoomFactor, MAP_LOCAL_MIN_ZOOM, MAP_LOCAL_MAX_ZOOM);
+      if (Math.abs(nextScale - oldScale) < 0.001) return current;
+      const oldLayout = {
+        left: baseImageLayout.left + current.x,
+        top: baseImageLayout.top + current.y,
+        width: baseImageLayout.width * oldScale,
+        height: baseImageLayout.height * oldScale
+      };
+      const nx = clamp((point.x - oldLayout.left) / oldLayout.width, 0, 1);
+      const ny = clamp((point.y - oldLayout.top) / oldLayout.height, 0, 1);
+      return clampMapView({
+        scale: nextScale,
+        x: point.x - baseImageLayout.left - nx * baseImageLayout.width * nextScale,
+        y: point.y - baseImageLayout.top - ny * baseImageLayout.height * nextScale
+      });
+    });
+  }
+
+  function pointIsInsideMapImage(point) {
+    return Boolean(point && imageLayout?.width && imageLayout?.height
+      && point.x >= imageLayout.left
+      && point.y >= imageLayout.top
+      && point.x <= imageLayout.left + imageLayout.width
+      && point.y <= imageLayout.top + imageLayout.height);
+  }
+
+  function normalizedImagePointFromBodyPoint(point) {
+    if (!pointIsInsideMapImage(point)) return null;
+    return {
+      x: clamp((point.x - imageLayout.left) / imageLayout.width, 0, 1),
+      y: clamp((point.y - imageLayout.top) / imageLayout.height, 0, 1)
+    };
+  }
+
+  function handleDmMapPingPointerDown(event) {
+    if (!isSharedVvtMap || !imageSrc || event.button !== 0 || !leftControlDownRef.current) return false;
+    if (event.target?.closest?.("[data-map-token='true'], [data-board-control='true'], button, input, select, textarea")) return false;
+    const point = normalizedImagePointFromBodyPoint(bodyPointFromPointer(event));
+    if (!point) return false;
+    event.preventDefault();
+    event.stopPropagation();
+    onMapPing?.({
+      id: `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      x: point.x,
+      y: point.y,
+      playerId: "dm",
+      playerName: "DM",
+      createdAt: new Date().toISOString()
+    });
+    return true;
+  }
+
+  function startMapPan(event) {
+    if (!imageSrc || mapView.scale <= 1.001 || event.button !== 1) return false;
+    if (event.target?.closest?.("[data-board-control='true'], input, select, textarea")) return false;
+    const point = bodyPointFromPointer(event);
+    if (!pointIsInsideMapImage(point)) return false;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    mapPanRef.current = {
+      pointerId: event.pointerId,
+      startPoint: point,
+      startView: mapView
+    };
+    return true;
+  }
+
+  function mapTokenSelectionRect(start, end) {
+    const left = Math.min(start.x, end.x);
+    const top = Math.min(start.y, end.y);
+    const right = Math.max(start.x, end.x);
+    const bottom = Math.max(start.y, end.y);
+    return { x: left, y: top, width: right - left, height: bottom - top, right, bottom };
+  }
+
+  function mapTokenFrame(token) {
+    const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
+    const x = Number(token.x) || 0;
+    const y = Number(token.y) || 0;
+    return { x, y, width: size, height: size, right: x + size, bottom: y + size };
+  }
+
+  function startMapTokenBoxSelection(event) {
+    if (handleDmMapPingPointerDown(event)) return;
+    if (startMapPan(event)) return;
+    if (!imageSrc || isFogBrushActive || event.button !== 0) return;
+    if (event.target?.closest?.("[data-map-token='true'], [data-board-control='true'], button, input, select, textarea")) return;
+    const point = basePointFromVisualPoint(bodyPointFromPointer(event));
+    if (!point) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const append = Boolean(event.shiftKey || event.ctrlKey || event.metaKey);
+    mapTokenSelectionRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startPoint: point,
+      append,
+      baseIds: append ? selectedMapTokenIds.slice() : [],
+      moved: false
+    };
+    setMapTokenSelectionBox({ x: point.x, y: point.y, width: 0, height: 0, right: point.x, bottom: point.y });
+  }
+
+  function moveMapTokenBoxSelection(event) {
+    const pan = mapPanRef.current;
+    if (pan?.pointerId === event.pointerId) {
+      const point = bodyPointFromPointer(event);
+      if (!point) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMapView(clampMapView({
+        ...pan.startView,
+        x: pan.startView.x + point.x - pan.startPoint.x,
+        y: pan.startView.y + point.y - pan.startPoint.y
+      }));
+      return;
+    }
+    const selection = mapTokenSelectionRef.current;
+    if (!selection || selection.pointerId !== event.pointerId) return;
+    const point = basePointFromVisualPoint(bodyPointFromPointer(event));
+    if (!point) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (Math.abs(event.clientX - selection.startClientX) > 4 || Math.abs(event.clientY - selection.startClientY) > 4) selection.moved = true;
+    const rect = mapTokenSelectionRect(selection.startPoint, point);
+    setMapTokenSelectionBox(rect);
+    const hitIds = tokens
+      .filter((token) => rectsIntersect(rect, mapTokenFrame(token)))
+      .map((token) => token.id);
+    const nextIds = selection.append ? [...selection.baseIds] : [];
+    hitIds.forEach((id) => {
+      if (!nextIds.includes(id)) nextIds.push(id);
+    });
+    onMapTokenSelectionChange?.(noteActionId, activePage.id, nextIds);
+  }
+
+  function stopMapTokenBoxSelection(event) {
+    if (mapPanRef.current?.pointerId === event.pointerId) {
+      event.preventDefault();
+      event.stopPropagation();
+      mapPanRef.current = null;
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      return;
+    }
+    const selection = mapTokenSelectionRef.current;
+    if (!selection || selection.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    mapTokenSelectionRef.current = null;
+    setMapTokenSelectionBox(null);
+    if (!selection.moved && !selection.append) onMapTokenSelectionChange?.(noteActionId, activePage.id, []);
+  }
+
+  function handleMapTrackerTokenDragOver(event) {
+    if (!imageSrc || !hasMapTrackerTokenDragData(event)) return;
+    const point = mapTokenDropPointFromPointer(event);
+    if (!point) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  function handleMapTrackerTokenDrop(event) {
+    if (!imageSrc) return;
+    const payload = mapTrackerTokenDragPayload(event);
+    const point = mapTokenDropPointFromPointer(event, mapTrackerTokenSize(payload));
+    if (!payload || !point) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onMapTrackerTokenDrop?.(noteActionId, payload.sourcePageId, payload.tokenId, activePage.id, point);
   }
 
   async function autoFitGrid(event) {
@@ -5279,123 +6128,130 @@ function MapNote({
         ref={bodyRef}
         className="relative min-h-0 flex-1 overflow-hidden bg-neutral-950"
         data-map-body-note-id={noteActionId}
+        data-map-view-scale={mapVisualScale}
+        data-map-base-left={baseImageLayout?.left ?? 0}
+        data-map-base-top={baseImageLayout?.top ?? 0}
+        data-map-base-width={baseImageLayout?.width ?? 0}
+        data-map-base-height={baseImageLayout?.height ?? 0}
+        data-map-view-left={imageLayout?.left ?? 0}
+        data-map-view-top={imageLayout?.top ?? 0}
+        data-map-view-width={imageLayout?.width ?? 0}
+        data-map-view-height={imageLayout?.height ?? 0}
         onContextMenu={openFogContextMenu}
+        onPointerDownCapture={startMapTokenBoxSelection}
+        onPointerMove={moveMapTokenBoxSelection}
+        onPointerUp={stopMapTokenBoxSelection}
+        onPointerCancel={stopMapTokenBoxSelection}
+        onDragOver={handleMapTrackerTokenDragOver}
+        onDrop={handleMapTrackerTokenDrop}
       >
         {imageSrc ? (
-          <img
-            ref={imageRef}
-            className="h-full w-full object-contain"
-            src={imageSrc}
-            alt={image.name || title}
-            draggable={false}
-            onLoad={(event) => {
-              const body = bodyRef.current;
-              if (!body) return;
-              const bodyRect = body.getBoundingClientRect();
-              const bodyWidth = body.clientWidth || bodyRect.width;
-              const bodyHeight = body.clientHeight || bodyRect.height;
-              setImageLayout(containedMediaRect(bodyWidth, bodyHeight, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight));
-            }}
-            onPointerDown={(event) => event.stopPropagation()}
-          />
-        ) : (
-          <button
-            className="flex h-full w-full flex-col items-center justify-center gap-3 border border-dashed border-neutral-700 bg-neutral-950/70 px-6 text-center text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500/40"
-            type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={openFilePicker}
-          >
-            <span className="font-serif text-2xl font-bold uppercase text-amber-500">Subir mapa</span>
-            <span className="max-w-sm text-sm text-neutral-500">PNG, JPG, WebP o GIF</span>
-          </button>
-        )}
-        {imageSrc && grid.enabled ? (
           <div
-            className="pointer-events-none absolute inset-0 z-[1]"
-            style={{
-              backgroundImage: "linear-gradient(rgba(56,189,248,0.72) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.72) 1px, transparent 1px)",
-              backgroundSize: `${grid.cellWidth}px ${grid.cellHeight}px`,
-              backgroundPosition: `${grid.offsetX}px ${grid.offsetY}px`
-            }}
-          />
-        ) : null}
-        {imageSrc ? (
-          <MapFogOverlay
-            fog={fog}
-            layout={imageLayout}
-            maskId={fogMaskId}
-            preview={isFogBrushActive ? fogBrushPreview : null}
-            opacity={0.76}
-            className={isFogBrushActive ? "z-[25] cursor-crosshair" : "z-20 pointer-events-none"}
-            onPointerDown={startFogBrush}
-            onPointerMove={moveFogBrush}
-            onPointerUp={stopFogBrush}
-            onPointerLeave={leaveFogBrush}
-            onContextMenu={openFogContextMenu}
-          />
-        ) : null}
-        {imageSrc ? (
-          <MapPingOverlay pings={vvtPings} layout={imageLayout} />
-        ) : null}
-        {imageSrc ? (
-          <MapTokenTracker
-            tokens={tokens}
-            onHpChange={(tokenId, value) => onMapTokenHpChange?.(noteActionId, activePage.id, tokenId, value)}
-            onTokenContextMenu={(event, tokenId) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, tokenId)}
-            onRollInitiativeAll={() => onMapTokensRollInitiative?.(noteActionId, activePage.id)}
-          />
-        ) : null}
-        {imageSrc ? (
-          <>
-            {markers.map((marker) => (
+            className="absolute overflow-visible"
+            style={imageLayout ? {
+              left: imageLayout.left,
+              top: imageLayout.top,
+              width: imageLayout.width,
+              height: imageLayout.height
+            } : { left: 0, top: 0, width: "100%", height: "100%" }}
+          >
+            <img
+              ref={imageRef}
+              className="absolute inset-0 h-full w-full object-contain"
+              src={imageSrc}
+              alt={image.name || title}
+              draggable={false}
+              onLoad={(event) => {
+                const body = bodyRef.current;
+                if (!body) return;
+                const bodyRect = body.getBoundingClientRect();
+                const bodyWidth = body.clientWidth || bodyRect.width;
+                const bodyHeight = body.clientHeight || bodyRect.height;
+                setBaseImageLayout(containedMediaRect(bodyWidth, bodyHeight, event.currentTarget.naturalWidth, event.currentTarget.naturalHeight));
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+            />
+            {grid.enabled ? (
               <div
-                key={marker.id}
-                className="absolute z-[9] flex -translate-x-1/2 -translate-y-full flex-col items-center"
-                data-board-control="true"
-                title={marker.label || "Marker"}
+                className="pointer-events-none absolute inset-0 z-[1]"
                 style={{
-                  left: marker.x,
-                  top: marker.y
+                  backgroundImage: "linear-gradient(rgba(56,189,248,0.72) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.72) 1px, transparent 1px)",
+                  backgroundSize: `${grid.cellWidth * mapVisualScale}px ${grid.cellHeight * mapVisualScale}px`,
+                  backgroundPosition: `${((Number(grid.offsetX) || 0) - (baseImageLayout?.left || 0)) * mapVisualScale}px ${((Number(grid.offsetY) || 0) - (baseImageLayout?.top || 0)) * mapVisualScale}px`
                 }}
-                onPointerDown={(event) => onMapMarkerDragStart?.(event, noteActionId, activePage.id, marker.id)}
-                onContextMenu={(event) => onMapMarkerContextMenu?.(event, noteActionId, activePage.id, marker.id)}
-              >
+              />
+            ) : null}
+            <MapFogOverlay
+              fog={fog}
+              layout={localImageLayout}
+              maskId={fogMaskId}
+              preview={isFogBrushActive ? fogBrushPreview : null}
+              opacity={0.76}
+              className={isFogBrushActive ? "z-[25] cursor-crosshair" : "z-20 pointer-events-none"}
+              onPointerDown={startFogBrush}
+              onPointerMove={moveFogBrush}
+              onPointerUp={stopFogBrush}
+              onPointerLeave={leaveFogBrush}
+              onContextMenu={openFogContextMenu}
+            />
+            <MapPingOverlay pings={vvtPings} layout={localImageLayout} />
+            {markers.map((marker) => {
+              const visualPoint = localVisualPointFromBasePoint(marker);
+              const markerSize = Math.max(12, visualSizeFromBaseSize(MAP_MARKER_SIZE));
+              return (
                 <div
-                  className="flex items-center justify-center border-2 border-neutral-950 bg-amber-400 text-[11px] font-black leading-none text-neutral-950 shadow-[0_3px_10px_rgba(0,0,0,0.7)]"
+                  key={marker.id}
+                  className="absolute z-[9] flex -translate-x-1/2 -translate-y-full flex-col items-center"
+                  data-board-control="true"
+                  title={marker.label || "Marker"}
                   style={{
-                    width: MAP_MARKER_SIZE,
-                    height: MAP_MARKER_SIZE,
-                    borderRadius: "9999px 9999px 9999px 2px",
-                    transform: "rotate(-45deg)"
+                    left: visualPoint.x,
+                    top: visualPoint.y
                   }}
+                  onPointerDown={(event) => onMapMarkerDragStart?.(event, noteActionId, activePage.id, marker.id)}
+                  onContextMenu={(event) => onMapMarkerContextMenu?.(event, noteActionId, activePage.id, marker.id)}
                 >
-                  <span style={{ transform: "rotate(45deg)" }}>M</span>
+                  <div
+                    className="flex items-center justify-center border-2 border-neutral-950 bg-amber-400 text-[11px] font-black leading-none text-neutral-950 shadow-[0_3px_10px_rgba(0,0,0,0.7)]"
+                    style={{
+                      width: markerSize,
+                      height: markerSize,
+                      borderRadius: "9999px 9999px 9999px 2px",
+                      transform: "rotate(-45deg)"
+                    }}
+                  >
+                    <span style={{ transform: "rotate(45deg)" }}>M</span>
+                  </div>
+                  <CtrlEditableText
+                    value={marker.label || "Marker"}
+                    className="mt-1 max-w-32 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow"
+                    inputClassName="mt-1 w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow focus:outline-none"
+                    title="Doble click o Ctrl+click para editar"
+                    editOnDoubleClick
+                    onCommit={(value) => onMapMarkerRename?.(noteActionId, activePage.id, marker.id, value)}
+                  >
+                    {marker.label || "Marker"}
+                  </CtrlEditableText>
                 </div>
-                <CtrlEditableText
-                  value={marker.label || "Marker"}
-                  className="mt-1 max-w-32 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow"
-                  inputClassName="mt-1 w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow focus:outline-none"
-                  title="Doble click o Ctrl+click para editar"
-                  editOnDoubleClick
-                  onCommit={(value) => onMapMarkerRename?.(noteActionId, activePage.id, marker.id, value)}
-                >
-                  {marker.label || "Marker"}
-                </CtrlEditableText>
-              </div>
-            ))}
+              );
+            })}
             {tokens.map((token) => {
               const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
+              const visualPoint = localVisualPointFromBasePoint(token);
+              const visualSize = Math.max(18, visualSizeFromBaseSize(size));
+              const isSelected = selectedMapTokenIds.includes(token.id);
               return (
                 <button
                   key={token.id}
-                  className="absolute z-10 rounded-full border-2 border-amber-300 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : "border-amber-300"}`}
                   type="button"
+                  data-map-token="true"
                   title={token.name || token.character?.name || token.monster?.name || "Token"}
                   style={{
-                    left: token.x,
-                    top: token.y,
-                    width: size,
-                    height: size
+                    left: visualPoint.x,
+                    top: visualPoint.y,
+                    width: visualSize,
+                    height: visualSize
                   }}
                   onPointerDown={(event) => onMapTokenDragStart?.(event, noteActionId, activePage.id, token.id)}
                   onContextMenu={(event) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, token.id)}
@@ -5407,7 +6263,44 @@ function MapNote({
                 </button>
               );
             })}
-          </>
+            {mapTokenSelectionBox ? (
+              <div
+                className="pointer-events-none absolute z-[12] border border-sky-300 bg-sky-300/15"
+                style={{
+                  left: localVisualPointFromBasePoint({ x: mapTokenSelectionBox.x, y: mapTokenSelectionBox.y }).x,
+                  top: localVisualPointFromBasePoint({ x: mapTokenSelectionBox.x, y: mapTokenSelectionBox.y }).y,
+                  width: mapTokenSelectionBox.width * mapVisualScale,
+                  height: mapTokenSelectionBox.height * mapVisualScale
+                }}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <button
+            className="flex h-full w-full flex-col items-center justify-center gap-3 border border-dashed border-neutral-700 bg-neutral-950/70 px-6 text-center text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500/40"
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={openFilePicker}
+          >
+            <span className="font-serif text-2xl font-bold uppercase text-amber-500">Subir mapa</span>
+            <span className="max-w-sm text-sm text-neutral-500">PNG, JPG, WebP o GIF</span>
+          </button>
+        )}
+        {imageSrc ? (
+          <MapTokenTracker
+            mapNoteId={noteActionId}
+            activePageId={activePage.id}
+            tokens={visibleTokens}
+            tokenGroups={visibleTokenGroups}
+            onHpChange={(tokenId, value, sourcePageId) => onMapTokenHpChange?.(noteActionId, sourcePageId || activePage.id, tokenId, value)}
+            onTokenGroupAdd={(name) => onMapTokenGroupAdd?.(noteActionId, activePage.id, name)}
+            onTokenGroupRename={(groupId, name, sourcePageId) => onMapTokenGroupRename?.(noteActionId, sourcePageId || activePage.id, groupId, name)}
+            onTokenGroupRemove={(groupId, sourcePageId) => onMapTokenGroupRemove?.(noteActionId, sourcePageId || activePage.id, groupId)}
+            onTokenGroupChange={(tokenId, groupId, sourcePageId) => onMapTokenGroupChange?.(noteActionId, sourcePageId || activePage.id, tokenId, groupId)}
+            onTokenGroupGlobalChange={(groupId, global, sourcePageId) => onMapTokenGroupGlobalChange?.(noteActionId, sourcePageId || activePage.id, groupId, global)}
+            onTokenContextMenu={(event, tokenId, sourcePageId) => onMapTokenContextMenu?.(event, noteActionId, sourcePageId || activePage.id, tokenId)}
+            onRollInitiativeTokens={(tokenIds) => onMapTokensRollInitiative?.(noteActionId, activePage.id, tokenIds)}
+          />
         ) : null}
         {error ? (
           <p className="absolute bottom-3 left-3 max-w-[calc(100%-140px)] border border-red-500/40 bg-red-950/90 px-3 py-2 text-xs text-red-100">
@@ -7765,6 +8658,7 @@ function DmScreenApp() {
   const [vvtPings, setVvtPings] = useState([]);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
   const [selectedRootNoteIds, setSelectedRootNoteIds] = useState([]);
+  const [selectedMapTokens, setSelectedMapTokens] = useState({ mapNoteId: "", pageId: "", tokenIds: [] });
   const [selectionBox, setSelectionBox] = useState(null);
   const [boardView, setBoardView] = useState(persistedBoardState.view);
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -7782,6 +8676,7 @@ function DmScreenApp() {
   const boardViewRef = useRef(boardView);
   const handleBoardWheelRef = useRef(null);
   const monsterNotesRef = useRef(monsterNotes);
+  const selectedMapTokensRef = useRef(selectedMapTokens);
   const focusedRootNoteIdRef = useRef(null);
   const suppressRestoreClickRef = useRef(null);
   const zRef = useRef(Math.max(20, ...persistedBoardState.notes.map((note) => Number(note.z) || 0)));
@@ -7862,6 +8757,10 @@ function DmScreenApp() {
   useEffect(() => {
     boardViewRef.current = boardView;
   }, [boardView]);
+
+  useEffect(() => {
+    selectedMapTokensRef.current = selectedMapTokens;
+  }, [selectedMapTokens]);
 
   useEffect(() => {
     if (!contextMenu && !tokenContextMenu && !markerContextMenu) return undefined;
@@ -8159,6 +9058,15 @@ function DmScreenApp() {
       )),
       normalized
     ].slice(-16));
+  }
+
+  async function publishDmVvtPing(ping) {
+    try {
+      await window.dndSheet?.liveSheet?.publishVvtPing?.(ping);
+    } catch (error) {
+      console.error(error);
+      appendVvtPing(ping);
+    }
   }
 
   async function returnToCharacterSheet() {
@@ -8510,6 +9418,7 @@ function DmScreenApp() {
       titleOverride: "Mapa VVT",
       mapImage,
       mapTokens: [],
+      mapTokenGroups: [],
       mapMarkers: [],
       mapGrid: normalizeMapGrid(null),
       fogOfWar: normalizeMapFog(null),
@@ -8518,6 +9427,7 @@ function DmScreenApp() {
         name: mapImage?.name || "Mapa 1",
         mapImage,
         mapTokens: [],
+        mapTokenGroups: [],
         mapMarkers: [],
         mapGrid: normalizeMapGrid(null),
         fogOfWar: normalizeMapFog(null),
@@ -9010,10 +9920,15 @@ function DmScreenApp() {
     const obsidian = payload.obsidian || null;
     const mapImage = payload.mapImage ? mapImageRuntimeSnapshot(payload.mapImage) : null;
     const mapTokens = Array.isArray(payload.mapTokens) ? payload.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [];
+    const mapTokenGroups = mapTokenGroupsSnapshot(payload.mapTokenGroups);
     const mapMarkers = mapMarkersSnapshot(payload.mapMarkers);
     const mapGrid = payload.kind === "map" ? mapGridSnapshot(payload.mapGrid) : null;
     const fogOfWar = payload.kind === "map" ? mapFogSnapshot(payload.fogOfWar) : null;
     const noteId = `${payload.kind}-${(monster || payload.entry || character)?.name || obsidian?.relativePath || mapImage?.name || "note"}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const monsterTextNotes = payload.kind === "monster" ? normalizeMonsterTextNotes(payload.monsterTextNotes) : [];
+    const monsterActiveTabId = payload.kind === "monster"
+      ? (payload.monsterActiveTabId === "stats" || monsterTextNotes.some((entry) => entry.id === payload.monsterActiveTabId) ? String(payload.monsterActiveTabId || "stats") : "stats")
+      : "stats";
     const mapPages = payload.kind === "map"
       ? (Array.isArray(payload.mapPages) && payload.mapPages.length
         ? payload.mapPages.map((page, index) => normalizeMapPage(page, page.id || `${defaultMapPageId(noteId)}-${index + 1}`, index))
@@ -9022,6 +9937,7 @@ function DmScreenApp() {
           name: mapImage?.name || "Mapa 1",
           mapImage,
           mapTokens,
+          mapTokenGroups,
           mapMarkers,
           mapGrid,
           fogOfWar,
@@ -9039,6 +9955,8 @@ function DmScreenApp() {
         kind: payload.kind,
         monster,
         monsterCustom: payload.monsterCustom || null,
+        monsterTextNotes,
+        monsterActiveTabId,
         character,
         entry: payload.entry || null,
         entryCustom: payload.entryCustom || null,
@@ -9047,6 +9965,7 @@ function DmScreenApp() {
         textImages: Array.isArray(payload.textImages) ? payload.textImages.map(storedImageSnapshot).filter(Boolean) : [],
         mapImage: activeMapPage?.mapImage || mapImage,
         mapTokens: activeMapPage?.mapTokens || mapTokens,
+        mapTokenGroups: activeMapPage?.mapTokenGroups || mapTokenGroups,
         mapMarkers: activeMapPage?.mapMarkers || mapMarkers,
         mapGrid: activeMapPage?.mapGrid || mapGrid,
         fogOfWar: activeMapPage?.fogOfWar || fogOfWar,
@@ -9085,10 +10004,18 @@ function DmScreenApp() {
   function duplicateNote(noteId) {
     const source = monsterNotes.find((note) => note.id === noteId);
     if (!source) return;
+    const copiedMonsterTextNotes = normalizeMonsterTextNotes(source.monsterTextNotes).map((entry, index) => ({
+      ...entry,
+      id: `monster-text-note-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`
+    }));
+    const sourceMonsterTextNotes = normalizeMonsterTextNotes(source.monsterTextNotes);
+    const activeMonsterTextIndex = sourceMonsterTextNotes.findIndex((entry) => entry.id === source.monsterActiveTabId);
     addBoardNote({
       kind: source.kind,
       monster: source.monster,
       monsterCustom: source.monsterCustom,
+      monsterTextNotes: copiedMonsterTextNotes,
+      monsterActiveTabId: activeMonsterTextIndex >= 0 ? copiedMonsterTextNotes[activeMonsterTextIndex]?.id : "stats",
       character: source.character,
       entry: source.entry,
       entryCustom: source.entryCustom,
@@ -9102,6 +10029,7 @@ function DmScreenApp() {
           id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
         }))
         : [],
+      mapTokenGroups: mapTokenGroupsSnapshot(source.mapTokenGroups),
       mapMarkers: mapMarkersSnapshot(source.mapMarkers).map((marker) => ({
         ...marker,
         id: `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -9115,6 +10043,7 @@ function DmScreenApp() {
           ...token,
           id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
         })),
+        mapTokenGroups: mapTokenGroupsSnapshot(page.mapTokenGroups),
         mapMarkers: mapMarkersSnapshot(page.mapMarkers).map((marker) => ({
           ...marker,
           id: `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -9243,7 +10172,7 @@ function DmScreenApp() {
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
         ...page,
-        name: mapImage?.name || page.name,
+        name: page.name || mapImage?.name || "Mapa 1",
         mapImage: mapImageRuntimeSnapshot(mapImage)
       })) : note
     )));
@@ -9326,12 +10255,22 @@ function DmScreenApp() {
     const body = findMapBodyElement(mapNote.id);
     if (body) {
       const rect = body.getBoundingClientRect();
+      const dataset = body.dataset || {};
       return {
         left: rect.left,
         top: rect.top,
         width: rect.width / scale,
         height: rect.height / scale,
-        scale
+        scale,
+        mapViewScale: Number(dataset.mapViewScale) || 1,
+        baseLeft: Number(dataset.mapBaseLeft) || 0,
+        baseTop: Number(dataset.mapBaseTop) || 0,
+        baseWidth: Number(dataset.mapBaseWidth) || 0,
+        baseHeight: Number(dataset.mapBaseHeight) || 0,
+        viewLeft: Number(dataset.mapViewLeft) || 0,
+        viewTop: Number(dataset.mapViewTop) || 0,
+        viewWidth: Number(dataset.mapViewWidth) || 0,
+        viewHeight: Number(dataset.mapViewHeight) || 0
       };
     }
     return {
@@ -9339,7 +10278,18 @@ function DmScreenApp() {
       top: null,
       width: Math.max(1, Number(mapNote.width) || NOTE_DEFAULT_WIDTH),
       height: Math.max(1, (Number(mapNote.height) || NOTE_DEFAULT_HEIGHT) - 88),
-      scale
+      scale,
+      mapViewScale: 1
+    };
+  }
+
+  function mapVisualPointToBase(metrics, localX, localY) {
+    if (!metrics?.baseWidth || !metrics?.baseHeight || !metrics?.viewWidth || !metrics?.viewHeight) {
+      return { x: localX, y: localY };
+    }
+    return {
+      x: metrics.baseLeft + ((localX - metrics.viewLeft) / metrics.viewWidth) * metrics.baseWidth,
+      y: metrics.baseTop + ((localY - metrics.viewTop) / metrics.viewHeight) * metrics.baseHeight
     };
   }
 
@@ -9375,7 +10325,8 @@ function DmScreenApp() {
     const boardPoint = screenToBoardPoint(clientX, clientY);
     const localX = metrics.left == null ? boardPoint.x - mapNote.x : (clientX - metrics.left) / metrics.scale;
     const localY = metrics.top == null ? boardPoint.y - mapNote.y - 88 : (clientY - metrics.top) / metrics.scale;
-    const point = clampMapTokenPoint(mapNote, localX - size / 2, localY - size / 2, size, page.id);
+    const basePoint = mapVisualPointToBase(metrics, localX, localY);
+    const point = clampMapTokenPoint(mapNote, basePoint.x - size / 2, basePoint.y - size / 2, size, page.id);
     const isCharacter = sourceNote.kind === "character";
     const monster = isCharacter ? null : mapTokenMonsterSnapshot(sourceNote.monster);
     const character = isCharacter ? mapTokenCharacterSnapshot(sourceNote.character) : null;
@@ -9427,6 +10378,11 @@ function DmScreenApp() {
     }));
   }
 
+  function setMapTokenSelection(mapNoteId, pageId, tokenIds) {
+    const ids = Array.from(new Set((tokenIds || []).filter(Boolean)));
+    setSelectedMapTokens({ mapNoteId: ids.length ? mapNoteId : "", pageId: ids.length ? pageId : "", tokenIds: ids });
+  }
+
   function startMapTokenDrag(event, mapNoteId, pageId, tokenId) {
     if (event.button != null && event.button !== 0) {
       if (event.button === 2) {
@@ -9445,21 +10401,41 @@ function DmScreenApp() {
     const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
     const token = page?.mapTokens?.find((entry) => entry.id === tokenId);
     if (!mapNote || !token) return;
+    const metrics = mapBodyMetrics(mapNote);
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     focusNote(resolveRootNoteId(mapNoteId, monsterNotesRef.current) || mapNoteId);
+    const currentSelection = selectedMapTokensRef.current;
+    const pageTokenIds = new Set((page.mapTokens || []).map((entry) => entry.id));
+    const selectedIds = currentSelection.mapNoteId === mapNoteId
+      && currentSelection.pageId === page.id
+      && currentSelection.tokenIds.includes(tokenId)
+      ? currentSelection.tokenIds.filter((id) => pageTokenIds.has(id))
+      : [tokenId];
+    setMapTokenSelection(mapNoteId, page.id, selectedIds);
+    const selectedTokens = (page.mapTokens || []).filter((entry) => selectedIds.includes(entry.id));
+    const startPositions = Object.fromEntries(selectedTokens.map((entry) => {
+      const size = clamp(Number(entry.size) || MAP_TOKEN_SIZE, 32, 140);
+      return [entry.id, {
+        x: Number(entry.x) || 0,
+        y: Number(entry.y) || 0,
+        size
+      }];
+    }));
     mapTokenDragRef.current = {
       pointerId: event.pointerId,
       mapNoteId,
       pageId: page?.id || null,
       tokenId,
+      tokenIds: selectedIds,
+      startPositions,
       startClientX: event.clientX,
       startClientY: event.clientY,
       startX: Number(token.x) || 0,
       startY: Number(token.y) || 0,
       size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140),
-      scale: boardViewRef.current.scale || 1
+      scale: (boardViewRef.current.scale || 1) * (metrics.mapViewScale || 1)
     };
   }
 
@@ -9468,14 +10444,18 @@ function DmScreenApp() {
     if (!mapNote) return;
     const deltaX = (event.clientX - drag.startClientX) / drag.scale;
     const deltaY = (event.clientY - drag.startClientY) / drag.scale;
-    const point = clampMapTokenPoint(mapNote, drag.startX + deltaX, drag.startY + deltaY, drag.size, drag.pageId);
+    const draggedIds = Array.isArray(drag.tokenIds) && drag.tokenIds.length ? drag.tokenIds : [drag.tokenId];
+    const startPositions = drag.startPositions || {};
     setMonsterNotes((notes) => notes.map((note) => {
       if (note.id !== drag.mapNoteId) return note;
       return updateMapNotePage(note, drag.pageId, (page) => ({
         ...page,
-        mapTokens: (page.mapTokens || []).map((token) => (
-          token.id === drag.tokenId ? { ...token, x: point.x, y: point.y } : token
-        ))
+        mapTokens: (page.mapTokens || []).map((token) => {
+          if (!draggedIds.includes(token.id)) return token;
+          const start = startPositions[token.id] || { x: Number(token.x) || 0, y: Number(token.y) || 0, size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140) };
+          const point = clampMapTokenPoint(mapNote, start.x + deltaX, start.y + deltaY, start.size, drag.pageId);
+          return { ...token, x: point.x, y: point.y };
+        })
       }));
     }));
   }
@@ -9486,6 +10466,7 @@ function DmScreenApp() {
     const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
     const marker = page?.mapMarkers?.find((entry) => entry.id === markerId);
     if (!mapNote || !marker) return;
+    const metrics = mapBodyMetrics(mapNote);
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -9499,7 +10480,7 @@ function DmScreenApp() {
       startClientY: event.clientY,
       startX: Number(marker.x) || 0,
       startY: Number(marker.y) || 0,
-      scale: boardViewRef.current.scale || 1
+      scale: (boardViewRef.current.scale || 1) * (metrics.mapViewScale || 1)
     };
   }
 
@@ -9537,11 +10518,179 @@ function DmScreenApp() {
     )));
   }
 
-  function rollMapTokensInitiative(noteId, pageId) {
+  function addMapTokenGroup(noteId, pageId, name) {
+    const trimmed = String(name || "").trim();
+    if (!trimmed) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokenGroups: [
+          ...mapTokenGroupsSnapshot(page.mapTokenGroups),
+          normalizeMapTokenGroup({
+            id: `map-token-group-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            name: trimmed
+          }, (page.mapTokenGroups || []).length)
+        ]
+      })) : note
+    )));
+  }
+
+  function renameMapTokenGroup(noteId, pageId, groupId, name) {
+    const trimmed = String(name || "").trim();
+    if (!groupId || !trimmed) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokenGroups: mapTokenGroupsSnapshot(page.mapTokenGroups).map((group) => (
+          group.id === groupId ? { ...group, name: trimmed.slice(0, 80) } : group
+        ))
+      })) : note
+    )));
+  }
+
+  function setMapTokenGroupGlobal(noteId, pageId, groupId, global) {
+    if (!groupId) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokenGroups: mapTokenGroupsSnapshot(page.mapTokenGroups).map((group) => (
+          group.id === groupId ? { ...group, global: Boolean(global) } : group
+        ))
+      })) : note
+    )));
+  }
+
+  function removeMapTokenGroup(noteId, pageId, groupId) {
+    if (!groupId) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokenGroups: mapTokenGroupsSnapshot(page.mapTokenGroups).filter((group) => group.id !== groupId),
+        mapTokens: (page.mapTokens || []).map((token) => (
+          token.groupId === groupId ? { ...token, groupId: "" } : token
+        ))
+      })) : note
+    )));
+  }
+
+  function changeMapTokenGroup(noteId, pageId, tokenId, groupId) {
+    const groups = new Set(mapTokenGroupsSnapshot(
+      mapPagesForNote(monsterNotesRef.current.find((note) => note.id === noteId) || {})
+        .find((page) => page.id === pageId)?.mapTokenGroups
+    ).map((group) => group.id));
+    const nextGroupId = groupId && groups.has(groupId) ? groupId : "";
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokens: (page.mapTokens || []).map((token) => (
+          token.id === tokenId ? { ...token, groupId: nextGroupId } : token
+        ))
+      })) : note
+    )));
+  }
+
+  function dropMapTrackerToken(noteId, sourcePageId, tokenId, targetPageId, point) {
+    if (!noteId || !sourcePageId || !tokenId || !targetPageId || !point) return;
+    setMonsterNotes((notes) => {
+      const linkedNoteIds = notes
+        .filter((note) => {
+          const link = normalizeLinkedMapTokenLink(note.linkedMapToken);
+          return link?.mapNoteId === noteId && link.tokenId === tokenId;
+        })
+        .map((note) => note.id);
+      const preparedNotes = linkedNoteIds.length ? persistLinkedTokenNotesInCollection(notes, linkedNoteIds) : notes;
+      let didMoveToken = false;
+      const movedNotes = preparedNotes.map((note) => {
+        if (note.id !== noteId || note.kind !== "map") return note;
+        const pages = mapPagesForNote(note);
+        const sourcePage = pages.find((page) => page.id === sourcePageId);
+        const sourceToken = sourcePage?.mapTokens?.find((token) => token.id === tokenId)
+          || pages.flatMap((page) => page.mapTokens || []).find((token) => token.id === tokenId);
+        const targetPage = pages.find((page) => page.id === targetPageId);
+        if (!targetPage) return note;
+        if (!sourceToken) return note;
+        const size = clamp(Number(point.size) || Number(sourceToken.size) || MAP_TOKEN_SIZE, 32, 140);
+        const targetPoint = clampMapTokenPoint(note, Number(point.x) || 0, Number(point.y) || 0, size, targetPageId);
+        const droppedToken = normalizeMapToken({
+          ...sourceToken,
+          x: targetPoint.x,
+          y: targetPoint.y,
+          size
+        });
+        if (!droppedToken) return note;
+        const updatedPages = pages.map((page) => {
+          const remainingTokens = (page.mapTokens || []).filter((token) => token.id !== tokenId);
+          if (page.id !== targetPageId) {
+            return remainingTokens.length === (page.mapTokens || []).length ? page : { ...page, mapTokens: remainingTokens };
+          }
+          return {
+            ...page,
+            mapTokens: [...remainingTokens, droppedToken]
+          };
+        });
+        didMoveToken = true;
+        return syncMapNoteActivePage(note, updatedPages, targetPageId);
+      });
+      if (!didMoveToken || !linkedNoteIds.length) return movedNotes;
+      const linkedIds = new Set(linkedNoteIds);
+      return movedNotes.map((note) => {
+        if (!linkedIds.has(note.id)) return note;
+        const link = normalizeLinkedMapTokenLink(note.linkedMapToken);
+        if (!link) return note;
+        return {
+          ...note,
+          linkedMapToken: {
+            ...link,
+            pageId: targetPageId
+          }
+        };
+      });
+    });
+    setMapTokenSelection(noteId, targetPageId, [tokenId]);
+  }
+
+  function rollMapTokensInitiative(noteId, pageId, tokenIds = null) {
+    const targetIds = Array.isArray(tokenIds) && tokenIds.length && typeof tokenIds[0] !== "object" ? new Set(tokenIds) : null;
+    const targetPageIds = Array.isArray(tokenIds) && tokenIds.length && typeof tokenIds[0] === "object"
+      ? tokenIds.reduce((map, target) => {
+        const targetPageId = String(target?.pageId || "");
+        const targetTokenId = String(target?.tokenId || "");
+        if (!targetPageId || !targetTokenId) return map;
+        if (!map.has(targetPageId)) map.set(targetPageId, new Set());
+        map.get(targetPageId).add(targetTokenId);
+        return map;
+      }, new Map())
+      : null;
+    if (targetPageIds?.size) {
+      setMonsterNotes((notes) => notes.map((note) => {
+        if (note.id !== noteId) return note;
+        const pages = mapPagesForNote(note).map((page) => {
+          const ids = targetPageIds.get(page.id);
+          if (!ids?.size) return page;
+          return {
+            ...page,
+            mapTokens: (page.mapTokens || []).map((token) => {
+              if (!ids.has(token.id)) return token;
+              const modifier = Number(token.initiativeModifier) || 0;
+              const roll = rollD20(modifier);
+              return {
+                ...token,
+                initiative: roll.total,
+                initiativeDetail: roll.detail,
+                actorNote: token.actorNote ? { ...token.actorNote, initiative: roll.total, initiativeDetail: roll.detail } : token.actorNote
+              };
+            })
+          };
+        });
+        return syncMapNoteActivePage(note, pages, note.activeMapPageId || pageId);
+      }));
+      return;
+    }
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
         ...page,
         mapTokens: (page.mapTokens || []).map((token) => {
+          if (targetIds && !targetIds.has(token.id)) return token;
           const modifier = Number(token.initiativeModifier) || 0;
           const roll = rollD20(modifier);
           return {
@@ -9615,12 +10764,16 @@ function DmScreenApp() {
     return linkedNotes.reduce((nextNotes, linkedNote) => {
       const link = normalizeLinkedMapTokenLink(linkedNote.linkedMapToken);
       return nextNotes.map((note) => (
-        note.id === link.mapNoteId ? updateMapNotePage(note, link.pageId, (page) => ({
-          ...page,
-          mapTokens: (page.mapTokens || []).map((token) => (
-            token.id === link.tokenId ? applyActorNoteSnapshotToToken(token, linkedNote) : token
-          ))
-        })) : note
+        note.id === link.mapNoteId && note.kind === "map" ? syncMapNoteActivePage(note, mapPagesForNote(note).map((page) => {
+          const hasLinkedToken = (page.mapTokens || []).some((token) => token.id === link.tokenId);
+          if (!hasLinkedToken) return page;
+          return {
+            ...page,
+            mapTokens: (page.mapTokens || []).map((token) => (
+              token.id === link.tokenId ? applyActorNoteSnapshotToToken(token, linkedNote) : token
+            ))
+          };
+        }), note.activeMapPageId || link.pageId) : note
       ));
     }, notes);
   }
@@ -9654,6 +10807,8 @@ function DmScreenApp() {
       monster: actorNote.kind === "monster" ? actorNote.monster : null,
       monsterCustom: actorNote.kind === "monster" && actorNote.monsterCustom ? cloneForBoardState(actorNote.monsterCustom) : null,
       character: actorNote.kind === "character" ? actorNote.character : null,
+      monsterTextNotes: actorNote.kind === "monster" ? normalizeMonsterTextNotes(actorNote.monsterTextNotes) : [],
+      monsterActiveTabId: actorNote.kind === "monster" ? monsterActivePanelId(actorNote) : "stats",
       titleOverride: actorNote.titleOverride,
       hpCurrent: actorNote.hpCurrent,
       hpMax: actorNote.hpMax,
@@ -9833,6 +10988,90 @@ function DmScreenApp() {
           ...note,
           monster: monsterCustom,
           monsterCustom
+        };
+      });
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
+  }
+
+  function selectMonsterPanel(noteId, panelId) {
+    const nextPanelId = String(panelId || "stats");
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId || note.kind !== "monster") return note;
+        const textNotes = normalizeMonsterTextNotes(note.monsterTextNotes);
+        const safePanelId = nextPanelId === "stats" || textNotes.some((entry) => entry.id === nextPanelId)
+          ? nextPanelId
+          : "stats";
+        return { ...note, monsterActiveTabId: safePanelId };
+      });
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
+  }
+
+  function addMonsterTextNote(noteId) {
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId || note.kind !== "monster") return note;
+        const textNotes = normalizeMonsterTextNotes(note.monsterTextNotes);
+        const textNote = normalizeMonsterTextNote({
+          id: `monster-text-note-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          title: `Nota ${textNotes.length + 1}`,
+          content: ""
+        }, textNotes.length);
+        return {
+          ...note,
+          monsterTextNotes: [...textNotes, textNote],
+          monsterActiveTabId: textNote.id
+        };
+      });
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
+  }
+
+  function renameMonsterTextNote(noteId, textNoteId, title) {
+    const trimmed = String(title || "").trim();
+    if (!textNoteId || !trimmed) return;
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId || note.kind !== "monster") return note;
+        return {
+          ...note,
+          monsterTextNotes: normalizeMonsterTextNotes(note.monsterTextNotes).map((entry) => (
+            entry.id === textNoteId ? { ...entry, title: trimmed.slice(0, 80) } : entry
+          ))
+        };
+      });
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
+  }
+
+  function updateMonsterTextNote(noteId, textNoteId, content) {
+    if (!textNoteId) return;
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId || note.kind !== "monster") return note;
+        return {
+          ...note,
+          monsterTextNotes: normalizeMonsterTextNotes(note.monsterTextNotes).map((entry) => (
+            entry.id === textNoteId ? { ...entry, content: String(content || "") } : entry
+          ))
+        };
+      });
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
+  }
+
+  function removeMonsterTextNote(noteId, textNoteId) {
+    if (!textNoteId) return;
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((note) => {
+        if (note.id !== noteId || note.kind !== "monster") return note;
+        const remaining = normalizeMonsterTextNotes(note.monsterTextNotes).filter((entry) => entry.id !== textNoteId);
+        return {
+          ...note,
+          monsterTextNotes: remaining,
+          monsterActiveTabId: note.monsterActiveTabId === textNoteId ? "stats" : monsterActivePanelId({ ...note, monsterTextNotes: remaining })
         };
       });
       return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
@@ -10828,6 +12067,11 @@ function DmScreenApp() {
               onHpChange={updateNoteHp}
               onRollHp={rollNoteHp}
               onMonsterEdit={editMonsterNote}
+              onMonsterPanelSelect={selectMonsterPanel}
+              onMonsterTextNoteAdd={addMonsterTextNote}
+              onMonsterTextNoteRename={renameMonsterTextNote}
+              onMonsterTextNoteChange={updateMonsterTextNote}
+              onMonsterTextNoteRemove={removeMonsterTextNote}
             />
           ) : activeNote.kind === "character" ? (
             <CharacterNote
@@ -10854,10 +12098,19 @@ function DmScreenApp() {
               onMapPageClose={closeMapPage}
               onMapFogChange={updateMapFog}
               onShareVvtMap={(noteId, pageId) => setSharedVvtMap({ noteId, pageId })}
+              onMapPing={publishDmVvtPing}
               isSharedVvtMap={isActiveSharedMap}
               vvtPings={isActiveSharedMap ? vvtPings : []}
               onMapTokenHpChange={updateMapTokenHp}
               onMapTokensRollInitiative={rollMapTokensInitiative}
+              onMapTokenGroupAdd={addMapTokenGroup}
+              onMapTokenGroupRename={renameMapTokenGroup}
+              onMapTokenGroupRemove={removeMapTokenGroup}
+              onMapTokenGroupChange={changeMapTokenGroup}
+              onMapTokenGroupGlobalChange={setMapTokenGroupGlobal}
+              onMapTrackerTokenDrop={dropMapTrackerToken}
+              selectedMapTokenIds={selectedMapTokens.mapNoteId === activeNote.id && selectedMapTokens.pageId === activeMapPageForNote(activeNote)?.id ? selectedMapTokens.tokenIds : []}
+              onMapTokenSelectionChange={setMapTokenSelection}
               onMapTokenDragStart={startMapTokenDrag}
               onMapTokenContextMenu={openMapTokenContextMenu}
               onMapContextAddMonster={openMonsterTokenPicker}

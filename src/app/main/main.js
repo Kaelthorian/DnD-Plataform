@@ -581,6 +581,10 @@ ipcMain.handle("live-sheet:publish-vvt-state", async (_event, state) => {
   return liveSheetServer.setVvtState(state);
 });
 
+ipcMain.handle("live-sheet:publish-vvt-ping", async (_event, ping) => {
+  return liveSheetServer.publishVvtPing(ping);
+});
+
 liveSheetServer.on("player-updated", (player) => {
   broadcastToRenderers("live-sheet:player-updated", player);
 });

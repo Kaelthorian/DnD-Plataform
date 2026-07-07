@@ -539,6 +539,25 @@ class LiveSheetServer extends EventEmitter {
     return { ok: true, state };
   }
 
+  publishVvtPing(payload) {
+    const sanitizedPing = sanitizeVvtPing(payload);
+    if (!sanitizedPing) return { ok: false, error: "Falta ping de mapa." };
+    const ping = {
+      ...sanitizedPing,
+      playerId: sanitizedPing.playerId || "dm",
+      playerName: sanitizedPing.playerName || "DM",
+      receivedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + MAX_VVT_PING_AGE_MS).toISOString()
+    };
+    this.broadcastToPlayers({
+      version: 1,
+      type: "dm:vvt:ping",
+      ping
+    });
+    this.emit("vvt-ping", ping);
+    return { ok: true, ping };
+  }
+
   broadcastToPlayers(payload, exceptPlayerId = "") {
     const excludedId = sanitizePlayerId(exceptPlayerId);
     for (const player of this.players.values()) {
