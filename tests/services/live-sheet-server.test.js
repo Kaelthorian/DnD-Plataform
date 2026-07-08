@@ -217,6 +217,25 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
         size: 56,
         hpCurrent: 7,
         hpMax: 7
+      }, {
+        id: "hidden-imp",
+        name: "Hidden Imp",
+        hidden: true,
+        x: 10,
+        y: 10
+      }],
+      markers: [{
+        id: "door-1",
+        label: "Secret Door",
+        x: 240,
+        y: 160,
+        color: "amber"
+      }, {
+        id: "trap-1",
+        label: "Hidden Trap",
+        hidden: true,
+        x: 20,
+        y: 20
       }],
       sourceViewport: { width: 760, height: 432 }
     });
@@ -229,6 +248,8 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(broadcast.state.tokens[0].name, "Goblin");
     assert.strictEqual(broadcast.state.tokens[0].image.dataUrl, tinyPng);
     assert.deepStrictEqual(broadcast.state.tokens[0].imageRequest, { sources: ["MM"], names: ["Goblin"] });
+    assert.strictEqual(broadcast.state.markers.length, 1);
+    assert.strictEqual(broadcast.state.markers[0].label, "Secret Door");
     assert.deepStrictEqual(broadcast.state.sourceViewport, { width: 760, height: 432 });
 
     const secondSocket = await openSocket(port);

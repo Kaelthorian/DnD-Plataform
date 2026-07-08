@@ -1,7 +1,7 @@
 {
   "name": "dnd-character-sheet-desktop",
   "version": "9.0.0",
-  "description": "Planilla de personaje DnD de escritorio",
+  "description": "Desktop DnD character sheet",
   "main": "src/app/main/main.js",
   "author": "WallyCode",
   "license": "UNLICENSED",
@@ -12,10 +12,12 @@
     "build:dm-screen:js": "vite build --config ./src/app/renderer/dm-screen/vite.config.mjs",
     "prestart": "node ./scripts/ensure-dm-screen-build.js",
     "start": "set ELECTRON_RUN_AS_NODE=& electron .",
-    "test": "npm run test:engine && npm run test:services",
+    "test": "npm run test:i18n && npm run test:engine && npm run test:services && npm run test:renderer",
+    "test:i18n": "node scripts/check-i18n.js",
     "test:backgrounds": "node tests/engine/backgrounds.test.js",
     "test:engine": "node tests/engine/backgrounds.test.js && node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/resource-state.test.js && node tests/engine/long-rest.test.js && node tests/engine/class-level3-mechanics.test.js",
     "test:services": "node tests/services/obsidian-service.test.js && node tests/services/live-sheet-server.test.js",
+    "test:renderer": "node tests/renderer/i18n.test.js",
     "predist": "node ./scripts/ensure-dm-screen-build.js",
     "dist": "set ELECTRON_RUN_AS_NODE=& electron-builder --win nsis",
     "predist:portable": "node ./scripts/ensure-dm-screen-build.js",
@@ -23,7 +25,7 @@
   },
   "build": {
     "appId": "com.wallycode.dndcharactersheet",
-    "productName": "Planilla DnD",
+    "productName": "DnD Character Sheet",
     "directories": {
       "output": "installer-pdf-fields"
     },
@@ -61,7 +63,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Planilla DnD"
+      "shortcutName": "DnD Character Sheet"
     }
   },
   "devDependencies": {

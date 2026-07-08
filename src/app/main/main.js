@@ -24,7 +24,7 @@ function safePathSegment(value, fallback) {
 
 function configureChromiumStoragePaths() {
   const appDataRoot = process.env.LOCALAPPDATA || app.getPath("appData");
-  const appFolder = safePathSegment(app.getName(), "Planilla DnD");
+  const appFolder = safePathSegment(app.getName(), "DnD Character Sheet");
   const sessionDataPath = path.join(appDataRoot, appFolder, "SessionData");
   const cachePath = path.join(sessionDataPath, "Cache");
   const mediaCachePath = path.join(sessionDataPath, "MediaCache");
@@ -35,7 +35,7 @@ function configureChromiumStoragePaths() {
     app.commandLine.appendSwitch("disk-cache-dir", cachePath);
     app.commandLine.appendSwitch("media-cache-dir", mediaCachePath);
   } catch (error) {
-    console.warn(`No se pudo configurar la cache de Electron: ${error?.message || error}`);
+    console.warn(`Could not configure the Electron cache: ${error?.message || error}`);
   }
 }
 
@@ -44,7 +44,7 @@ configureChromiumStoragePaths();
 const WINDOW_ROUTES = {
   characterSheet: {
     fileName: "index.html",
-    title: "Planilla DnD",
+    title: "DnD Character Sheet",
     backgroundColor: "#1f1812"
   },
   dmScreen: {
@@ -368,7 +368,7 @@ async function createWindow(routeName = "characterSheet") {
   });
 
   win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
-    console.error(`No se pudo cargar ${validatedURL}: ${errorCode} ${errorDescription}`);
+    console.error(`Could not load ${validatedURL}: ${errorCode} ${errorDescription}`);
   });
 
   win.webContents.on("render-process-gone", (_event, details) => {
@@ -540,7 +540,7 @@ ipcMain.handle("live-sheet:start", async (_event, options) => {
   } catch (error) {
     return {
       ok: false,
-      error: error?.message || "No se pudo iniciar el host local.",
+      error: error?.message || "Could not start the local host.",
       code: error?.code || "START_FAILED",
       status: liveSheetServer.status()
     };

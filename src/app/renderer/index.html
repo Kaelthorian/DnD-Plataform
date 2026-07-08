@@ -1,47 +1,54 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' file: data: blob:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' file:; img-src 'self' file: data: blob:; connect-src 'self' ws: http: https: file:; font-src 'self' data: file:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-src 'none'">
-  <title>Planilla DnD</title>
+  <title data-i18n="app.title">DnD Character Sheet</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="download-release" aria-live="polite">
-    <span class="download-release-text" id="downloadReleaseText">Buscando ultima version...</span>
-    <a class="download-release-button" id="downloadReleaseButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" target="_blank" rel="noopener">Descargar</a>
+    <span class="download-release-text" id="downloadReleaseText" data-i18n="release.checking">Checking latest version...</span>
+    <a class="download-release-button" id="downloadReleaseButton" href="https://github.com/Kaelthorian/DnD-Plataform/releases/latest" target="_blank" rel="noopener" data-i18n="release.download">Download</a>
   </div>
   <div class="top-controls-menu" id="topControlsMenu">
-    <button class="top-controls-launcher" id="topControlsLauncher" type="button" aria-label="Abrir controles" aria-expanded="false" aria-controls="topControlsPanel">
+    <button class="top-controls-launcher" id="topControlsLauncher" type="button" aria-label="Open controls" aria-expanded="false" aria-controls="topControlsPanel" data-i18n-aria-label="controls.open">
       <span class="top-controls-launcher-line"></span>
       <span class="top-controls-launcher-line"></span>
       <span class="top-controls-launcher-line"></span>
     </button>
     <div class="top-controls-panel" id="topControlsPanel" hidden>
       <div class="save-slot-control" id="saveSlotControl">
-        <label class="save-slot-label" id="saveSlotLabel" for="saveSlotSelect">Personaje</label>
+        <label class="save-slot-label" id="saveSlotLabel" for="saveSlotSelect" data-i18n="top.character">Character</label>
         <select class="save-slot-select" id="saveSlotSelect"></select>
       </div>
-      <button class="clear-fields-button" id="clearFieldsButton" type="button">Limpiar campos</button>
-      <button class="long-rest-button" id="longRestButton" type="button">Long rest</button>
-      <button class="long-rest-button short-rest-button" id="shortRestButton" type="button">Short rest</button>
-  <button class="character-ready-button" id="characterReadyButton" type="button">🔓 Personaje Listo</button>
-      <button class="turn-actions-button" id="turnActionsButton" type="button">Empezar combate</button>
+      <button class="clear-fields-button" id="clearFieldsButton" type="button" data-i18n="top.clearFields">Clear fields</button>
+      <button class="long-rest-button" id="longRestButton" type="button" data-i18n="top.longRest">Long rest</button>
+      <button class="long-rest-button short-rest-button" id="shortRestButton" type="button" data-i18n="top.shortRest">Short rest</button>
+      <button class="character-ready-button" id="characterReadyButton" type="button" data-i18n="top.characterReady.unlocked">🔓 Character Ready</button>
+      <button class="turn-actions-button" id="turnActionsButton" type="button" data-i18n="top.startCombat">Start combat</button>
     </div>
   </div>
   <div class="app-settings-menu" id="appSettingsMenu">
-    <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Abrir ajustes" aria-expanded="false" aria-controls="appSettingsPanel">&#9881;</button>
+    <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Open settings" aria-expanded="false" aria-controls="appSettingsPanel" data-i18n-aria-label="settings.open">&#9881;</button>
     <div class="app-settings-panel" id="appSettingsPanel" hidden>
-      <div class="app-settings-title">Settings</div>
-      <button class="app-settings-action-button" id="dmScreenButton" type="button">DM screen</button>
-      <button class="app-settings-action-button" id="liveSheetClientButton" type="button">Connect to DM</button>
-      <button class="app-settings-action-button" id="generateSheetCodeButton" type="button">Generar codigo</button>
-      <button class="app-settings-action-button" id="importCharacterButton" type="button">Importar character</button>
+      <div class="app-settings-title" data-i18n="settings.title">Settings</div>
+      <div class="app-settings-language" id="playerLanguageControl" role="group" aria-label="Language" data-i18n-aria-label="settings.language">
+        <div class="app-settings-language-label" data-i18n="settings.language">Language</div>
+        <div class="app-settings-language-options">
+          <button class="app-settings-language-button" type="button" data-player-language="en" data-i18n="settings.language.english">English</button>
+          <button class="app-settings-language-button" type="button" data-player-language="es" data-i18n="settings.language.spanish">Español</button>
+        </div>
+      </div>
+      <button class="app-settings-action-button" id="dmScreenButton" type="button" data-i18n="settings.dmScreen">DM screen</button>
+      <button class="app-settings-action-button" id="liveSheetClientButton" type="button" data-i18n="settings.connectToDm">Connect to DM</button>
+      <button class="app-settings-action-button" id="generateSheetCodeButton" type="button" data-i18n="settings.generateCode">Generate code</button>
+      <button class="app-settings-action-button" id="importCharacterButton" type="button" data-i18n="settings.importCharacter">Import character</button>
       <label class="app-settings-toggle-row" for="diceAnimationToggle">
         <span>
-          <span class="app-settings-toggle-title">Dados 3D</span>
-          <span class="app-settings-toggle-description">Mostrar dados animados en pantalla</span>
+          <span class="app-settings-toggle-title" data-i18n="settings.dice3d">3D dice</span>
+          <span class="app-settings-toggle-description" data-i18n="settings.dice3dDescription">Show animated dice on screen</span>
         </span>
         <input class="app-settings-toggle-input" id="diceAnimationToggle" type="checkbox">
         <span class="app-settings-toggle" aria-hidden="true"></span>
@@ -52,45 +59,45 @@
     <div class="live-sheet-client-panel" role="dialog" aria-modal="true" aria-labelledby="liveSheetClientTitle">
       <div class="live-sheet-client-header">
         <div>
-          <div class="live-sheet-client-title" id="liveSheetClientTitle">Connect to DM</div>
-          <div class="live-sheet-client-subtitle">Tailscale or local network live sheet sharing</div>
+          <div class="live-sheet-client-title" id="liveSheetClientTitle" data-i18n="live.title">Connect to DM</div>
+          <div class="live-sheet-client-subtitle" data-i18n="live.subtitle">Tailscale or local network live sheet sharing</div>
         </div>
-        <button class="live-sheet-client-close" id="liveSheetClientClose" type="button" aria-label="Cerrar">X</button>
+        <button class="live-sheet-client-close" id="liveSheetClientClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
       </div>
       <div class="live-sheet-client-body">
-        <label class="live-sheet-client-label" for="liveSheetDmIp">DM host / Tailscale IP</label>
-        <input class="live-sheet-client-input" id="liveSheetDmIp" type="text" spellcheck="false" autocomplete="off" placeholder="100.x.y.z o kael-pc">
-        <label class="live-sheet-client-label" for="liveSheetPort">Port</label>
+        <label class="live-sheet-client-label" for="liveSheetDmIp" data-i18n="live.host">DM host / Tailscale IP</label>
+        <input class="live-sheet-client-input" id="liveSheetDmIp" type="text" spellcheck="false" autocomplete="off" placeholder="100.x.y.z or kael-pc" data-i18n-placeholder="live.hostPlaceholder">
+        <label class="live-sheet-client-label" for="liveSheetPort" data-i18n="live.port">Port</label>
         <input class="live-sheet-client-input" id="liveSheetPort" type="number" min="1" max="65535" step="1" value="8787">
-        <label class="live-sheet-client-label" for="liveSheetSessionToken">Session token</label>
-        <input class="live-sheet-client-input" id="liveSheetSessionToken" type="text" spellcheck="false" autocomplete="off" maxlength="80" placeholder="Optional code from DM">
-        <label class="live-sheet-client-label" for="liveSheetPlayerName">Player name</label>
-        <input class="live-sheet-client-input" id="liveSheetPlayerName" type="text" maxlength="80" placeholder="Player">
-        <div class="live-sheet-client-help">Usa la IP Tailscale 100.x.y.z o el nombre MagicDNS del DM. No uses IP publica ni port forwarding.</div>
-        <div class="live-sheet-client-status" id="liveSheetClientStatus" aria-live="polite">Disconnected</div>
+        <label class="live-sheet-client-label" for="liveSheetSessionToken" data-i18n="live.sessionToken">Session token</label>
+        <input class="live-sheet-client-input" id="liveSheetSessionToken" type="text" spellcheck="false" autocomplete="off" maxlength="80" placeholder="Optional code from DM" data-i18n-placeholder="live.sessionTokenPlaceholder">
+        <label class="live-sheet-client-label" for="liveSheetPlayerName" data-i18n="live.playerName">Player name</label>
+        <input class="live-sheet-client-input" id="liveSheetPlayerName" type="text" maxlength="80" placeholder="Player" data-i18n-placeholder="live.playerNamePlaceholder">
+        <div class="live-sheet-client-help" data-i18n="live.help">Use the DM's Tailscale 100.x.y.z IP or MagicDNS name. Do not use a public IP or port forwarding.</div>
+        <div class="live-sheet-client-status" id="liveSheetClientStatus" aria-live="polite" data-i18n="live.disconnected">Disconnected</div>
       </div>
       <div class="live-sheet-client-actions">
-        <button class="live-sheet-client-secondary" id="liveSheetClientCancel" type="button">Cerrar</button>
-        <button class="live-sheet-client-primary" id="liveSheetConnectButton" type="button">Connect</button>
+        <button class="live-sheet-client-secondary" id="liveSheetClientCancel" type="button" data-i18n="live.cancel">Close</button>
+        <button class="live-sheet-client-primary" id="liveSheetConnectButton" type="button" data-i18n="live.connect">Connect</button>
       </div>
     </div>
   </div>
   <aside class="alerts-panel empty" id="alertsPanel" aria-live="polite">
-    <div class="alerts-trigger" id="alertsTrigger" tabindex="0" role="button" aria-label="Ver alertas pendientes">
+    <div class="alerts-trigger" id="alertsTrigger" tabindex="0" role="button" aria-label="View pending alerts" data-i18n-aria-label="alerts.open">
       <span class="alert-icon" id="alertsIcon">!</span>
       <span class="alerts-badge" id="alertsBadge">0</span>
     </div>
     <div class="alerts-popover" id="alertsPopover">
       <div class="alerts-header">
-        <span>Alertas pendientes</span>
+        <span data-i18n="alerts.pending">Pending alerts</span>
         <span class="alerts-counts" id="alertsCounts">0</span>
       </div>
       <div class="alerts-list" id="alertsList"></div>
     </div>
   </aside>
   <main class="app" id="app"></main>
-  <div class="loading" id="loading">Cargando planilla...</div>
-  <div class="status" id="status">Guardado</div>
+  <div class="loading" id="loading" data-i18n="common.loadingSheet">Loading sheet...</div>
+  <div class="status" id="status" data-i18n="common.saved">Saved</div>
   <div class="option-menu" id="optionMenu" hidden>
     <div class="option-list" id="optionList"></div>
     <div class="option-description" id="optionDescription"></div>
@@ -104,20 +111,20 @@
   <div class="free-dice-menu" id="freeDiceMenu" hidden>
     <div class="free-dice-header">
       <div>
-        <div class="free-dice-title">Dados libres</div>
-        <div class="free-dice-subtitle">D2, d3, d4, d6, d10, d10 porcentual, d12, d20, d30, d60 y d100</div>
+        <div class="free-dice-title" data-i18n="dice.freeTitle">Free dice</div>
+        <div class="free-dice-subtitle" data-i18n="dice.freeSubtitle">D2, d3, d4, d6, d10, percentile d10, d12, d20, d30, d60, and d100</div>
       </div>
-      <button class="free-dice-close" id="freeDiceClose" type="button" aria-label="Cerrar">X</button>
+      <button class="free-dice-close" id="freeDiceClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
     </div>
     <div class="free-dice-picker">
-      <select class="free-dice-select" id="freeDiceSelect" aria-label="Tipo de dado"></select>
-      <button class="free-dice-step" id="freeDiceMinus" type="button" aria-label="Quitar dado">-</button>
-      <button class="free-dice-step" id="freeDicePlus" type="button" aria-label="Agregar dado">+</button>
+      <select class="free-dice-select" id="freeDiceSelect" aria-label="Die type" data-i18n-aria-label="dice.type"></select>
+      <button class="free-dice-step" id="freeDiceMinus" type="button" aria-label="Remove die" data-i18n-aria-label="dice.remove">-</button>
+      <button class="free-dice-step" id="freeDicePlus" type="button" aria-label="Add die" data-i18n-aria-label="dice.add">+</button>
     </div>
     <div class="free-dice-selection" id="freeDiceSelection"></div>
-    <button class="free-dice-roll" id="freeDiceRoll" type="button" disabled>Roll</button>
+    <button class="free-dice-roll" id="freeDiceRoll" type="button" disabled data-i18n="dice.roll">Roll</button>
     <div class="dice-log">
-      <div class="dice-log-title">Log</div>
+      <div class="dice-log-title" data-i18n="dice.log">Log</div>
       <div class="dice-log-list" id="diceLogList"></div>
     </div>
   </div>
@@ -127,32 +134,32 @@
   <aside class="item-drawer" id="itemDrawer" aria-hidden="true">
     <div class="item-drawer-header">
       <div>
-        <div class="item-drawer-title" id="itemDrawerTitle">Item</div>
+        <div class="item-drawer-title" id="itemDrawerTitle" data-i18n="item.drawerTitle">Item</div>
         <div class="item-drawer-meta" id="itemDrawerMeta"></div>
       </div>
-      <button class="item-drawer-close" id="itemDrawerClose" type="button" aria-label="Cerrar">X</button>
+      <button class="item-drawer-close" id="itemDrawerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
     </div>
     <div class="item-drawer-body" id="itemDrawerBody"></div>
   </aside>
   <div class="item-picker-backdrop" id="itemPickerBackdrop" aria-hidden="true">
     <div class="item-picker" role="dialog" aria-modal="true" aria-labelledby="itemPickerTitle">
       <div class="item-picker-header">
-        <div class="item-picker-title" id="itemPickerTitle">Agregar item</div>
-        <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Cerrar">X</button>
+        <div class="item-picker-title" id="itemPickerTitle" data-i18n="item.addItem">Add item</div>
+        <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
       </div>
-      <div class="item-picker-filters" id="itemPickerFilters" aria-label="Filtros de items">
-        <button class="item-picker-filter active" type="button" data-filter="all">Todos</button>
-        <button class="item-picker-filter" type="button" data-filter="weapon">Armas</button>
-        <button class="item-picker-filter" type="button" data-filter="armor">Armaduras</button>
-        <button class="item-picker-filter" type="button" data-filter="accessory">Accesorios</button>
-        <button class="item-picker-filter" type="button" data-filter="consumable">Consumibles</button>
-        <button class="item-picker-filter" type="button" data-filter="gear">Equipo</button>
+      <div class="item-picker-filters" id="itemPickerFilters" aria-label="Item filters" data-i18n-aria-label="item.filters">
+        <button class="item-picker-filter active" type="button" data-filter="all" data-i18n="item.filterAll">All</button>
+        <button class="item-picker-filter" type="button" data-filter="weapon" data-i18n="item.filterWeapons">Weapons</button>
+        <button class="item-picker-filter" type="button" data-filter="armor" data-i18n="item.filterArmor">Armor</button>
+        <button class="item-picker-filter" type="button" data-filter="accessory" data-i18n="item.filterAccessories">Accessories</button>
+        <button class="item-picker-filter" type="button" data-filter="consumable" data-i18n="item.filterConsumables">Consumables</button>
+        <button class="item-picker-filter" type="button" data-filter="gear" data-i18n="item.filterGear">Gear</button>
       </div>
-      <input class="item-picker-search" id="itemPickerSearch" type="search" placeholder="Buscar item">
+      <input class="item-picker-search" id="itemPickerSearch" type="search" placeholder="Search item" data-i18n-placeholder="item.searchPlaceholder">
       <div class="item-picker-list" id="itemPickerList"></div>
       <div class="item-picker-actions">
-        <input class="item-picker-quantity" id="itemPickerQuantity" type="number" min="1" step="1" value="1" aria-label="Cantidad">
-        <button class="item-picker-add" id="itemPickerAdd" type="button" disabled>Agregar</button>
+        <input class="item-picker-quantity" id="itemPickerQuantity" type="number" min="1" step="1" value="1" aria-label="Quantity" data-i18n-aria-label="item.quantity">
+        <button class="item-picker-add" id="itemPickerAdd" type="button" disabled data-i18n="common.add">Add</button>
       </div>
     </div>
   </div>
@@ -160,19 +167,19 @@
     <div class="familiar-picker" role="dialog" aria-modal="true" aria-labelledby="familiarPickerTitle">
       <div class="familiar-picker-header">
         <div>
-          <div class="familiar-picker-title" id="familiarPickerTitle">Find Familiar</div>
-          <div class="familiar-picker-subtitle">Elegi la forma que queres invocar.</div>
+          <div class="familiar-picker-title" id="familiarPickerTitle" data-i18n="familiar.title">Find Familiar</div>
+          <div class="familiar-picker-subtitle" data-i18n="familiar.subtitle">Choose the form you want to summon.</div>
         </div>
-        <button class="familiar-picker-close" id="familiarPickerClose" type="button" aria-label="Cerrar">X</button>
+        <button class="familiar-picker-close" id="familiarPickerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
       </div>
       <div class="familiar-picker-list" id="familiarPickerList"></div>
       <label class="familiar-picker-other">
-        <span>Other CR 0 Beast</span>
-        <input class="familiar-picker-other-input" id="familiarPickerOtherInput" type="text" placeholder="Nombre de la bestia">
+        <span data-i18n="familiar.otherBeast">Other CR 0 Beast</span>
+        <input class="familiar-picker-other-input" id="familiarPickerOtherInput" type="text" placeholder="Beast name" data-i18n-placeholder="familiar.otherPlaceholder">
       </label>
       <div class="familiar-picker-actions">
-        <button class="familiar-picker-secondary" id="familiarPickerCancel" type="button">Cancelar</button>
-        <button class="familiar-picker-primary" id="familiarPickerConfirm" type="button">Cast</button>
+        <button class="familiar-picker-secondary" id="familiarPickerCancel" type="button" data-i18n="common.cancel">Cancel</button>
+        <button class="familiar-picker-primary" id="familiarPickerConfirm" type="button" data-i18n="common.cast">Cast</button>
       </div>
     </div>
   </div>
@@ -182,21 +189,21 @@
     <aside class="turn-actions-panel" id="turnActionsPanel" role="dialog" aria-modal="true" aria-labelledby="turnActionsTitle">
       <div class="turn-actions-header">
         <div>
-          <div class="turn-actions-title" id="turnActionsTitle">Empezar combate</div>
-          <div class="turn-actions-subtitle">Acciones disponibles segun el estado actual del personaje.</div>
+          <div class="turn-actions-title" id="turnActionsTitle" data-i18n="turn.title">Start combat</div>
+          <div class="turn-actions-subtitle" data-i18n="turn.subtitle">Available actions based on the character's current state.</div>
         </div>
-        <button class="turn-actions-close" id="turnActionsClose" type="button" aria-label="Cerrar">X</button>
+        <button class="turn-actions-close" id="turnActionsClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
       </div>
       <div class="turn-actions-turnbar" aria-live="polite">
         <div class="turn-actions-counter">
           <span class="turn-actions-orb" id="turnActionsActionOrb">1</span>
-          <span id="turnActionsActionLabel">Acciones</span>
+          <span id="turnActionsActionLabel" data-i18n="turn.actions">Actions</span>
         </div>
         <div class="turn-actions-counter">
           <span class="turn-actions-orb" id="turnActionsBonusOrb">1</span>
-          <span id="turnActionsBonusLabel">Acciones bonus</span>
+          <span id="turnActionsBonusLabel" data-i18n="turn.bonusActions">Bonus actions</span>
         </div>
-        <button class="turn-actions-new-turn" id="turnActionsNewTurn" type="button">Nuevo turno</button>
+        <button class="turn-actions-new-turn" id="turnActionsNewTurn" type="button" data-i18n="turn.newTurn">New turn</button>
       </div>
       <div class="turn-actions-body" id="turnActionsBody"></div>
     </aside>
@@ -205,21 +212,21 @@
     <div class="character-import-modal" role="dialog" aria-modal="true" aria-labelledby="characterImportTitle">
       <div class="character-import-header">
         <div>
-          <div class="character-import-title" id="characterImportTitle">Importar character</div>
-          <div class="character-import-subtitle">Pega un codigo y elige en que save slot cargarlo.</div>
+          <div class="character-import-title" id="characterImportTitle" data-i18n="import.title">Import character</div>
+          <div class="character-import-subtitle" data-i18n="import.subtitle">Paste a code and choose which save slot to load it into.</div>
         </div>
-        <button class="character-import-close" id="characterImportClose" type="button" aria-label="Cerrar">X</button>
+        <button class="character-import-close" id="characterImportClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
       </div>
       <div class="character-import-body">
-        <label class="character-import-label" for="characterImportCode">Codigo de personaje</label>
-        <textarea class="character-import-textarea" id="characterImportCode" placeholder="Pega aqui el codigo del character sheet" spellcheck="false"></textarea>
-        <label class="character-import-label" for="characterImportSlotSelect">Save slot</label>
+        <label class="character-import-label" for="characterImportCode" data-i18n="import.codeLabel">Character code</label>
+        <textarea class="character-import-textarea" id="characterImportCode" placeholder="Paste the character sheet code here" spellcheck="false" data-i18n-placeholder="import.codePlaceholder"></textarea>
+        <label class="character-import-label" for="characterImportSlotSelect" data-i18n="import.slot">Save slot</label>
         <select class="character-import-slot-select" id="characterImportSlotSelect"></select>
         <div class="character-import-error" id="characterImportError" hidden></div>
       </div>
       <div class="character-import-actions">
-        <button class="character-import-secondary" id="characterImportCancel" type="button">Cancelar</button>
-        <button class="character-import-primary" id="characterImportConfirm" type="button">Importar</button>
+        <button class="character-import-secondary" id="characterImportCancel" type="button" data-i18n="common.cancel">Cancel</button>
+        <button class="character-import-primary" id="characterImportConfirm" type="button" data-i18n="common.import">Import</button>
       </div>
     </div>
   </div>
@@ -229,6 +236,7 @@
   <script src="../../engine/resources/resource-state.js"></script>
   <script src="../../engine/rests/long-rest.js"></script>
   <script src="../../engine/rests/short-rest.js"></script>
+  <script src="./i18n.js"></script>
   <script src="./renderer.js"></script>
   <script src="./dice-roller.js"></script>
   <script>
@@ -279,20 +287,20 @@
     const pendingCriticalHits = new Set();
     const TURN_ACTION_GROUP_GUIDE = {
       [ACTION_TYPES.movement]: {
-        title: "Movimiento",
-        subtitle: "Movement limited by movement speed. Puedes moverte antes, durante o despues de tus acciones."
+        title: "Movement",
+        subtitle: t("turn.group.movement.subtitle")
       },
       [ACTION_TYPES.action]: {
-        title: "Accion",
-        subtitle: "Action 1/turn. Tambien puedes interactuar gratis con un objeto o parte del entorno una vez."
+        title: t("turn.group.action.title"),
+        subtitle: t("turn.group.action.subtitle")
       },
       [ACTION_TYPES.bonus]: {
-        title: "Accion Bonus",
-        subtitle: "Bonus action max. 1/turn. Solo existe si un spell, habilidad o feature dice que puedes hacerlo."
+        title: t("turn.group.bonus.title"),
+        subtitle: t("turn.group.bonus.subtitle")
       },
       [ACTION_TYPES.reaction]: {
-        title: "Reaccion",
-        subtitle: "Reaction max. 1/round. Es una respuesta instantanea a un trigger."
+        title: t("turn.group.reaction.title"),
+        subtitle: t("turn.group.reaction.subtitle")
       }
     };
 
@@ -596,6 +604,7 @@
       }
     ];
     const FIND_FAMILIAR_OPTION_BY_KEY = new Map(FIND_FAMILIAR_OPTIONS.map((option) => [option.key, option]));
+    const SUMMON_DRACONIC_SPIRIT_NAMES = new Set(["summon dragon", "summon draconic spirit"]);
     let pendingFindFamiliarSpell = null;
     let selectedFindFamiliarKey = "owl";
     let familiarNotes = [];
@@ -1888,6 +1897,88 @@
         .some((name) => normalizeName(name) === "find familiar");
     }
 
+    function createDrakeCompanionFamiliar() {
+      const rangerLevel = Math.max(1, getCharacterLevel());
+      const pb = proficiencyBonusForLevel(rangerLevel);
+      return {
+        key: "drake-companion",
+        name: "Drake Companion",
+        subtitle: "Small dragon, unaligned",
+        ac: `14 + PB (${14 + pb})`,
+        hp: `5 + five times your ranger level (${5 + rangerLevel * 5})`,
+        speed: "40 ft.",
+        abilities: { str: 16, dex: 12, con: 15, int: 8, wis: 14, cha: 8 },
+        saves: `DEX ${formatModifier(1 + pb)}, WIS ${formatModifier(2 + pb)} (includes PB)`,
+        skills: "",
+        senses: "Darkvision 60 ft., passive Perception 12",
+        languages: "Draconic",
+        cr: "PB equals your bonus",
+        traits: [
+          "Draconic Essence: when you summon the drake, choose acid, cold, fire, lightning, or poison. The chosen type determines its immunity and Infused Strikes damage.",
+          "Friendly Companion: shares your initiative and acts immediately after you."
+        ],
+        actions: [
+          `Bite: ${formatModifier(3 + pb)} to hit, reach 5 ft., one target. 1d6 + ${pb} piercing damage.`
+        ],
+        reactions: [
+          "Infused Strikes: when another creature within 30 ft. that it can see hits with a weapon attack, the target takes an extra 1d6 damage of the chosen Draconic Essence type."
+        ],
+        ruleTitle: "Drake Companion",
+        rules: [
+          "On its turn it Dodges unless you use a bonus action to command another action from its stat block or another action.",
+          "It remains until it drops to 0 HP, you summon it again, or you die. Once per long rest, or expend a spell slot of 1st level or higher to summon it again."
+        ],
+        source: "Source: Drakewarden Ranger, FTD",
+        editionLabel: "DR"
+      };
+    }
+
+    function createDraconicSpiritFamiliar(spell) {
+      const castLevel = Math.max(5, spell?.castLevel || spell?.level || 5);
+      const attackDamageBonus = 4 + castLevel;
+      return {
+        key: "draconic-spirit",
+        name: "Draconic Spirit",
+        subtitle: "Large dragon, neutral",
+        ac: `14 + spell level (${14 + castLevel})`,
+        hp: `50 + 10 for each spell level above 5 (${50 + Math.max(0, castLevel - 5) * 10})`,
+        speed: "30 ft., fly 60 ft., swim 30 ft.",
+        abilities: { str: 19, dex: 14, con: 17, int: 10, wis: 14, cha: 14 },
+        skills: "",
+        senses: "Blindsight 30 ft., darkvision 60 ft., passive Perception 12",
+        languages: "Draconic; understands the languages you speak",
+        cr: "Uses your spell slot level",
+        traits: [
+          "Shared Resistances: choose one of the spirit's resistances when you summon it; you have resistance to that damage type until the spell ends.",
+          "Choose dragon family: Chromatic/Metallic resist acid, cold, fire, lightning, poison; Gem resists force, necrotic, psychic, radiant, thunder."
+        ],
+        actions: [
+          "Multiattack: makes a number of Rend attacks equal to half the spell's level, rounded down, and uses Breath Weapon.",
+          `Rend: your spell attack modifier to hit, reach 10 ft. Hit: 1d6 + ${attackDamageBonus} piercing damage.`,
+          "Breath Weapon: Dex save against your spell save DC in a 30-foot cone. Failed save: 2d6 damage of the chosen resistance type; success: half damage."
+        ],
+        ruleTitle: spell?.name || "Summon Dragon",
+        rules: [
+          "Shares your initiative count and takes its turn immediately after yours.",
+          "It obeys verbal commands. If you issue no command, it Dodges and moves to avoid danger.",
+          "It disappears when it drops to 0 HP or when the spell ends."
+        ],
+        source: `Source: ${spell?.name || "Summon Dragon"}`,
+        editionLabel: "SD"
+      };
+    }
+
+    function summonedFamiliarForSpell(spell) {
+      const names = [spell?.sourceName, spell?.name].filter(Boolean).map(normalizeName);
+      if (names.some((name) => SUMMON_DRACONIC_SPIRIT_NAMES.has(name))) return createDraconicSpiritFamiliar(spell);
+      return null;
+    }
+
+    function summonedFamiliarForFeature(row) {
+      if (normalizeName(row?.name || "") !== "drake companion") return null;
+      return createDrakeCompanionFamiliar();
+    }
+
     function findFamiliarOption(key) {
       return FIND_FAMILIAR_OPTION_BY_KEY.get(String(key || "")) || FIND_FAMILIAR_OPTION_BY_KEY.get("owl");
     }
@@ -2380,13 +2471,15 @@
       body.appendChild(abilityGrid);
 
       appendFamiliarTextLine(body, "Skills", familiar.skills);
+      appendFamiliarTextLine(body, "Saves", familiar.saves);
       appendFamiliarTextLine(body, "Senses", familiar.senses);
-      appendFamiliarTextLine(body, "Languages", "--");
-      appendFamiliarTextLine(body, "CR", "0 (XP 10)");
+      appendFamiliarTextLine(body, "Languages", familiar.languages || "--");
+      appendFamiliarTextLine(body, "CR", familiar.cr || "0 (XP 10)");
       appendFamiliarTextSection(body, "Traits", familiar.traits, note.id);
       appendFamiliarTextSection(body, "Actions", familiar.actions, note.id, true);
-      appendFamiliarTextSection(body, "Find Familiar", ["It obeys your commands, acts independently in combat, and cannot attack unless a rule explicitly allows it."], note.id);
-      appendText(body, "familiar-note-source", "Source: Find Familiar");
+      appendFamiliarTextSection(body, "Reactions", familiar.reactions, note.id, true);
+      appendFamiliarTextSection(body, familiar.ruleTitle || "Find Familiar", familiar.rules || ["It obeys your commands, acts independently in combat, and cannot attack unless a rule explicitly allows it."], note.id);
+      appendText(body, "familiar-note-source", familiar.source || "Source: Find Familiar");
       return body;
     }
 
@@ -2453,7 +2546,7 @@
         const close = document.createElement("button");
         close.type = "button";
         close.textContent = "x";
-        close.title = `Cerrar ${familiarDisplayName(tab)}`;
+        close.title = t("familiar.closeTab", { name: familiarDisplayName(tab) });
         close.addEventListener("pointerdown", (event) => event.stopPropagation());
         close.addEventListener("click", (event) => closeFamiliarNote(tab.id, event));
         item.append(button, close);
@@ -2492,14 +2585,14 @@
           appendText(titleBlock, "familiar-note-subtitle", familiarNoteSubtitle(activeNote.familiar));
           const right = document.createElement("div");
           right.className = "familiar-note-header-right";
-          appendText(right, "familiar-note-edition", "FF");
+          appendText(right, "familiar-note-edition", activeNote.familiar?.editionLabel || "FF");
           const controls = document.createElement("div");
           controls.className = "familiar-note-controls";
           const close = document.createElement("button");
           close.type = "button";
           close.className = "familiar-note-control";
           close.textContent = "X";
-          close.title = "Click cierra este item. Shift+click cierra todo el grupo.";
+          close.title = t("familiar.closeHint");
           close.addEventListener("pointerdown", (event) => event.stopPropagation());
           close.addEventListener("click", (event) => closeFamiliarNote(activeNote.id, event));
           controls.appendChild(close);
@@ -2971,7 +3064,7 @@
 
     function showDamageTooltip(anchor, type) {
       damageTooltip.classList.remove("feature-tooltip");
-      damageTooltip.textContent = type || "Sin tipo de daño detectado";
+      damageTooltip.textContent = type || t("dice.noDamageType");
       const rect = anchor.getBoundingClientRect();
       const margin = 8;
       damageTooltip.classList.add("visible");
@@ -3173,7 +3266,7 @@
       description = "",
       detailBody = null,
       renderOriginal = null,
-      labelText = "La traduccion aplica solo al texto examinado.",
+      labelText = t("translation.appliesExamined"),
       translateDescription = null
     } = {}) {
       const sourceText = String(description || "").trim();
@@ -3186,30 +3279,30 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "spell-picker-button secondary";
-      button.textContent = "Traducir texto";
+      button.textContent = t("translation.translateText");
       let translated = false;
       const rerender = (translatedText = "") => {
         if (translated) renderPlainTextDescriptionSections(detailBody, translatedText);
         else renderOriginal(detailBody);
-        button.textContent = translated ? "Ver original" : "Traducir texto";
+        button.textContent = translated ? t("translation.viewOriginal") : t("translation.translateText");
       };
       button.addEventListener("click", () => {
         if (translated) {
           translated = false;
           rerender();
-          showStatus("Texto original");
+          showStatus(t("translation.original"));
           return;
         }
-        showStatus("Traduciendo texto examinado...");
+        showStatus(t("translation.translating"));
         (typeof translateDescription === "function" ? translateDescription(sourceText) : translateFeatureDescription(cacheKey, sourceText))
           .then((translatedText) => {
             translated = true;
             rerender(translatedText);
-            showStatus("Texto traducido");
+            showStatus(t("translation.translated"));
           })
           .catch((error) => {
             console.error(error);
-            showStatus("No se pudo traducir el texto.");
+            showStatus(t("translation.failed"));
           });
       });
       toolbar.append(label, button);
@@ -3775,14 +3868,18 @@
         return;
       }
       sheetMeta.featureUses = result.state;
-      showStatus(`${row.name}: ${result.nextInfo.remaining}/${result.nextInfo.max} usos restantes`);
+      const familiar = summonedFamiliarForFeature(row);
+      if (familiar) showFamiliarNote(familiar);
+      showStatus(familiar
+        ? `${row.name}: ${familiar.name} invocado. ${result.nextInfo.remaining}/${result.nextInfo.max} usos restantes`
+        : `${row.name}: ${result.nextInfo.remaining}/${result.nextInfo.max} usos restantes`);
       updatePreparedSpellsPanel();
       scheduleSave();
     }
 
     function castPreparedSpell(spell, options = {}) {
       if (!spell || spell.kind !== "spell") return;
-      const familiar = options.findFamiliar || null;
+      const familiar = options.findFamiliar || summonedFamiliarForSpell(spell);
       if (isFindFamiliarSpell(spell) && !familiar) {
         openFindFamiliarPicker(spell);
         return;
@@ -4214,7 +4311,7 @@
 
     function addFreeDie(key = selectedFreeDieKey()) {
       if (freeDiceTotalCount() >= FREE_DICE_MAX_TOTAL) {
-        showStatus(`Maximo ${FREE_DICE_MAX_TOTAL} dados por tirada libre.`);
+        showStatus(t("dice.maxFree", { max: FREE_DICE_MAX_TOTAL }));
         return;
       }
       setFreeDieCount(key, (freeDiceCounts.get(key) || 0) + 1);
@@ -4247,7 +4344,7 @@
       if (!entries.length) {
         const empty = document.createElement("div");
         empty.className = "free-dice-empty";
-        empty.textContent = "Selecciona dados con +.";
+        empty.textContent = t("dice.selectWithPlus");
         container.appendChild(empty);
         if (rollButton) rollButton.disabled = true;
         return;
@@ -4263,13 +4360,13 @@
         remove.type = "button";
         remove.className = "free-dice-row-step";
         remove.textContent = "-";
-        remove.setAttribute("aria-label", `Quitar ${die.label}`);
+        remove.setAttribute("aria-label", `${t("dice.remove")} ${die.label}`);
         remove.addEventListener("click", () => removeFreeDie(key));
         const add = document.createElement("button");
         add.type = "button";
         add.className = "free-dice-row-step";
         add.textContent = "+";
-        add.setAttribute("aria-label", `Agregar ${die.label}`);
+        add.setAttribute("aria-label", `${t("dice.add")} ${die.label}`);
         add.addEventListener("click", () => addFreeDie(key));
         row.append(label, remove, add);
         container.appendChild(row);
@@ -4281,21 +4378,21 @@
       const expression = freeDiceExpression();
       const label = freeDiceLabel();
       if (!expression) {
-        showStatus("Selecciona al menos un dado.");
+        showStatus(t("dice.selectAtLeastOne"));
         return;
       }
       const roll = rollDiceExpression(expression);
       if (!roll) {
-        showStatus("No se pudo tirar esa combinacion.");
+        showStatus(t("dice.invalidCombination"));
         return;
       }
       const diceTerms = roll.terms.filter((term) => term.type === "dice");
       const detail = formatDiceLines([
-        `Dados: ${label}`,
-        ...diceTerms.map((term) => `Tiradas ${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
-        `Total: ${roll.total}`
+        t("dice.dice", { label }),
+        ...diceTerms.map((term) => t("dice.rolls", { expression: term.expression, rolls: term.rolls.join(" + "), subtotal: term.subtotal })),
+        t("dice.total", { total: roll.total })
       ]);
-      showDiceTray(`Tirada libre: ${label}`, String(roll.total), detail, diceTermVisualEntries(diceTerms));
+      showDiceTray(t("dice.freeRoll", { label }), String(roll.total), detail, diceTermVisualEntries(diceTerms));
     }
 
     function isFreeDiceMenuOpen() {
@@ -4365,7 +4462,7 @@
 
       const titleNode = document.createElement("div");
       titleNode.className = "dice-title";
-      titleNode.textContent = title;
+      titleNode.textContent = translateDynamicText(title, title);
 
       const resultNode = document.createElement("div");
       resultNode.className = "dice-result";
@@ -4373,7 +4470,7 @@
 
       const detailNode = document.createElement("div");
       detailNode.className = "dice-detail";
-      detailNode.textContent = detail;
+      detailNode.textContent = translateDynamicText(detail, detail);
 
       entry.append(titleNode, resultNode, detailNode);
       list.appendChild(entry);
@@ -4388,14 +4485,16 @@
 
     function showDiceTray(title, result, detail, diceVisuals = [], options = {}) {
       const sourceName = options.sourceName || (options.sendLive === false ? "" : liveRollDisplayName());
-      const displayTitle = sourceName ? `${sourceName}: ${title}` : title;
+      const translatedTitle = translateDynamicText(title, title);
+      const translatedDetail = translateDynamicText(detail, detail);
+      const displayTitle = sourceName ? `${sourceName}: ${translatedTitle}` : translatedTitle;
       diceTitle.textContent = displayTitle;
       diceResult.textContent = result;
-      diceDetail.textContent = detail;
-      appendDiceTrayEntry(displayTitle, result, detail);
+      diceDetail.textContent = translatedDetail;
+      appendDiceTrayEntry(displayTitle, result, translatedDetail);
       diceTray.classList.add("visible");
-      if (options.record !== false) recordDiceRollLog(displayTitle, result, detail);
-      if (options.sendLive !== false) window.sendLiveSheetRollEvent?.(title, result, detail);
+      if (options.record !== false) recordDiceRollLog(displayTitle, result, translatedDetail);
+      if (options.sendLive !== false) window.sendLiveSheetRollEvent?.(translatedTitle, result, translatedDetail);
       if (window.isDiceRollAnimationEnabled?.() && typeof animateDiceRoll3d === "function") animateDiceRoll3d(diceVisuals);
       clearTimeout(diceTimer);
       diceTimer = setTimeout(() => {
@@ -4432,7 +4531,7 @@
       });
       const pendingChanged = markPendingCriticalHit(attackName, isCriticalHit);
       if (pendingChanged) updatePreparedSpellsPanel();
-      if (isCriticalHit) showStatus(`${attackName}: critico listo, el proximo daño duplica los dados`);
+      if (isCriticalHit) showStatus(t("dice.criticalReady", { name: attackName }));
       showDiceTray(`${attackName}: ataque`, String(summary.total), summary.detail, d20RollVisualEntries(roll));
     }
 
@@ -4459,11 +4558,11 @@
         const strengthModifier = getStrengthModifier();
         const total = Math.max(0, 1 + strengthModifier);
         updatePreparedSpellsPanel();
-        showDiceTray(`${attackName}: daño`, String(total), formatDiceLines([
+        showDiceTray(`${attackName}: ${t("dice.damage")}`, String(total), formatDiceLines([
           "Base: 1",
           `STR mod: ${formatModifier(strengthModifier)}`,
           `Total: max(0, 1 ${formatModifier(strengthModifier)}) = ${total}`,
-          isCriticalHit ? "Critico: no hay damage dice base para duplicar en este ataque." : "",
+          isCriticalHit ? t("dice.criticalNoBaseDice") : "",
           resolvedDamageType ? `Tipo: ${resolvedDamageType}` : ""
         ]));
         return;
@@ -4472,7 +4571,7 @@
       const roll = applyDamageRollOptions(rollDiceExpression(finalExpression), damageRollOptions);
       if (!roll) {
         updatePreparedSpellsPanel();
-        showDiceTray(`${attackName}: daño`, "N/A", "No encontre dados de daño en la descripcion.");
+        showDiceTray(`${attackName}: ${t("dice.damage")}`, "N/A", t("dice.noDamageDice"));
         return;
       }
       const diceTerms = roll.terms.filter((term) => term.type === "dice");
@@ -4480,8 +4579,8 @@
       const diceTotal = diceTerms.reduce((sum, term) => sum + term.subtotal, 0);
       const bonusTotal = bonusTerms.reduce((sum, term) => sum + term.value, 0);
       updatePreparedSpellsPanel();
-      showDiceTray(`${attackName}: daño`, String(roll.total), formatDiceLines([
-        isCriticalHit ? `Critico: ${damageExpression} -> ${finalExpression}` : `Dados: ${damageExpression}`,
+      showDiceTray(`${attackName}: ${t("dice.damage")}`, String(roll.total), formatDiceLines([
+        isCriticalHit ? t("dice.criticalExpression", { base: damageExpression, final: finalExpression }) : t("dice.dice", { label: damageExpression }),
         isCriticalHit ? "Efecto: tiras todos los damage dice dos veces y luego sumas los modificadores." : "",
         damageRollOptions.greatWeaponFighting ? "Great Weapon Fighting: cada 1 o 2 en los damage dice base cuenta como 3." : "",
         ...diceTerms.map((term) => (
@@ -4593,7 +4692,7 @@
         damageType.className = "prepared-spell-damage-type";
         damageType.tabIndex = 0;
         damageType.textContent = damageTypeSymbol(spell.damageType);
-        damageType.setAttribute("aria-label", spell.damageType || "Sin tipo de daño detectado");
+        damageType.setAttribute("aria-label", spell.damageType || t("dice.noDamageType"));
         damageType.addEventListener("mouseenter", () => showDamageTooltip(damageType, spell.damageType));
         damageType.addEventListener("mouseleave", hideDamageTooltip);
         damageType.addEventListener("focus", () => showDamageTooltip(damageType, spell.damageType));
@@ -4699,8 +4798,13 @@
         damageButton.title = spell.kind === "pool"
           ? `Editar pool de ${spell.name}`
           : (spell.damageLabel
-          ? `${criticalReady ? "Critico listo. " : ""}Tirar daño ${spell.damageLabel} ${spell.damageType} ${spell.kind === "spell" && spell.level > 0 ? `a nivel ${spell.castLevel || spell.level}` : ""}`.trim()
-          : "Sin dados de daño detectados");
+          ? t("dice.rollDamage", {
+            prefix: criticalReady ? `${t("dice.criticalReadyPrefix")} ` : "",
+            label: spell.damageLabel,
+            type: spell.damageType,
+            levelText: spell.kind === "spell" && spell.level > 0 ? t("dice.atLevel", { level: spell.castLevel || spell.level }) : ""
+          }).trim()
+          : t("dice.noDamageDiceShort"));
         if (spell.kind === "pool") damageButton.addEventListener("click", () => openPreparedAttackDetail(spell));
         else if (spell.kind === "activation") damageButton.disabled = true;
         else if (!spell.damage) damageButton.disabled = true;
@@ -5391,15 +5495,15 @@
       if (turnActionsActionOrb) {
         turnActionsActionOrb.textContent = `${budget.remaining.action}/${budget.totals.action}`;
         turnActionsActionOrb.classList.toggle("empty", budget.remaining.action <= 0);
-        turnActionsActionOrb.closest(".turn-actions-counter")?.setAttribute("title", `${budget.optionCounts.action} acciones disponibles`);
+        turnActionsActionOrb.closest(".turn-actions-counter")?.setAttribute("title", t("turn.actionsAvailable", { count: budget.optionCounts.action }));
       }
-      if (turnActionsActionLabel) turnActionsActionLabel.textContent = `Acciones (${budget.optionCounts.action})`;
+      if (turnActionsActionLabel) turnActionsActionLabel.textContent = t("turn.actionsWithCount", { count: budget.optionCounts.action });
       if (turnActionsBonusOrb) {
         turnActionsBonusOrb.textContent = `${budget.remaining.bonus}/${budget.totals.bonus}`;
         turnActionsBonusOrb.classList.toggle("empty", budget.remaining.bonus <= 0);
-        turnActionsBonusOrb.closest(".turn-actions-counter")?.setAttribute("title", `${budget.optionCounts.bonus} acciones bonus disponibles`);
+        turnActionsBonusOrb.closest(".turn-actions-counter")?.setAttribute("title", t("turn.bonusActionsAvailable", { count: budget.optionCounts.bonus }));
       }
-      if (turnActionsBonusLabel) turnActionsBonusLabel.textContent = `Acciones bonus (${budget.optionCounts.bonus})`;
+      if (turnActionsBonusLabel) turnActionsBonusLabel.textContent = t("turn.bonusActionsWithCount", { count: budget.optionCounts.bonus });
     }
 
     function startNewCombatTurn() {
@@ -5412,7 +5516,7 @@
       };
       refreshTurnActionsPanel();
       scheduleSave();
-      showStatus("Nuevo turno: acciones restauradas");
+      showStatus(t("turn.newTurnRestored"));
     }
 
     function turnActionSpendType(action) {
@@ -5439,11 +5543,11 @@
       const budget = turnActionBudget(summary.actions);
       const spendType = turnActionSpendType(action);
       if (!spendType) {
-        showStatus(`${action.title}: no consume Accion ni Accion Bonus`);
+        showStatus(t("turn.noCost", { title: action.title }));
         return;
       }
       if (!canSpendTurnAction(action, budget)) {
-        showStatus(spendType === "action" ? "Sin acciones disponibles este turno" : "Sin acciones bonus disponibles este turno");
+        showStatus(spendType === "action" ? t("turn.noActions") : t("turn.noBonusActions"));
         return;
       }
       const state = combatTurnState();
@@ -5452,7 +5556,11 @@
       updateDerivedStats();
       refreshTurnActionsPanel();
       scheduleSave();
-      showStatus(`${action.title}: ${spendType === "action" ? "Accion" : "Accion Bonus"} gastada${activated ? ", efecto activo" : ""}`);
+      showStatus(t("turn.spent", {
+        title: action.title,
+        type: spendType === "action" ? t("turn.group.action.title") : t("turn.group.bonus.title"),
+        suffix: activated ? t("turn.effectActive") : ""
+      }));
     }
 
     function renderTurnActionResources(resources = []) {
@@ -5461,7 +5569,7 @@
       section.className = "turn-actions-resources";
       const title = document.createElement("h3");
       title.className = "turn-actions-section-title";
-      title.textContent = "Recursos";
+      title.textContent = t("turn.resources");
       const grid = document.createElement("div");
       grid.className = "turn-actions-resource-grid";
       resources.forEach((resource) => {
@@ -5469,11 +5577,11 @@
         card.className = "turn-actions-resource-card";
         const name = document.createElement("div");
         name.className = "turn-actions-resource-name";
-        name.textContent = resource.title;
+        name.textContent = translateDynamicText(resource.title, resource.title);
         const detail = document.createElement("div");
         detail.className = "turn-actions-resource-detail";
         const remaining = formatRemainingResourceText(resource.remaining, resource.total);
-        detail.textContent = [remaining, resource.detail].filter(Boolean).join(" | ");
+        detail.textContent = translateDynamicText([remaining, resource.detail].filter(Boolean).join(" | "));
         card.append(name, detail);
         grid.appendChild(card);
       });
@@ -5526,7 +5634,7 @@
       const render = () => {
         const current = layOnHandsPoolInfo(feature);
         if (!current) return;
-        summary.textContent = `Restante ${current.remaining}/${current.max} HP | Gastado ${current.used}`;
+        summary.textContent = t("turn.remainingHp", { remaining: current.remaining, max: current.max, used: current.used });
         spendButton.disabled = current.remaining <= 0;
         restoreButton.disabled = current.used <= 0;
         resetButton.disabled = current.used <= 0;
@@ -5542,7 +5650,7 @@
           return;
         }
         setLayOnHandsPoolUsed(feature, current.used + amount);
-        showStatus(`Lay on Hands: ${amount} punto(s) gastados. Restan ${Math.max(0, current.remaining - amount)}/${current.max}`);
+        showStatus(t("turn.layOnHandsSpent", { amount, remaining: Math.max(0, current.remaining - amount), max: current.max }));
         render();
       });
 
@@ -5555,7 +5663,7 @@
           return;
         }
         setLayOnHandsPoolUsed(feature, current.used - amount);
-        showStatus(`Lay on Hands: ${amount} punto(s) restaurados al pool. Restan ${Math.min(current.max, current.remaining + amount)}/${current.max}`);
+        showStatus(t("turn.layOnHandsRestored", { amount, remaining: Math.min(current.max, current.remaining + amount), max: current.max }));
         render();
       });
 
@@ -5587,19 +5695,19 @@
       section.className = "turn-actions-resources";
       const title = document.createElement("h3");
       title.className = "turn-actions-section-title";
-      title.textContent = "Estados activos";
+      title.textContent = t("turn.activeStatuses");
       const grid = document.createElement("div");
       grid.className = "turn-actions-resource-grid";
       definitions.forEach((definition) => {
         const card = document.createElement("div");
         card.className = "turn-actions-resource-card";
-        card.title = statusDescriptionText(definition);
+        card.title = translateDynamicText(statusDescriptionText(definition), statusDescriptionText(definition));
         const name = document.createElement("div");
         name.className = "turn-actions-resource-name";
         name.textContent = `${definition.symbol} ${definition.name}`;
         const detail = document.createElement("div");
         detail.className = "turn-actions-resource-detail";
-        detail.textContent = definition.description;
+        detail.textContent = translateDynamicText(definition.description, definition.description);
         card.append(name, detail);
         grid.appendChild(card);
       });
@@ -5619,13 +5727,13 @@
         group.className = "turn-actions-group";
         const title = document.createElement("h3");
         title.className = "turn-actions-section-title";
-        title.textContent = `${TURN_ACTION_GROUP_GUIDE[type]?.title || ACTION_TYPE_LABELS[type] || type} (${items.length})`;
+        title.textContent = `${translateDynamicText(TURN_ACTION_GROUP_GUIDE[type]?.title || ACTION_TYPE_LABELS[type] || type)} (${items.length})`;
         group.appendChild(title);
         const subtitleText = TURN_ACTION_GROUP_GUIDE[type]?.subtitle || "";
         if (subtitleText) {
           const subtitle = document.createElement("div");
           subtitle.className = "turn-actions-group-subtitle";
-          subtitle.textContent = subtitleText;
+          subtitle.textContent = translateDynamicText(subtitleText, subtitleText);
           group.appendChild(subtitle);
         }
         const list = document.createElement("div");
@@ -5640,12 +5748,12 @@
           row.addEventListener("click", () => spendTurnAction(action));
           const rowTitle = document.createElement("div");
           rowTitle.className = "turn-actions-row-title";
-          rowTitle.textContent = action.title;
+          rowTitle.textContent = translateDynamicText(action.title, action.title);
           row.appendChild(rowTitle);
           if (action.detail) {
             const detail = document.createElement("div");
             detail.className = "turn-actions-row-detail";
-            detail.textContent = action.detail;
+            detail.textContent = translateDynamicText(action.detail, action.detail);
             row.appendChild(detail);
           }
           list.appendChild(row);
@@ -5670,7 +5778,7 @@
       if (!summary.resources.length && !summary.actions.length) {
         const empty = document.createElement("div");
         empty.className = "turn-actions-empty";
-        empty.textContent = "No encontre acciones utilizables con el estado actual de la ficha.";
+        empty.textContent = t("turn.noUsableActions");
         turnActionsBody.appendChild(empty);
       }
     }
@@ -5838,7 +5946,7 @@
       if (emptyNode) emptyNode.style.display = visibleCount > 0 ? "none" : "";
     }
 
-    function createListSearchInput(rows, placeholder = "Buscar...") {
+    function createListSearchInput(rows, placeholder = t("common.search")) {
       const search = document.createElement("input");
       search.type = "search";
       search.className = "list-search";
@@ -5852,7 +5960,7 @@
       return { search, empty };
     }
 
-    function appendSearchableList(parent, rows, placeholder = "Buscar...") {
+    function appendSearchableList(parent, rows, placeholder = t("common.search")) {
       const { search, empty } = createListSearchInput(rows, placeholder);
       parent.appendChild(search);
       const list = document.createElement("div");
@@ -5905,7 +6013,7 @@
       return body;
     }
 
-    function appendSpellLevelGroups(parent, spellsForRows, rowFactory, statePrefix, searchPrefix = "Buscar spell") {
+    function appendSpellLevelGroups(parent, spellsForRows, rowFactory, statePrefix, searchPrefix = t("spell.searchSpell")) {
       const grouped = new Map();
       spellsForRows.forEach((spell) => {
         const level = Number(spell?.level || 0);
@@ -6028,7 +6136,7 @@
         if (index === 0 || field.value === optionName(option)) setOptionDescription(option);
       });
       if (optionItems.length) {
-        const { search, empty } = createListSearchInput(optionItems, "Buscar opcion...");
+        const { search, empty } = createListSearchInput(optionItems, t("feature.searchOption"));
         optionList.appendChild(search);
         optionItems.forEach((item) => optionList.appendChild(item));
         optionList.appendChild(empty);
@@ -6256,8 +6364,8 @@
       button.type = "button";
       button.className = "add-equipment-button";
       button.textContent = "+";
-      button.title = "Agregar item";
-      button.setAttribute("aria-label", "Agregar item");
+      button.title = t("item.addItem");
+      button.setAttribute("aria-label", t("item.addItem"));
       button.addEventListener("click", openItemPicker);
       placeFromPdfRect(button, viewport, [x1, y1 - 21, x2, y1 - 3]);
       layer.appendChild(button);
@@ -6366,8 +6474,8 @@
       addButton.type = "button";
       addButton.className = `status-add-button${open ? " active" : ""}`;
       addButton.textContent = "+";
-      addButton.title = "Agregar estado";
-      addButton.setAttribute("aria-label", "Agregar estado");
+      addButton.title = t("status.add");
+      addButton.setAttribute("aria-label", t("status.add"));
       addButton.addEventListener("click", () => {
         statusDock.dataset.menuOpen = open ? "false" : "true";
         statusDock.dataset.focusSearch = open ? "false" : "true";
@@ -6394,7 +6502,7 @@
       const pickerCopy = document.createElement("div");
       const pickerTitle = document.createElement("div");
       pickerTitle.className = "status-picker-title";
-      pickerTitle.textContent = "Estados del personaje";
+      pickerTitle.textContent = t("status.characterStatuses");
       const pickerSubtitle = document.createElement("div");
       pickerSubtitle.className = "status-picker-subtitle";
       pickerSubtitle.textContent = "Hover para ver la descripcion completa";
@@ -6403,9 +6511,9 @@
       const pickerSearch = document.createElement("input");
       pickerSearch.type = "search";
       pickerSearch.className = "status-picker-search";
-      pickerSearch.placeholder = "Buscar estado...";
+      pickerSearch.placeholder = t("status.search");
       pickerSearch.value = statusSearchQuery;
-      pickerSearch.setAttribute("aria-label", "Buscar estado");
+      pickerSearch.setAttribute("aria-label", t("status.searchLabel"));
       pickerSearch.addEventListener("input", () => {
         statusSearchQuery = pickerSearch.value || "";
         statusDock.dataset.focusSearch = "true";
@@ -6622,7 +6730,7 @@
     }
 
     async function decompressSheetCodeText(bytes) {
-      if (typeof DecompressionStream !== "function") throw new Error("Este navegador no puede descomprimir el codigo.");
+      if (typeof DecompressionStream !== "function") throw new Error(t("import.browserUnsupported"));
       const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
       return await new Response(stream).text();
     }
@@ -6671,10 +6779,10 @@
       try {
         payload = JSON.parse(json);
       } catch (_error) {
-        throw new Error("El codigo del personaje no contiene datos JSON validos.");
+        throw new Error(t("import.invalidJson"));
       }
       if (payload?.type !== CHARACTER_SHEET_CODE_TYPE || payload?.version !== 1 || !isPlainObject(payload.data)) {
-        throw new Error("El codigo no contiene una planilla compatible.");
+        throw new Error(t("import.incompatible"));
       }
       return sanitizeImportedSheetData(payload.data);
     }
@@ -6693,13 +6801,13 @@
 
     async function decodeCharacterSheetCode(code) {
       const match = String(code || "").trim().match(/^DNDCS1\.([gj])\.([A-Za-z0-9_-]+)$/);
-      if (!match) throw new Error("Codigo de personaje invalido.");
+      if (!match) throw new Error(t("export.invalidCode"));
       const [, mode, encoded] = match;
       let bytes;
       try {
         bytes = base64UrlToBytes(encoded);
       } catch (_error) {
-        throw new Error("Codigo de personaje invalido.");
+        throw new Error(t("export.invalidCode"));
       }
       let json;
       try {
@@ -6707,7 +6815,7 @@
           ? await decompressSheetCodeText(bytes)
           : new TextDecoder().decode(bytes);
       } catch (_error) {
-        throw new Error("El codigo del personaje esta corrupto o incompleto.");
+        throw new Error(t("import.corrupt"));
       }
       return parseCharacterSheetPayload(json);
     }
@@ -6732,14 +6840,14 @@
       textarea.select();
       const copied = document.execCommand("copy");
       textarea.remove();
-      if (!copied) throw new Error("No se pudo copiar al portapapeles.");
+      if (!copied) throw new Error(t("export.copyFailed"));
     }
 
     async function generateCharacterSheetCode() {
       if (typeof setAppSettingsMenuOpen === "function") setAppSettingsMenuOpen(false);
       const code = await encodeCharacterSheetData(collectData());
       await copyTextToClipboard(code);
-      showStatus(`Codigo de personaje copiado (${code.length} caracteres)`);
+      showStatus(t("export.copied", { count: code.length }));
       return code;
     }
 
@@ -6968,7 +7076,7 @@
         saveSlotSelect.appendChild(option);
       });
       saveSlotSelect.value = activeSaveStore.slots.some((slot) => slot.id === previousValue) ? previousValue : activeSaveSlotId;
-      if (saveSlotLabel) saveSlotLabel.textContent = "Personaje";
+      if (saveSlotLabel) saveSlotLabel.textContent = t("top.character");
       renderCharacterImportSlotSelect();
     }
 
@@ -7053,7 +7161,7 @@
         resetVisibleSheetFields();
         applyData(activeSaveSlot()?.data || blankSheetData());
         refreshAfterApplyingSlotData();
-        showStatus("Personaje cargado");
+        showStatus(t("character.loaded"));
       } finally {
         isSwitchingSaveSlot = false;
       }
@@ -7065,7 +7173,7 @@
 
       const code = characterImportCode.value.trim();
       if (!code) {
-        setCharacterImportError("Pega un codigo antes de importar.");
+        setCharacterImportError(t("import.emptyCode"));
         characterImportCode.focus();
         return;
       }
@@ -7080,7 +7188,7 @@
       try {
         importedData = await decodeCharacterSheetCode(code);
       } catch (error) {
-        setCharacterImportError(error?.message || "No se pudo leer el codigo del personaje.");
+        setCharacterImportError(error?.message || t("import.readFailed"));
         return;
       }
 
@@ -7106,12 +7214,12 @@
       applyData(importedData);
       refreshAfterApplyingSlotData();
       closeCharacterImportModal();
-      showStatus("Personaje importado");
+      showStatus(t("import.imported"));
     }
 
     let statusTimer;
     function showStatus(text) {
-      status.textContent = text;
+      status.textContent = translateDynamicText(text, text);
       status.classList.add("visible");
       clearTimeout(statusTimer);
       statusTimer = setTimeout(() => status.classList.remove("visible"), 900);
@@ -7220,7 +7328,7 @@
       if (!field || fieldCanChangeWhenReady(field)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      showStatus("Personaje listo: la planilla esta bloqueada.");
+      showStatus(t("character.readyLocked"));
     }
 
     function handleLockedAuxiliaryInput(event) {
@@ -7238,13 +7346,13 @@
       if (!target.matches?.("input[type='checkbox'], input[type='radio'], select")) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      showStatus("Personaje listo: esa eleccion esta bloqueada.");
+      showStatus(t("character.readyChoiceLocked"));
     }
 
     function updateInteractionState() {
       characterReadyButton?.classList.toggle("active", isCharacterReady());
       if (characterReadyButton) {
-        characterReadyButton.textContent = isCharacterReady() ? "🔒 Personaje Listo" : "🔓 Personaje Listo";
+        characterReadyButton.textContent = isCharacterReady() ? t("top.characterReady.locked") : t("top.characterReady.unlocked");
       }
       if (clearFieldsButton) clearFieldsButton.disabled = isCharacterReady();
       longRestButton?.classList.toggle("active", isLongRestActive());
@@ -7286,7 +7394,7 @@
       }
       updateInteractionState();
       scheduleSave();
-      showStatus(sheetMeta.characterReady ? "Personaje listo: planilla bloqueada" : "Edicion de personaje habilitada");
+      showStatus(sheetMeta.characterReady ? t("character.readySheetLocked") : t("character.editingEnabled"));
     }
 
     async function saveData() {
@@ -7295,7 +7403,7 @@
       updateActiveSlotFromCurrentData();
       await saveActiveStore();
       renderSaveSlotSelect();
-      showStatus("Guardado automatico");
+      showStatus(t("save.autosaved"));
     }
 
     async function loadData() {
@@ -7451,7 +7559,7 @@
       }
       const canInteract = !isCharacterReady() || fieldCanChangeWhenReady(field);
       if (!activate || !canInteract) {
-        if (activate && !canInteract) showStatus("Personaje listo: esa parte de la planilla esta bloqueada.");
+        if (activate && !canInteract) showStatus(t("character.lockedPart"));
         return true;
       }
       if (field.dataset.optionType === "spell") {
@@ -7515,16 +7623,16 @@
     }
 
     const ALERT_SEVERITY_LABELS = {
-      critical: "Critico",
-      important: "Importante",
-      optional: "Opcional"
+      critical: "Critical",
+      important: "Important",
+      optional: "Optional"
     };
 
     const REQUIRED_CORE_FIELDS = [
-      ["CharacterName", "Nombre del personaje"],
-      ["ClassLevel", "Clase"],
-      ["CharacterLevel", "Nivel"],
-      ["Race ", "Raza"],
+      ["CharacterName", "Character name"],
+      ["ClassLevel", "Class"],
+      ["CharacterLevel", "Level"],
+      ["Race ", "Race"],
       ["Background", "Background"],
       ["Alignment", "Alignment"],
       ["STR", "Strength"],
@@ -7816,7 +7924,7 @@
       if (!value) return;
       const stat = document.createElement("div");
       stat.className = "item-stat";
-      appendText(stat, "item-stat-label", label);
+      appendText(stat, "item-stat-label", translateDynamicText(label, label));
       appendText(stat, "item-stat-value", value);
       grid.appendChild(stat);
     }
@@ -7826,7 +7934,7 @@
       const section = document.createElement("section");
       section.className = "item-section";
       if (!["descripcion", "descripción", "description"].includes(normalizeName(title))) {
-        appendText(section, "item-section-title", title);
+        appendText(section, "item-section-title", translateDynamicText(title, title));
       }
       appendText(section, "item-section-body", body, "p");
       root.appendChild(section);
@@ -7849,7 +7957,7 @@
       root.appendChild(section);
     }
 
-    function appendEntryBlocks(root, entries, fallbackTitle = "Descripcion") {
+    function appendEntryBlocks(root, entries, fallbackTitle = "Description") {
       const blocks = Array.isArray(entries) ? entries : [entries];
       const pendingParagraphs = [];
       const flushParagraphs = () => {
@@ -7902,8 +8010,8 @@
       appendItemStat(stats, "Escuela", spellSchoolLabel(spell));
       appendItemStat(stats, "Clases", (spell.classes || []).join(", "));
       appendItemStat(stats, "Razas", (spell.races || []).join(", "));
-      appendItemStat(stats, "Daño detectado", damageDiceForSpell(spell));
-      appendItemStat(stats, "Tipo de daño", damageTypeForSpell(spell));
+        appendItemStat(stats, t("item.damageDetected"), damageDiceForSpell(spell));
+        appendItemStat(stats, t("item.damageType"), damageTypeForSpell(spell));
       root.appendChild(stats);
 
       const chips = document.createElement("div");
@@ -8044,7 +8152,7 @@
           .then(() => showStatus("Descripcion traducida"))
           .catch((error) => {
             console.error(error);
-            showStatus("No se pudo traducir la descripcion de la spell.");
+            showStatus(t("spell.translateFailed"));
           });
       });
       toolbar.append(label, button);
@@ -8115,7 +8223,7 @@
       const bookButton = document.createElement("button");
       bookButton.type = "button";
       bookButton.className = "spell-picker-button";
-      bookButton.textContent = known ? "Quitar del libro" : "Agregar al libro";
+      bookButton.textContent = known ? t("spell.removeFromBook") : t("spell.addToBook");
       bookButton.disabled = !canModifySpells() || normalizeName(field.value || "") === normalizeName(spell.name) || atCapacity;
       bookButton.addEventListener("click", () => {
         if (known) removeWizardSpellbookSpell(spell.name);
@@ -8249,7 +8357,7 @@
       const learnButton = document.createElement("button");
       learnButton.type = "button";
       learnButton.className = "spell-picker-button";
-      learnButton.textContent = known ? "Conocida" : "Aprender";
+      learnButton.textContent = known ? t("spell.known") : t("spell.learn");
       learnButton.disabled = !canModifySpells() || known || atCapacity;
       learnButton.addEventListener("click", () => {
         if (!bardCanLearnSpell(spell.name)) {
@@ -8320,7 +8428,7 @@
       const toggleButton = document.createElement("button");
       toggleButton.type = "button";
       toggleButton.className = selected ? "spell-picker-button secondary" : "spell-picker-button";
-      toggleButton.textContent = selected ? "Quitar" : "Aprender";
+      toggleButton.textContent = selected ? t("spell.remove") : t("spell.learn");
       toggleButton.disabled = !canModifySpells() || atCapacity;
       toggleButton.addEventListener("click", () => {
         if (selected) {
@@ -8356,7 +8464,7 @@
       appendSearchableList(
         body,
         knownCantrips.map((spell) => cantripManagerRow(spell, detailBody, field)),
-        "Buscar cantrip conocido..."
+        t("spell.searchKnownCantrip")
       );
       return body;
     }
@@ -8379,7 +8487,7 @@
       detailClose.type = "button";
       detailClose.className = "spell-picker-detail-close";
       detailClose.textContent = "X";
-      detailClose.setAttribute("aria-label", "Cerrar detalle");
+      detailClose.setAttribute("aria-label", t("spell.closeDetail"));
       detailClose.addEventListener("click", () => detail.classList.add("hidden"));
       detailHeader.append(detailTitle, detailClose);
       const detailBody = document.createElement("div");
@@ -8401,7 +8509,7 @@
       const knownCantrips = selectedCantripSpellEntries();
       appendKnownCantripsSection(main, knownCantrips, detailBody, field, "wizard:known-cantrips");
 
-      appendCollapsibleSection(main, "Aprender cantrips", {
+      appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "wizard:learn-cantrips",
         renderContent: (target) => appendSearchableList(
@@ -8409,7 +8517,7 @@
           getAccessibleCantripOptions()
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((spell) => cantripManagerRow(spell, detailBody, field)),
-          "Buscar cantrip..."
+          t("spell.searchCantrip")
         )
       });
 
@@ -8427,11 +8535,11 @@
           knownSpells,
           (spell) => wizardSpellbookManagerRow(field, spell, detailBody),
           "wizard:spellbook",
-          "Buscar en spellbook"
+          t("spell.searchSpellbook")
         );
       }
 
-      appendCollapsibleSection(main, "Aprender spells", {
+      appendCollapsibleSection(main, t("spell.learnSpells"), {
         collapsed: true,
         stateKey: "wizard:learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
@@ -8439,7 +8547,7 @@
           getAllWizardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
           (spell) => wizardSpellListRow(field, spell, detailBody),
           "wizard:learn-spells",
-          "Buscar spell"
+          t("spell.searchSpell")
         )
       });
 
@@ -8466,7 +8574,7 @@
       detailClose.type = "button";
       detailClose.className = "spell-picker-detail-close";
       detailClose.textContent = "X";
-      detailClose.setAttribute("aria-label", "Cerrar detalle");
+      detailClose.setAttribute("aria-label", t("spell.closeDetail"));
       detailClose.addEventListener("click", () => detail.classList.add("hidden"));
       detailHeader.append(detailTitle, detailClose);
       const detailBody = document.createElement("div");
@@ -8488,7 +8596,7 @@
       const knownCantrips = selectedCantripSpellEntries();
       appendKnownCantripsSection(main, knownCantrips, detailBody, field, "bard:known-cantrips");
 
-      appendCollapsibleSection(main, "Aprender cantrips", {
+      appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "bard:learn-cantrips",
         renderContent: (target) => appendSearchableList(
@@ -8496,7 +8604,7 @@
           getAccessibleCantripOptions()
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((spell) => cantripManagerRow(spell, detailBody, field)),
-          "Buscar cantrip..."
+          t("spell.searchCantrip")
         )
       });
 
@@ -8513,11 +8621,11 @@
           knownSpells,
           (spell) => bardKnownSpellRow(field, spell, detailBody),
           "bard:known-spells",
-          "Buscar spell conocido"
+          t("spell.searchKnownSpell")
         );
       }
 
-      appendCollapsibleSection(main, "Aprender spells", {
+      appendCollapsibleSection(main, t("spell.learnSpells"), {
         collapsed: true,
         stateKey: "bard:learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
@@ -8525,7 +8633,7 @@
           getAllBardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
           (spell) => bardLearnSpellRow(field, spell, detailBody),
           "bard:learn-spells",
-          "Buscar spell"
+          t("spell.searchSpell")
         )
       });
 
@@ -8592,7 +8700,7 @@
 
       const meta = document.createElement("div");
       meta.className = "spell-picker-meta";
-      meta.textContent = [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell), "Seleccionada"].filter(Boolean).join(" - ");
+      meta.textContent = [spellLevelLabel(spell.level), spellSchoolLabel(spell), spellSourceLabel(spell), t("spell.selected")].filter(Boolean).join(" - ");
 
       const actions = document.createElement("div");
       actions.className = "spell-picker-actions";
@@ -8639,7 +8747,7 @@
         spellSchoolLabel(spell),
         spellSourceLabel(spell),
         selected
-          ? "Seleccionada"
+          ? t("spell.selected")
           : atCapacity
             ? "Limite alcanzado"
             : totalLimit != null
@@ -8652,7 +8760,7 @@
       const learnButton = document.createElement("button");
       learnButton.type = "button";
       learnButton.className = "spell-picker-button";
-      learnButton.textContent = selected ? "Seleccionada" : "Aprender";
+      learnButton.textContent = selected ? t("spell.selected") : t("spell.learn");
       learnButton.disabled = !canModifySpells() || selected || atCapacity;
       learnButton.addEventListener("click", () => {
         if (!assignManagedSpellToSheet(spell.name)) return;
@@ -8683,7 +8791,7 @@
       detailClose.type = "button";
       detailClose.className = "spell-picker-detail-close";
       detailClose.textContent = "X";
-      detailClose.setAttribute("aria-label", "Cerrar detalle");
+      detailClose.setAttribute("aria-label", t("spell.closeDetail"));
       detailClose.addEventListener("click", () => detail.classList.add("hidden"));
       detailHeader.append(detailTitle, detailClose);
       const detailBody = document.createElement("div");
@@ -8708,7 +8816,7 @@
       const knownCantrips = selectedCantripSpellEntries();
       appendKnownCantripsSection(main, knownCantrips, detailBody, field, "managed:known-cantrips");
 
-      appendCollapsibleSection(main, "Aprender cantrips", {
+      appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "managed:learn-cantrips",
         renderContent: (target) => appendSearchableList(
@@ -8716,7 +8824,7 @@
           getAccessibleCantripOptions()
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((spell) => cantripManagerRow(spell, detailBody, field)),
-          "Buscar cantrip..."
+          t("spell.searchCantrip")
         )
       });
 
@@ -8733,11 +8841,11 @@
           knownSpells,
           (spell) => managedKnownSpellRow(field, spell, detailBody),
           "managed:known-spells",
-          "Buscar spell seleccionada"
+          t("spell.searchSelectedSpell")
         );
       }
 
-      appendCollapsibleSection(main, "Aprender spells", {
+      appendCollapsibleSection(main, t("spell.learnSpells"), {
         collapsed: true,
         stateKey: "managed:learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
@@ -8745,7 +8853,7 @@
           getAllManagedSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
           (spell) => managedLearnSpellRow(field, spell, detailBody),
           "managed:learn-spells",
-          "Buscar spell"
+          t("spell.searchSpell")
         )
       });
 
@@ -8831,7 +8939,7 @@
       stats.className = "item-stat-grid";
       appendItemStat(stats, "Tipo", itemCategoryLine(item).replace(/\n/g, ", "));
       appendItemStat(stats, "Valor / peso", itemValueWeightLine(item));
-      appendItemStat(stats, "Daño", itemDamageLine(item));
+        appendItemStat(stats, t("item.damage"), itemDamageLine(item));
       appendItemStat(stats, "Rango", item.range ? `${item.range} ft.` : "");
       root.appendChild(stats);
 
@@ -9899,7 +10007,7 @@
     }
 
     function buildFeatureChoiceOptionDetailContent(option) {
-      if (!option) return buildTextFeatureDrawerContent("Choice", "Selecciona una opcion para ver el detalle.", "");
+      if (!option) return buildTextFeatureDrawerContent("Choice", t("feature.selectOptionDetail"), "");
       if (option.type === "feat") {
         const feat = findFeatData(option.value);
         return feat
@@ -10066,7 +10174,7 @@
       detailClose.type = "button";
       detailClose.className = "spell-picker-detail-close";
       detailClose.textContent = "X";
-      detailClose.setAttribute("aria-label", "Cerrar detalle");
+      detailClose.setAttribute("aria-label", t("spell.closeDetail"));
       detailClose.addEventListener("click", () => detail.classList.add("hidden"));
       detailHeader.append(detailTitle, detailClose);
       const detailBody = document.createElement("div");
@@ -10076,7 +10184,7 @@
       appendSearchableList(
         main,
         spec.options.map((option) => buildFeatureChoicePickerRow(feature, key, spec, section, option, specIndex, detailBody)),
-        "Buscar opcion..."
+        t("feature.searchOption")
       );
 
       const selectedValues = selectedFeatureChoices(key);
@@ -10290,7 +10398,7 @@
         button.addEventListener("click", () => openFeatureEntry(entry, entries));
         return button;
       });
-      appendSearchableList(root, rows, "Buscar feature...");
+      appendSearchableList(root, rows, t("feature.searchFeature"));
       return root;
     }
 
@@ -12088,7 +12196,7 @@
         const preparedLimit = wizardPreparedSpellLimit();
         const prepared = selectedWizardPreparedSpellCount();
         if (prepared > preparedLimit) {
-          addAlert(alerts, "critical", "Demasiados prepared spells", `Preparaste ${prepared}; tu limite actual es ${preparedLimit}.`, null, alertSpellsAction("Revisar spellbook"));
+          addAlert(alerts, "critical", t("alerts.tooManyPreparedSpells"), t("alerts.preparedSpellLimit", { prepared, limit: preparedLimit }), null, alertSpellsAction(t("alerts.reviewSpellbook")));
         }
         return;
       }
@@ -12157,7 +12265,7 @@
       if (!fieldValue("HPMax")) addAlert(alerts, "critical", "Completar HP max", "Falta el maximo de hit points.", null, alertFieldAction("HPMax"));
       if (!fieldValue("HDTotal")) addAlert(alerts, "important", "Completar Hit Dice", "Falta el total de hit dice.", null, alertFieldAction("HDTotal"));
       if (!fieldValue("Equipment")) addAlert(alerts, "important", "Completar Equipment", "Agrega equipo o elige el paquete inicial.", null, alertFieldAction("Equipment"));
-      if (!fieldValue("ProficienciesLang")) addAlert(alerts, "important", "Revisar proficiencies/languages", "Faltan proficiencies o languages derivados de clase, raza y background.", null, alertFieldAction("ProficienciesLang"));
+      if (!fieldValue("ProficienciesLang")) addAlert(alerts, "important", t("alerts.reviewProficienciesLanguages"), t("alerts.missingProficienciesLanguages"), null, alertFieldAction("ProficienciesLang"));
       if (hasChoiceLanguageOrToolText()) {
         addAlert(alerts, "important", "Elegir proficiencies/languages", "Hay opciones como 'of your choice' que requieren decision manual.", null, alertFeaturesAction());
       }
@@ -12311,21 +12419,21 @@
       const total = alerts.length;
       const topSeverity = alerts[0]?.severity || "empty";
       const summary = total
-        ? `${total} alerta(s): ${counts.critical || 0} criticas, ${counts.important || 0} importantes, ${counts.optional || 0} opcionales`
-        : "No hay alertas pendientes";
+        ? t("alerts.summary", { total, critical: counts.critical || 0, important: counts.important || 0, optional: counts.optional || 0 })
+        : t("alerts.noneSummary");
 
       alertsPanel.className = `alerts-panel ${topSeverity}`;
       alertsTrigger.setAttribute("aria-label", summary);
       alertsTrigger.title = summary;
       alertsIcon.textContent = "!";
       alertsBadge.textContent = String(total);
-      alertsCounts.textContent = `${counts.critical || 0} crit / ${counts.important || 0} imp / ${counts.optional || 0} opc`;
+      alertsCounts.textContent = t("alerts.counts", { critical: counts.critical || 0, important: counts.important || 0, optional: counts.optional || 0 });
       alertsList.textContent = "";
 
       if (!alerts.length) {
         const empty = document.createElement("div");
         empty.className = "alert-empty";
-        empty.textContent = "No hay alertas pendientes.";
+        empty.textContent = t("alerts.none");
         alertsList.appendChild(empty);
         return;
       }
@@ -12342,7 +12450,7 @@
 
         const detail = document.createElement("div");
         detail.className = "alert-detail";
-        detail.textContent = `${ALERT_SEVERITY_LABELS[alert.severity]}: ${alert.detail}`;
+        detail.textContent = `${translateDynamicText(ALERT_SEVERITY_LABELS[alert.severity] || alert.severity)}: ${translateDynamicText(alert.detail, alert.detail)}`;
 
         body.append(title, detail);
         const choice = renderAlertChoice(alert);
@@ -15227,7 +15335,7 @@
     importCharacterButton?.addEventListener("click", () => {
       openCharacterImportModal().catch((error) => {
         console.error(error);
-        showStatus(error?.message || "No se pudo abrir la importacion");
+        showStatus(error?.message || t("import.openFailed"));
       });
     });
     characterImportClose?.addEventListener("click", closeCharacterImportModal);
@@ -15235,7 +15343,7 @@
     characterImportConfirm?.addEventListener("click", () => {
       importCharacterToSelectedSlot().catch((error) => {
         console.error(error);
-        setCharacterImportError(error?.message || "No se pudo importar el character.");
+        setCharacterImportError(error?.message || t("import.importFailed"));
       });
     });
     characterImportBackdrop?.addEventListener("click", (event) => {
@@ -15246,7 +15354,7 @@
       event.preventDefault();
       importCharacterToSelectedSlot().catch((error) => {
         console.error(error);
-        setCharacterImportError(error?.message || "No se pudo importar el character.");
+        setCharacterImportError(error?.message || t("import.importFailed"));
       });
     });
     characterImportCode?.addEventListener("input", () => {
@@ -15259,7 +15367,7 @@
 
     init().catch((error) => {
       console.error(error);
-      loading.textContent = `No se pudo cargar el PDF: ${error?.message || error}`;
+      loading.textContent = t("pdf.loadFailed", { message: error?.message || error });
     });
 
   </script>

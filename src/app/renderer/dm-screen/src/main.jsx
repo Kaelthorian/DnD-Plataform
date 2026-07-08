@@ -1112,7 +1112,7 @@ function openMapImageDatabase() {
       if (!db.objectStoreNames.contains(DM_MAP_IMAGE_STORE_NAME)) db.createObjectStore(DM_MAP_IMAGE_STORE_NAME, { keyPath: "id" });
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error("No se pudo abrir el almacen de mapas."));
+    request.onerror = () => reject(request.error || new Error("Could not open the map store."));
   });
 }
 
@@ -1123,8 +1123,8 @@ async function putMapImageAsset(record) {
     const store = transaction.objectStore(DM_MAP_IMAGE_STORE_NAME);
     const completePromise = new Promise((resolve, reject) => {
       transaction.oncomplete = resolve;
-      transaction.onerror = () => reject(transaction.error || new Error("No se pudo guardar el mapa."));
-      transaction.onabort = () => reject(transaction.error || new Error("No se pudo guardar el mapa."));
+      transaction.onerror = () => reject(transaction.error || new Error("Could not save the map."));
+      transaction.onabort = () => reject(transaction.error || new Error("Could not save the map."));
     });
     await indexedDbRequest(store.put(record));
     await completePromise;
@@ -1227,7 +1227,7 @@ function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error("No se pudo preparar la imagen para compartir."));
+    reader.onerror = () => reject(reader.error || new Error("Could not prepare the image for sharing."));
     reader.readAsDataURL(blob);
   });
 }
@@ -1269,6 +1269,7 @@ async function mapImageShareSnapshot(image) {
 async function mapTokenShareSnapshot(token) {
   const snapshot = mapTokenSnapshot(token);
   if (!snapshot) return null;
+  if (snapshot.hidden) return null;
   if (snapshot.image?.dataUrl) return snapshot;
   if (snapshot.kind !== "monster") return snapshot;
   const request = monsterTokenRequest(snapshot.monster);
@@ -1306,7 +1307,7 @@ async function mapTokenShareSnapshot(token) {
 
 async function mapTokensShareSnapshot(tokens) {
   const list = Array.isArray(tokens) ? tokens : [];
-  return (await Promise.all(list.map(mapTokenShareSnapshot))).filter(Boolean);
+  return (await Promise.all(list.filter((token) => !token?.hidden).map(mapTokenShareSnapshot))).filter(Boolean);
 }
 
 function mapTokenMonsterSnapshot(monster) {
@@ -1474,6 +1475,7 @@ function normalizeMapToken(token) {
     size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140),
     image: normalizeMapTokenImage(token.image),
     groupId: String(token.groupId || ""),
+    hidden: Boolean(token.hidden || token.playerHidden),
     ...normalizeMapTokenCombatFields(token),
     actorNote: normalizeTokenActorNote(token.actorNote, token)
   };
@@ -1539,7 +1541,8 @@ function normalizeMapMarker(marker, index = 0) {
     label: String(source.label || source.name || `Marker ${index + 1}`).slice(0, 80),
     x: Number.isFinite(Number(source.x)) ? Number(source.x) : 0,
     y: Number.isFinite(Number(source.y)) ? Number(source.y) : 0,
-    color: String(source.color || "amber")
+    color: String(source.color || "amber"),
+    hidden: Boolean(source.hidden || source.playerHidden)
   };
 }
 
@@ -1549,6 +1552,10 @@ function mapMarkerSnapshot(marker, index = 0) {
 
 function mapMarkersSnapshot(markers) {
   return Array.isArray(markers) ? markers.map(mapMarkerSnapshot).filter(Boolean) : [];
+}
+
+function mapMarkersShareSnapshot(markers) {
+  return mapMarkersSnapshot(markers).filter((marker) => !marker.hidden);
 }
 
 function normalizeMapGrid(grid) {
@@ -1739,7 +1746,7 @@ function loadImageElement(dataUrl) {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("No se pudo analizar la imagen."));
+    image.onerror = () => reject(new Error("Could not analyze the image."));
     image.src = dataUrl;
   });
 }
@@ -1878,7 +1885,7 @@ async function detectGridFromImageDataUrl(dataUrl) {
   const image = await loadImageElement(dataUrl);
   const naturalWidth = image.naturalWidth || image.width;
   const naturalHeight = image.naturalHeight || image.height;
-  if (!naturalWidth || !naturalHeight) throw new Error("No se pudo leer el tamano de la imagen.");
+  if (!naturalWidth || !naturalHeight) throw new Error("Could not read the image size.");
 
   const maxAnalysisSize = 900;
   const analysisScale = Math.min(1, maxAnalysisSize / Math.max(naturalWidth, naturalHeight));
@@ -1888,7 +1895,7 @@ async function detectGridFromImageDataUrl(dataUrl) {
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) throw new Error("No se pudo preparar el analisis del grid.");
+  if (!context) throw new Error("Could not prepare the grid analysis.");
   context.drawImage(image, 0, 0, width, height);
   const pixels = context.getImageData(0, 0, width, height).data;
   const luminance = new Float32Array(width * height);
@@ -1949,7 +1956,7 @@ function readImageFileAsStoredImage(file, fallbackName = "Imagen pegada") {
     reader.onload = () => {
       const dataUrl = String(reader.result || "");
       if (!dataUrl) {
-        reject(new Error("No se pudo cargar la imagen."));
+        reject(new Error("Could not load the image."));
         return;
       }
       resolve({
@@ -1961,7 +1968,7 @@ function readImageFileAsStoredImage(file, fallbackName = "Imagen pegada") {
         updatedAt: new Date().toISOString()
       });
     };
-    reader.onerror = () => reject(new Error("No se pudo cargar la imagen."));
+    reader.onerror = () => reject(new Error("Could not load the image."));
     reader.readAsDataURL(file);
   });
 }
@@ -2599,7 +2606,7 @@ function base64UrlToBytes(text) {
 }
 
 async function decompressCharacterSheetCodeText(bytes) {
-  if (typeof DecompressionStream !== "function") throw new Error("Esta pantalla no puede descomprimir el codigo.");
+  if (typeof DecompressionStream !== "function") throw new Error("This screen cannot decompress the code.");
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
   return await new Response(stream).text();
 }
@@ -2620,7 +2627,7 @@ async function decodeCharacterSheetCode(code) {
       ? await decompressCharacterSheetCodeText(bytes)
       : new TextDecoder().decode(bytes);
   } catch (_error) {
-    throw new Error("El codigo del personaje esta corrupto o incompleto.");
+    throw new Error("The character code is corrupt or incomplete.");
   }
   return parseCharacterSheetPayload(json);
 }
@@ -2897,10 +2904,10 @@ function parseCharacterSheetPayload(json) {
   try {
     payload = JSON.parse(json);
   } catch (_error) {
-    throw new Error("El codigo del personaje no contiene datos JSON validos.");
+    throw new Error("The character code does not contain valid JSON data.");
   }
   if (payload?.type !== CHARACTER_SHEET_CODE_TYPE || payload?.version !== 1 || !isPlainObject(payload.data)) {
-    throw new Error("El codigo no contiene una planilla compatible.");
+    throw new Error("The code does not contain a compatible sheet.");
   }
   return sanitizeImportedSheetData(payload.data);
 }
@@ -5228,7 +5235,7 @@ function MapNote({
         }
       })
       .catch((error) => {
-        if (!cancelled) setError(error?.message || "No se pudo cargar la imagen del mapa.");
+        if (!cancelled) setError(error?.message || "Could not load the map image.");
       });
     return () => {
       cancelled = true;
@@ -5305,7 +5312,7 @@ function MapNote({
       else onMapImageChange?.(noteActionId, image, activePage.id);
       pendingImageModeRef.current = "replace";
     } catch (error) {
-      setError(error?.message || "No se pudo cargar la imagen.");
+      setError(error?.message || "Could not load the image.");
     }
   }
 
@@ -6201,9 +6208,9 @@ function MapNote({
               return (
                 <div
                   key={marker.id}
-                  className="absolute z-[9] flex -translate-x-1/2 -translate-y-full flex-col items-center"
+                  className={`absolute z-[9] flex -translate-x-1/2 -translate-y-full flex-col items-center ${marker.hidden ? "opacity-50 saturate-50" : ""}`}
                   data-board-control="true"
-                  title={marker.label || "Marker"}
+                  title={`${marker.label || "Marker"}${marker.hidden ? " (hidden)" : ""}`}
                   style={{
                     left: visualPoint.x,
                     top: visualPoint.y
@@ -6243,10 +6250,10 @@ function MapNote({
               return (
                 <button
                   key={token.id}
-                  className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : "border-amber-300"}`}
+                  className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : "border-amber-300"} ${token.hidden ? "border-dashed opacity-50 saturate-50" : ""}`}
                   type="button"
                   data-map-token="true"
-                  title={token.name || token.character?.name || token.monster?.name || "Token"}
+                  title={`${token.name || token.character?.name || token.monster?.name || "Token"}${token.hidden ? " (hidden)" : ""}`}
                   style={{
                     left: visualPoint.x,
                     top: visualPoint.y,
@@ -7272,7 +7279,7 @@ function LivePlayersPanel({
               </div>
               {running && tailscaleAddresses.length && selfTests.tailscale && !selfTests.tailscale.ok ? (
                 <p className="border border-red-500/30 bg-red-950/30 px-2 py-1 text-xs text-red-200">
-                  El host arranco, pero no responde por Tailscale. Revisa Windows Firewall para permitir Planilla DnD / Electron en redes privadas.
+                  The host started, but it is not responding through Tailscale. Check Windows Firewall and allow DnD Character Sheet / Electron on private networks.
                 </p>
               ) : null}
             </section>
@@ -8333,7 +8340,7 @@ function CharacterCodeModal({ isOpen, value, error, onChange, onClose, onSubmit 
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add Character Code</h1>
-              <p className="mt-1 text-sm text-neutral-400">Pega el codigo y presiona Enter para crear la nota.</p>
+              <p className="mt-1 text-sm text-neutral-400">Paste the code and press Enter to create the note.</p>
             </div>
             <button
               className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700"
@@ -8361,7 +8368,7 @@ function CharacterCodeModal({ isOpen, value, error, onChange, onClose, onSubmit 
               event.preventDefault();
               onSubmit();
             }}
-            placeholder="Pega aqui el codigo del character sheet"
+            placeholder="Paste the character sheet code here"
             spellCheck={false}
           />
           {error ? <p className="text-sm text-rose-400">{error}</p> : null}
@@ -8837,7 +8844,7 @@ function DmScreenApp() {
           fogOfWar: mapFogSnapshot(page.fogOfWar),
           grid: mapGridSnapshot(page.mapGrid),
           tokens,
-          markers: mapMarkersSnapshot(page.mapMarkers),
+          markers: mapMarkersShareSnapshot(page.mapMarkers),
           sourceViewport: {
             width: Math.max(1, Number(note.width) || NOTE_DEFAULT_WIDTH),
             height: Math.max(1, (Number(note.height) || NOTE_DEFAULT_HEIGHT) - 88)
@@ -9099,7 +9106,7 @@ function DmScreenApp() {
       tokenEnabled: liveHostTokenEnabled
     });
     if (!result?.ok) {
-      setLiveHostError(result?.error || "No se pudo iniciar el host local.");
+      setLiveHostError(result?.error || "Could not start the local host.");
       if (result?.status) setLiveServerStatus(result.status);
       return;
     }
@@ -9185,7 +9192,7 @@ function DmScreenApp() {
         setNpcTokenLibrary(list);
         setSelectedNpcToken(list[0] || null);
       } catch (error) {
-        setNpcTokenPickerError(error?.message || "No se pudo cargar la lista de tokens.");
+        setNpcTokenPickerError(error?.message || "Could not load the token list.");
       } finally {
         setNpcTokenPickerLoading(false);
       }
@@ -9338,7 +9345,7 @@ function DmScreenApp() {
     try {
       const image = await window.dndSheet?.getTokenLibraryImage?.(tokenEntry.id);
       if (!image?.dataUrl) {
-        setNpcTokenPickerError("No se pudo cargar la imagen del token.");
+        setNpcTokenPickerError("Could not load the token image.");
         return;
       }
       const monster = genericNpcMonster(tokenEntry.name || "NPC");
@@ -9370,7 +9377,7 @@ function DmScreenApp() {
       setPendingMapTokenTarget(null);
       setIsNpcTokenPickerOpen(false);
     } catch (error) {
-      setNpcTokenPickerError(error?.message || "No se pudo crear el token NPC.");
+      setNpcTokenPickerError(error?.message || "Could not create the NPC token.");
     }
   }
 
@@ -9733,7 +9740,7 @@ function DmScreenApp() {
   async function addCharacterNoteFromCode() {
     const code = characterCodeValue.trim();
     if (!code) {
-      setCharacterCodeError("Pega un codigo antes de continuar.");
+      setCharacterCodeError("Paste a code before continuing.");
       return;
     }
     const spawnPoint = characterCodeSpawnPoint;
@@ -9749,7 +9756,7 @@ function DmScreenApp() {
       closeCharacterCodeModal();
     } catch (error) {
       console.error(error);
-      setCharacterCodeError(error?.message || "No se pudo leer el codigo del personaje.");
+      setCharacterCodeError(error?.message || "Could not read the character code.");
     }
   }
 
@@ -10721,6 +10728,23 @@ function DmScreenApp() {
     )));
   }
 
+  function toggleMapTokenHiddenFromMenu() {
+    const entry = findMapTokenContextEntry();
+    if (!entry) return;
+    const nextHidden = !Boolean(entry.token.hidden);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapTokens: (page.mapTokens || []).map((token) => (
+            token.id === entry.token.id ? { ...token, hidden: nextHidden } : token
+          ))
+        }))
+        : note
+    )));
+    setTokenContextMenu(null);
+  }
+
   function noteLinkedToMapToken(note, link) {
     const current = normalizeLinkedMapTokenLink(note?.linkedMapToken);
     return Boolean(current && link
@@ -10947,6 +10971,42 @@ function DmScreenApp() {
       linkedMapToken: link
     }, spawnPoint);
     setTokenContextMenu(null);
+  }
+
+  function renameMapMarkerFromMenu() {
+    const entry = findMapMarkerContextEntry();
+    if (!entry) return;
+    const currentLabel = entry.marker.label || "Marker";
+    setMarkerContextMenu((menu) => (
+      menu?.markerId === entry.marker.id
+        ? { ...menu, renaming: true, draft: currentLabel }
+        : menu
+    ));
+  }
+
+  function commitMapMarkerRenameFromMenu(event) {
+    event?.preventDefault?.();
+    const entry = findMapMarkerContextEntry();
+    if (!entry) return;
+    renameMapMarker(entry.mapNote.id, entry.page.id, entry.marker.id, markerContextMenu?.draft || "");
+    setMarkerContextMenu(null);
+  }
+
+  function toggleMapMarkerHiddenFromMenu() {
+    const entry = findMapMarkerContextEntry();
+    if (!entry) return;
+    const nextHidden = !Boolean(entry.marker.hidden);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id ? { ...marker, hidden: nextHidden } : marker
+          ))
+        }))
+        : note
+    )));
+    setMarkerContextMenu(null);
   }
 
   function removeMapTokenFromMenu() {
@@ -12216,8 +12276,55 @@ function DmScreenApp() {
             <p className="truncate font-serif text-base font-bold uppercase text-amber-500">
               {activeMarkerContext.marker.label || "Marker"}
             </p>
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">Map marker</p>
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">{activeMarkerContext.marker.hidden ? "Map marker - hidden" : "Map marker"}</p>
           </div>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
+            onClick={renameMapMarkerFromMenu}
+          >
+            <span>Cambiar nombre</span>
+            <span className="text-neutral-500">Aa</span>
+          </button>
+          {markerContextMenu.renaming ? (
+            <form className="grid gap-2 border-b border-neutral-800 p-2" onSubmit={commitMapMarkerRenameFromMenu}>
+              <input
+                className="h-8 border border-amber-500 bg-neutral-950 px-2 text-sm font-bold text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                value={markerContextMenu.draft || ""}
+                autoFocus
+                onChange={(event) => setMarkerContextMenu((menu) => (menu ? { ...menu, draft: event.target.value } : menu))}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setMarkerContextMenu((menu) => (menu ? { ...menu, renaming: false, draft: "" } : menu));
+                  }
+                }}
+              />
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  className="border border-amber-500 bg-amber-500 px-2 py-1 text-xs font-bold uppercase text-neutral-950 hover:bg-amber-400"
+                  type="submit"
+                >
+                  Guardar
+                </button>
+                <button
+                  className="border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-bold uppercase text-neutral-200 hover:bg-neutral-800"
+                  type="button"
+                  onClick={() => setMarkerContextMenu((menu) => (menu ? { ...menu, renaming: false, draft: "" } : menu))}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ) : null}
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
+            onClick={toggleMapMarkerHiddenFromMenu}
+          >
+            <span>Hide</span>
+            <span className="text-neutral-500">{activeMarkerContext.marker.hidden ? "ON" : "OFF"}</span>
+          </button>
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-red-300 hover:bg-red-950/40 focus:bg-red-950/40 focus:outline-none"
             type="button"
@@ -12240,7 +12347,7 @@ function DmScreenApp() {
             <p className="truncate font-serif text-base font-bold uppercase text-amber-500">
               {activeTokenContext.token.name || activeTokenContext.token.character?.name || activeTokenContext.token.monster?.name || "Token"}
             </p>
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">{activeTokenContext.token.kind === "character" ? "Player token" : "Monster token"}</p>
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">{`${activeTokenContext.token.kind === "character" ? "Player token" : "Monster token"}${activeTokenContext.token.hidden ? " - hidden" : ""}`}</p>
           </div>
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
@@ -12249,6 +12356,14 @@ function DmScreenApp() {
           >
             <span>Multiplicar</span>
             <span className="text-neutral-500">x2</span>
+          </button>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
+            onClick={toggleMapTokenHiddenFromMenu}
+          >
+            <span>Hide</span>
+            <span className="text-neutral-500">{activeTokenContext.token.hidden ? "ON" : "OFF"}</span>
           </button>
           <div className="grid grid-cols-2 gap-1 border-y border-neutral-800 p-1">
             <button

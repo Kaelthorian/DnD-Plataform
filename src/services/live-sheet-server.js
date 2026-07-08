@@ -10,6 +10,7 @@ const MAX_ROLL_TEXT_LENGTH = 600;
 const MAX_VVT_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_VVT_FOG_POINTS = 1200;
 const MAX_VVT_TOKENS = 200;
+const MAX_VVT_MARKERS = 200;
 const MAX_VVT_PING_AGE_MS = 5000;
 
 function isPlainObject(value) {
@@ -195,6 +196,7 @@ function sanitizeVvtTokenImageRequest(token) {
 
 function sanitizeVvtToken(token) {
   if (!isPlainObject(token)) return null;
+  if (token.hidden || token.playerHidden) return null;
   const id = sanitizeText(token.id, 120) || crypto.randomUUID?.() || `token-${Date.now()}`;
   const name = sanitizeText(token.name || token.character?.name || token.monster?.name, 120);
   if (!name) return null;
@@ -215,6 +217,18 @@ function sanitizeVvtToken(token) {
       dataUrl: sanitizeDataUrl(token.image?.dataUrl)
     },
     imageRequest: sanitizeVvtTokenImageRequest(token)
+  };
+}
+
+function sanitizeVvtMarker(marker, index = 0) {
+  if (!isPlainObject(marker)) return null;
+  if (marker.hidden || marker.playerHidden) return null;
+  return {
+    id: sanitizeText(marker.id, 120) || crypto.randomUUID?.() || `marker-${Date.now()}-${index}`,
+    label: sanitizeText(marker.label || marker.name || `Marker ${index + 1}`, 120) || `Marker ${index + 1}`,
+    x: clampNumber(marker.x, 0, 20000, 0),
+    y: clampNumber(marker.y, 0, 20000, 0),
+    color: sanitizeText(marker.color, 40) || "amber"
   };
 }
 
@@ -256,6 +270,9 @@ function sanitizeVvtState(payload) {
     grid: sanitizeVvtGrid(payload.grid),
     tokens: Array.isArray(payload.tokens)
       ? payload.tokens.slice(0, MAX_VVT_TOKENS).map(sanitizeVvtToken).filter(Boolean)
+      : [],
+    markers: Array.isArray(payload.markers)
+      ? payload.markers.slice(0, MAX_VVT_MARKERS).map(sanitizeVvtMarker).filter(Boolean)
       : [],
     sourceViewport: sanitizeVvtViewport(payload.sourceViewport),
     updatedAt: sanitizeText(payload.updatedAt, 80) || new Date().toISOString()
