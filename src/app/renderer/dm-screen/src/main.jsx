@@ -1,10 +1,6 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
-import bestiary from "../../../../data/bestiary/bestiary-sublist-data.json";
-import spells from "../../../../data/spells/spells.json";
-import itemsData from "../../../../../vendor/5etools-src-main/data/items.json";
-import baseItemsData from "../../../../../vendor/5etools-src-main/data/items-base.json";
 
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 const SIZE_LABELS = {
@@ -68,10 +64,13 @@ const XP_BY_CR = {
   "29": 135000,
   "30": 155000
 };
-const ITEM_LIBRARY = [...(itemsData.item || []), ...(baseItemsData.baseitem || [])];
-const ITEM_PROPERTY_LOOKUP = new Map((baseItemsData.itemProperty || []).map((property) => [`${property.abbreviation}|${property.source}`, property]));
-const ITEM_TYPE_LOOKUP = new Map((baseItemsData.itemType || []).map((type) => [`${type.abbreviation}|${type.source}`, type]));
-const ITEM_MASTERY_LOOKUP = new Map((baseItemsData.itemMastery || []).map((mastery) => [`${mastery.name}|${mastery.source}`, mastery]));
+let bestiary = [];
+let spells = [];
+let ITEM_LIBRARY = [];
+let ITEM_PROPERTY_LOOKUP = new Map();
+let ITEM_TYPE_LOOKUP = new Map();
+let ITEM_MASTERY_LOOKUP = new Map();
+let dmScreenLibrariesPromise = null;
 const DAMAGE_TYPE_LABELS = {
   A: "Acid",
   B: "Bludgeoning",
@@ -125,6 +124,7 @@ const DM_BOARD_STORAGE_KEY = "dnd-dm-screen-board-v1";
 const DM_LIVE_PLAYERS_PANEL_STORAGE_KEY = "dnd-dm-screen-live-players-panel-v1";
 const DM_MAP_IMAGE_DB_NAME = "dnd-dm-screen-map-images-v1";
 const DM_MAP_IMAGE_STORE_NAME = "map-images";
+const DM_BOARD_SAVE_DEBOUNCE_MS = 700;
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
 const MAP_MARKER_SIZE = 28;
@@ -151,6 +151,8 @@ const DEFAULT_MAP_FOG = {
   brushShape: "circle",
   revealed: []
 };
+const mapImageShareSnapshotCache = new Map();
+const mapTokenShareImageCache = new Map();
 const MAP_FOG_BRUSH_SHAPES = new Set(["circle", "square"]);
 const MAP_MARKER_FORM_TYPES = new Set(["cone", "square", "circle"]);
 const MAP_MARKER_FORM_LABELS = {
@@ -1293,38 +1295,63 @@ function blobToDataUrl(blob) {
   });
 }
 
+function mapImageShareCacheKey(snapshot) {
+  if (!snapshot) return "";
+  return [
+    snapshot.assetId || snapshot.id || "inline",
+    snapshot.updatedAt || "",
+    snapshot.size || 0,
+    snapshot.dataUrl ? snapshot.dataUrl.length : 0
+  ].join("|");
+}
+
 async function mapImageShareSnapshot(image) {
   const snapshot = mapImageRuntimeSnapshot(image);
   if (!snapshot) return null;
+  const cacheKey = mapImageShareCacheKey(snapshot);
+  if (cacheKey && mapImageShareSnapshotCache.has(cacheKey)) return mapImageShareSnapshotCache.get(cacheKey);
+  let sharedImage = null;
   if (snapshot.dataUrl) {
-    return {
+    sharedImage = {
       name: snapshot.name,
       type: snapshot.type,
       dataUrl: snapshot.dataUrl
     };
+    if (cacheKey) mapImageShareSnapshotCache.set(cacheKey, sharedImage);
+    return sharedImage;
   }
   if (snapshot.assetId) {
     const record = await getMapImageAsset(snapshot.assetId);
     if (record?.blob) {
-      return {
+      sharedImage = {
         name: snapshot.name || record.name,
         type: snapshot.type || record.type || record.blob.type || "",
         dataUrl: await blobToDataUrl(record.blob)
       };
+      if (cacheKey) mapImageShareSnapshotCache.set(cacheKey, sharedImage);
+      return sharedImage;
     }
   }
   if (snapshot.objectUrl) {
     const response = await fetch(snapshot.objectUrl);
     const blob = await response.blob();
-    return {
+    sharedImage = {
       name: snapshot.name,
       type: snapshot.type || blob.type || "",
       dataUrl: await blobToDataUrl(blob)
     };
+    if (cacheKey) mapImageShareSnapshotCache.set(cacheKey, sharedImage);
+    return sharedImage;
   }
   const hydrated = await hydrateMapImage(snapshot);
   if (hydrated?.dataUrl || hydrated?.objectUrl) return mapImageShareSnapshot(hydrated);
   return null;
+}
+
+function monsterTokenShareImageCacheKey(request) {
+  const sources = Array.isArray(request?.sources) ? request.sources.join("|") : "";
+  const names = Array.isArray(request?.names) ? request.names.join("|") : "";
+  return `${sources}::${names}`;
 }
 
 async function mapTokenShareSnapshot(token) {
@@ -1332,36 +1359,48 @@ async function mapTokenShareSnapshot(token) {
   if (!snapshot) return null;
   if (snapshot.hidden) return null;
   if (snapshot.image?.dataUrl) return snapshot;
+  const customMonsterImage = snapshot.kind === "monster" ? normalizeMapTokenImage(snapshot.monsterCustom?.tokenImage || snapshot.monster?.tokenImage) : null;
+  if (customMonsterImage) return { ...snapshot, image: customMonsterImage };
   if (snapshot.kind !== "monster") return snapshot;
   const request = monsterTokenRequest(snapshot.monster);
+  const cacheKey = monsterTokenShareImageCacheKey(request);
+  if (cacheKey && mapTokenShareImageCache.has(cacheKey)) {
+    const cachedImage = mapTokenShareImageCache.get(cacheKey);
+    return cachedImage ? { ...snapshot, image: cachedImage } : snapshot;
+  }
   try {
     const dataImage = await window.dndSheet?.getMonsterTokenDataUrl?.(request);
     if (dataImage?.dataUrl) {
-      return {
-        ...snapshot,
-        image: {
-          name: dataImage.name || `${snapshot.name || "Token"}.png`,
-          type: dataImage.type || "image/png",
-          dataUrl: dataImage.dataUrl
-        }
+      const image = {
+        name: dataImage.name || `${snapshot.name || "Token"}.png`,
+        type: dataImage.type || "image/png",
+        dataUrl: dataImage.dataUrl
       };
+      if (cacheKey) mapTokenShareImageCache.set(cacheKey, image);
+      return { ...snapshot, image };
     }
     const api = window.dndSheet?.getMonsterTokenUrl;
-    if (!api) return snapshot;
+    if (!api) {
+      if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
+      return snapshot;
+    }
     const tokenUrl = await api(request);
-    if (!tokenUrl) return snapshot;
+    if (!tokenUrl) {
+      if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
+      return snapshot;
+    }
     const response = await fetch(tokenUrl);
     const blob = await response.blob();
-    return {
-      ...snapshot,
-      image: {
-        name: `${snapshot.name || "Token"}.png`,
-        type: blob.type || "image/png",
-        dataUrl: await blobToDataUrl(blob)
-      }
+    const image = {
+      name: `${snapshot.name || "Token"}.png`,
+      type: blob.type || "image/png",
+      dataUrl: await blobToDataUrl(blob)
     };
+    if (cacheKey) mapTokenShareImageCache.set(cacheKey, image);
+    return { ...snapshot, image };
   } catch (error) {
     console.error(error);
+    if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
     return snapshot;
   }
 }
@@ -1433,6 +1472,15 @@ function normalizeMapTokenImage(image) {
   };
 }
 
+function monsterWithTokenImage(monster, image) {
+  const tokenImage = normalizeMapTokenImage(image);
+  if (!monster || !tokenImage) return monster;
+  return {
+    ...monster,
+    tokenImage
+  };
+}
+
 function normalizeLinkedMapTokenLink(link) {
   if (!link?.mapNoteId || !link?.pageId || !link?.tokenId) return null;
   return {
@@ -1448,10 +1496,14 @@ function normalizeTokenActorNote(actorNote, token = {}) {
   const character = kind === "character"
     ? mapTokenCharacterSnapshot(actorNote.character || token.character)
     : null;
-  const monsterCustom = kind === "monster" && actorNote.monsterCustom ? cloneForBoardState(actorNote.monsterCustom) : null;
-  const monster = kind === "monster"
+  let monsterCustom = kind === "monster" && actorNote.monsterCustom ? cloneForBoardState(actorNote.monsterCustom) : null;
+  let monster = kind === "monster"
     ? (monsterCustom || cloneForBoardState(actorNote.monster) || findLibraryEntryByRef("monster", actorNote.monsterRef || token.monster))
     : null;
+  if (kind === "monster" && !monster?.tokenImage?.dataUrl && token?.image?.dataUrl) {
+    monster = monsterWithTokenImage(monster, token.image);
+    if (monsterCustom) monsterCustom = monster;
+  }
   if (kind === "character" && !character) return null;
   if (kind === "monster" && !monster) return null;
   const hpFallback = kind === "character"
@@ -1489,12 +1541,13 @@ function tokenActorNoteFromToken(token) {
       hpMax: token.hpMax
     }, token);
   }
-  const monster = token?.monsterCustom ? cloneForBoardState(token.monsterCustom) : findLibraryEntryByRef("monster", token?.monster);
+  const monsterCustom = token?.monsterCustom ? monsterWithTokenImage(cloneForBoardState(token.monsterCustom), token?.image) : null;
+  const monster = monsterCustom || monsterWithTokenImage(findLibraryEntryByRef("monster", token?.monster), token?.image);
   if (!monster) return null;
   return normalizeTokenActorNote({
     kind: "monster",
     monster,
-    monsterCustom: token.monsterCustom ? cloneForBoardState(token.monsterCustom) : null,
+    monsterCustom,
     hpCurrent: token.hpCurrent,
     hpMax: token.hpMax
   }, token);
@@ -2384,6 +2437,27 @@ function saveDmBoardState(notes, view) {
   }
 }
 
+async function hydrateStoredMapImagesInNotes(notes) {
+  const list = Array.isArray(notes) ? notes : [];
+  let changed = false;
+  const migratedNotes = await Promise.all(list.map(async (note) => {
+    if (note?.kind !== "map") return note;
+    const pages = await Promise.all(mapPagesForNote(note).map(async (page) => {
+      const image = page.mapImage;
+      if (!image?.dataUrl || image.assetId) return page;
+      const hydratedImage = await hydrateMapImage(image);
+      if (!hydratedImage || hydratedImage === image || hydratedImage.dataUrl === image.dataUrl) return page;
+      changed = true;
+      return {
+        ...page,
+        mapImage: hydratedImage
+      };
+    }));
+    return changed ? syncMapNoteActivePage(note, pages, note.activeMapPageId) : note;
+  }));
+  return changed ? migratedNotes : list;
+}
+
 function loadLivePlayersPanelCollapsed() {
   if (typeof localStorage === "undefined") return false;
   try {
@@ -2999,9 +3073,35 @@ function monsterSearchText(monster) {
     .join(" ");
 }
 
-const MONSTER_SEARCH_INDEX = buildMonsterSearchIndex(bestiary);
-const SPELL_SEARCH_INDEX = buildLibrarySearchIndex(spells, "spell");
-const ITEM_SEARCH_INDEX = buildLibrarySearchIndex(ITEM_LIBRARY, "item");
+let MONSTER_SEARCH_INDEX = [];
+let SPELL_SEARCH_INDEX = [];
+let ITEM_SEARCH_INDEX = [];
+
+async function loadDmScreenLibraries() {
+  if (dmScreenLibrariesPromise) return dmScreenLibrariesPromise;
+  dmScreenLibrariesPromise = Promise.all([
+    import("../../../../data/bestiary/bestiary-sublist-data.json"),
+    import("../../../../data/spells/spells.json"),
+    import("../../../../../vendor/5etools-src-main/data/items.json"),
+    import("../../../../../vendor/5etools-src-main/data/items-base.json")
+  ]).then(([bestiaryModule, spellsModule, itemsModule, baseItemsModule]) => {
+    const loadedBestiary = bestiaryModule.default || bestiaryModule;
+    const loadedSpells = spellsModule.default || spellsModule;
+    const loadedItemsData = itemsModule.default || itemsModule;
+    const loadedBaseItemsData = baseItemsModule.default || baseItemsModule;
+    bestiary = Array.isArray(loadedBestiary) ? loadedBestiary : [];
+    spells = Array.isArray(loadedSpells) ? loadedSpells : [];
+    ITEM_LIBRARY = [...(loadedItemsData.item || []), ...(loadedBaseItemsData.baseitem || [])];
+    ITEM_PROPERTY_LOOKUP = new Map((loadedBaseItemsData.itemProperty || []).map((property) => [`${property.abbreviation}|${property.source}`, property]));
+    ITEM_TYPE_LOOKUP = new Map((loadedBaseItemsData.itemType || []).map((type) => [`${type.abbreviation}|${type.source}`, type]));
+    ITEM_MASTERY_LOOKUP = new Map((loadedBaseItemsData.itemMastery || []).map((mastery) => [`${mastery.name}|${mastery.source}`, mastery]));
+    MONSTER_SEARCH_INDEX = buildMonsterSearchIndex(bestiary);
+    SPELL_SEARCH_INDEX = buildLibrarySearchIndex(spells, "spell");
+    ITEM_SEARCH_INDEX = buildLibrarySearchIndex(ITEM_LIBRARY, "item");
+    return { bestiary, spells, items: ITEM_LIBRARY };
+  });
+  return dmScreenLibrariesPromise;
+}
 
 function cloneJsonCompatibleValue(value, depth = 0) {
   if (depth > 12) return undefined;
@@ -3612,6 +3712,8 @@ function MonsterTextSection({ title, items, onRoll, interactive = false, onEdit 
 }
 
 function MonsterTokenImage({ monster, className = "" }) {
+  const customImage = normalizeMapTokenImage(monster?.tokenImage);
+  const customSrc = customImage?.dataUrl || "";
   const urls = useMemo(() => monsterTokenUrls(monster), [monster]);
   const request = useMemo(() => monsterTokenRequest(monster), [monster]);
   const [resolvedUrl, setResolvedUrl] = useState("");
@@ -3621,6 +3723,7 @@ function MonsterTokenImage({ monster, className = "" }) {
     let disposed = false;
     setResolvedUrl("");
     setUrlIndex(0);
+    if (customSrc) return undefined;
     const api = window.dndSheet?.getMonsterTokenUrl;
     if (!api) return undefined;
     api(request)
@@ -3634,11 +3737,11 @@ function MonsterTokenImage({ monster, className = "" }) {
     return () => {
       disposed = true;
     };
-  }, [monster?.name, monster?.source]);
+  }, [customSrc, monster?.name, monster?.source]);
 
-  if (!urls.length) return null;
+  if (!customSrc && !urls.length) return null;
 
-  const src = resolvedUrl || urls[Math.min(urlIndex, urls.length - 1)];
+  const src = customSrc || resolvedUrl || urls[Math.min(urlIndex, urls.length - 1)];
   return (
     <div className={`relative shrink-0 overflow-hidden rounded-full border-2 border-amber-500/80 bg-neutral-950 shadow-inner ${className}`}>
       {src ? (
@@ -3648,6 +3751,7 @@ function MonsterTokenImage({ monster, className = "" }) {
           alt={`${monster?.name || "Monster"} token`}
           draggable={false}
           onError={() => {
+            if (customSrc) return;
             if (resolvedUrl) {
               setResolvedUrl("");
               return;
@@ -3700,10 +3804,27 @@ function MapTokenImage({ token, className = "" }) {
     );
   }
   if (token?.kind === "character") return <CharacterTokenImage character={token.character} className={className} />;
-  return <MonsterTokenImage monster={token?.monster} className={className} />;
+  return <MonsterTokenImage monster={token?.monsterCustom || token?.monster} className={className} />;
 }
 
-function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null, onMonsterEdit = null }) {
+function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null, onMonsterEdit = null, onMonsterTokenImageChange = null }) {
+  async function handleTokenImageChange(event) {
+    const input = event.currentTarget;
+    const file = Array.from(input.files || []).find((entry) => String(entry.type || "").startsWith("image/"));
+    if (!file || !onMonsterTokenImageChange) return;
+    try {
+      const image = await readImageFileAsStoredImage(file, `${monster?.name || "Monster"} token`);
+      onMonsterTokenImageChange(storedImageSnapshot({
+        ...image,
+        name: file.name || `${monster?.name || "Monster"} token`
+      }));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      input.value = "";
+    }
+  }
+
   return (
     <header
       className={`flex items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2 ${onDragStart ? "cursor-move" : ""}`}
@@ -3732,7 +3853,40 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
             </span>
           ) : null}
         </div>
-        <MonsterTokenImage monster={monster} className="h-20 w-20" />
+        <div
+          className="group relative h-20 w-20 shrink-0"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <MonsterTokenImage monster={monster} className="h-20 w-20" />
+          {onMonsterTokenImageChange ? (
+            <label
+              className="absolute inset-x-1 bottom-1 cursor-pointer rounded-sm border border-amber-300/70 bg-neutral-950/90 px-1 py-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-amber-100 opacity-0 shadow transition hover:bg-amber-950 focus-within:opacity-100 group-hover:opacity-100"
+              title="Cambiar icono del token"
+              onClick={(event) => event.stopPropagation()}
+            >
+              Cambiar
+              <input
+                className="sr-only"
+                type="file"
+                accept="image/*"
+                onChange={handleTokenImageChange}
+              />
+            </label>
+          ) : null}
+          {onMonsterTokenImageChange && monster?.tokenImage?.dataUrl ? (
+            <button
+              className="absolute -right-1 -top-1 h-5 w-5 rounded-full border border-neutral-600 bg-neutral-950 text-[10px] font-bold text-neutral-200 shadow hover:bg-red-950 hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-400"
+              type="button"
+              title="Restaurar token automatico"
+              onClick={(event) => {
+                event.stopPropagation();
+                onMonsterTokenImageChange(null);
+              }}
+            >
+              X
+            </button>
+          ) : null}
+        </div>
         <div className="flex gap-1">
           {onMinimize ? (
             <button
@@ -4256,6 +4410,7 @@ function MonsterNote({
         title={noteDisplayName(note)}
         onRename={(value) => onRename?.(noteActionId, value)}
         onMonsterEdit={(path, value) => onMonsterEdit?.(noteActionId, path, value)}
+        onMonsterTokenImageChange={(image) => onMonsterEdit?.(noteActionId, ["tokenImage"], image)}
         onDragStart={(event) => onDragStart(event, frameNoteId)}
         onMinimize={() => onMinimize(frameNoteId)}
         onDuplicate={() => onDuplicate(noteActionId)}
@@ -8908,7 +9063,9 @@ function DetailList({ title, items }) {
 }
 
 function DmScreenApp() {
-  const [persistedBoardState] = useState(loadDmBoardState);
+  const [librariesReady, setLibrariesReady] = useState(false);
+  const [librariesError, setLibrariesError] = useState("");
+  const [librariesRevision, setLibrariesRevision] = useState(0);
   const [isReturning, setIsReturning] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -8916,7 +9073,7 @@ function DmScreenApp() {
   const [crFilter, setCrFilter] = useState("all");
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
-  const [selectedMonster, setSelectedMonster] = useState(bestiary[0] || null);
+  const [selectedMonster, setSelectedMonster] = useState(null);
   const [previewRolls, setPreviewRolls] = useState([]);
   const [previewDicePanelOpen, setPreviewDicePanelOpen] = useState(false);
   const [freeDiceOpen, setFreeDiceOpen] = useState(false);
@@ -8931,8 +9088,8 @@ function DmScreenApp() {
   const [resourceSearchQuery, setResourceSearchQuery] = useState("");
   const [resourceSortField, setResourceSortField] = useState("name");
   const [resourceSortDirection, setResourceSortDirection] = useState("asc");
-  const [selectedSpell, setSelectedSpell] = useState(spells[0] || null);
-  const [selectedItem, setSelectedItem] = useState(ITEM_LIBRARY[0] || null);
+  const [selectedSpell, setSelectedSpell] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [isObsidianPickerOpen, setIsObsidianPickerOpen] = useState(false);
   const [obsidianVault, setObsidianVault] = useState(null);
   const [obsidianNotes, setObsidianNotes] = useState([]);
@@ -8941,7 +9098,7 @@ function DmScreenApp() {
   const [obsidianPickerLoading, setObsidianPickerLoading] = useState(false);
   const [obsidianPickerError, setObsidianPickerError] = useState("");
   const [obsidianSpawnPoint, setObsidianSpawnPoint] = useState(null);
-  const [monsterNotes, setMonsterNotes] = useState(persistedBoardState.notes);
+  const [monsterNotes, setMonsterNotes] = useState([]);
   const [isCharacterCodeModalOpen, setIsCharacterCodeModalOpen] = useState(false);
   const [characterCodeValue, setCharacterCodeValue] = useState("");
   const [characterCodeError, setCharacterCodeError] = useState("");
@@ -8972,7 +9129,7 @@ function DmScreenApp() {
   const [selectedRootNoteIds, setSelectedRootNoteIds] = useState([]);
   const [selectedMapTokens, setSelectedMapTokens] = useState({ mapNoteId: "", pageId: "", tokenIds: [] });
   const [selectionBox, setSelectionBox] = useState(null);
-  const [boardView, setBoardView] = useState(persistedBoardState.view);
+  const [boardView, setBoardView] = useState(defaultBoardState().view);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const deferredResourceSearchQuery = useDeferredValue(resourceSearchQuery);
   const deferredObsidianSearchQuery = useDeferredValue(obsidianSearchQuery);
@@ -8988,18 +9145,45 @@ function DmScreenApp() {
   const boardViewRef = useRef(boardView);
   const handleBoardWheelRef = useRef(null);
   const monsterNotesRef = useRef(monsterNotes);
+  const librariesReadyRef = useRef(librariesReady);
+  const pendingBoardSaveRef = useRef({ notes: monsterNotes, view: boardView });
+  const boardSaveTimerRef = useRef(null);
   const selectedMapTokensRef = useRef(selectedMapTokens);
   const focusedRootNoteIdRef = useRef(null);
   const suppressRestoreClickRef = useRef(null);
-  const zRef = useRef(Math.max(20, ...persistedBoardState.notes.map((note) => Number(note.z) || 0)));
+  const zRef = useRef(20);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadDmScreenLibraries()
+      .then(() => {
+        if (cancelled) return;
+        const persistedBoardState = loadDmBoardState();
+        setMonsterNotes(persistedBoardState.notes);
+        setBoardView(persistedBoardState.view);
+        zRef.current = Math.max(20, ...persistedBoardState.notes.map((note) => Number(note.z) || 0));
+        setSelectedMonster(bestiary[0] || null);
+        setSelectedSpell(spells[0] || null);
+        setSelectedItem(ITEM_LIBRARY[0] || null);
+        setLibrariesRevision((revision) => revision + 1);
+        setLibrariesReady(true);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) setLibrariesError(error?.message || "Could not load DM libraries.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const editionOptions = useMemo(() => (
     [...new Set(bestiary.map(monsterEdition))].sort(compareText)
-  ), []);
+  ), [librariesRevision]);
 
   const crOptions = useMemo(() => (
     [...new Set(bestiary.map(formatCr))].sort((left, right) => crSortValue(left) - crSortValue(right) || compareText(left, right))
-  ), []);
+  ), [librariesRevision]);
 
   const filteredMonsters = useMemo(() => {
     const query = normalizeSearch(deferredSearchQuery);
@@ -9010,7 +9194,7 @@ function DmScreenApp() {
       sortField,
       sortDirection
     }).map(({ monster }) => monster);
-  }, [crFilter, deferredSearchQuery, editionFilter, sortDirection, sortField]);
+  }, [crFilter, deferredSearchQuery, editionFilter, librariesRevision, sortDirection, sortField]);
 
   const filteredResources = useMemo(() => {
     const kind = resourcePickerKind || "spell";
@@ -9021,7 +9205,7 @@ function DmScreenApp() {
       sortField: resourceSortField,
       sortDirection: resourceSortDirection
     }).map(({ entry }) => entry);
-  }, [deferredResourceSearchQuery, resourcePickerKind, resourceSortDirection, resourceSortField]);
+  }, [deferredResourceSearchQuery, librariesRevision, resourcePickerKind, resourceSortDirection, resourceSortField]);
 
   const filteredObsidianNotes = useMemo(() => {
     const query = normalizeSearch(deferredObsidianSearchQuery);
@@ -9047,24 +9231,28 @@ function DmScreenApp() {
   }, [npcTokenLibrary, npcTokenSearchQuery]);
 
   useEffect(() => {
-    if (!isPickerOpen) return;
+    if (!librariesReady || !isPickerOpen) return;
     if (selectedMonster && filteredMonsters.includes(selectedMonster)) return;
     selectPickerMonster(filteredMonsters[0] || null);
-  }, [filteredMonsters, isPickerOpen, selectedMonster]);
+  }, [filteredMonsters, isPickerOpen, librariesReady, selectedMonster]);
 
   useEffect(() => {
-    if (!resourcePickerKind) return;
+    if (!librariesReady || !resourcePickerKind) return;
     const selected = resourcePickerKind === "spell" ? selectedSpell : selectedItem;
     if (selected && filteredResources.includes(selected)) return;
     if (resourcePickerKind === "spell") setSelectedSpell(filteredResources[0] || null);
     else setSelectedItem(filteredResources[0] || null);
-  }, [filteredResources, resourcePickerKind, selectedItem, selectedSpell]);
+  }, [filteredResources, librariesReady, resourcePickerKind, selectedItem, selectedSpell]);
 
   useEffect(() => {
     if (!isNpcTokenPickerOpen) return;
     if (selectedNpcToken && filteredNpcTokens.some((token) => token.id === selectedNpcToken.id)) return;
     setSelectedNpcToken(filteredNpcTokens[0] || null);
   }, [filteredNpcTokens, isNpcTokenPickerOpen, selectedNpcToken]);
+
+  useEffect(() => {
+    librariesReadyRef.current = librariesReady;
+  }, [librariesReady]);
 
   useEffect(() => {
     boardViewRef.current = boardView;
@@ -9122,9 +9310,56 @@ function DmScreenApp() {
   }, [monsterNotes, sharedVvtMap]);
   const selectedRootNoteIdSet = useMemo(() => new Set(selectedRootNoteIds), [selectedRootNoteIds]);
 
+  function flushBoardStateSave() {
+    if (!librariesReadyRef.current) return;
+    if (boardSaveTimerRef.current) {
+      window.clearTimeout(boardSaveTimerRef.current);
+      boardSaveTimerRef.current = null;
+    }
+    const pending = pendingBoardSaveRef.current;
+    saveDmBoardState(pending.notes, pending.view);
+  }
+
   useEffect(() => {
-    saveDmBoardState(monsterNotes, boardView);
-  }, [boardView, monsterNotes]);
+    if (!librariesReady) return undefined;
+    let cancelled = false;
+    const sourceNotes = monsterNotesRef.current;
+    hydrateStoredMapImagesInNotes(sourceNotes)
+      .then((migratedNotes) => {
+        if (cancelled || migratedNotes === sourceNotes) return;
+        setMonsterNotes((currentNotes) => currentNotes === sourceNotes ? migratedNotes : currentNotes);
+      })
+      .catch((error) => console.error("Could not migrate stored DM map images", error));
+    return () => {
+      cancelled = true;
+    };
+  }, [librariesReady]);
+
+  useEffect(() => {
+    if (!librariesReady) return undefined;
+    pendingBoardSaveRef.current = { notes: monsterNotes, view: boardView };
+    if (boardSaveTimerRef.current) window.clearTimeout(boardSaveTimerRef.current);
+    boardSaveTimerRef.current = window.setTimeout(() => {
+      boardSaveTimerRef.current = null;
+      const pending = pendingBoardSaveRef.current;
+      saveDmBoardState(pending.notes, pending.view);
+    }, DM_BOARD_SAVE_DEBOUNCE_MS);
+    return () => {
+      if (boardSaveTimerRef.current) {
+        window.clearTimeout(boardSaveTimerRef.current);
+        boardSaveTimerRef.current = null;
+      }
+    };
+  }, [boardView, librariesReady, monsterNotes]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => flushBoardStateSave();
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      flushBoardStateSave();
+    };
+  }, []);
 
   useEffect(() => {
     const liveSheet = window.dndSheet?.liveSheet;
@@ -9473,6 +9708,7 @@ function DmScreenApp() {
   }
 
   function openMonsterPicker(spawnPoint = null) {
+    if (!librariesReady) return;
     setNoteSpawnPoint(spawnPoint);
     setIsPickerOpen(true);
     setContextMenu(null);
@@ -9505,6 +9741,7 @@ function DmScreenApp() {
   }
 
   function openResourcePicker(kind, spawnPoint = null, { search = "", selectedEntry = null } = {}) {
+    if (!librariesReady) return;
     setNoteSpawnPoint(spawnPoint);
     setResourcePickerKind(kind);
     setResourceSearchQuery(search);
@@ -9973,6 +10210,7 @@ function DmScreenApp() {
   function addCharacterResourceNote(kind, label, sourceNote, event) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
+    if (!librariesReady) return;
     const spawnPoint = clampBoardPoint({
       x: (sourceNote?.x || 96) + 36,
       y: (sourceNote?.y || 96) + 36
@@ -10655,6 +10893,7 @@ function DmScreenApp() {
     const isCharacter = sourceNote.kind === "character";
     const monster = isCharacter ? null : mapTokenMonsterSnapshot(sourceNote.monster);
     const character = isCharacter ? mapTokenCharacterSnapshot(sourceNote.character) : null;
+    const tokenImage = isCharacter ? null : normalizeMapTokenImage(sourceNote.monsterCustom?.tokenImage || sourceNote.monster?.tokenImage);
     if (!monster && !character) return false;
 
     const token = {
@@ -10666,6 +10905,7 @@ function DmScreenApp() {
       monster,
       monsterCustom: sourceNote.monsterCustom ? cloneForBoardState(sourceNote.monsterCustom) : null,
       character,
+      image: tokenImage,
       x: point.x,
       y: point.y,
       size,
@@ -11234,6 +11474,11 @@ function DmScreenApp() {
   function applyActorNoteSnapshotToToken(token, actorNote) {
     const snapshot = tokenActorNoteSnapshot(actorNote);
     if (!snapshot) return token;
+    const monsterImage = snapshot.kind === "monster" ? normalizeMapTokenImage(snapshot.monsterCustom?.tokenImage || snapshot.monster?.tokenImage) : null;
+    const hasMonsterImageField = snapshot.kind === "monster" && (
+      Object.prototype.hasOwnProperty.call(snapshot.monsterCustom || {}, "tokenImage")
+      || Object.prototype.hasOwnProperty.call(snapshot.monster || {}, "tokenImage")
+    );
     return {
       ...token,
       name: noteDisplayName(actorNote),
@@ -11241,6 +11486,7 @@ function DmScreenApp() {
       actorNote: snapshot,
       monster: snapshot.kind === "monster" ? mapTokenMonsterSnapshot(snapshot.monster) : token.monster,
       monsterCustom: snapshot.kind === "monster" && snapshot.monsterCustom ? cloneForBoardState(snapshot.monsterCustom) : token.monsterCustom,
+      image: snapshot.kind === "monster" ? (monsterImage || (hasMonsterImageField ? null : token.image)) : token.image,
       character: snapshot.kind === "character" ? mapTokenCharacterSnapshot(snapshot.character) : token.character
     };
   }
@@ -12364,17 +12610,117 @@ function DmScreenApp() {
     };
   }
 
+  function schedulePointerFrame(operation, event, callback) {
+    operation.pendingClientX = event.clientX;
+    operation.pendingClientY = event.clientY;
+    if (operation.rafId) return;
+    operation.rafId = window.requestAnimationFrame(() => {
+      operation.rafId = null;
+      callback(operation.pendingClientX, operation.pendingClientY);
+    });
+  }
+
+  function cancelPointerFrame(operation) {
+    if (!operation?.rafId) return;
+    window.cancelAnimationFrame(operation.rafId);
+    operation.rafId = null;
+  }
+
+  function updateResizeFrame(resize, clientX, clientY) {
+    const maxWidth = Math.max(NOTE_MIN_WIDTH, BOARD_WIDTH - resize.x - BOARD_PADDING);
+    const maxHeight = Math.max(NOTE_MIN_HEIGHT, BOARD_HEIGHT - resize.y - BOARD_PADDING);
+    const deltaX = (clientX - resize.startX) / resize.scale;
+    const deltaY = (clientY - resize.startY) / resize.scale;
+    const width = resize.edge === "right" || resize.edge === "corner"
+      ? clamp(resize.startWidth + deltaX, NOTE_MIN_WIDTH, maxWidth)
+      : resize.startWidth;
+    const height = resize.edge === "bottom" || resize.edge === "corner"
+      ? clamp(resize.startHeight + deltaY, NOTE_MIN_HEIGHT, maxHeight)
+      : resize.startHeight;
+    setMonsterNotes((notes) => {
+      const root = notes.find((note) => note.id === resize.noteId);
+      const activeTabId = root?.activeTabId || resize.noteId;
+      const tabIds = new Set(noteTabIds(root));
+      return notes.map((note) => {
+        if (note.id === resize.noteId) {
+          const nextRoot = { ...note, width, height };
+          if (note.kind === "map") {
+            const activePageId = note.activeMapPageId || activeMapPageForNote(note)?.id;
+            const nextMapRoot = updateMapNotePage(nextRoot, activePageId, (page) => ({
+              ...page,
+              frameWidth: width,
+              frameHeight: height
+            }));
+            return { ...nextMapRoot, tabFrameWidth: width, tabFrameHeight: height };
+          }
+          return activeTabId === resize.noteId
+            ? { ...nextRoot, tabFrameWidth: width, tabFrameHeight: height }
+            : nextRoot;
+        }
+        if (note.id === activeTabId && tabIds.has(note.id)) {
+          const nextActiveTab = {
+            ...note,
+            width,
+            height,
+            tabFrameWidth: width,
+            tabFrameHeight: height
+          };
+          if (note.kind !== "map") return nextActiveTab;
+          const activePageId = note.activeMapPageId || activeMapPageForNote(note)?.id;
+          return updateMapNotePage(nextActiveTab, activePageId, (page) => ({
+            ...page,
+            frameWidth: width,
+            frameHeight: height
+          }));
+        }
+        return note;
+      });
+    });
+  }
+
+  function updateBoardDragFrame(drag, clientX, clientY) {
+    drag.lastClientX = clientX;
+    drag.lastClientY = clientY;
+    const deltaX = (clientX - drag.startClientX) / drag.scale;
+    const deltaY = (clientY - drag.startClientY) / drag.scale;
+    const nextPoint = clampBoardPoint({
+      x: drag.startNoteX + deltaX,
+      y: drag.startNoteY + deltaY
+    }, drag.width, drag.height);
+    const nextX = nextPoint.x;
+    const nextY = nextPoint.y;
+    const isGroupDrag = Array.isArray(drag.noteIds) && drag.noteIds.length > 1;
+    const dropTargetId = isGroupDrag ? null : findDragDropTarget(drag.noteId, { x: nextX + drag.width / 2, y: nextY + drag.height / 2 }, monsterNotesRef.current);
+    drag.dropTargetNoteId = dropTargetId;
+    setDropTargetNoteId((current) => current === dropTargetId ? current : dropTargetId);
+    const startPositions = drag.startPositions || {};
+    const draggedIds = Array.isArray(drag.noteIds) && drag.noteIds.length ? drag.noteIds : [drag.noteId];
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (!draggedIds.includes(note.id)) return note;
+      const start = startPositions[note.id];
+      if (!start) return note;
+      const point = clampBoardPoint({
+        x: start.x + deltaX,
+        y: start.y + deltaY
+      }, start.width, start.height);
+      return { ...note, x: point.x, y: point.y };
+    }));
+  }
+
   function updateDrag(event) {
     const mapMarkerDrag = mapMarkerDragRef.current;
     if (mapMarkerDrag?.pointerId === event.pointerId) {
-      if (mapMarkerDrag.mode === "resize") resizeMapMarker(event, mapMarkerDrag);
-      else moveMapMarker(event, mapMarkerDrag);
+      schedulePointerFrame(mapMarkerDrag, event, (clientX, clientY) => {
+        const frameEvent = { clientX, clientY };
+        if (mapMarkerDrag.mode === "resize") resizeMapMarker(frameEvent, mapMarkerDrag);
+        else moveMapMarker(frameEvent, mapMarkerDrag);
+      });
       return;
     }
 
     const mapTokenDrag = mapTokenDragRef.current;
     if (mapTokenDrag?.pointerId === event.pointerId) {
-      moveMapToken(event, mapTokenDrag);
+      schedulePointerFrame(mapTokenDrag, event, (clientX, clientY) => moveMapToken({ clientX, clientY }, mapTokenDrag));
       return;
     }
 
@@ -12431,55 +12777,7 @@ function DmScreenApp() {
 
     const resize = resizeRef.current;
     if (resize && resize.pointerId === event.pointerId) {
-      const maxWidth = Math.max(NOTE_MIN_WIDTH, BOARD_WIDTH - resize.x - BOARD_PADDING);
-      const maxHeight = Math.max(NOTE_MIN_HEIGHT, BOARD_HEIGHT - resize.y - BOARD_PADDING);
-      const deltaX = (event.clientX - resize.startX) / resize.scale;
-      const deltaY = (event.clientY - resize.startY) / resize.scale;
-      const width = resize.edge === "right" || resize.edge === "corner"
-        ? clamp(resize.startWidth + deltaX, NOTE_MIN_WIDTH, maxWidth)
-        : resize.startWidth;
-      const height = resize.edge === "bottom" || resize.edge === "corner"
-        ? clamp(resize.startHeight + deltaY, NOTE_MIN_HEIGHT, maxHeight)
-        : resize.startHeight;
-      setMonsterNotes((notes) => {
-        const root = notes.find((note) => note.id === resize.noteId);
-        const activeTabId = root?.activeTabId || resize.noteId;
-        const tabIds = new Set(noteTabIds(root));
-        return notes.map((note) => {
-          if (note.id === resize.noteId) {
-            const nextRoot = { ...note, width, height };
-            if (note.kind === "map") {
-              const activePageId = note.activeMapPageId || activeMapPageForNote(note)?.id;
-              const nextMapRoot = updateMapNotePage(nextRoot, activePageId, (page) => ({
-                ...page,
-                frameWidth: width,
-                frameHeight: height
-              }));
-              return { ...nextMapRoot, tabFrameWidth: width, tabFrameHeight: height };
-            }
-            return activeTabId === resize.noteId
-              ? { ...nextRoot, tabFrameWidth: width, tabFrameHeight: height }
-              : nextRoot;
-          }
-          if (note.id === activeTabId && tabIds.has(note.id)) {
-            const nextActiveTab = {
-              ...note,
-              width,
-              height,
-              tabFrameWidth: width,
-              tabFrameHeight: height
-            };
-            if (note.kind !== "map") return nextActiveTab;
-            const activePageId = note.activeMapPageId || activeMapPageForNote(note)?.id;
-            return updateMapNotePage(nextActiveTab, activePageId, (page) => ({
-              ...page,
-              frameWidth: width,
-              frameHeight: height
-            }));
-          }
-          return note;
-        });
-      });
+      schedulePointerFrame(resize, event, (clientX, clientY) => updateResizeFrame(resize, clientX, clientY));
       return;
     }
 
@@ -12495,37 +12793,26 @@ function DmScreenApp() {
       return;
     }
     if (Math.abs(event.clientX - drag.startClientX) > 4 || Math.abs(event.clientY - drag.startClientY) > 4) drag.moved = true;
-    drag.lastClientX = event.clientX;
-    drag.lastClientY = event.clientY;
-    const deltaX = (event.clientX - drag.startClientX) / drag.scale;
-    const deltaY = (event.clientY - drag.startClientY) / drag.scale;
-    const nextPoint = clampBoardPoint({
-      x: drag.startNoteX + deltaX,
-      y: drag.startNoteY + deltaY
-    }, drag.width, drag.height);
-    const nextX = nextPoint.x;
-    const nextY = nextPoint.y;
-    const isGroupDrag = Array.isArray(drag.noteIds) && drag.noteIds.length > 1;
-    const dropTargetId = isGroupDrag ? null : findDragDropTarget(drag.noteId, { x: nextX + drag.width / 2, y: nextY + drag.height / 2 }, monsterNotes);
-    drag.dropTargetNoteId = dropTargetId;
-    setDropTargetNoteId((current) => current === dropTargetId ? current : dropTargetId);
-    const startPositions = drag.startPositions || {};
-    const draggedIds = Array.isArray(drag.noteIds) && drag.noteIds.length ? drag.noteIds : [drag.noteId];
-    setMonsterNotes((notes) => notes.map((note) => {
-      if (!draggedIds.includes(note.id)) return note;
-      const start = startPositions[note.id];
-      if (!start) return note;
-      const point = clampBoardPoint({
-        x: start.x + deltaX,
-        y: start.y + deltaY
-      }, start.width, start.height);
-      return { ...note, x: point.x, y: point.y };
-    }));
+    schedulePointerFrame(drag, event, (clientX, clientY) => updateBoardDragFrame(drag, clientX, clientY));
   }
 
   function stopDrag(event) {
-    if (mapMarkerDragRef.current?.pointerId === event.pointerId) mapMarkerDragRef.current = null;
-    if (mapTokenDragRef.current?.pointerId === event.pointerId) mapTokenDragRef.current = null;
+    if (mapMarkerDragRef.current?.pointerId === event.pointerId) {
+      const drag = mapMarkerDragRef.current;
+      cancelPointerFrame(drag);
+      if (drag.pendingClientX != null && drag.pendingClientY != null) {
+        const frameEvent = { clientX: drag.pendingClientX, clientY: drag.pendingClientY };
+        if (drag.mode === "resize") resizeMapMarker(frameEvent, drag);
+        else moveMapMarker(frameEvent, drag);
+      }
+      mapMarkerDragRef.current = null;
+    }
+    if (mapTokenDragRef.current?.pointerId === event.pointerId) {
+      const drag = mapTokenDragRef.current;
+      cancelPointerFrame(drag);
+      if (drag.pendingClientX != null && drag.pendingClientY != null) moveMapToken({ clientX: drag.pendingClientX, clientY: drag.pendingClientY }, drag);
+      mapTokenDragRef.current = null;
+    }
     if (selectionRef.current?.pointerId === event.pointerId) {
       const completedSelection = selectionRef.current;
       selectionRef.current = null;
@@ -12535,6 +12822,10 @@ function DmScreenApp() {
     if (tabDragRef.current?.pointerId === event.pointerId) tabDragRef.current = null;
     if (dragRef.current?.pointerId === event.pointerId) {
       const completedDrag = dragRef.current;
+      cancelPointerFrame(completedDrag);
+      if (completedDrag.pendingClientX != null && completedDrag.pendingClientY != null) {
+        updateBoardDragFrame(completedDrag, completedDrag.pendingClientX, completedDrag.pendingClientY);
+      }
       if (dragRef.current.moved) {
         const suppressedNoteId = dragRef.current.noteId;
         suppressRestoreClickRef.current = suppressedNoteId;
@@ -12573,8 +12864,14 @@ function DmScreenApp() {
         if (completedDrag.dropTargetNoteId) groupNoteIntoRoot(completedDrag.noteId, completedDrag.dropTargetNoteId);
       }
     }
-    if (resizeRef.current?.pointerId === event.pointerId) resizeRef.current = null;
+    if (resizeRef.current?.pointerId === event.pointerId) {
+      const resize = resizeRef.current;
+      cancelPointerFrame(resize);
+      if (resize.pendingClientX != null && resize.pendingClientY != null) updateResizeFrame(resize, resize.pendingClientX, resize.pendingClientY);
+      resizeRef.current = null;
+    }
     if (panRef.current?.pointerId === event.pointerId) panRef.current = null;
+    flushBoardStateSave();
   }
 
   const activeTokenContext = findMapTokenContextEntry();
@@ -12861,7 +13158,9 @@ function DmScreenApp() {
         >
           <div className="border-b-2 border-amber-500 pb-2">
             <h1 className="font-serif text-2xl font-bold uppercase tracking-wide text-amber-500">DM Screen</h1>
-            <p className="mt-1 text-sm italic text-neutral-400">Encounter board</p>
+            <p className="mt-1 text-sm italic text-neutral-400">
+              {librariesError ? "No se pudieron cargar las librerias" : librariesReady ? "Encounter board" : "Cargando librerias y restaurando tablero..."}
+            </p>
           </div>
           <div className="grid grid-cols-3 gap-2 py-4 text-center text-sm">
             <div className="border border-neutral-700 bg-neutral-950/70 p-3">
@@ -12874,9 +13173,10 @@ function DmScreenApp() {
             </div>
             <div className="border border-neutral-700 bg-neutral-950/70 p-3">
               <div className="text-[11px] font-bold uppercase text-amber-500">Roller</div>
-              <div className="mt-1 font-semibold text-sky-300">Ready</div>
+              <div className="mt-1 font-semibold text-sky-300">{librariesReady ? "Ready" : "Loading"}</div>
             </div>
           </div>
+          {librariesError ? <p className="border border-red-500/30 bg-red-950/40 px-3 py-2 text-sm text-red-100">{librariesError}</p> : null}
         </section>
       ) : null}
 
