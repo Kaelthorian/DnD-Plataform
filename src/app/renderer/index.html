@@ -1342,6 +1342,46 @@
       return featGrantsSpell(spell, spell.level);
     }
 
+    function scheduleSheetChoiceRefresh({ prepared = true, equipment = false, alerts = true, turnActions = true, save = true } = {}) {
+      if (prepared) {
+        if (typeof schedulePreparedSpellsPanelRefresh === "function") schedulePreparedSpellsPanelRefresh();
+        else updatePreparedSpellsPanel();
+      }
+      if (equipment) {
+        if (typeof scheduleEquipmentPanelRefresh === "function") scheduleEquipmentPanelRefresh();
+        else updateEquipmentPanel();
+      }
+      if (alerts) {
+        if (typeof scheduleAlertsPanelRefresh === "function") scheduleAlertsPanelRefresh();
+        else renderAlertsPanel();
+      }
+      if (turnActions) {
+        if (typeof scheduleTurnActionsPanelRefresh === "function") scheduleTurnActionsPanelRefresh();
+        else refreshTurnActionsPanelIfVisible();
+      }
+      if (save) scheduleSave();
+    }
+
+    let pendingSpellSelectionDrawerRefresh = null;
+    let pendingSpellSelectionDrawerFrame = 0;
+
+    function scheduleSpellSelectionDrawerRefresh(field, selectedSpell = null) {
+      pendingSpellSelectionDrawerRefresh = { field, selectedSpell };
+      if (pendingSpellSelectionDrawerFrame) return;
+      const refresh = () => {
+        pendingSpellSelectionDrawerFrame = 0;
+        const pending = pendingSpellSelectionDrawerRefresh;
+        pendingSpellSelectionDrawerRefresh = null;
+        if (!pending?.field) return;
+        showSpellSelectionDrawer(pending.field, pending.selectedSpell);
+      };
+      if (typeof requestAnimationFrame === "function") {
+        pendingSpellSelectionDrawerFrame = requestAnimationFrame(refresh);
+      } else {
+        pendingSpellSelectionDrawerFrame = setTimeout(refresh, 0);
+      }
+    }
+
     function assignKnownSpellToSheet(spellName) {
       if (!ensureCanModifySpells()) return null;
       const spell = findSpellByName(spellName);
@@ -1354,8 +1394,6 @@
         return null;
       }
       field.value = spell.name;
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
       return field;
     }
 
@@ -1367,11 +1405,8 @@
         field.value = "";
         const checkbox = getFieldByKey(field.dataset.preparedKey || "");
         if (checkbox) checkbox.checked = false;
-        field.dispatchEvent(new Event("input", { bubbles: true }));
-        field.dispatchEvent(new Event("change", { bubbles: true }));
       });
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      scheduleSheetChoiceRefresh();
     }
 
     function getAllBardAccessibleSpellOptions() {
@@ -1431,7 +1466,7 @@
       }
       sheetMeta.wizardSpellbook.push(spellName);
       assignWizardSpellToSheet(spellName);
-      scheduleSave();
+      scheduleSheetChoiceRefresh();
       return true;
     }
 
@@ -1441,8 +1476,7 @@
       const normalized = normalizeName(spellName);
       sheetMeta.wizardSpellbook = sheetMeta.wizardSpellbook.filter((name) => normalizeName(name) !== normalized);
       clearWizardSpellFromSheet(spellName);
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      scheduleSheetChoiceRefresh();
     }
 
     function syncPreparedWizardSpellsToSpellbook() {
@@ -1498,9 +1532,7 @@
         return false;
       }
       checkbox.checked = Boolean(prepared);
-      checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      scheduleSheetChoiceRefresh();
       showStatus(`${spell.name}: ${prepared ? "preparada" : "no preparada"}`);
       return true;
     }
@@ -1582,8 +1614,6 @@
         return null;
       }
       field.value = spell.name;
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
       return field;
     }
 
@@ -1624,10 +1654,7 @@
         return null;
       }
       field.value = spell.name;
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      scheduleSheetChoiceRefresh();
       return field;
     }
 
@@ -1637,11 +1664,8 @@
       cantripFields().forEach((field) => {
         if (normalizeName(field.value || "") !== normalized || isAutoGrantedSpellField(field)) return;
         field.value = "";
-        field.dispatchEvent(new Event("input", { bubbles: true }));
-        field.dispatchEvent(new Event("change", { bubbles: true }));
       });
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      scheduleSheetChoiceRefresh();
     }
 
     function clearWizardSpellFromSheet(spellName) {
@@ -1651,8 +1675,6 @@
         field.value = "";
         const checkbox = getFieldByKey(field.dataset.preparedKey || "");
         if (checkbox) checkbox.checked = false;
-        field.dispatchEvent(new Event("input", { bubbles: true }));
-        field.dispatchEvent(new Event("change", { bubbles: true }));
       });
     }
 
@@ -6282,9 +6304,14 @@
             }
           }
           field.value = optionName(option);
-          if (field.dataset.optionType === "spell") syncFeatPreparedSpellCheckbox(field);
-          field.dispatchEvent(new Event("input", { bubbles: true }));
-          field.dispatchEvent(new Event("change", { bubbles: true }));
+          if (field.dataset.optionType === "spell") {
+            syncFeatPreparedSpellCheckbox(field);
+            scheduleSheetChoiceRefresh();
+            scheduleSpellSelectionDrawerRefresh(field, findSpellByName(field.value || ""));
+          } else {
+            field.dispatchEvent(new Event("input", { bubbles: true }));
+            field.dispatchEvent(new Event("change", { bubbles: true }));
+          }
           if (
             (field.dataset.optionType === "background" && findBackgroundChoicesForOption(option).length)
             || (field.dataset.optionType === "race" && findRaceChoicesForOption(option).length)
@@ -6398,8 +6425,13 @@
             }
             element.value = "";
             syncFeatPreparedSpellCheckbox(element);
-            element.dispatchEvent(new Event("input", { bubbles: true }));
-            element.dispatchEvent(new Event("change", { bubbles: true }));
+            if (element.dataset.optionType === "spell") {
+              scheduleSheetChoiceRefresh();
+              scheduleSpellSelectionDrawerRefresh(element);
+            } else {
+              element.dispatchEvent(new Event("input", { bubbles: true }));
+              element.dispatchEvent(new Event("change", { bubbles: true }));
+            }
             closeOptionMenu();
           }
         });
@@ -8257,12 +8289,9 @@
       }
       field.value = spellName;
       syncFeatPreparedSpellCheckbox(field);
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
-      scheduleSave();
-      updatePreparedSpellsPanel();
+      scheduleSheetChoiceRefresh();
       showStatus(`${spellName} seleccionada`);
-      showSpellSelectionDrawer(field, findSpellByName(spellName));
+      scheduleSpellSelectionDrawerRefresh(field, findSpellByName(spellName));
     }
 
     function clearSpellSelection(field) {
@@ -8270,12 +8299,9 @@
       if (field.dataset.optionType === "spell" && !ensureCanModifySpells()) return;
       field.value = "";
       syncFeatPreparedSpellCheckbox(field);
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
-      scheduleSave();
-      updatePreparedSpellsPanel();
+      scheduleSheetChoiceRefresh();
       showStatus("Magia quitada");
-      showSpellSelectionDrawer(field);
+      scheduleSpellSelectionDrawerRefresh(field);
     }
 
     function showSpellPickerDetail(detailBody, spell, { translated = false } = {}) {
@@ -8398,7 +8424,7 @@
         if (known) removeWizardSpellbookSpell(spell.name);
         else if (!addWizardSpellbookSpell(spell.name)) return;
         showStatus(known ? `${spell.name} quitada del spellbook` : `${spell.name} agregada al spellbook`);
-        showSpellSelectionDrawer(field, spell);
+        scheduleSpellSelectionDrawerRefresh(field, spell);
       });
 
       actions.append(bookButton);
@@ -8441,7 +8467,7 @@
       prepareButton.textContent = prepared ? "Despreparar" : "Preparar";
       prepareButton.disabled = !canModifySpells();
       prepareButton.addEventListener("click", () => {
-        if (setWizardPreparedSpell(spell.name, !prepared)) showSpellSelectionDrawer(field, spell);
+        if (setWizardPreparedSpell(spell.name, !prepared)) scheduleSpellSelectionDrawerRefresh(field, spell);
       });
 
       const removeButton = document.createElement("button");
@@ -8452,7 +8478,7 @@
       removeButton.addEventListener("click", () => {
         removeWizardSpellbookSpell(spell.name);
         showStatus(`${spell.name} quitada del spellbook`);
-        showSpellSelectionDrawer(field);
+        scheduleSpellSelectionDrawerRefresh(field);
       });
 
       actions.append(prepareButton, removeButton);
@@ -8488,7 +8514,7 @@
       removeButton.addEventListener("click", () => {
         removeKnownSpellFromSheet(spell.name);
         showStatus(`${spell.name} quitada`);
-        showSpellSelectionDrawer(field);
+        scheduleSpellSelectionDrawerRefresh(field);
       });
 
       actions.append(removeButton);
@@ -8538,10 +8564,9 @@
           return;
         }
         if (!assignKnownSpellToSheet(spell.name)) return;
-        updatePreparedSpellsPanel();
-        scheduleSave();
+        scheduleSheetChoiceRefresh();
         showStatus(`${spell.name} aprendida`);
-        showSpellSelectionDrawer(field, spell);
+        scheduleSpellSelectionDrawerRefresh(field, spell);
       });
 
       actions.append(learnButton);
@@ -8606,7 +8631,7 @@
         } else if (assignCantripToSheet(spell.name)) {
           showStatus(`${spell.name} aprendido`);
         }
-        showSpellSelectionDrawer(managerField, spell);
+        scheduleSpellSelectionDrawerRefresh(managerField, spell);
       });
 
       actions.append(toggleButton);
@@ -8837,10 +8862,7 @@
       }
       field.value = spell.name;
       syncFeatPreparedSpellCheckbox(field);
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      scheduleSheetChoiceRefresh();
       return field;
     }
 
@@ -8881,7 +8903,7 @@
       removeButton.addEventListener("click", () => {
         removeKnownSpellFromSheet(spell.name);
         showStatus(`${spell.name} quitada`);
-        showSpellSelectionDrawer(field);
+        scheduleSpellSelectionDrawerRefresh(field);
       });
 
       actions.append(removeButton);
@@ -8934,7 +8956,7 @@
       learnButton.addEventListener("click", () => {
         if (!assignManagedSpellToSheet(spell.name)) return;
         showStatus(`${spell.name} aprendida`);
-        showSpellSelectionDrawer(field, spell);
+        scheduleSpellSelectionDrawerRefresh(field, spell);
       });
 
       actions.append(learnButton);
@@ -9489,10 +9511,7 @@
       if (next.length) sheetMeta.featureChoices[key] = next;
       else delete sheetMeta.featureChoices[key];
       updateDerivedStats();
-      updateArmorClass();
-      updatePreparedSpellsPanel();
-      renderAlertsPanel();
-      scheduleSave();
+      scheduleSheetChoiceRefresh({ prepared: false });
     }
 
     function optionalFeatureByName(name) {
