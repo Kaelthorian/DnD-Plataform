@@ -128,6 +128,8 @@ const DM_MAP_IMAGE_STORE_NAME = "map-images";
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
 const MAP_MARKER_SIZE = 28;
+const MAP_MARKER_SHAPE_MIN_SIZE = 24;
+const MAP_MARKER_SHAPE_DEFAULT_SIZE = 120;
 const FOG_REVEAL_POINT_LIMIT = 1200;
 const MAP_FOG_BRUSH_MIN_SIZE = 8;
 const MAP_FOG_BRUSH_MAX_SIZE = 360;
@@ -150,6 +152,65 @@ const DEFAULT_MAP_FOG = {
   revealed: []
 };
 const MAP_FOG_BRUSH_SHAPES = new Set(["circle", "square"]);
+const MAP_MARKER_FORM_TYPES = new Set(["cone", "square", "circle"]);
+const MAP_MARKER_FORM_LABELS = {
+  cone: "Cono",
+  square: "Cuadrado",
+  circle: "Circulo"
+};
+const MAP_MARKER_OPACITY_MIN = 0.08;
+const MAP_MARKER_OPACITY_MAX = 0.85;
+const MAP_MARKER_OPACITY_DEFAULT = 0.32;
+const MAP_MARKER_COLOR_OPTIONS = [
+  { value: "#f97316", label: "Naranja" },
+  { value: "#f59e0b", label: "Amber" },
+  { value: "#eab308", label: "Amarillo" },
+  { value: "#84cc16", label: "Lima" },
+  { value: "#22c55e", label: "Verde" },
+  { value: "#10b981", label: "Esmeralda" },
+  { value: "#14b8a6", label: "Teal" },
+  { value: "#38bdf8", label: "Celeste" },
+  { value: "#3b82f6", label: "Azul" },
+  { value: "#6366f1", label: "Indigo" },
+  { value: "#a855f7", label: "Violeta" },
+  { value: "#d946ef", label: "Magenta" },
+  { value: "#ec4899", label: "Rosa" },
+  { value: "#ef4444", label: "Rojo" },
+  { value: "#7f1d1d", label: "Marron" },
+  { value: "#64748b", label: "Gris" },
+  { value: "#111827", label: "Negro" },
+  { value: "#f8fafc", label: "Blanco" }
+];
+const MAP_MARKER_PATTERN_OPTIONS = [
+  { value: "none", label: "None", glyph: "" },
+  { value: "acid", label: "Acid", glyph: "\\u2623" },
+  { value: "blinded", label: "Blinded", glyph: "\\u25D0" },
+  { value: "charmed", label: "Charmed", glyph: "\\u2665" },
+  { value: "cold", label: "Cold", glyph: "\\u2744" },
+  { value: "deafened", label: "Deafened", glyph: "\\u266B" },
+  { value: "disease", label: "Disease", glyph: "\\u2739" },
+  { value: "difficult-terrain", label: "Difficult Terrain", glyph: "\\u224B" },
+  { value: "exhaustion", label: "Exhaustion", glyph: "\\u25D2" },
+  { value: "fire", label: "Fire", glyph: "\\u25B2" },
+  { value: "force", label: "Force", glyph: "\\u25C6" },
+  { value: "frightened", label: "Frightened", glyph: "!" },
+  { value: "grappled", label: "Grappled", glyph: "\\u267E" },
+  { value: "incapacitated", label: "Incapacitated", glyph: "\\u2715" },
+  { value: "invisible", label: "Invisible", glyph: "\\u25CC" },
+  { value: "lightning", label: "Lightning", glyph: "\\u26A1" },
+  { value: "necrotic", label: "Necrotic", glyph: "\\u2625" },
+  { value: "paralyzed", label: "Paralyzed", glyph: "\\u275A" },
+  { value: "petrified", label: "Petrified", glyph: "\\u25A3" },
+  { value: "poison", label: "Poison", glyph: "\\u2620" },
+  { value: "prone", label: "Prone", glyph: "\\u2014" },
+  { value: "psychic", label: "Psychic", glyph: "\\u2726" },
+  { value: "radiant", label: "Radiant", glyph: "\\u2600" },
+  { value: "restrained", label: "Restrained", glyph: "#" },
+  { value: "stunned", label: "Stunned", glyph: "\\u2736" },
+  { value: "thunder", label: "Thunder", glyph: "\\u25CE" },
+  { value: "unconscious", label: "Unconscious", glyph: "Z" }
+];
+const MAP_MARKER_PATTERN_VALUES = new Set(MAP_MARKER_PATTERN_OPTIONS.map((option) => option.value));
 const CHARACTER_SHEET_CODE_PREFIX = "DNDCS1";
 const CHARACTER_SHEET_CODE_TYPE = "dnd-character-sheet";
 const OBSIDIAN_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
@@ -1475,6 +1536,7 @@ function normalizeMapToken(token) {
     size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140),
     image: normalizeMapTokenImage(token.image),
     groupId: String(token.groupId || ""),
+    attachedMarkerId: String(token.attachedMarkerId || "").trim(),
     hidden: Boolean(token.hidden || token.playerHidden),
     ...normalizeMapTokenCombatFields(token),
     actorNote: normalizeTokenActorNote(token.actorNote, token)
@@ -1534,14 +1596,95 @@ function parseMapTokenDragPayload(value) {
   return payload.sourcePageId && payload.tokenId ? payload : null;
 }
 
+function normalizeMapMarkerColor(color) {
+  const text = String(color || "").trim().toLowerCase();
+  const named = {
+    amber: "#f59e0b",
+    orange: "#f97316",
+    yellow: "#eab308",
+    lime: "#84cc16",
+    emerald: "#10b981",
+    teal: "#14b8a6",
+    cyan: "#38bdf8",
+    sky: "#38bdf8",
+    blue: "#3b82f6",
+    indigo: "#6366f1",
+    green: "#22c55e",
+    red: "#ef4444",
+    pink: "#ec4899",
+    magenta: "#d946ef",
+    purple: "#a855f7",
+    violet: "#a855f7",
+    brown: "#7f1d1d",
+    gray: "#64748b",
+    grey: "#64748b",
+    black: "#111827",
+    white: "#f8fafc"
+  }[text];
+  if (named) return named;
+  return /^#[0-9a-f]{6}$/i.test(text) ? text : MAP_MARKER_COLOR_OPTIONS[0].value;
+}
+
+function normalizeMapMarkerOpacity(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric)
+    ? clamp(numeric, MAP_MARKER_OPACITY_MIN, MAP_MARKER_OPACITY_MAX)
+    : MAP_MARKER_OPACITY_DEFAULT;
+}
+
+function normalizeMapMarkerPattern(pattern) {
+  const value = String(pattern || "").trim().toLowerCase();
+  return MAP_MARKER_PATTERN_VALUES.has(value) ? value : "none";
+}
+
+function decodeMapMarkerPatternGlyph(glyph) {
+  return String(glyph || "").replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)));
+}
+
+function mapMarkerPatternBackground(pattern, color) {
+  const value = normalizeMapMarkerPattern(pattern);
+  if (value === "none") return "none";
+  const option = MAP_MARKER_PATTERN_OPTIONS.find((entry) => entry.value === value);
+  const glyph = decodeMapMarkerPatternGlyph(option?.glyph);
+  if (!glyph) return "none";
+  const stroke = normalizeMapMarkerColor(color);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><text x="17" y="23" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="${stroke}" fill-opacity="0.72">${glyph}</text></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+function mapMarkerColorRgba(color, alpha = 0.35) {
+  const hex = normalizeMapMarkerColor(color).replace("#", "");
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function normalizeMapMarkerFormType(value) {
+  const type = String(value || "").trim().toLowerCase();
+  return MAP_MARKER_FORM_TYPES.has(type) ? type : "square";
+}
+
 function normalizeMapMarker(marker, index = 0) {
   const source = isPlainObject(marker) ? marker : {};
+  const markerType = source.markerType === "shape" || source.kind === "shape" ? "shape" : "pin";
+  const formType = normalizeMapMarkerFormType(source.formType || source.shapeType || source.shape);
+  const defaultWidth = MAP_MARKER_SHAPE_DEFAULT_SIZE;
+  const defaultHeight = MAP_MARKER_SHAPE_DEFAULT_SIZE;
   return {
     id: String(source.id || `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`),
-    label: String(source.label || source.name || `Marker ${index + 1}`).slice(0, 80),
+    markerType,
+    formType,
+    label: String(source.label || source.name || (markerType === "shape" ? `${MAP_MARKER_FORM_LABELS[formType]} ${index + 1}` : `Marker ${index + 1}`)).slice(0, 80),
     x: Number.isFinite(Number(source.x)) ? Number(source.x) : 0,
     y: Number.isFinite(Number(source.y)) ? Number(source.y) : 0,
-    color: String(source.color || "amber"),
+    width: clamp(Number(source.width) || defaultWidth, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+    height: clamp(Number(source.height) || defaultHeight, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+    rotation: Number.isFinite(Number(source.rotation)) ? Number(source.rotation) : 0,
+    color: normalizeMapMarkerColor(source.color),
+    opacity: markerType === "shape" ? normalizeMapMarkerOpacity(source.opacity ?? source.alpha ?? source.fillOpacity) : MAP_MARKER_OPACITY_DEFAULT,
+    pattern: markerType === "shape" ? normalizeMapMarkerPattern(source.pattern || source.mask || source.areaPattern) : "none",
+    attachedTokenId: markerType === "shape" ? String(source.attachedTokenId || "").trim() : "",
     hidden: Boolean(source.hidden || source.playerHidden)
   };
 }
@@ -5098,6 +5241,7 @@ function MapNote({
   onMapMarkerAdd,
   onMapMarkerRename,
   onMapMarkerDragStart,
+  onMapMarkerResizeStart,
   onMapMarkerContextMenu,
   vvtPings = []
 }) {
@@ -5118,7 +5262,7 @@ function MapNote({
   const [fogBrushMode, setFogBrushMode] = useState("reveal");
   const [fogBrushPreview, setFogBrushPreview] = useState(null);
   const [fogContextMenu, setFogContextMenu] = useState(null);
-  const [contextMenuOpenSections, setContextMenuOpenSections] = useState({ fog: true, token: false, markers: false });
+  const [contextMenuOpenSections, setContextMenuOpenSections] = useState({ fog: true, token: false, markers: false, forms: false });
   const [baseImageLayout, setBaseImageLayout] = useState(null);
   const [mapView, setMapView] = useState({ scale: 1, x: 0, y: 0 });
   const [mapTokenSelectionBox, setMapTokenSelectionBox] = useState(null);
@@ -5332,9 +5476,9 @@ function MapNote({
     onMapFogChange?.(noteActionId, activePage.id, normalizeMapFog({ ...fog, ...patch }));
   }
 
-  function updateFogBrushSize(delta) {
+  function setFogBrushSize(value) {
     const currentSize = clamp(Number(fog.brushSize) || DEFAULT_MAP_FOG.brushSize, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE);
-    const brushSize = clamp(currentSize + delta, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE);
+    const brushSize = clamp(Number(value) || DEFAULT_MAP_FOG.brushSize, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE);
     if (brushSize === currentSize) return;
     updateFog({ brushSize });
     if (!imageLayout?.width || !imageLayout?.height) return;
@@ -5347,6 +5491,20 @@ function MapNote({
             shape: fog.brushShape
           }
         : preview
+    ));
+  }
+
+  function updateFogBrushSize(delta) {
+    const currentSize = clamp(Number(fog.brushSize) || DEFAULT_MAP_FOG.brushSize, MAP_FOG_BRUSH_MIN_SIZE, MAP_FOG_BRUSH_MAX_SIZE);
+    setFogBrushSize(currentSize + delta);
+  }
+
+  function updateFogBrushShape(shape) {
+    const brushShape = MAP_FOG_BRUSH_SHAPES.has(shape) ? shape : DEFAULT_MAP_FOG.brushShape;
+    if (brushShape === fog.brushShape) return;
+    updateFog({ brushShape });
+    setFogBrushPreview((preview) => (
+      preview ? { ...preview, shape: brushShape } : preview
     ));
   }
 
@@ -5465,8 +5623,8 @@ function MapNote({
     setIsGridPanelOpen(false);
     setIsFogPanelOpen(false);
     setFogContextMenu({
-      x: clamp(event.clientX, 8, viewportWidth - 230),
-      y: clamp(event.clientY, 8, viewportHeight - 180),
+      x: clamp(event.clientX, 8, viewportWidth - 260),
+      y: clamp(event.clientY, 8, viewportHeight - 360),
       point,
       tokenPoint: baseImageLayout ? {
         x: baseImageLayout.left + point.x * baseImageLayout.width,
@@ -5497,13 +5655,16 @@ function MapNote({
     };
   }
 
-  function mapContextMarkerTarget() {
+  function mapContextMarkerTarget(formType = null) {
     if (!fogContextMenu?.tokenPoint) return null;
+    const normalizedFormType = formType ? normalizeMapMarkerFormType(formType) : null;
     return {
       mapNoteId: noteActionId,
       pageId: activePage.id,
       x: fogContextMenu.tokenPoint.x,
-      y: fogContextMenu.tokenPoint.y
+      y: fogContextMenu.tokenPoint.y,
+      formType: normalizedFormType,
+      markerType: normalizedFormType ? "shape" : "pin"
     };
   }
 
@@ -5521,8 +5682,8 @@ function MapNote({
     setFogContextMenu(null);
   }
 
-  function requestContextMarker() {
-    const target = mapContextMarkerTarget();
+  function requestContextMarker(formType = null) {
+    const target = mapContextMarkerTarget(formType);
     if (!target) return;
     onMapMarkerAdd?.(target);
     setFogContextMenu(null);
@@ -5670,7 +5831,9 @@ function MapNote({
 
   function handleDmMapPingPointerDown(event) {
     if (!isSharedVvtMap || !imageSrc || event.button !== 0 || !leftControlDownRef.current) return false;
-    if (event.target?.closest?.("[data-map-token='true'], [data-board-control='true'], button, input, select, textarea")) return false;
+    const isFormShape = Boolean(event.target?.closest?.("[data-map-form-shape='true']"));
+    if (event.target?.closest?.("[data-map-token='true'], button, input, select, textarea")) return false;
+    if (!isFormShape && event.target?.closest?.("[data-board-control='true']")) return false;
     const point = normalizedImagePointFromBodyPoint(bodyPointFromPointer(event));
     if (!point) return false;
     event.preventDefault();
@@ -5688,7 +5851,9 @@ function MapNote({
 
   function startMapPan(event) {
     if (!imageSrc || mapView.scale <= 1.001 || event.button !== 1) return false;
-    if (event.target?.closest?.("[data-board-control='true'], input, select, textarea")) return false;
+    const isFormShape = Boolean(event.target?.closest?.("[data-map-form-shape='true']"));
+    if (event.target?.closest?.("input, select, textarea")) return false;
+    if (!isFormShape && event.target?.closest?.("[data-board-control='true']")) return false;
     const point = bodyPointFromPointer(event);
     if (!pointIsInsideMapImage(point)) return false;
     event.preventDefault();
@@ -6091,7 +6256,7 @@ function MapNote({
                               key={shape}
                               className={`border px-2 py-1 font-bold uppercase focus:outline-none focus:ring-1 focus:ring-amber-400 ${active ? "border-amber-400 bg-amber-500 text-neutral-950" : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"}`}
                               type="button"
-                              onClick={() => updateFog({ brushShape: shape })}
+                              onClick={() => updateFogBrushShape(shape)}
                             >
                               {label}
                             </button>
@@ -6106,7 +6271,7 @@ function MapNote({
                         min={MAP_FOG_BRUSH_MIN_SIZE}
                         max={MAP_FOG_BRUSH_MAX_SIZE}
                         value={fog.brushSize}
-                        onChange={(event) => updateFog({ brushSize: event.target.value })}
+                        onChange={(event) => setFogBrushSize(event.target.value)}
                       />
                     </label>
                     <button
@@ -6204,6 +6369,72 @@ function MapNote({
             <MapPingOverlay pings={vvtPings} layout={localImageLayout} />
             {markers.map((marker) => {
               const visualPoint = localVisualPointFromBasePoint(marker);
+              if (marker.markerType === "shape") {
+                const visualWidth = Math.max(MAP_MARKER_SHAPE_MIN_SIZE * mapVisualScale, (Number(marker.width) || MAP_MARKER_SHAPE_DEFAULT_SIZE) * mapVisualScale);
+                const visualHeight = Math.max(MAP_MARKER_SHAPE_MIN_SIZE * mapVisualScale, (Number(marker.height) || MAP_MARKER_SHAPE_DEFAULT_SIZE) * mapVisualScale);
+                const color = normalizeMapMarkerColor(marker.color);
+                const opacity = normalizeMapMarkerOpacity(marker.opacity);
+                const fill = mapMarkerColorRgba(color, opacity);
+                const border = mapMarkerColorRgba(color, 0.88);
+                const clipPath = marker.formType === "cone" ? "polygon(50% 0%, 100% 100%, 0% 100%)" : undefined;
+                const borderRadius = marker.formType === "circle" ? "999px" : "3px";
+                const rotation = `rotate(${Number(marker.rotation) || 0}deg)`;
+                const patternBackground = mapMarkerPatternBackground(marker.pattern, color);
+                return (
+                  <div
+                    key={marker.id}
+                    className={`absolute z-[8] ${marker.hidden ? "opacity-50 saturate-50" : ""}`}
+                    data-board-control="true"
+                    data-map-form-shape="true"
+                    title={`${marker.label || MAP_MARKER_FORM_LABELS[marker.formType] || "Forma"}${marker.hidden ? " (hidden)" : ""}`}
+                    style={{
+                      left: visualPoint.x,
+                      top: visualPoint.y,
+                      width: visualWidth,
+                      height: visualHeight
+                    }}
+                    onPointerDown={(event) => onMapMarkerDragStart?.(event, noteActionId, activePage.id, marker.id)}
+                    onContextMenu={(event) => onMapMarkerContextMenu?.(event, noteActionId, activePage.id, marker.id)}
+                  >
+                    <div
+                      className="absolute inset-0 border-2 shadow-[0_0_18px_rgba(0,0,0,0.45)]"
+                      style={{
+                        background: fill,
+                        borderColor: border,
+                        clipPath,
+                        borderRadius,
+                        transform: rotation,
+                        transformOrigin: "center"
+                      }}
+                    />
+                    {marker.pattern && marker.pattern !== "none" ? (
+                      <div
+                        className="pointer-events-none absolute inset-0 mix-blend-screen"
+                        style={{
+                          backgroundImage: patternBackground,
+                          backgroundRepeat: "repeat",
+                          backgroundSize: `${Math.max(20, 34 * mapVisualScale)}px ${Math.max(20, 34 * mapVisualScale)}px`,
+                          opacity: clamp(opacity + 0.28, 0.25, 0.9),
+                          clipPath,
+                          borderRadius,
+                          transform: rotation,
+                          transformOrigin: "center"
+                        }}
+                      />
+                    ) : null}
+                    <span className="pointer-events-none absolute left-1 top-1 max-w-[calc(100%-8px)] truncate border border-neutral-800 bg-neutral-950/80 px-1.5 py-0.5 text-[10px] font-bold uppercase text-neutral-100 shadow">
+                      {marker.label || MAP_MARKER_FORM_LABELS[marker.formType] || "Forma"}
+                    </span>
+                    <button
+                      className="absolute bottom-0 right-0 z-10 h-4 w-4 translate-x-1/2 translate-y-1/2 cursor-nwse-resize border border-neutral-950 bg-amber-400/90 hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                      type="button"
+                      aria-label="Resize form"
+                      data-board-control="true"
+                      onPointerDown={(event) => onMapMarkerResizeStart?.(event, noteActionId, activePage.id, marker.id)}
+                    />
+                  </div>
+                );
+              }
               const markerSize = Math.max(12, visualSizeFromBaseSize(MAP_MARKER_SIZE));
               return (
                 <div
@@ -6316,7 +6547,7 @@ function MapNote({
         ) : null}
         {fogContextMenu ? createPortal((
           <div
-            className="fixed z-[10003] w-64 border border-neutral-700 bg-neutral-950 p-1 text-xs text-neutral-200 shadow-2xl"
+            className="fixed z-[10003] max-h-[calc(100vh-16px)] w-64 overflow-y-auto border border-neutral-700 bg-neutral-950 p-1 text-xs text-neutral-200 shadow-2xl"
             data-board-control="true"
             data-map-fog-menu="true"
             style={{ left: fogContextMenu.x, top: fogContextMenu.y }}
@@ -6335,18 +6566,64 @@ function MapNote({
               <span className="font-sans text-xs text-neutral-500">{contextMenuOpenSections.fog ? "-" : "+"}</span>
             </button>
             {contextMenuOpenSections.fog ? (
-              <div className="border-b border-neutral-800 pb-1">
-                <p className="px-3 py-2 text-[11px] text-neutral-500">{Math.round(fog.brushSize)}px | {fog.brushShape === "square" ? "Cuadrado" : "Circulo"}</p>
+              <div className="grid gap-2 border-b border-neutral-800 px-3 py-2">
+                <div className="grid gap-1">
+                  <span className="text-[10px] font-bold uppercase text-neutral-500">Tipo de brush</span>
+                  <div className="grid grid-cols-2 gap-1">
+                    {[
+                      ["circle", "Circulo"],
+                      ["square", "Cuadrado"]
+                    ].map(([shape, label]) => {
+                      const active = fog.brushShape === shape;
+                      return (
+                        <button
+                          key={shape}
+                          className={`border px-2 py-1 font-bold uppercase focus:outline-none focus:ring-1 focus:ring-amber-400 ${active ? "border-amber-400 bg-amber-500 text-neutral-950" : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500 hover:bg-neutral-800"}`}
+                          type="button"
+                          onClick={() => updateFogBrushShape(shape)}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-bold uppercase text-neutral-500">Tamanio {Math.round(fog.brushSize)}px</span>
+                  <input
+                    type="range"
+                    min={MAP_FOG_BRUSH_MIN_SIZE}
+                    max={MAP_FOG_BRUSH_MAX_SIZE}
+                    value={fog.brushSize}
+                    onChange={(event) => setFogBrushSize(event.target.value)}
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    className="border border-neutral-700 bg-neutral-900 px-2 py-1 font-bold uppercase text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    type="button"
+                    onClick={() => updateFogBrushSize(-MAP_FOG_BRUSH_KEY_STEP)}
+                  >
+                    -{MAP_FOG_BRUSH_KEY_STEP}px
+                  </button>
+                  <button
+                    className="border border-neutral-700 bg-neutral-900 px-2 py-1 font-bold uppercase text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    type="button"
+                    onClick={() => updateFogBrushSize(MAP_FOG_BRUSH_KEY_STEP)}
+                  >
+                    +{MAP_FOG_BRUSH_KEY_STEP}px
+                  </button>
+                </div>
                 <button
-                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  className="flex w-full items-center justify-between px-0 py-1 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
                   type="button"
                   onClick={() => setIsFogBrushActive((active) => !active)}
                 >
-                  <span>Pinzel</span>
+                  <span>Pincel</span>
                   <span className={isFogBrushActive ? "text-emerald-300" : "text-neutral-500"}>{isFogBrushActive ? "ON" : "OFF"}</span>
                 </button>
                 <button
-                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-300 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  className="flex w-full items-center justify-between px-0 py-1 text-left font-bold text-amber-300 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
                   type="button"
                   onClick={() => setFogBrushMode((mode) => (mode === "hide" ? "reveal" : "hide"))}
                 >
@@ -6388,7 +6665,7 @@ function MapNote({
               type="button"
               onClick={() => setContextMenuOpenSections((sections) => ({ ...sections, markers: !sections.markers }))}
             >
-              <span>Makers</span>
+              <span>Markers</span>
               <span className="font-sans text-xs text-neutral-500">{contextMenuOpenSections.markers ? "-" : "+"}</span>
             </button>
             {contextMenuOpenSections.markers ? (
@@ -6396,11 +6673,38 @@ function MapNote({
                 <button
                   className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-neutral-100 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
                   type="button"
-                  onClick={requestContextMarker}
+                  onClick={() => requestContextMarker()}
                 >
                   <span>Add Marker</span>
                   <span className="text-neutral-500">+</span>
                 </button>
+                <button
+                  className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={() => setContextMenuOpenSections((sections) => ({ ...sections, forms: !sections.forms }))}
+                >
+                  <span>Forms</span>
+                  <span className="text-neutral-500">{contextMenuOpenSections.forms ? "-" : "+"}</span>
+                </button>
+                {contextMenuOpenSections.forms ? (
+                  <div className="border-t border-neutral-800 py-1">
+                    {[
+                      ["cone", "Cono"],
+                      ["square", "Cuadrado"],
+                      ["circle", "Circulo"]
+                    ].map(([formType, label]) => (
+                      <button
+                        key={formType}
+                        className="flex w-full items-center justify-between px-5 py-2 text-left font-bold text-neutral-100 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                        type="button"
+                        onClick={() => requestContextMarker(formType)}
+                      >
+                        <span>{label}</span>
+                        <span className="text-neutral-500">+</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -8621,6 +8925,7 @@ function DmScreenApp() {
   const [contextMenu, setContextMenu] = useState(null);
   const [tokenContextMenu, setTokenContextMenu] = useState(null);
   const [markerContextMenu, setMarkerContextMenu] = useState(null);
+  const [pendingMapMarkerAttach, setPendingMapMarkerAttach] = useState(null);
   const [noteSpawnPoint, setNoteSpawnPoint] = useState(null);
   const [resourcePickerKind, setResourcePickerKind] = useState(null);
   const [resourceSearchQuery, setResourceSearchQuery] = useState("");
@@ -10209,11 +10514,22 @@ function DmScreenApp() {
       if (note.id !== target.mapNoteId) return note;
       const metrics = mapBodyMetrics(note);
       const markerCount = mapPagesForNote(note).reduce((count, page) => count + (page.mapMarkers || []).length, 0);
+      const isShape = target.markerType === "shape" || target.formType;
+      const formType = isShape ? normalizeMapMarkerFormType(target.formType) : null;
+      const width = MAP_MARKER_SHAPE_DEFAULT_SIZE;
+      const height = MAP_MARKER_SHAPE_DEFAULT_SIZE;
+      const x = isShape ? Number(target.x) - width / 2 : Number(target.x);
+      const y = isShape ? Number(target.y) - height / 2 : Number(target.y);
       const marker = normalizeMapMarker({
         id: `map-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        label: `Marker ${markerCount + 1}`,
-        x: clamp(Number(target.x) || 0, 0, Math.max(1, metrics.width)),
-        y: clamp(Number(target.y) || 0, 0, Math.max(1, metrics.height))
+        markerType: isShape ? "shape" : "pin",
+        formType,
+        label: isShape ? `${MAP_MARKER_FORM_LABELS[formType]} ${markerCount + 1}` : `Marker ${markerCount + 1}`,
+        x: clamp(Number(x) || 0, 0, Math.max(1, metrics.width - (isShape ? width : 0))),
+        y: clamp(Number(y) || 0, 0, Math.max(1, metrics.height - (isShape ? height : 0))),
+        width,
+        height,
+        color: MAP_MARKER_COLOR_OPTIONS[0].value
       }, markerCount);
       return updateMapNotePage(note, target.pageId, (page) => ({
         ...page,
@@ -10236,11 +10552,13 @@ function DmScreenApp() {
     )));
   }
 
-  function clampMapMarkerPoint(mapNote, x, y) {
+  function clampMapMarkerPoint(mapNote, x, y, marker = null) {
     const metrics = mapBodyMetrics(mapNote);
+    const width = marker?.markerType === "shape" ? clamp(Number(marker.width) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000) : 0;
+    const height = marker?.markerType === "shape" ? clamp(Number(marker.height) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000) : 0;
     return {
-      x: clamp(Number(x) || 0, 0, Math.max(1, metrics.width)),
-      y: clamp(Number(y) || 0, 0, Math.max(1, metrics.height))
+      x: clamp(Number(x) || 0, 0, Math.max(0, metrics.width - width)),
+      y: clamp(Number(y) || 0, 0, Math.max(0, metrics.height - height))
     };
   }
 
@@ -10390,6 +10708,35 @@ function DmScreenApp() {
     setSelectedMapTokens({ mapNoteId: ids.length ? mapNoteId : "", pageId: ids.length ? pageId : "", tokenIds: ids });
   }
 
+  function attachMapMarkerToToken(mapNoteId, pageId, markerId, tokenId) {
+    if (!mapNoteId || !pageId || !markerId || !tokenId) return false;
+    let didAttach = false;
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== mapNoteId || note.kind !== "map") return note;
+      return updateMapNotePage(note, pageId, (page) => {
+        const marker = (page.mapMarkers || []).find((entry) => entry.id === markerId);
+        const token = (page.mapTokens || []).find((entry) => entry.id === tokenId);
+        if (!marker || marker.markerType !== "shape" || !token) return page;
+        didAttach = true;
+        return {
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((entry) => {
+            if (entry.id === markerId) return { ...entry, attachedTokenId: tokenId };
+            if (entry.attachedTokenId === tokenId || entry.id === token.attachedMarkerId) return { ...entry, attachedTokenId: "" };
+            return entry;
+          }),
+          mapTokens: (page.mapTokens || []).map((entry) => {
+            if (entry.id === tokenId) return { ...entry, attachedMarkerId: markerId };
+            if (entry.attachedMarkerId === markerId) return { ...entry, attachedMarkerId: "" };
+            return entry;
+          })
+        };
+      });
+    }));
+    setMapTokenSelection(mapNoteId, pageId, [tokenId]);
+    return didAttach;
+  }
+
   function startMapTokenDrag(event, mapNoteId, pageId, tokenId) {
     if (event.button != null && event.button !== 0) {
       if (event.button === 2) {
@@ -10408,6 +10755,13 @@ function DmScreenApp() {
     const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
     const token = page?.mapTokens?.find((entry) => entry.id === tokenId);
     if (!mapNote || !token) return;
+    if (pendingMapMarkerAttach?.mapNoteId === mapNoteId && pendingMapMarkerAttach?.pageId === page.id) {
+      event.preventDefault();
+      event.stopPropagation();
+      attachMapMarkerToToken(mapNoteId, page.id, pendingMapMarkerAttach.markerId, tokenId);
+      setPendingMapMarkerAttach(null);
+      return;
+    }
     const metrics = mapBodyMetrics(mapNote);
     event.preventDefault();
     event.stopPropagation();
@@ -10430,6 +10784,15 @@ function DmScreenApp() {
         size
       }];
     }));
+    const attachedMarkerStartPositions = Object.fromEntries((page.mapMarkers || [])
+      .filter((entry) => entry.markerType === "shape" && selectedIds.includes(entry.attachedTokenId))
+      .map((entry) => [entry.id, {
+        x: Number(entry.x) || 0,
+        y: Number(entry.y) || 0,
+        width: clamp(Number(entry.width) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+        height: clamp(Number(entry.height) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+        markerType: "shape"
+      }]));
     mapTokenDragRef.current = {
       pointerId: event.pointerId,
       mapNoteId,
@@ -10437,6 +10800,7 @@ function DmScreenApp() {
       tokenId,
       tokenIds: selectedIds,
       startPositions,
+      attachedMarkerStartPositions,
       startClientX: event.clientX,
       startClientY: event.clientY,
       startX: Number(token.x) || 0,
@@ -10462,6 +10826,12 @@ function DmScreenApp() {
           const start = startPositions[token.id] || { x: Number(token.x) || 0, y: Number(token.y) || 0, size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140) };
           const point = clampMapTokenPoint(mapNote, start.x + deltaX, start.y + deltaY, start.size, drag.pageId);
           return { ...token, x: point.x, y: point.y };
+        }),
+        mapMarkers: (page.mapMarkers || []).map((marker) => {
+          const start = drag.attachedMarkerStartPositions?.[marker.id];
+          if (!start || !draggedIds.includes(marker.attachedTokenId)) return marker;
+          const point = clampMapMarkerPoint(mapNote, start.x + deltaX, start.y + deltaY, start);
+          return { ...marker, x: point.x, y: point.y };
         })
       }));
     }));
@@ -10474,6 +10844,9 @@ function DmScreenApp() {
     const marker = page?.mapMarkers?.find((entry) => entry.id === markerId);
     if (!mapNote || !marker) return;
     const metrics = mapBodyMetrics(mapNote);
+    const attachedToken = marker.attachedTokenId
+      ? (page.mapTokens || []).find((entry) => entry.id === marker.attachedTokenId)
+      : null;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -10487,6 +10860,15 @@ function DmScreenApp() {
       startClientY: event.clientY,
       startX: Number(marker.x) || 0,
       startY: Number(marker.y) || 0,
+      width: Number(marker.width) || 0,
+      height: Number(marker.height) || 0,
+      markerType: marker.markerType,
+      attachedTokenId: attachedToken?.id || "",
+      attachedTokenStart: attachedToken ? {
+        x: Number(attachedToken.x) || 0,
+        y: Number(attachedToken.y) || 0,
+        size: clamp(Number(attachedToken.size) || MAP_TOKEN_SIZE, 32, 140)
+      } : null,
       scale: (boardViewRef.current.scale || 1) * (metrics.mapViewScale || 1)
     };
   }
@@ -10496,13 +10878,69 @@ function DmScreenApp() {
     if (!mapNote) return;
     const deltaX = (event.clientX - drag.startClientX) / drag.scale;
     const deltaY = (event.clientY - drag.startClientY) / drag.scale;
-    const point = clampMapMarkerPoint(mapNote, drag.startX + deltaX, drag.startY + deltaY);
+    const point = clampMapMarkerPoint(mapNote, drag.startX + deltaX, drag.startY + deltaY, drag);
+    const actualDeltaX = point.x - drag.startX;
+    const actualDeltaY = point.y - drag.startY;
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === drag.mapNoteId
         ? updateMapNotePage(note, drag.pageId, (page) => ({
           ...page,
           mapMarkers: (page.mapMarkers || []).map((marker) => (
             marker.id === drag.markerId ? { ...marker, x: point.x, y: point.y } : marker
+          )),
+          mapTokens: (page.mapTokens || []).map((token) => {
+            if (!drag.attachedTokenId || token.id !== drag.attachedTokenId || !drag.attachedTokenStart) return token;
+            const tokenPoint = clampMapTokenPoint(mapNote, drag.attachedTokenStart.x + actualDeltaX, drag.attachedTokenStart.y + actualDeltaY, drag.attachedTokenStart.size, drag.pageId);
+            return { ...token, x: tokenPoint.x, y: tokenPoint.y };
+          })
+        }))
+        : note
+    )));
+  }
+
+  function startMapMarkerResize(event, mapNoteId, pageId, markerId) {
+    if (event.button != null && event.button !== 0) return;
+    const mapNote = monsterNotesRef.current.find((note) => note.id === mapNoteId);
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
+    const marker = page?.mapMarkers?.find((entry) => entry.id === markerId);
+    if (!mapNote || !marker || marker.markerType !== "shape") return;
+    const metrics = mapBodyMetrics(mapNote);
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    focusNote(resolveRootNoteId(mapNoteId, monsterNotesRef.current) || mapNoteId);
+    mapMarkerDragRef.current = {
+      pointerId: event.pointerId,
+      mode: "resize",
+      mapNoteId,
+      pageId: page?.id || null,
+      markerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: Number(marker.x) || 0,
+      startY: Number(marker.y) || 0,
+      startWidth: clamp(Number(marker.width) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+      startHeight: clamp(Number(marker.height) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+      scale: (boardViewRef.current.scale || 1) * (metrics.mapViewScale || 1)
+    };
+  }
+
+  function resizeMapMarker(event, drag) {
+    const mapNote = monsterNotesRef.current.find((note) => note.id === drag.mapNoteId);
+    if (!mapNote) return;
+    const metrics = mapBodyMetrics(mapNote);
+    const deltaX = (event.clientX - drag.startClientX) / drag.scale;
+    const deltaY = (event.clientY - drag.startClientY) / drag.scale;
+    const maxWidth = Math.max(MAP_MARKER_SHAPE_MIN_SIZE, metrics.width - drag.startX);
+    const maxHeight = Math.max(MAP_MARKER_SHAPE_MIN_SIZE, metrics.height - drag.startY);
+    const width = clamp(drag.startWidth + deltaX, MAP_MARKER_SHAPE_MIN_SIZE, maxWidth);
+    const height = clamp(drag.startHeight + deltaY, MAP_MARKER_SHAPE_MIN_SIZE, maxHeight);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === drag.mapNoteId
+        ? updateMapNotePage(note, drag.pageId, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === drag.markerId ? { ...marker, width, height } : marker
           ))
         }))
         : note
@@ -10618,21 +11056,48 @@ function DmScreenApp() {
         if (!sourceToken) return note;
         const size = clamp(Number(point.size) || Number(sourceToken.size) || MAP_TOKEN_SIZE, 32, 140);
         const targetPoint = clampMapTokenPoint(note, Number(point.x) || 0, Number(point.y) || 0, size, targetPageId);
+        const sourceMarker = pages
+          .flatMap((page) => page.mapMarkers || [])
+          .find((marker) => marker.markerType === "shape" && (marker.id === sourceToken.attachedMarkerId || marker.attachedTokenId === tokenId));
+        const markerDeltaX = targetPoint.x - (Number(sourceToken.x) || 0);
+        const markerDeltaY = targetPoint.y - (Number(sourceToken.y) || 0);
+        const droppedMarkerPoint = sourceMarker
+          ? clampMapMarkerPoint(note, (Number(sourceMarker.x) || 0) + markerDeltaX, (Number(sourceMarker.y) || 0) + markerDeltaY, sourceMarker)
+          : null;
+        const droppedMarker = sourceMarker ? normalizeMapMarker({
+          ...sourceMarker,
+          x: droppedMarkerPoint.x,
+          y: droppedMarkerPoint.y,
+          attachedTokenId: tokenId
+        }) : null;
         const droppedToken = normalizeMapToken({
           ...sourceToken,
           x: targetPoint.x,
           y: targetPoint.y,
-          size
+          size,
+          attachedMarkerId: droppedMarker?.id || ""
         });
         if (!droppedToken) return note;
         const updatedPages = pages.map((page) => {
           const remainingTokens = (page.mapTokens || []).filter((token) => token.id !== tokenId);
+          const tokenChanged = remainingTokens.length !== (page.mapTokens || []).length;
+          const markerChanged = droppedMarker
+            ? (page.mapMarkers || []).some((marker) => marker.id === droppedMarker.id)
+            : (page.mapMarkers || []).some((marker) => marker.attachedTokenId === tokenId);
+          const remainingMarkers = droppedMarker
+            ? (page.mapMarkers || []).filter((marker) => marker.id !== droppedMarker.id)
+            : (page.mapMarkers || []).map((marker) => (
+              marker.attachedTokenId === tokenId ? { ...marker, attachedTokenId: "" } : marker
+            ));
           if (page.id !== targetPageId) {
-            return remainingTokens.length === (page.mapTokens || []).length ? page : { ...page, mapTokens: remainingTokens };
+            return !tokenChanged && !markerChanged
+              ? page
+              : { ...page, mapTokens: remainingTokens, mapMarkers: remainingMarkers };
           }
           return {
             ...page,
-            mapTokens: [...remainingTokens, droppedToken]
+            mapTokens: [...remainingTokens, droppedToken],
+            mapMarkers: droppedMarker ? [...remainingMarkers, droppedMarker] : remainingMarkers
           };
         });
         didMoveToken = true;
@@ -10924,6 +11389,7 @@ function DmScreenApp() {
       x: point.x,
       y: point.y,
       size,
+      attachedMarkerId: "",
       ...mapActorCombatState({
         kind: token.kind,
         monster: token.kind === "character" ? null : monsterFromMapToken(token),
@@ -11009,6 +11475,130 @@ function DmScreenApp() {
     setMarkerContextMenu(null);
   }
 
+  function updateMapMarkerColorFromMenu(color) {
+    const entry = findMapMarkerContextEntry();
+    if (!entry) return;
+    const nextColor = normalizeMapMarkerColor(color);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id ? { ...marker, color: nextColor } : marker
+          ))
+        }))
+        : note
+    )));
+    setMarkerContextMenu(null);
+  }
+
+  function updateMapMarkerOpacityFromMenu(opacity) {
+    const entry = findMapMarkerContextEntry();
+    if (!entry || entry.marker.markerType !== "shape") return;
+    const nextOpacity = normalizeMapMarkerOpacity(Number(opacity) / 100);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id ? { ...marker, opacity: nextOpacity } : marker
+          ))
+        }))
+        : note
+    )));
+  }
+
+  function updateMapMarkerPatternFromMenu(pattern) {
+    const entry = findMapMarkerContextEntry();
+    if (!entry || entry.marker.markerType !== "shape") return;
+    const nextPattern = normalizeMapMarkerPattern(pattern);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id ? { ...marker, pattern: nextPattern } : marker
+          ))
+        }))
+        : note
+    )));
+  }
+
+  function updateMapMarkerFormTypeFromMenu(formType) {
+    const entry = findMapMarkerContextEntry();
+    if (!entry || entry.marker.markerType !== "shape") return;
+    const nextFormType = normalizeMapMarkerFormType(formType);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker, index) => {
+            if (marker.id !== entry.marker.id) return marker;
+            const previousPrefix = MAP_MARKER_FORM_LABELS[marker.formType] || "Forma";
+            const nextPrefix = MAP_MARKER_FORM_LABELS[nextFormType] || "Forma";
+            const currentLabel = String(marker.label || "");
+            const generatedSuffix = currentLabel.match(new RegExp(`^${previousPrefix}\\s+(\\d+)$`, "i"))?.[1] || String(index + 1);
+            return {
+              ...marker,
+              formType: nextFormType,
+              label: currentLabel && currentLabel !== previousPrefix && currentLabel !== `${previousPrefix} ${generatedSuffix}`
+                ? marker.label
+                : `${nextPrefix} ${generatedSuffix}`
+            };
+          })
+        }))
+        : note
+    )));
+  }
+
+  function rotateMapMarkerFromMenu(delta) {
+    const entry = findMapMarkerContextEntry();
+    if (!entry) return;
+    const current = Number(entry.marker.rotation) || 0;
+    const rotation = ((current + delta) % 360 + 360) % 360;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id ? { ...marker, rotation } : marker
+          ))
+        }))
+        : note
+    )));
+  }
+
+  function startMapMarkerAttachFromMenu() {
+    const entry = findMapMarkerContextEntry();
+    if (!entry || entry.marker.markerType !== "shape") return;
+    setPendingMapMarkerAttach({
+      mapNoteId: entry.mapNote.id,
+      pageId: entry.page.id,
+      markerId: entry.marker.id
+    });
+    setMarkerContextMenu(null);
+  }
+
+  function detachMapMarkerFromMenu() {
+    const entry = findMapMarkerContextEntry();
+    if (!entry || entry.marker.markerType !== "shape") return;
+    const tokenId = String(entry.marker.attachedTokenId || "");
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id ? { ...marker, attachedTokenId: "" } : marker
+          )),
+          mapTokens: (page.mapTokens || []).map((token) => (
+            token.id === tokenId || token.attachedMarkerId === entry.marker.id ? { ...token, attachedMarkerId: "" } : token
+          ))
+        }))
+        : note
+    )));
+    setMarkerContextMenu(null);
+  }
+
   function removeMapTokenFromMenu() {
     const entry = findMapTokenContextEntry();
     if (!entry) return;
@@ -11016,7 +11606,10 @@ function DmScreenApp() {
       note.id === entry.mapNote.id
         ? updateMapNotePage(note, entry.page.id, (page) => ({
           ...page,
-          mapTokens: (page.mapTokens || []).filter((token) => token.id !== entry.token.id)
+          mapTokens: (page.mapTokens || []).filter((token) => token.id !== entry.token.id),
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.attachedTokenId === entry.token.id ? { ...marker, attachedTokenId: "" } : marker
+          ))
         }))
         : note
     )));
@@ -11030,7 +11623,10 @@ function DmScreenApp() {
       note.id === entry.mapNote.id
         ? updateMapNotePage(note, entry.page.id, (page) => ({
           ...page,
-          mapMarkers: (page.mapMarkers || []).filter((marker) => marker.id !== entry.marker.id)
+          mapMarkers: (page.mapMarkers || []).filter((marker) => marker.id !== entry.marker.id),
+          mapTokens: (page.mapTokens || []).map((token) => (
+            token.attachedMarkerId === entry.marker.id ? { ...token, attachedMarkerId: "" } : token
+          ))
         }))
         : note
     )));
@@ -11771,7 +12367,8 @@ function DmScreenApp() {
   function updateDrag(event) {
     const mapMarkerDrag = mapMarkerDragRef.current;
     if (mapMarkerDrag?.pointerId === event.pointerId) {
-      moveMapMarker(event, mapMarkerDrag);
+      if (mapMarkerDrag.mode === "resize") resizeMapMarker(event, mapMarkerDrag);
+      else moveMapMarker(event, mapMarkerDrag);
       return;
     }
 
@@ -11982,6 +12579,7 @@ function DmScreenApp() {
 
   const activeTokenContext = findMapTokenContextEntry();
   const activeMarkerContext = findMapMarkerContextEntry();
+  const pendingMapMarkerAttachEntry = pendingMapMarkerAttach ? findMapMarkerContextEntry(pendingMapMarkerAttach) : null;
 
   return (
     <main
@@ -12008,6 +12606,22 @@ function DmScreenApp() {
           {isReturning ? "Volviendo..." : "Volver al character sheet"}
         </button>
       </div>
+      {pendingMapMarkerAttachEntry ? (
+        <div
+          className="fixed left-1/2 top-4 z-[10004] flex -translate-x-1/2 items-center gap-3 border border-emerald-500 bg-neutral-950 px-4 py-2 text-xs font-bold uppercase text-emerald-100 shadow-2xl"
+          data-board-control="true"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <span>Attach: click izquierdo en el token</span>
+          <button
+            className="border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-200 hover:bg-neutral-800"
+            type="button"
+            onClick={() => setPendingMapMarkerAttach(null)}
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : null}
       <LivePlayersPanel
         status={liveServerStatus}
         diagnostics={liveDiagnostics}
@@ -12178,6 +12792,7 @@ function DmScreenApp() {
               onMapMarkerAdd={addMapMarker}
               onMapMarkerRename={renameMapMarker}
               onMapMarkerDragStart={startMapMarkerDrag}
+              onMapMarkerResizeStart={startMapMarkerResize}
               onMapMarkerContextMenu={openMapMarkerContextMenu}
             />
           ) : activeNote.kind === "obsidian" ? (
@@ -12276,7 +12891,11 @@ function DmScreenApp() {
             <p className="truncate font-serif text-base font-bold uppercase text-amber-500">
               {activeMarkerContext.marker.label || "Marker"}
             </p>
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">{activeMarkerContext.marker.hidden ? "Map marker - hidden" : "Map marker"}</p>
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">
+              {activeMarkerContext.marker.markerType === "shape"
+                ? `${MAP_MARKER_FORM_LABELS[activeMarkerContext.marker.formType] || "Forma"}${activeMarkerContext.marker.hidden ? " - hidden" : ""}`
+                : (activeMarkerContext.marker.hidden ? "Map marker - hidden" : "Map marker")}
+            </p>
           </div>
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
@@ -12316,6 +12935,116 @@ function DmScreenApp() {
                 </button>
               </div>
             </form>
+          ) : null}
+          {activeMarkerContext.marker.markerType === "shape" ? (
+            <div className="grid gap-2 border-b border-neutral-800 p-2">
+              <label className="grid gap-1 px-1">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Forma</span>
+                <select
+                  className="h-8 border border-neutral-700 bg-neutral-950 px-2 text-xs font-bold uppercase text-neutral-100 focus:border-amber-400 focus:outline-none"
+                  value={normalizeMapMarkerFormType(activeMarkerContext.marker.formType)}
+                  onChange={(event) => updateMapMarkerFormTypeFromMenu(event.target.value)}
+                >
+                  {[
+                    ["cone", "Cono"],
+                    ["square", "Cuadrado"],
+                    ["circle", "Circulo"]
+                  ].map(([formType, label]) => (
+                    <option key={formType} value={formType}>{label}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid gap-1">
+                <button
+                  className="flex w-full items-center justify-between border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-left text-xs font-bold uppercase text-emerald-200 hover:border-emerald-500 hover:bg-emerald-950/40"
+                  type="button"
+                  onClick={startMapMarkerAttachFromMenu}
+                >
+                  <span>{activeMarkerContext.marker.attachedTokenId ? "Re-attach" : "Attach"}</span>
+                  <span className="text-neutral-500">Token</span>
+                </button>
+                {activeMarkerContext.marker.attachedTokenId ? (
+                  <button
+                    className="flex w-full items-center justify-between border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-left text-xs font-bold uppercase text-red-200 hover:border-red-500 hover:bg-red-950/40"
+                    type="button"
+                    onClick={detachMapMarkerFromMenu}
+                  >
+                    <span>Detach</span>
+                    <span className="text-neutral-500">x</span>
+                  </button>
+                ) : null}
+              </div>
+              <div className="grid gap-1">
+                <span className="px-1 text-[11px] font-bold uppercase tracking-wide text-neutral-500">Girar {Math.round(Number(activeMarkerContext.marker.rotation) || 0)}deg</span>
+                <div className="grid grid-cols-3 gap-1">
+                  <button
+                    className="border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs font-bold uppercase text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"
+                    type="button"
+                    onClick={() => rotateMapMarkerFromMenu(-15)}
+                  >
+                    -15
+                  </button>
+                  <button
+                    className="border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs font-bold uppercase text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"
+                    type="button"
+                    onClick={() => rotateMapMarkerFromMenu(15)}
+                  >
+                    +15
+                  </button>
+                  <button
+                    className="border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs font-bold uppercase text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"
+                    type="button"
+                    onClick={() => rotateMapMarkerFromMenu(-(Number(activeMarkerContext.marker.rotation) || 0))}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+              <span className="px-1 text-[11px] font-bold uppercase tracking-wide text-neutral-500">Color</span>
+              <div className="grid grid-cols-3 gap-1">
+                {MAP_MARKER_COLOR_OPTIONS.map((option) => {
+                  const active = normalizeMapMarkerColor(activeMarkerContext.marker.color) === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      className={`flex items-center gap-2 border px-2 py-1 text-left text-xs font-bold uppercase ${active ? "border-amber-400 bg-neutral-800 text-amber-100" : "border-neutral-700 bg-neutral-950 text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"}`}
+                      type="button"
+                      onClick={() => updateMapMarkerColorFromMenu(option.value)}
+                    >
+                      <span
+                        className="h-3 w-3 border border-neutral-950"
+                        style={{ backgroundColor: option.value }}
+                      />
+                      <span>{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="grid gap-1 px-1">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">
+                  Transparencia {Math.round(normalizeMapMarkerOpacity(activeMarkerContext.marker.opacity) * 100)}%
+                </span>
+                <input
+                  type="range"
+                  min={Math.round(MAP_MARKER_OPACITY_MIN * 100)}
+                  max={Math.round(MAP_MARKER_OPACITY_MAX * 100)}
+                  value={Math.round(normalizeMapMarkerOpacity(activeMarkerContext.marker.opacity) * 100)}
+                  onChange={(event) => updateMapMarkerOpacityFromMenu(event.target.value)}
+                />
+              </label>
+              <label className="grid gap-1 px-1">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Pattern / Mask</span>
+                <select
+                  className="h-8 border border-neutral-700 bg-neutral-950 px-2 text-xs font-bold uppercase text-neutral-100 focus:border-amber-400 focus:outline-none"
+                  value={normalizeMapMarkerPattern(activeMarkerContext.marker.pattern)}
+                  onChange={(event) => updateMapMarkerPatternFromMenu(event.target.value)}
+                >
+                  {MAP_MARKER_PATTERN_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
           ) : null}
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"

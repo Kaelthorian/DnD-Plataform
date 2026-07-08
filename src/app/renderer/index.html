@@ -610,7 +610,9 @@
     let familiarNotes = [];
     let familiarNoteZ = 80;
     let familiarNoteDrag = null;
+    let familiarNoteResize = null;
     let familiarNoteDropTargetId = null;
+    const FAMILIAR_NOTES_STORAGE_KEY = "dnd-character-sheet-familiar-notes-v1";
     const FAMILIAR_NOTE_WIDTH = 390;
     const FAMILIAR_NOTE_HEIGHT = 560;
     const FAMILIAR_NOTE_MIN_WIDTH = 280;
@@ -2071,6 +2073,10 @@
       return Math.min(max, Math.max(min, value));
     }
 
+    function familiarNotesStorageKey(slotId = activeSaveSlotId) {
+      return `${FAMILIAR_NOTES_STORAGE_KEY}:${slotId || "slot-1"}`;
+    }
+
     function clampFamiliarNotePosition(point, width = FAMILIAR_NOTE_WIDTH, height = FAMILIAR_NOTE_HEIGHT) {
       const viewportWidth = window.innerWidth || 1200;
       const viewportHeight = window.innerHeight || 800;
@@ -2078,6 +2084,100 @@
         x: viewportClamp(point.x, 8, Math.max(8, viewportWidth - width - 8)),
         y: viewportClamp(point.y, 8, Math.max(8, viewportHeight - height - 8))
       };
+    }
+
+    function clampFamiliarNoteSize(width, height, x = 8, y = 8) {
+      const viewportWidth = window.innerWidth || 1200;
+      const viewportHeight = window.innerHeight || 800;
+      return {
+        width: viewportClamp(Number(width) || FAMILIAR_NOTE_WIDTH, FAMILIAR_NOTE_MIN_WIDTH, Math.max(FAMILIAR_NOTE_MIN_WIDTH, viewportWidth - x - 8)),
+        height: viewportClamp(Number(height) || FAMILIAR_NOTE_HEIGHT, FAMILIAR_NOTE_MIN_HEIGHT, Math.max(FAMILIAR_NOTE_MIN_HEIGHT, viewportHeight - y - 8))
+      };
+    }
+
+    function sanitizeFamiliarRolls(rolls) {
+      if (!Array.isArray(rolls)) return [];
+      return rolls
+        .filter((entry) => entry && typeof entry === "object")
+        .slice(0, 20)
+        .map((entry) => ({
+          id: String(entry.id || `roll-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+          label: String(entry.label || "Roll"),
+          roll: entry.roll && typeof entry.roll === "object" ? entry.roll : {}
+        }));
+    }
+
+    function sanitizeFamiliarNotesForStorage(rawNotes) {
+      if (!Array.isArray(rawNotes)) return [];
+      const notes = rawNotes
+        .filter((note) => note && typeof note === "object" && note.familiar && typeof note.familiar === "object")
+        .map((note, index) => {
+          const size = clampFamiliarNoteSize(note.width, note.height, Number(note.x) || 8, Number(note.y) || 8);
+          const point = clampFamiliarNotePosition({
+            x: Number(note.x) || 96 + index * 12,
+            y: Number(note.y) || 96 + index * 12
+          }, size.width, size.height);
+          return {
+            id: String(note.id || `familiar-${Date.now()}-${index}`),
+            familiar: note.familiar,
+            title: String(note.title || note.familiar?.name || "Familiar"),
+            x: point.x,
+            y: point.y,
+            width: size.width,
+            height: size.height,
+            z: Number.isFinite(Number(note.z)) ? Number(note.z) : 80 + index,
+            rolls: sanitizeFamiliarRolls(note.rolls),
+            dicePanelOpen: Boolean(note.dicePanelOpen),
+            parentNoteId: typeof note.parentNoteId === "string" ? note.parentNoteId : null,
+            tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.map(String) : [],
+            activeTabId: typeof note.activeTabId === "string" ? note.activeTabId : null
+          };
+        });
+      const ids = new Set(notes.map((note) => note.id));
+      return notes.map((note) => {
+        const parentNoteId = ids.has(note.parentNoteId) && note.parentNoteId !== note.id ? note.parentNoteId : null;
+        const tabNoteIds = [...new Set(note.tabNoteIds)].filter((id) => ids.has(id) && id !== note.id);
+        const activeTabId = [note.id, ...tabNoteIds].includes(note.activeTabId) ? note.activeTabId : note.id;
+        return { ...note, parentNoteId, tabNoteIds, activeTabId };
+      });
+    }
+
+    function loadFamiliarNotesForActiveSlot() {
+      let parsed = null;
+      try {
+        const raw = localStorage.getItem(familiarNotesStorageKey());
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        console.warn("Could not load familiar notes.", error);
+      }
+      familiarNotes = sanitizeFamiliarNotesForStorage(Array.isArray(parsed) ? parsed : parsed?.notes);
+      familiarNoteZ = Math.max(80, ...familiarNotes.map((note) => Number(note.z) || 80));
+      familiarNoteDrag = null;
+      familiarNoteResize = null;
+      familiarNoteDropTargetId = null;
+      renderFamiliarNotes({ persist: false });
+    }
+
+    function persistFamiliarNotesForActiveSlot(notes = familiarNotes) {
+      try {
+        const sanitized = sanitizeFamiliarNotesForStorage(notes);
+        const key = familiarNotesStorageKey();
+        if (!sanitized.length) {
+          localStorage.removeItem(key);
+          return;
+        }
+        localStorage.setItem(key, JSON.stringify({ version: 1, notes: sanitized }));
+      } catch (error) {
+        console.warn("Could not save familiar notes.", error);
+      }
+    }
+
+    function clearFamiliarNotesForSlot(slotId = activeSaveSlotId) {
+      try {
+        localStorage.removeItem(familiarNotesStorageKey(slotId));
+      } catch (error) {
+        console.warn("Could not clear familiar notes.", error);
+      }
     }
 
     function createFamiliarNote(familiar) {
@@ -2256,6 +2356,58 @@
       document.addEventListener("pointermove", handleFamiliarNoteDrag);
       document.addEventListener("pointerup", stopFamiliarNoteDrag, { once: true });
       document.addEventListener("pointercancel", stopFamiliarNoteDrag, { once: true });
+    }
+
+    function startFamiliarNoteResize(event, noteId, edge = "corner") {
+      if (event.button != null && event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rootId = familiarRootNoteId(noteId);
+      const note = familiarNotes.find((entry) => entry.id === rootId);
+      if (!note) return;
+      familiarNoteZ += 1;
+      familiarNotes = familiarNotes.map((entry) => entry.id === rootId ? { ...entry, z: familiarNoteZ } : entry);
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      familiarNoteResize = {
+        pointerId: event.pointerId,
+        noteId: rootId,
+        edge,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startWidth: note.width,
+        startHeight: note.height,
+        x: note.x,
+        y: note.y
+      };
+      document.addEventListener("pointermove", handleFamiliarNoteResize);
+      document.addEventListener("pointerup", stopFamiliarNoteResize, { once: true });
+      document.addEventListener("pointercancel", stopFamiliarNoteResize, { once: true });
+      renderFamiliarNotes();
+    }
+
+    function handleFamiliarNoteResize(event) {
+      const resize = familiarNoteResize;
+      if (!resize || resize.pointerId !== event.pointerId) return;
+      const viewportWidth = window.innerWidth || 1200;
+      const viewportHeight = window.innerHeight || 800;
+      const maxWidth = Math.max(FAMILIAR_NOTE_MIN_WIDTH, viewportWidth - resize.x - 8);
+      const maxHeight = Math.max(FAMILIAR_NOTE_MIN_HEIGHT, viewportHeight - resize.y - 8);
+      const deltaX = event.clientX - resize.startClientX;
+      const deltaY = event.clientY - resize.startClientY;
+      const width = resize.edge === "right" || resize.edge === "corner"
+        ? viewportClamp(resize.startWidth + deltaX, FAMILIAR_NOTE_MIN_WIDTH, maxWidth)
+        : resize.startWidth;
+      const height = resize.edge === "bottom" || resize.edge === "corner"
+        ? viewportClamp(resize.startHeight + deltaY, FAMILIAR_NOTE_MIN_HEIGHT, maxHeight)
+        : resize.startHeight;
+      familiarNotes = familiarNotes.map((note) => note.id === resize.noteId ? { ...note, width, height } : note);
+      renderFamiliarNotes();
+    }
+
+    function stopFamiliarNoteResize() {
+      document.removeEventListener("pointermove", handleFamiliarNoteResize);
+      familiarNoteResize = null;
+      renderFamiliarNotes();
     }
 
     function handleFamiliarNoteDrag(event) {
@@ -2555,7 +2707,7 @@
       return bar;
     }
 
-    function renderFamiliarNotes() {
+    function renderFamiliarNotes({ persist = true } = {}) {
       const root = familiarNoteRoot || document.getElementById("familiarNoteRoot");
       if (!root) return;
       root.textContent = "";
@@ -2604,8 +2756,18 @@
           if (tabBar) note.appendChild(tabBar);
           note.appendChild(buildFamiliarBody(activeNote));
           note.appendChild(buildFamiliarDicePanel(activeNote));
+          [["right", "familiar-note-resize-right"], ["bottom", "familiar-note-resize-bottom"], ["corner", "familiar-note-resize-corner"]].forEach(([edge, className]) => {
+            const handle = document.createElement("button");
+            handle.type = "button";
+            handle.className = `familiar-note-resize ${className}`;
+            handle.title = "Resize note";
+            handle.setAttribute("aria-label", "Resize companion note");
+            handle.addEventListener("pointerdown", (event) => startFamiliarNoteResize(event, rootNote.id, edge));
+            note.appendChild(handle);
+          });
           root.appendChild(note);
         });
+      if (persist) persistFamiliarNotesForActiveSlot();
     }
 
     function sheetFieldElements() {
@@ -7154,12 +7316,14 @@
       try {
         clearTimeout(saveTimer);
         updateActiveSlotFromCurrentData();
+        persistFamiliarNotesForActiveSlot();
         activeSaveSlotId = nextSlotId;
         activeSaveStore.activeSlotId = nextSlotId;
         await saveActiveStore();
         renderSaveSlotSelect();
         resetVisibleSheetFields();
         applyData(activeSaveSlot()?.data || blankSheetData());
+        loadFamiliarNotesForActiveSlot();
         refreshAfterApplyingSlotData();
         showStatus(t("character.loaded"));
       } finally {
@@ -7206,12 +7370,14 @@
           data: importedData
         };
       });
+      clearFamiliarNotesForSlot(targetSlotId);
       activeSaveSlotId = targetSlotId;
       activeSaveStore.activeSlotId = targetSlotId;
       await saveActiveStore();
       renderSaveSlotSelect();
       resetVisibleSheetFields();
       applyData(importedData);
+      loadFamiliarNotesForActiveSlot();
       refreshAfterApplyingSlotData();
       closeCharacterImportModal();
       showStatus(t("import.imported"));
@@ -7408,6 +7574,7 @@
 
     async function loadData() {
       await loadSaveStore();
+      loadFamiliarNotesForActiveSlot();
       return activeSaveSlot()?.data || null;
     }
 
@@ -7420,7 +7587,9 @@
       closeItemDrawer();
       familiarNotes = [];
       familiarNoteDrag = null;
+      familiarNoteResize = null;
       familiarNoteDropTargetId = null;
+      clearFamiliarNotesForSlot();
       if (familiarNoteRoot) familiarNoteRoot.textContent = "";
       if (statusDock) statusDock.dataset.menuOpen = "false";
       selectedPickerItem = null;

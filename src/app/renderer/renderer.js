@@ -386,7 +386,7 @@
         .live-vvt-markers {
           position: absolute;
           pointer-events: none;
-          z-index: 4;
+          z-index: 5;
         }
         .live-vvt-marker {
           position: absolute;
@@ -397,6 +397,32 @@
           color: #fef3c7;
           font: 800 10px/1.1 system-ui, sans-serif;
           text-transform: uppercase;
+        }
+        .live-vvt-marker[data-marker-type="shape"] {
+          display: block;
+          transform: none;
+          color: #f8fafc;
+        }
+        .live-vvt-marker-shape {
+          position: absolute;
+          inset: 0;
+          border: 2px solid var(--live-vvt-marker-border, rgba(245, 158, 11, 0.88));
+          background: var(--live-vvt-marker-fill, rgba(245, 158, 11, 0.32));
+          box-shadow: 0 0 18px rgba(0, 0, 0, 0.45);
+        }
+        .live-vvt-marker-shape[data-form-type="cone"] {
+          clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+        }
+        .live-vvt-marker-shape[data-form-type="circle"] {
+          border-radius: 999px;
+        }
+        .live-vvt-marker-pattern {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.8;
+          mix-blend-mode: screen;
+          background-repeat: repeat;
         }
         .live-vvt-marker-pin {
           display: flex;
@@ -702,6 +728,96 @@
       return Math.max(0, Math.min(1, current / max));
     }
 
+    function normalizeLiveVvtMarkerColor(color) {
+      const text = String(color || "").trim().toLowerCase();
+      const named = {
+        amber: "#f59e0b",
+        orange: "#f97316",
+        yellow: "#eab308",
+        lime: "#84cc16",
+        emerald: "#10b981",
+        teal: "#14b8a6",
+        cyan: "#38bdf8",
+        sky: "#38bdf8",
+        blue: "#3b82f6",
+        indigo: "#6366f1",
+        green: "#22c55e",
+        red: "#ef4444",
+        pink: "#ec4899",
+        magenta: "#d946ef",
+        purple: "#a855f7",
+        violet: "#a855f7",
+        brown: "#7f1d1d",
+        gray: "#64748b",
+        grey: "#64748b",
+        black: "#111827",
+        white: "#f8fafc"
+      }[text];
+      if (named) return named;
+      return /^#[0-9a-f]{6}$/i.test(text) ? text : "#f59e0b";
+    }
+
+    function liveVvtMarkerColorRgba(color, alpha = 0.35) {
+      const hex = normalizeLiveVvtMarkerColor(color).replace("#", "");
+      const red = Number.parseInt(hex.slice(0, 2), 16);
+      const green = Number.parseInt(hex.slice(2, 4), 16);
+      const blue = Number.parseInt(hex.slice(4, 6), 16);
+      return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    }
+
+    function normalizeLiveVvtMarkerOpacity(value) {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? Math.max(0.08, Math.min(0.85, numeric)) : 0.32;
+    }
+
+    const LIVE_VVT_MARKER_PATTERN_GLYPHS = {
+      acid: "\\u2623",
+      blinded: "\\u25D0",
+      charmed: "\\u2665",
+      cold: "\\u2744",
+      deafened: "\\u266B",
+      disease: "\\u2739",
+      "difficult-terrain": "\\u224B",
+      exhaustion: "\\u25D2",
+      fire: "\\u25B2",
+      force: "\\u25C6",
+      frightened: "!",
+      grappled: "\\u267E",
+      incapacitated: "\\u2715",
+      invisible: "\\u25CC",
+      lightning: "\\u26A1",
+      necrotic: "\\u2625",
+      paralyzed: "\\u275A",
+      petrified: "\\u25A3",
+      poison: "\\u2620",
+      prone: "\\u2014",
+      psychic: "\\u2726",
+      radiant: "\\u2600",
+      restrained: "#",
+      stunned: "\\u2736",
+      thunder: "\\u25CE",
+      unconscious: "Z"
+    };
+
+    function normalizeLiveVvtMarkerPattern(pattern) {
+      const value = String(pattern || "").trim().toLowerCase();
+      return Object.prototype.hasOwnProperty.call(LIVE_VVT_MARKER_PATTERN_GLYPHS, value) ? value : "none";
+    }
+
+    function decodeLiveVvtMarkerPatternGlyph(glyph) {
+      return String(glyph || "").replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)));
+    }
+
+    function liveVvtMarkerPatternBackground(pattern, color) {
+      const value = normalizeLiveVvtMarkerPattern(pattern);
+      if (value === "none") return "none";
+      const glyph = decodeLiveVvtMarkerPatternGlyph(LIVE_VVT_MARKER_PATTERN_GLYPHS[value]);
+      if (!glyph) return "none";
+      const stroke = normalizeLiveVvtMarkerColor(color);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><text x="17" y="23" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="${stroke}" fill-opacity="0.72">${glyph}</text></svg>`;
+      return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    }
+
     function liveVvtTokenImageCacheKey(request) {
       const sources = Array.isArray(request?.sources) ? request.sources.join("|") : "";
       const names = Array.isArray(request?.names) ? request.names.join("|") : "";
@@ -828,6 +944,43 @@
         node.title = marker.label || "Marker";
         node.style.left = `${(Number(marker.x) || 0) * scaleX}px`;
         node.style.top = `${(Number(marker.y) || 0) * scaleY}px`;
+        if (marker.markerType === "shape") {
+          const formType = ["cone", "square", "circle"].includes(marker.formType) ? marker.formType : "square";
+          const markerWidth = Math.max(8, Number(marker.width) || 120);
+          const markerHeight = Math.max(8, Number(marker.height) || 120);
+          const clipPath = formType === "cone" ? "polygon(50% 0%, 100% 100%, 0% 100%)" : "";
+          const borderRadius = formType === "circle" ? "999px" : "";
+          const rotation = `rotate(${Number(marker.rotation) || 0}deg)`;
+          const opacity = normalizeLiveVvtMarkerOpacity(marker.opacity);
+          node.dataset.markerType = "shape";
+          node.style.width = `${markerWidth * scaleX}px`;
+          node.style.height = `${markerHeight * scaleY}px`;
+          node.style.setProperty("--live-vvt-marker-fill", liveVvtMarkerColorRgba(marker.color, opacity));
+          node.style.setProperty("--live-vvt-marker-border", liveVvtMarkerColorRgba(marker.color, 0.88));
+          const shape = document.createElement("span");
+          shape.className = "live-vvt-marker-shape";
+          shape.dataset.formType = formType;
+          shape.style.transform = rotation;
+          node.appendChild(shape);
+          const pattern = normalizeLiveVvtMarkerPattern(marker.pattern);
+          if (pattern !== "none") {
+            const patternNode = document.createElement("span");
+            patternNode.className = "live-vvt-marker-pattern";
+            patternNode.style.backgroundImage = liveVvtMarkerPatternBackground(pattern, marker.color);
+            patternNode.style.backgroundSize = `${Math.max(20, 34 * scaleX)}px ${Math.max(20, 34 * scaleY)}px`;
+            patternNode.style.opacity = String(Math.max(0.25, Math.min(0.9, opacity + 0.28)));
+            patternNode.style.clipPath = clipPath;
+            patternNode.style.borderRadius = borderRadius;
+            patternNode.style.transform = rotation;
+            patternNode.style.transformOrigin = "center";
+            node.appendChild(patternNode);
+          }
+          const label = document.createElement("span");
+          label.className = "live-vvt-marker-label";
+          label.textContent = marker.label || "Forma";
+          node.appendChild(label);
+          return node;
+        }
 
         const pin = document.createElement("span");
         pin.className = "live-vvt-marker-pin";
