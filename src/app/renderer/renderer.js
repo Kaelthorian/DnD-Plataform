@@ -18,6 +18,7 @@
     };
     const t = (key, params) => playerI18n.t(key, params);
     const translateDynamicText = (key, fallback, params) => playerI18n.translateDynamicText(key, fallback, params);
+    let latestUpdaterState = null;
 
     const app = document.getElementById("app");
     const loading = document.getElementById("loading");
@@ -34,6 +35,7 @@
     const liveSheetClientButton = document.getElementById("liveSheetClientButton");
     const generateSheetCodeButton = document.getElementById("generateSheetCodeButton");
     const checkUpdatesButton = document.getElementById("checkUpdatesButton");
+    const downloadReleaseVersion = document.getElementById("downloadReleaseVersion");
     const downloadReleaseText = document.getElementById("downloadReleaseText");
     const downloadReleaseButton = document.getElementById("downloadReleaseButton");
     const saveSlotControl = document.getElementById("saveSlotControl");
@@ -1504,6 +1506,7 @@
       if (typeof renderAlertsPanel === "function") renderAlertsPanel();
       if (typeof updateEquipmentPanel === "function") updateEquipmentPanel();
       if (typeof updatePreparedSpellsPanel === "function") updatePreparedSpellsPanel();
+      if (latestUpdaterState) renderUpdaterState(latestUpdaterState);
     }
 
     window.addEventListener("dnd:i18n:languagechange", refreshTranslatedUi);
@@ -1577,7 +1580,24 @@
       return version ? ` ${version}` : "";
     }
 
+    function renderCurrentVersion(state = {}) {
+      if (!downloadReleaseVersion) return;
+      const currentVersion = state.currentVersion || "";
+      if (!currentVersion) {
+        downloadReleaseVersion.textContent = "";
+        downloadReleaseVersion.hidden = true;
+        return;
+      }
+
+      downloadReleaseVersion.hidden = false;
+      downloadReleaseVersion.textContent = updateReleaseText("release.currentVersion", "Installed: {version}", { version: currentVersion });
+    }
+
     function renderUpdaterState(state = {}) {
+      if (!state.currentVersion && latestUpdaterState?.currentVersion) {
+        state = { ...state, currentVersion: latestUpdaterState.currentVersion };
+      }
+      latestUpdaterState = state;
       const updater = desktopStore?.updater;
       if (!downloadReleaseText || !downloadReleaseButton) return;
       if (!updater || state.status === "unavailable") {
@@ -1587,6 +1607,7 @@
       }
 
       downloadReleaseText.closest(".download-release")?.removeAttribute("hidden");
+      renderCurrentVersion(state);
       downloadReleaseButton.dataset.updaterAction = "check";
       downloadReleaseButton.disabled = false;
       if (checkUpdatesButton) checkUpdatesButton.disabled = state.status === "checking" || state.status === "downloading";
