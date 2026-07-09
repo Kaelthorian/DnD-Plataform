@@ -1,6 +1,7 @@
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
+const vm = require("vm");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const CLASS_DIR = path.join(ROOT, "vendor", "5etools-src-main", "data", "class");
@@ -84,6 +85,33 @@ function loadClass(slug) {
 
 function stripTags(value) {
   return String(value || "").replace(/\{@[^}]+ ([^}|]+)(?:\|[^}]*)?}/g, "$1");
+}
+
+function flattenForTest(entry) {
+  if (typeof entry === "string") return stripTags(entry);
+  if (Array.isArray(entry)) return entry.map(flattenForTest).filter(Boolean).join(" ");
+  if (!entry || typeof entry !== "object") return "";
+  return [entry.name ? `${entry.name}.` : "", flattenForTest(entry.entries), flattenForTest(entry.items)]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function extractRendererFunction(name) {
+  const start = RENDERER.indexOf(`function ${name}(`);
+  assert.ok(start >= 0, `renderer defines ${name}`);
+  let depth = 0;
+  let seenBody = false;
+  for (let index = start; index < RENDERER.length; index += 1) {
+    const char = RENDERER[index];
+    if (char === "{") {
+      depth += 1;
+      seenBody = true;
+    } else if (char === "}") {
+      depth -= 1;
+      if (seenBody && depth === 0) return RENDERER.slice(start, index + 1);
+    }
+  }
+  assert.fail(`could not extract ${name}`);
 }
 
 function tableColumnValues(classItem, label, count = 3) {
@@ -171,5 +199,43 @@ assert.ok(/function preparedSpellsProgressionForCharacter\(\)/.test(RENDERER), "
 assert.ok(!/className !== "paladin"/.test(RENDERER), "prepared spell alerts are not Paladin-only");
 assert.ok(/"second wind", "favored enemy"/.test(RENDERER), "renderer tracks class-table resource uses for Fighter and Ranger");
 assert.ok(/once\|twice\|thrice/.test(RENDERER), "renderer parses multi-use free spell casts");
+
+{
+  const { file } = loadClass("paladin");
+  const genieSplendor = (file.subclassFeature || []).find((feature) => feature.name === "Genie's Splendor");
+  assert.ok(genieSplendor, "Paladin Noble Genies has Genie's Splendor");
+  assert.ok(/base Armor Class equals 10 plus your Dexterity and Charisma modifiers/.test(flattenForTest(genieSplendor.entries)), "Genie's Splendor uses DEX plus CHA for unarmored AC");
+
+  const source = extractRendererFunction("baseArmorClassCandidatesFromFeatures");
+  let featureEntries = [{
+    title: "Genie's Splendor",
+    description: "When you aren't wearing any armor, your base Armor Class equals 10 plus your Dexterity and Charisma modifiers. You can use a Shield and still gain this benefit."
+  }];
+  const context = {
+    featureEffectEntries: () => featureEntries,
+    isArmorItem: (item) => Boolean(item?.armor),
+    abilityModifierByName: (name) => ({ strength: 0, str: 0, intelligence: 0, int: 0 }[String(name || "").toLowerCase()] ?? null)
+  };
+  vm.runInNewContext(source, context);
+  const plain = (value) => JSON.parse(JSON.stringify(value));
+
+  assert.deepStrictEqual(
+    plain(context.baseArmorClassCandidatesFromFeatures(2, 1, 0, 3, null)),
+    [{ ac: 15, allowsShield: true }],
+    "Genie's Splendor calculates 10 + DEX + CHA while unarmored"
+  );
+  assert.deepStrictEqual(
+    plain(context.baseArmorClassCandidatesFromFeatures(2, 1, 0, 3, { armor: true })),
+    [],
+    "Genie's Splendor does not apply while wearing armor"
+  );
+
+  featureEntries = [{ title: "Natural Defense", description: "Your base AC is 13 + your Dexterity modifier." }];
+  assert.deepStrictEqual(
+    plain(context.baseArmorClassCandidatesFromFeatures(2, 1, 0, 3, null)),
+    [{ ac: 15, allowsShield: true }],
+    "feature AC parser still handles single-modifier formulas"
+  );
+}
 
 console.log("class-level3-mechanics.test.js passed");
