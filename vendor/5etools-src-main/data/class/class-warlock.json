@@ -400,220 +400,6 @@
 	],
 	"subclass": [
 		{
-			"name": "The Undying",
-			"shortName": "Undying",
-			"source": "SCAG",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"_copy": {
-				"name": "The Undying",
-				"source": "SCAG",
-				"shortName": "Undying",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"_preserve": {
-					"page": true,
-					"otherSources": true,
-					"referenceSources": true,
-					"srd": true,
-					"basicRules": true,
-					"reprintedAs": true
-				}
-			},
-			"subclassFeatures": [
-				"The Undying|Warlock|XPHB|Undying|SCAG|3",
-				"Defy Death|Warlock||Undying|SCAG|6",
-				"Undying Nature|Warlock||Undying|SCAG|10",
-				"Indestructible Life|Warlock||Undying|SCAG|14"
-			]
-		},
-		{
-			"name": "The Celestial",
-			"shortName": "Celestial",
-			"source": "XGE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"_copy": {
-				"name": "The Celestial",
-				"source": "XGE",
-				"shortName": "Celestial",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"_preserve": {
-					"page": true,
-					"otherSources": true,
-					"referenceSources": true,
-					"srd": true,
-					"basicRules": true,
-					"reprintedAs": true
-				}
-			},
-			"subclassFeatures": [
-				"The Celestial|Warlock|XPHB|Celestial|XGE|3",
-				"Radiant Soul|Warlock||Celestial|XGE|6",
-				"Celestial Resilience|Warlock||Celestial|XGE|10",
-				"Searing Vengeance|Warlock||Celestial|XGE|14"
-			],
-			"fluff": {
-				"_subclassFluff": {
-					"name": "The Celestial",
-					"source": "XGE",
-					"shortName": "Celestial",
-					"className": "Warlock",
-					"classSource": "XPHB"
-				}
-			}
-		},
-		{
-			"name": "The Hexblade",
-			"shortName": "Hexblade",
-			"source": "XGE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"_copy": {
-				"name": "The Hexblade",
-				"source": "XGE",
-				"shortName": "Hexblade",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"_preserve": {
-					"page": true,
-					"otherSources": true,
-					"referenceSources": true,
-					"srd": true,
-					"basicRules": true,
-					"reprintedAs": true
-				}
-			},
-			"subclassFeatures": [
-				"The Hexblade|Warlock|XPHB|Hexblade|XGE|3",
-				"Accursed Specter|Warlock||Hexblade|XGE|6",
-				"Armor of Hexes|Warlock||Hexblade|XGE|10",
-				"Master of Hexes|Warlock||Hexblade|XGE|14"
-			],
-			"fluff": {
-				"_subclassFluff": {
-					"name": "The Hexblade",
-					"source": "XGE",
-					"shortName": "Hexblade",
-					"className": "Warlock",
-					"classSource": "XPHB"
-				}
-			}
-		},
-		{
-			"name": "The Fathomless",
-			"shortName": "Fathomless",
-			"source": "TCE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"_copy": {
-				"name": "The Fathomless",
-				"source": "TCE",
-				"shortName": "Fathomless",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"_preserve": {
-					"page": true,
-					"otherSources": true,
-					"referenceSources": true,
-					"srd": true,
-					"basicRules": true,
-					"reprintedAs": true
-				}
-			},
-			"subclassFeatures": [
-				"The Fathomless|Warlock|XPHB|Fathomless|TCE|3",
-				"Oceanic Soul|Warlock||Fathomless|TCE|6",
-				"Guardian Coil|Warlock||Fathomless|TCE|6",
-				"Grasping Tentacles|Warlock||Fathomless|TCE|10",
-				"Fathomless Plunge|Warlock||Fathomless|TCE|14"
-			],
-			"fluff": {
-				"_subclassFluff": {
-					"name": "The Fathomless",
-					"source": "TCE",
-					"shortName": "Fathomless",
-					"className": "Warlock",
-					"classSource": "XPHB"
-				}
-			}
-		},
-		{
-			"name": "The Genie",
-			"shortName": "Genie",
-			"source": "TCE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"_copy": {
-				"name": "The Genie",
-				"source": "TCE",
-				"shortName": "Genie",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"_preserve": {
-					"page": true,
-					"otherSources": true,
-					"referenceSources": true,
-					"srd": true,
-					"basicRules": true,
-					"reprintedAs": true
-				}
-			},
-			"subclassFeatures": [
-				"The Genie|Warlock|XPHB|Genie|TCE|3",
-				"Elemental Gift|Warlock||Genie|TCE|6",
-				"Sanctuary Vessel|Warlock||Genie|TCE|10",
-				"Limited Wish|Warlock||Genie|TCE|14"
-			],
-			"fluff": {
-				"_subclassFluff": {
-					"name": "The Genie",
-					"source": "TCE",
-					"shortName": "Genie",
-					"className": "Warlock",
-					"classSource": "XPHB"
-				}
-			}
-		},
-		{
-			"name": "The Undead",
-			"shortName": "Undead",
-			"source": "VRGR",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"_copy": {
-				"name": "The Undead",
-				"source": "VRGR",
-				"shortName": "Undead",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"_preserve": {
-					"page": true,
-					"otherSources": true,
-					"referenceSources": true,
-					"srd": true,
-					"basicRules": true,
-					"reprintedAs": true
-				}
-			},
-			"subclassFeatures": [
-				"The Undead|Warlock|XPHB|Undead|VRGR|3",
-				"Grave Touched|Warlock||Undead|VRGR|6",
-				"Necrotic Husk|Warlock||Undead|VRGR|10",
-				"Spirit Projection|Warlock||Undead|VRGR|14"
-			],
-			"fluff": {
-				"_subclassFluff": {
-					"name": "The Undead",
-					"source": "VRGR",
-					"shortName": "Undead",
-					"className": "Warlock",
-					"classSource": "XPHB"
-				}
-			}
-		},
-		{
 			"name": "Archfey Patron",
 			"shortName": "Archfey",
 			"source": "XPHB",
@@ -655,13 +441,13 @@
 					}
 				}
 			],
+			"hasFluffImages": true,
 			"subclassFeatures": [
 				"Archfey Patron|Warlock|XPHB|Archfey|XPHB|3",
 				"Misty Escape|Warlock|XPHB|Archfey|XPHB|6",
 				"Beguiling Defenses|Warlock|XPHB|Archfey|XPHB|10",
 				"Bewitching Magic|Warlock|XPHB|Archfey|XPHB|14"
-			],
-			"hasFluffImages": true
+			]
 		},
 		{
 			"name": "Celestial Patron",
@@ -701,13 +487,27 @@
 					}
 				}
 			],
+			"hasFluffImages": true,
 			"subclassFeatures": [
 				"Celestial Patron|Warlock|XPHB|Celestial|XPHB|3",
 				"Radiant Soul|Warlock|XPHB|Celestial|XPHB|6",
 				"Celestial Resilience|Warlock|XPHB|Celestial|XPHB|10",
 				"Searing Vengeance|Warlock|XPHB|Celestial|XPHB|14"
-			],
-			"hasFluffImages": true
+			]
+		},
+		{
+			"name": "Cosmic Patron",
+			"shortName": "Cosmic",
+			"source": "SCGtD",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 173,
+			"subclassFeatures": [
+				"Cosmic Patron|Warlock|XPHB|Cosmic|SCGtD|3",
+				"Orbit|Warlock|XPHB|Cosmic|SCGtD|6",
+				"Meteoric Impact|Warlock|XPHB|Cosmic|SCGtD|10",
+				"Supernova|Warlock|XPHB|Cosmic|SCGtD|14"
+			]
 		},
 		{
 			"name": "Fiend Patron",
@@ -716,8 +516,6 @@
 			"className": "Warlock",
 			"classSource": "XPHB",
 			"page": 161,
-			"srd52": true,
-			"basicRules2024": true,
 			"edition": "one",
 			"additionalSpells": [
 				{
@@ -743,13 +541,54 @@
 					}
 				}
 			],
+			"hasFluffImages": true,
 			"subclassFeatures": [
 				"Fiend Patron|Warlock|XPHB|Fiend|XPHB|3",
 				"Dark One's Own Luck|Warlock|XPHB|Fiend|XPHB|6",
 				"Fiendish Resilience|Warlock|XPHB|Fiend|XPHB|10",
 				"Hurl Through Hell|Warlock|XPHB|Fiend|XPHB|14"
-			],
-			"hasFluffImages": true
+			]
+		},
+		{
+			"name": "Flesh Patron",
+			"shortName": "Flesh",
+			"source": "SCGtD",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 174,
+			"subclassFeatures": [
+				"Flesh Patron|Warlock|XPHB|Flesh|SCGtD|3",
+				"Body Modification|Warlock|XPHB|Flesh|SCGtD|6",
+				"Physiological Mastery|Warlock|XPHB|Flesh|SCGtD|10",
+				"Unfathomable Horror|Warlock|XPHB|Flesh|SCGtD|14"
+			]
+		},
+		{
+			"name": "Future You Patron",
+			"shortName": "Future You",
+			"source": "VSS:PP",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassFeatures": [
+				"Future You Patron|Warlock|XPHB|Future You|VSS:PP|3",
+				"I Could Do With Fewer Scars|Warlock|XPHB|Future You|VSS:PP|6",
+				"Expect an Ambush|Warlock|XPHB|Future You|VSS:PP|10",
+				"Grandfather Paradox|Warlock|XPHB|Future You|VSS:PP|14"
+			]
+		},
+		{
+			"name": "Great Fool Patron",
+			"shortName": "Great Fool",
+			"source": "TCM'24",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 90,
+			"subclassFeatures": [
+				"Great Fool Patron|Warlock|XPHB|Great Fool|TCM'24|3",
+				"Jester's Japes|Warlock|XPHB|Great Fool|TCM'24|6",
+				"Mocking Banter|Warlock|XPHB|Great Fool|TCM'24|10",
+				"Send in the Clowns|Warlock|XPHB|Great Fool|TCM'24|14"
+			]
 		},
 		{
 			"name": "Great Old One Patron",
@@ -788,14 +627,236 @@
 					}
 				}
 			],
+			"hasFluffImages": true,
 			"subclassFeatures": [
 				"Great Old One Patron|Warlock|XPHB|Great Old One|XPHB|3",
 				"Clairvoyant Combatant|Warlock|XPHB|Great Old One|XPHB|6",
 				"Eldritch Hex|Warlock|XPHB|Great Old One|XPHB|10",
 				"Thought Shield|Warlock|XPHB|Great Old One|XPHB|10",
 				"Create Thrall|Warlock|XPHB|Great Old One|XPHB|14"
-			],
-			"hasFluffImages": true
+			]
+		},
+		{
+			"name": "Horned King Patron",
+			"shortName": "Horned King",
+			"source": "TCM'24",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 92,
+			"subclassFeatures": [
+				"Horned King Patron|Warlock|XPHB|Horned King|TCM'24|3",
+				"Spiteful Curse|Warlock|XPHB|Horned King|TCM'24|6",
+				"Crown of Horns|Warlock|XPHB|Horned King|TCM'24|10",
+				"Gather the Coven|Warlock|XPHB|Horned King|TCM'24|14"
+			]
+		},
+		{
+			"name": "Mother of Sorrows",
+			"shortName": "Mother of Sorrows",
+			"source": "BoET",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassFeatures": [
+				"Mother of Sorrows|Warlock|XPHB|Mother of Sorrows|BoET|3",
+				"Sickening Revenge|Warlock|XPHB|Mother of Sorrows|BoET|6",
+				"Dark Inoculation|Warlock|XPHB|Mother of Sorrows|BoET|10",
+				"Touch of Sorrow|Warlock|XPHB|Mother of Sorrows|BoET|14"
+			]
+		},
+		{
+			"name": "Stone Sovereign Patron",
+			"shortName": "Stone Sovereign",
+			"source": "FoEQ",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 154,
+			"subclassFeatures": [
+				"Stone Sovereign Patron|Warlock|XPHB|Stone Sovereign|FoEQ|3",
+				"Form of Stone|Warlock|XPHB|Stone Sovereign|FoEQ|6",
+				"Stone's Embrace|Warlock|XPHB|Stone Sovereign|FoEQ|10",
+				"Stone Servant|Warlock|XPHB|Stone Sovereign|FoEQ|14"
+			]
+		},
+		{
+			"name": "The Coven",
+			"shortName": "Coven",
+			"source": "GH:PG'24",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 98,
+			"subclassFeatures": [
+				"The Coven|Warlock|XPHB|Coven|GH:PG'24|3",
+				"Hag's Guile|Warlock|XPHB|Coven|GH:PG'24|6",
+				"Hag's Visage|Warlock|XPHB|Coven|GH:PG'24|10",
+				"Hag's Craft|Warlock|XPHB|Coven|GH:PG'24|14"
+			]
+		},
+		{
+			"name": "The Fathomless",
+			"shortName": "Fathomless",
+			"source": "TCE",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 72,
+			"fluff": {
+				"_subclassFluff": {
+					"name": "The Fathomless",
+					"source": "TCE",
+					"shortName": "Fathomless",
+					"className": "Warlock",
+					"classSource": "XPHB"
+				}
+			},
+			"subclassFeatures": [
+				"The Fathomless|Warlock|XPHB|Fathomless|TCE|3",
+				"Guardian Coil|Warlock|XPHB|Fathomless|TCE|6",
+				"Oceanic Soul|Warlock|XPHB|Fathomless|TCE|6",
+				"Grasping Tentacles|Warlock|XPHB|Fathomless|TCE|10",
+				"Fathomless Plunge|Warlock|XPHB|Fathomless|TCE|14"
+			]
+		},
+		{
+			"name": "The First Vampire Patron",
+			"shortName": "First Vampire",
+			"source": "GH:PG'24",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 99,
+			"subclassFeatures": [
+				"The First Vampire Patron|Warlock|XPHB|First Vampire|GH:PG'24|3",
+				"Creature of the Night|Warlock|XPHB|First Vampire|GH:PG'24|6",
+				"Eldritch Appetite|Warlock|XPHB|First Vampire|GH:PG'24|10",
+				"Eternal Night|Warlock|XPHB|First Vampire|GH:PG'24|14"
+			]
+		},
+		{
+			"name": "The Genie",
+			"shortName": "Genie",
+			"source": "TCE",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 73,
+			"fluff": {
+				"_subclassFluff": {
+					"name": "The Genie",
+					"source": "TCE",
+					"shortName": "Genie",
+					"className": "Warlock",
+					"classSource": "XPHB"
+				}
+			},
+			"subclassFeatures": [
+				"The Genie|Warlock|XPHB|Genie|TCE|3",
+				"Elemental Gift|Warlock|XPHB|Genie|TCE|6",
+				"Sanctuary Vessel|Warlock|XPHB|Genie|TCE|10",
+				"Limited Wish|Warlock|XPHB|Genie|TCE|14"
+			]
+		},
+		{
+			"name": "The Hexblade",
+			"shortName": "Hexblade",
+			"source": "XGE",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 55,
+			"fluff": {
+				"_subclassFluff": {
+					"name": "The Hexblade",
+					"source": "XGE",
+					"shortName": "Hexblade",
+					"className": "Warlock",
+					"classSource": "XPHB"
+				}
+			},
+			"subclassFeatures": [
+				"The Hexblade|Warlock|XPHB|Hexblade|XGE|3",
+				"Accursed Specter|Warlock|XPHB|Hexblade|XGE|6",
+				"Armor of Hexes|Warlock|XPHB|Hexblade|XGE|10",
+				"Master of Hexes|Warlock|XPHB|Hexblade|XGE|14"
+			]
+		},
+		{
+			"name": "The Many",
+			"shortName": "Many",
+			"source": "TGS2",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 226,
+			"subclassFeatures": [
+				"The Many|Warlock|XPHB|Many|TGS2|3",
+				"Improved Eldritch Heads|Warlock|XPHB|Many|TGS2|6",
+				"Groupthink|Warlock|XPHB|Many|TGS2|10",
+				"Eldritch Frenzy|Warlock|XPHB|Many|TGS2|14"
+			]
+		},
+		{
+			"name": "The Parasite",
+			"shortName": "Parasite",
+			"source": "HGtMH",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassFeatures": [
+				"The Parasite|Warlock|XPHB|Parasite|HGtMH|3",
+				"Birth Parasite|Warlock|XPHB|Parasite|HGtMH|6",
+				"Liquefied Body|Warlock|XPHB|Parasite|HGtMH|6",
+				"Transmit Parasite|Warlock|XPHB|Parasite|HGtMH|10",
+				"Virulent Form|Warlock|XPHB|Parasite|HGtMH|14"
+			]
+		},
+		{
+			"name": "The Parasite Patron",
+			"shortName": "Parasite Patron",
+			"source": "GH:PG'24",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 100,
+			"subclassFeatures": [
+				"The Parasite Patron|Warlock|XPHB|Parasite Patron|GH:PG'24|3",
+				"Symbiotic Sentinel|Warlock|XPHB|Parasite Patron|GH:PG'24|6",
+				"Spawn Pawn|Warlock|XPHB|Parasite Patron|GH:PG'24|10",
+				"Larval Regeneration|Warlock|XPHB|Parasite Patron|GH:PG'24|14"
+			]
+		},
+		{
+			"name": "The Predator",
+			"shortName": "Predator",
+			"source": "HWT",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 174,
+			"subclassFeatures": [
+				"The Predator|Warlock|XPHB|Predator|HWT|3",
+				"Thrill of the Hunt|Warlock|XPHB|Predator|HWT|6",
+				"Fearsome Presence|Warlock|XPHB|Predator|HWT|10",
+				"Uncaged Beast|Warlock|XPHB|Predator|HWT|14"
+			]
+		},
+		{
+			"name": "The Undying",
+			"shortName": "Undying",
+			"source": "SCAG",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"page": 139,
+			"subclassFeatures": [
+				"The Undying|Warlock|XPHB|Undying|SCAG|3",
+				"Defy Death|Warlock|XPHB|Undying|SCAG|6",
+				"Undying Nature|Warlock|XPHB|Undying|SCAG|10",
+				"Indestructible Life|Warlock|XPHB|Undying|SCAG|14"
+			]
+		},
+		{
+			"name": "Undead Patron",
+			"shortName": "Undead",
+			"source": "RHW",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassFeatures": [
+				"Undead Patron|Warlock|XPHB|Undead|RHW|3",
+				"Grave Touched|Warlock|XPHB|Undead|RHW|6",
+				"Necrotic Husk|Warlock|XPHB|Undead|RHW|10",
+				"Superior Dread|Warlock|XPHB|Undead|RHW|14"
+			]
 		}
 	],
 	"classFeature": [
@@ -1332,132 +1393,6 @@
 	],
 	"subclassFeature": [
 		{
-			"name": "The Undying",
-			"source": "SCAG",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Undying",
-			"subclassSource": "SCAG",
-			"level": 3,
-			"_copy": {
-				"name": "The Undying",
-				"source": "SCAG",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"subclassShortName": "Undying",
-				"subclassSource": "SCAG",
-				"level": 1,
-				"_preserve": {
-					"page": true
-				}
-			}
-		},
-		{
-			"name": "The Fathomless",
-			"source": "TCE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Fathomless",
-			"subclassSource": "TCE",
-			"level": 3,
-			"_copy": {
-				"name": "The Fathomless",
-				"source": "TCE",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"subclassShortName": "Fathomless",
-				"subclassSource": "TCE",
-				"level": 1,
-				"_preserve": {
-					"page": true
-				}
-			}
-		},
-		{
-			"name": "The Genie",
-			"source": "TCE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Genie",
-			"subclassSource": "TCE",
-			"level": 3,
-			"_copy": {
-				"name": "The Genie",
-				"source": "TCE",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"subclassShortName": "Genie",
-				"subclassSource": "TCE",
-				"level": 1,
-				"_preserve": {
-					"page": true
-				}
-			}
-		},
-		{
-			"name": "The Undead",
-			"source": "VRGR",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Undead",
-			"subclassSource": "VRGR",
-			"level": 3,
-			"_copy": {
-				"name": "The Undead",
-				"source": "VRGR",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"subclassShortName": "Undead",
-				"subclassSource": "VRGR",
-				"level": 1,
-				"_preserve": {
-					"page": true
-				}
-			}
-		},
-		{
-			"name": "The Celestial",
-			"source": "XGE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Celestial",
-			"subclassSource": "XGE",
-			"level": 3,
-			"_copy": {
-				"name": "The Celestial",
-				"source": "XGE",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"subclassShortName": "Celestial",
-				"subclassSource": "XGE",
-				"level": 1,
-				"_preserve": {
-					"page": true
-				}
-			}
-		},
-		{
-			"name": "The Hexblade",
-			"source": "XGE",
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Hexblade",
-			"subclassSource": "XGE",
-			"level": 3,
-			"_copy": {
-				"name": "The Hexblade",
-				"source": "XGE",
-				"className": "Warlock",
-				"classSource": "XPHB",
-				"subclassShortName": "Hexblade",
-				"subclassSource": "XGE",
-				"level": 1,
-				"_preserve": {
-					"page": true
-				}
-			}
-		},
-		{
 			"name": "Archfey Patron",
 			"source": "XPHB",
 			"page": 159,
@@ -1467,94 +1402,18 @@
 			"subclassSource": "XPHB",
 			"level": 3,
 			"entries": [
-				"{@i Bargain with Whimsical Fey}",
-				"Your pact draws on the power of the Feywild. When you choose this subclass, you might make a deal with an archfey, such as the Prince of Frost; the Queen of Air and Darkness, ruler of the Gloaming Court; Titania of the Summer Court; or an ancient hag. Or you might call on a spectrum of Fey, weaving a web of favors and debts. Whoever they are, your patron is often inscrutable and whimsical.",
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Archfey Spells|Warlock|XPHB|Archfey|XPHB|3"
-				},
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Steps of the Fey|Warlock|XPHB|Archfey|XPHB|3"
-				}
-			]
-		},
-		{
-			"name": "Archfey Spells",
-			"source": "XPHB",
-			"page": 159,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Archfey",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 1,
-			"entries": [
-				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Archfey Spells table, you thereafter always have the listed spells prepared.",
-				{
-					"type": "table",
-					"caption": "Archfey Spells",
-					"colLabels": [
-						"Warlock Level",
-						"Spells"
-					],
-					"colStyles": [
-						"col-2 text-center",
-						"col-10"
-					],
-					"rows": [
-						[
-							"3",
-							"{@spell Calm Emotions|XPHB}, {@spell Faerie Fire|XPHB}, {@spell Misty Step|XPHB}, {@spell Phantasmal Force|XPHB}, {@spell Sleep|XPHB}"
-						],
-						[
-							"5",
-							"{@spell Blink|XPHB}, {@spell Plant Growth|XPHB}"
-						],
-						[
-							"7",
-							"{@spell Dominate Beast|XPHB}, {@spell Greater Invisibility|XPHB}"
-						],
-						[
-							"9",
-							"{@spell Dominate Person|XPHB}, {@spell Seeming|XPHB}"
-						]
-					]
-				}
-			]
-		},
-		{
-			"name": "Steps of the Fey",
-			"source": "XPHB",
-			"page": 159,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Archfey",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 1,
-			"entries": [
-				"Your patron grants you the ability to move between the boundaries of the planes. You can cast {@spell Misty Step|XPHB} without expending a spell slot a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a {@variantrule Long Rest|XPHB}.",
+				"Bargain with Whimsical Fey",
+				"Your pact draws on the power of the Feywild. When you choose this subclass, you might make a deal with an archfey, such as the Prince of Frost; the Queen of Air and Darkness, ruler of the Gloaming Court; Titania of the Summer Court; or an ancient hag. Or you might call on a spectrum of Fey, weaving a web of favors and debts. Whoever they are, your patron is often inscrutable and whimsical. Level 3: Archfey Spells PHB'24 p159",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Archfey Spells table, you thereafter always have the listed spells prepared. Archfey SpellsWarlock Level Spells",
+				"3\tCalm Emotions, Faerie Fire, Misty Step, Phantasmal Force, Sleep",
+				"5\tBlink, Plant Growth",
+				"7\tDominate Beast, Greater Invisibility",
+				"9\tDominate Person, Seeming",
+				"Level 3: Steps of the Fey PHB'24 p159",
+				"Your patron grants you the ability to move between the boundaries of the planes. You can cast Misty Step without expending a spell slot a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.",
 				"In addition, whenever you cast that spell, you can choose one of the following additional effects.",
-				{
-					"type": "entries",
-					"entries": [
-						{
-							"type": "entries",
-							"name": "Refreshing Step",
-							"entries": [
-								"Immediately after you teleport, you or one creature you can see within 10 feet of yourself gains {@dice 1d10} {@variantrule Temporary Hit Points|XPHB}."
-							]
-						},
-						{
-							"type": "entries",
-							"name": "Taunting Step",
-							"entries": [
-								"Creatures within 5 feet of the space you left must succeed on a Wisdom saving throw against your spell save DC or have {@variantrule Disadvantage|XPHB} on attack rolls against creatures other than you until the start of your next turn."
-							]
-						}
-					]
-				}
+				"Refreshing Step. Immediately after you teleport, you or one creature you can see within 10 feet of yourself gains 1d10 Temporary Hit Points.",
+				"Taunting Step. Creatures within 5 feet of the space you left must succeed on a Wisdom saving throw against your spell save DC or have Disadvantage on attack rolls against creatures other than you until the start of your next turn."
 			]
 		},
 		{
@@ -1568,27 +1427,10 @@
 			"level": 6,
 			"header": 2,
 			"entries": [
-				"You can cast {@spell Misty Step|XPHB} as a {@variantrule Reaction|XPHB} in response to taking damage.",
+				"You can cast Misty Step as a Reaction in response to taking damage.",
 				"In addition, the following effects are now among your Steps of the Fey options.",
-				{
-					"type": "entries",
-					"entries": [
-						{
-							"type": "entries",
-							"name": "Disappearing Step",
-							"entries": [
-								"You have the {@condition Invisible|XPHB} condition until the start of your next turn or until immediately after you make an attack roll, deal damage, or cast a spell."
-							]
-						},
-						{
-							"type": "entries",
-							"name": "Dreadful Step",
-							"entries": [
-								"Creatures within 5 feet of the space you left or the space you appear in (your choice) must succeed on a Wisdom saving throw against your spell save DC or take {@damage 2d10} Psychic damage."
-							]
-						}
-					]
-				}
+				"Disappearing Step. You have the Invisible condition until the start of your next turn or until immediately after you make an attack roll, deal damage, or cast a spell.",
+				"Dreadful Step. Creatures within 5 feet of the space you left or the space you appear in (your choice) must succeed on a Wisdom saving throw against your spell save DC or take 2d10 Psychic damage."
 			]
 		},
 		{
@@ -1602,8 +1444,8 @@
 			"level": 10,
 			"header": 2,
 			"entries": [
-				"Your patron teaches you how to guard your mind and body. You are immune to the {@condition Charmed|XPHB} condition.",
-				"In addition, immediately after a creature you can see hits you with an attack roll, you can take a {@variantrule Reaction|XPHB} to reduce the damage you take by half (round down), and you can force the attacker to make a Wisdom saving throw against your spell save DC. On a failed save, the attacker takes Psychic damage equal to the damage you take. Once you use this {@variantrule Reaction|XPHB}, you can't use it again until you finish a {@variantrule Long Rest|XPHB} unless you expend a Pact Magic spell slot (no action required) to restore your use of it."
+				"Your patron teaches you how to guard your mind and body. You are immune to the Charmed condition.",
+				"In addition, immediately after a creature you can see hits you with an attack roll, you can take a Reaction to reduce the damage you take by half (round down), and you can force the attacker to make a Wisdom saving throw against your spell save DC. On a failed save, the attacker takes Psychic damage equal to the damage you take. Once you use this Reaction, you can't use it again until you finish a Long Rest unless you expend a Pact Magic spell slot (no action required) to restore your use of it."
 			]
 		},
 		{
@@ -1617,7 +1459,7 @@
 			"level": 14,
 			"header": 2,
 			"entries": [
-				"Your patron grants you the ability to weave your magic with teleportation. Immediately after you cast an Enchantment or Illusion spell using an action and a spell slot, you can cast {@spell Misty Step|XPHB} as part of the same action and without expending a spell slot."
+				"Your patron grants you the ability to weave your magic with teleportation. Immediately after you cast an Enchantment or Illusion spell using an action and a spell slot, you can cast Misty Step as part of the same action and without expending a spell slot."
 			]
 		},
 		{
@@ -1630,75 +1472,16 @@
 			"subclassSource": "XPHB",
 			"level": 3,
 			"entries": [
-				"{@i Call on the Power of the Heavens}",
-				"Your pact draws on the Upper Planes, the realms of everlasting bliss. You might enter an agreement with an empyrean, a couatl, a sphinx, a unicorn, or another heavenly entity. Or you might call on numerous such beings as you pursue goals aligned with theirs. Your pact allows you to experience a hint of the holy light that illuminates the multiverse.",
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Celestial Spells|Warlock|XPHB|Celestial|XPHB|3"
-				},
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Healing Light|Warlock|XPHB|Celestial|XPHB|3"
-				}
-			]
-		},
-		{
-			"name": "Celestial Spells",
-			"source": "XPHB",
-			"page": 160,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Celestial",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 1,
-			"entries": [
-				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Celestial Spells table, you thereafter always have the listed spells prepared.",
-				{
-					"type": "table",
-					"caption": "Celestial Spells",
-					"colLabels": [
-						"Warlock Level",
-						"Spells"
-					],
-					"colStyles": [
-						"col-2 text-center",
-						"col-10"
-					],
-					"rows": [
-						[
-							"3",
-							"{@spell Aid|XPHB}, {@spell Cure Wounds|XPHB}, {@spell Guiding Bolt|XPHB}, {@spell Lesser Restoration|XPHB}, {@spell Light|XPHB}, {@spell Sacred Flame|XPHB}"
-						],
-						[
-							"5",
-							"{@spell Daylight|XPHB}, {@spell Revivify|XPHB}"
-						],
-						[
-							"7",
-							"{@spell Guardian of Faith|XPHB}, {@spell Wall of Fire|XPHB}"
-						],
-						[
-							"9",
-							"{@spell Greater Restoration|XPHB}, {@spell Summon Celestial|XPHB}"
-						]
-					]
-				}
-			]
-		},
-		{
-			"name": "Healing Light",
-			"source": "XPHB",
-			"page": 160,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Celestial",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 1,
-			"entries": [
+				"Call on the Power of the Heavens",
+				"Your pact draws on the Upper Planes, the realms of everlasting bliss. You might enter an agreement with an empyrean, a couatl, a sphinx, a unicorn, or another heavenly entity. Or you might call on numerous such beings as you pursue goals aligned with theirs. Your pact allows you to experience a hint of the holy light that illuminates the multiverse. Level 3: Celestial Spells PHB'24 p160",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Celestial Spells table, you thereafter always have the listed spells prepared. Celestial SpellsWarlock Level Spells",
+				"3\tAid, Cure Wounds, Guiding Bolt, Lesser Restoration, Light, Sacred Flame",
+				"5\tDaylight, Revivify",
+				"7\tGuardian of Faith, Wall of Fire",
+				"9\tGreater Restoration, Summon Celestial",
+				"Level 3: Healing Light PHB'24 p160",
 				"You gain the ability to channel celestial energy to heal wounds. You have a pool of d6s to fuel this healing. The number of dice in the pool equals 1 plus your Warlock level.",
-				"As a {@variantrule Bonus Action|XPHB}, you can heal yourself or one creature you can see within 60 feet of yourself, expending dice from the pool. The maximum number of dice you can expend at once equals your Charisma modifier (minimum of one die). Roll the dice you expend, and restore a number of {@variantrule Hit Points|XPHB} equal to the roll's total. Your pool regains all expended dice when you finish a {@variantrule Long Rest|XPHB}."
+				"As a Bonus Action, you can heal yourself or one creature you can see within 60 feet of yourself, expending dice from the pool. The maximum number of dice you can expend at once equals your Charisma modifier (minimum of one die). Roll the dice you expend, and restore a number of Hit Points equal to the roll's total. Your pool regains all expended dice when you finish a Long Rest."
 			]
 		},
 		{
@@ -1712,7 +1495,7 @@
 			"level": 6,
 			"header": 2,
 			"entries": [
-				"Your link to your patron allows you to serve as a conduit for radiant energy. You have {@variantrule Resistance|XPHB} to Radiant damage. Once per turn, when a spell you cast deals Radiant or Fire damage, you can add your Charisma modifier to that spell's damage against one of the spell's targets."
+				"Your link to your patron allows you to serve as a conduit for radiant energy. You have Resistance to Radiant damage. Once per turn, when a spell you cast deals Radiant or Fire damage, you can add your Charisma modifier to that spell's damage against one of the spell's targets."
 			]
 		},
 		{
@@ -1726,7 +1509,7 @@
 			"level": 10,
 			"header": 2,
 			"entries": [
-				"You gain {@variantrule Temporary Hit Points|XPHB} whenever you use your Magical Cunning feature or finish a {@variantrule Short Rest|XPHB|Short} or {@variantrule Long Rest|XPHB}. These {@variantrule Temporary Hit Points|XPHB} equal your Warlock level plus your Charisma modifier. Additionally, choose up to five creatures you can see when you gain the points. Those creatures each gain {@variantrule Temporary Hit Points|XPHB} equal to half your Warlock level plus your Charisma modifier."
+				"You gain Temporary Hit Points whenever you use your Magical Cunning feature or finish a Short or Long Rest. These Temporary Hit Points equal your Warlock level plus your Charisma modifier. Additionally, choose up to five creatures you can see when you gain the points. Those creatures each gain Temporary Hit Points equal to half your Warlock level plus your Charisma modifier."
 			]
 		},
 		{
@@ -1740,102 +1523,283 @@
 			"level": 14,
 			"header": 2,
 			"entries": [
-				"When you or an ally within 60 feet of you is about to make a {@variantrule Death Saving Throw|XPHB}, you can unleash radiant energy to save the creature. The creature regains {@variantrule Hit Points|XPHB} equal to half its {@variantrule Hit Points|XPHB|Hit Point} maximum and can end the {@condition Prone|XPHB} condition on itself. Each creature of your choice that is within 30 feet of the creature takes Radiant damage equal to {@dice 2d8} plus your Charisma modifier, and each has the {@condition Blinded|XPHB} condition until the end of the current turn.",
-				"Once you use this feature, you can't use it again until you finish a {@variantrule Long Rest|XPHB}."
+				"When you or an ally within 60 feet of you is about to make a Death Saving Throw, you can unleash radiant energy to save the creature. The creature regains Hit Points equal to half its Hit Point maximum and can end the Prone condition on itself. Each creature of your choice that is within 30 feet of the creature takes Radiant damage equal to 2d8 plus your Charisma modifier, and each has the Blinded condition until the end of the current turn.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Cosmic Patron",
+			"source": "SCGtD",
+			"page": 173,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Cosmic",
+			"subclassSource": "SCGtD",
+			"level": 3,
+			"entries": [
+				"Some warlocks gain their eldritch power from the very cosmos, answering to entities of space, the constellations, planets, and moons. A warlock swearing fealty to a Cosmic patron typically believes they speak to gods, or god-like beings, but these entities are shrouded in mystery, their appearance incomprehensible and horrible, and their divine power is bestowed into the warlock from the stars and galaxies beyond. Level 1: Expanded Spell List SCGtD p173",
+				"The Cosmos lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. Expanded Spell ListSpell Level Spell",
+				"1st\tmagic missile, faerie fire",
+				"2nd\tmoonbeam, scorching ray",
+				"3rd\tblink, spirit guardian",
+				"4th\tfire shield, wall of fire",
+				"5th\tflame strike, greater restoration",
+				"Level 1: Cosmic Attributes SCGtD p173",
+				"You take on an otherworldly cosmic appearance or essence. Choose one or more of the attributes listed below, decide your own, or roll randomly to determine how the cosmic powers bestowed into you take form. 1d6",
+				"1\tYour eyes become pools of inky black with small galaxies floating within them. To look into them is as if floating through the cosmos lost in the void of space.",
+				"2\tYour touch becomes cold as ice and your skin becomes pale. Some might think you undead or sickly. You appear as if you had died in the cold of space.",
+				"3\tYour voice has a slight echoing nature to it. As if there is more than one entity speaking through you. Your own voice is most prominent but when listening carefully one can make out a chorus of celestial voices speaking through you.",
+				"4\tYou give off a faint smell of ozone — acrid and sulfuric, as if lightning had just struck nearby. It seems unnatural and otherworldly.",
+				"5\tYou develop a third eye in the middle of your forehead that is unblinking, and seems to pierce into people's minds as it stares upon them.",
+				"6\tYour veins glow with a soft radiant light, giving you the appearance of a walking constellation of stars and cosmic energy.",
+				"Level 1: Shooting Stars SCGtD p173",
+				"Beginning at first level, you learn the eldritch blast cantrip if you don't know it already. It doesn't count against the number of warlock cantrips you know. When you cast eldritch blast, you can have it deal radiant damage instead of force damage. Level 1: Cosmic Guidance SCGtD p173",
+				"You can speak, read, and write Celestial and Deep Speech. In addition, you learn the guidance cantrip. It doesn't count against the number of warlock cantrips you know. Additionally, you may cast the spell augury once without expending a spell slot. You can't do so again until you finish a long rest."
+			]
+		},
+		{
+			"name": "Orbit",
+			"source": "SCGtD",
+			"page": 173,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Cosmic",
+			"subclassSource": "SCGtD",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Once per turn when you miss a creature with eldritch blast, the beam returns to you as an orbiting comet around your head. While you have an orbiting comet, you can absorb its energy to do the following:",
+				"Cosmic Power. Once on your turn when you cast eldritch blast, you can consume one orbiting comet to fire an additional beam.",
+				"Interception. You can use your reaction to intercept a melee or ranged attack, gaining resistance to the damage from that attack.",
+				"Lightspeed. As a bonus action, you can consume a comet to teleport 30 feet to an unoccupied space you can see.",
+				"You can have a maximum number of orbiting comets equal to your proficiency bonus. As long as you have comets, you glow with bright light out to 20 feet, and dim light for an additional 10 feet. The comets last until you finish a short or long rest, or until you dismiss them (no action required)."
+			]
+		},
+		{
+			"name": "Meteoric Impact",
+			"source": "SCGtD",
+			"page": 173,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Cosmic",
+			"subclassSource": "SCGtD",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"Once per turn when you hit a creature with eldritch blast, you can cause the beam to explode. Each creature within 10 feet of the target must succeed on a Dexterity saving throw or take 3d6 fire damage.",
+				"The damage increases to 4d6 damage at 14th level, and to 5d6 damage at 17th level."
+			]
+		},
+		{
+			"name": "Supernova",
+			"source": "SCGtD",
+			"page": 173,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Cosmic",
+			"subclassSource": "SCGtD",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Charged by the energy of the stars, you gain additional benefits from the otherworldly entities lurking in the deep void of space.",
+				"When you cast eldritch blast, you can fire one additional beam.",
+				"Whenever you score a critical hit with eldritch blast, you can use your Meteoric Impact feature an additional time that turn."
+			]
+		},
+		{
+			"name": "The Coven",
+			"source": "GH:PG'24",
+			"page": 98,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Coven",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"Curse and Befuddle with Hag Magic",
+				"Hags dwell in the deep places of Etharis, from the primordial forests of Valika to the putrid streets of Liesecht. These creatures, though rarely benevolent, are willing to bargain with mortals in exchange for furthering their own capricious goals.",
+				"Warlocks often find themselves with a single Hag as a sponsor. Should this Hag have a coven, it can lead to the peculiar situation of Warlock agents acting against other Hags or their Warlocks within the coven. But such is the politics of the Realm of Faerie. Level 3: Coven Spells GH:PG'24 p98",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Coven Spells table, you thereafter always have the listed spells prepared. Coven SpellsWarlock Level Spells",
+				"3\tHold Person, Identify, Locate Object, Ray of Sickness",
+				"5\tBestow Curse, Counterspell",
+				"7\tPhantasmal Killer, Polymorph",
+				"9\tDivination, Locate Creature",
+				"17\tContact Other Plane, Scrying",
+				"Level 3: Hag's Eye GH:PG'24 p98",
+				"As an agent of a Hag, you have been gifted with a magical item known as a Hag's Eye. Crafted from a real eye and fitted into a ring, pendant, or other accessory, this item can be used as an Arcane Focus for your Warlock spells. The Hag can see through the eye, and the destruction of the item can cause the Hag actual pain, so any pawn who loses this talisman often invokes the Hag's ire.",
+				"While you possess the eye, you can cast Hex a number of times equal to your Charisma modifier (minimum of once) without expending a spell slot, and you regain all expended uses of this ability when you finish a Long Rest. In addition, when you reach Warlock level 10, you can use the eye to cast Bestow Curse once without expending a spell slot, and you regain the ability to do so once you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Hag's Guile",
+			"source": "GH:PG'24",
+			"page": 98,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Coven",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Hags delight in deceiving and manipulating others, and you gain some of their skill in doing so. You know the Minor Illusion cantrip. If you already know it, you learn a different Warlock cantrip of your choice. The cantrip doesn't count against your number of cantrips known.",
+				"Additionally, if a creature takes a Study action to examine an illusion you have created, you can take a Reaction to impose Disadvantage on the check.",
+				"Also, the first time a creature takes a Study action to examine an illusion spell you have cast and succeeds on the Intelligence (Investigation) check, you can cause the illusion to deal Psychic damage. The damage equals 1d6 plus 1d6 for each spell slot used to cast the spell.",
+				"You can do damage a number of times equal to your Charisma modifier (minimum of once). You regain all expended uses when you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Hag's Visage",
+			"source": "GH:PG'24",
+			"page": 99,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Coven",
+			"subclassSource": "GH:PG'24",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"As a Magic action, you twist your face into a horrifying mask resembling your Hag patron. It lasts for 1 minute, but it ends early if you dismiss it (no action required) or have the Incapacitated condition. While this effect lasts, you gain the benefits listed below.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest.",
+				"Horrifying Gaze. As a Bonus Action, choose one Humanoid that you can see and that can see you within 30 feet of you. The creature must make a Wisdom saving throw against your spell save DC or have the Frightened condition for 1 minute. The Frightened target repeats the save at the end of each of its turns, ending the effect on itself on a success. A creature that can see you has Disadvantage on this save.",
+				"Paralyzing Gaze. As a Magic action, choose one Humanoid that you can see and that can see you within 30 feet of you that has the Frightened condition. The creature must make a Wisdom saving throw against your spell save DC or have the Paralyzed condition.",
+				"On a successful save, the creature takes Necrotic damage equal to your Warlock level, it is no longer Frightened, and it can't be targeted by your Hag's Visage again until you finish a Long Rest.",
+				"Death Gaze. As a Magic action, choose one Humanoid that you can see and that can see you within 30 feet of you that has the Paralyzed condition. The creature must make a Wisdom saving throw with Advantage against your spell save DC or be reduced to 0 Hit Points.",
+				"On a successful save, the creature takes Necrotic damage equal to twice your Warlock level, it is no longer Paralyzed, and it can't be targeted by your Hag's Visage again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Hag's Craft",
+			"source": "GH:PG'24",
+			"page": 99,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Coven",
+			"subclassSource": "GH:PG'24",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"The Hag imparts the knowledge to craft two magic items. You can temporarily turn a normal vessel into a Hag's Cauldron by expending a spell slot. This magical cauldron lasts for 10 minutes. During that time, you can take the Magic to pour out three Common, two Uncommon, or one Rare potion. The potions lose efficacy at the end of your next Short or Long Rest. You regain this ability at the end of a Long Rest.",
+				"Additionally, when you finish a Long Rest, you can expend a spell slot and imbue a gemstone worth at least 10 GP with magic, turning it into a Minor Heartstone. This magic item grants the bearer Immunity to the Poisoned condition and the ability to cast Blink once without expending a spell slot. The magic within the gemstone fades after 24 hours and the gem crumbles into dust."
+			]
+		},
+		{
+			"name": "The Fathomless",
+			"source": "TCE",
+			"page": 72,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Fathomless",
+			"subclassSource": "TCE",
+			"level": 3,
+			"entries": [
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"You have plunged into a pact with the deeps. An entity of the ocean, the Elemental Plane of Water, or another otherworldly sea now allows you to draw on its thalassic power. Is it merely using you to learn about terrestrial realms, or does it want you to open cosmic floodgates and drown the world?",
+				"Perhaps you were born into a generational cult that venerates the Fathomless and its spawn. Or you might have been shipwrecked and on the brink of drowning when your patron's grasp offered you a chance at life. Whatever the reason for your pact, the sea and its unknown depths call to you.",
+				"Entities of the deep that might empower a warlock include krakens, ancient water elementals, godlike hallucinations dreamed into being by kuo-toa, merfolk demigods, and sea hag covens. Expanded Spell List",
+				"1st-level Fathomless feature",
+				"The Fathomless lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. Fathomless Expanded SpellsSpell Level Spells",
+				"1st\tcreate or destroy water, thunderwave",
+				"2nd\tgust of wind, silence",
+				"3rd\tlightning bolt, sleet storm",
+				"4th\tcontrol water, summon elemental (water only)",
+				"5th\tBigby's hand (appears as a tentacle), cone of cold",
+				"Tentacle of the Deeps TCE p72",
+				"1st-level Fathomless feature",
+				"You can magically summon a spectral tentacle that strikes at your foes. As a bonus action, you create a 10-foot-long tentacle at a point you can see within 60 feet of you. The tentacle lasts for 1 minute or until you use this feature to create another tentacle.",
+				"When you create the tentacle, you can make a melee spell attack against one creature within 10 feet of it. On a hit, the target takes 1d8 cold damage, and its speed is reduced by 10 feet until the start of your next turn. When you reach 10th level in this class, the damage increases to 2d8.",
+				"As a bonus action on your turn, you can move the tentacle up to 30 feet and repeat the attack.",
+				"You can summon the tentacle a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest. Gift of the Sea TCE p72",
+				"1st-level Fathomless feature",
+				"You gain a swimming speed of 40 feet, and you can breathe underwater."
+			]
+		},
+		{
+			"name": "Guardian Coil",
+			"source": "TCE",
+			"page": 72,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Fathomless",
+			"subclassSource": "TCE",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"6th-level Fathomless feature",
+				"Your Tentacle of the Deeps can defend you and others, interposing itself between them and harm. When you or a creature you can see takes damage while within 10 feet of the tentacle, you can use your reaction to choose one of those creatures and reduce the damage to that creature by 1d8. When you reach 10th level in this class, the damage reduced by the tentacle increases to 2d8."
+			]
+		},
+		{
+			"name": "Oceanic Soul",
+			"source": "TCE",
+			"page": 72,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Fathomless",
+			"subclassSource": "TCE",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"6th-level Fathomless feature",
+				"You are now even more at home in the depths. You gain resistance to cold damage. In addition, when you are fully submerged, any creature that is also fully submerged can understand your speech, and you can understand theirs."
+			]
+		},
+		{
+			"name": "Grasping Tentacles",
+			"source": "TCE",
+			"page": 72,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Fathomless",
+			"subclassSource": "TCE",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"10th-level Fathomless feature",
+				"You learn the spell Evard's black tentacles. It counts as a warlock spell for you, but it doesn't count against the number of spells you know. You can also cast it once without a spell slot, and you regain the ability to do so when you finish a long rest.",
+				"Whenever you cast this spell, your patron's magic bolsters you, granting you a number of temporary hit points equal to your warlock level. Moreover, damage can't break your concentration on this spell."
+			]
+		},
+		{
+			"name": "Fathomless Plunge",
+			"source": "TCE",
+			"page": 72,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Fathomless",
+			"subclassSource": "TCE",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"14th-level Fathomless feature",
+				"You can magically open temporary conduits to watery destinations. As an action, you can teleport yourself and up to five other willing creatures that you can see within 30 feet of you. Amid a whirl of tentacles, you all vanish and then reappear up to 1 mile away in a body of water you've seen (pond size or larger) or within 30 feet of it, each of you appearing in an unoccupied space within 30 feet of the others.",
+				"Once you use this feature, you can't use it again until you finish a short or long rest."
 			]
 		},
 		{
 			"name": "Fiend Patron",
 			"source": "XPHB",
 			"page": 161,
-			"srd52": true,
-			"basicRules2024": true,
 			"className": "Warlock",
 			"classSource": "XPHB",
 			"subclassShortName": "Fiend",
 			"subclassSource": "XPHB",
 			"level": 3,
 			"entries": [
-				"{@i Make a Deal with the Lower Planes}",
-				"Your pact draws on the Lower Planes, the realms of perdition. You might forge a bargain with a demon lord such as Demogorgon or Orcus; an archdevil such as Asmodeus; or a pit fiend, balor, yugoloth, or night hag that is especially mighty. That patron's aims are evil—the corruption or destruction of all things, ultimately including you—and your path is defined by the extent to which you strive against those aims.",
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Fiend Spells|Warlock|XPHB|Fiend|XPHB|3"
-				},
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Dark One's Blessing|Warlock|XPHB|Fiend|XPHB|3"
-				}
-			]
-		},
-		{
-			"name": "Dark One's Blessing",
-			"source": "XPHB",
-			"page": 161,
-			"srd52": true,
-			"basicRules2024": true,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Fiend",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 2,
-			"entries": [
-				"When you reduce an enemy to 0 {@variantrule Hit Points|XPHB}, you gain {@variantrule Temporary Hit Points|XPHB} equal to your Charisma modifier plus your Warlock level (minimum of 1 {@variantrule Temporary Hit Points|XPHB|Temporary Hit Point}). You also gain this benefit if someone else reduces an enemy within 10 feet of you to 0 {@variantrule Hit Points|XPHB}."
-			]
-		},
-		{
-			"name": "Fiend Spells",
-			"source": "XPHB",
-			"page": 161,
-			"srd52": true,
-			"basicRules2024": true,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Fiend",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 2,
-			"entries": [
-				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Fiend Spells table, you thereafter always have the listed spells prepared.",
-				{
-					"type": "table",
-					"caption": "Fiend Spells",
-					"colLabels": [
-						"Warlock Level",
-						"Spells"
-					],
-					"colStyles": [
-						"col-2 text-center",
-						"col-10"
-					],
-					"rows": [
-						[
-							"3",
-							"{@spell Burning Hands|XPHB}, {@spell Command|XPHB}, {@spell Scorching Ray|XPHB}, {@spell Suggestion|XPHB}"
-						],
-						[
-							"5",
-							"{@spell Fireball|XPHB}, {@spell Stinking Cloud|XPHB}"
-						],
-						[
-							"7",
-							"{@spell Fire Shield|XPHB}, {@spell Wall of Fire|XPHB}"
-						],
-						[
-							"9",
-							"{@spell Geas|XPHB}, {@spell Insect Plague|XPHB}"
-						]
-					]
-				}
+				"Make a Deal with the Lower Planes",
+				"Your pact draws on the Lower Planes, the realms of perdition. You might forge a bargain with a demon lord such as Demogorgon or Orcus; an archdevil such as Asmodeus; or a pit fiend, balor, yugoloth, or night hag that is especially mighty. That patron's aims are evil—the corruption or destruction of all things, ultimately including you—and your path is defined by the extent to which you strive against those aims. Level 3: Fiend Spells PHB'24 p161",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Fiend Spells table, you thereafter always have the listed spells prepared. Fiend SpellsWarlock Level Spells",
+				"3\tBurning Hands, Command, Scorching Ray, Suggestion",
+				"5\tFireball, Stinking Cloud",
+				"7\tFire Shield, Wall of Fire",
+				"9\tGeas, Insect Plague",
+				"Level 3: Dark One's Blessing PHB'24 p161",
+				"When you reduce an enemy to 0 Hit Points, you gain Temporary Hit Points equal to your Charisma modifier plus your Warlock level (minimum of 1 Temporary Hit Point). You also gain this benefit if someone else reduces an enemy within 10 feet of you to 0 Hit Points."
 			]
 		},
 		{
 			"name": "Dark One's Own Luck",
 			"source": "XPHB",
 			"page": 162,
-			"srd52": true,
-			"basicRules2024": true,
 			"className": "Warlock",
 			"classSource": "XPHB",
 			"subclassShortName": "Fiend",
@@ -1843,16 +1807,14 @@
 			"level": 6,
 			"header": 2,
 			"entries": [
-				"You can call on your fiendish patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add {@dice 1d10} to your roll. You can do so after seeing the roll but before any of the roll's effects occur.",
-				"You can use this feature a number of times equal to your Charisma modifier (minimum of once), but you can use it no more than once per roll. You regain all expended uses when you finish a {@variantrule Long Rest|XPHB}."
+				"You can call on your fiendish patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add 1d10 to your roll. You can do so after seeing the roll but before any of the roll's effects occur.",
+				"You can use this feature a number of times equal to your Charisma modifier (minimum of once), but you can use it no more than once per roll. You regain all expended uses when you finish a Long Rest."
 			]
 		},
 		{
 			"name": "Fiendish Resilience",
 			"source": "XPHB",
 			"page": 162,
-			"srd52": true,
-			"basicRules2024": true,
 			"className": "Warlock",
 			"classSource": "XPHB",
 			"subclassShortName": "Fiend",
@@ -1860,15 +1822,13 @@
 			"level": 10,
 			"header": 2,
 			"entries": [
-				"Choose one damage type, other than Force, whenever you finish a {@variantrule Short Rest|XPHB|Short} or {@variantrule Long Rest|XPHB}. You have {@variantrule Resistance|XPHB} to that damage type until you choose a different one with this feature."
+				"Choose one damage type, other than Force, whenever you finish a Short or Long Rest. You have Resistance to that damage type until you choose a different one with this feature."
 			]
 		},
 		{
 			"name": "Hurl Through Hell",
 			"source": "XPHB",
 			"page": 162,
-			"srd52": true,
-			"basicRules2024": true,
 			"className": "Warlock",
 			"classSource": "XPHB",
 			"subclassShortName": "Fiend",
@@ -1876,8 +1836,393 @@
 			"level": 14,
 			"header": 2,
 			"entries": [
-				"Once per turn when you hit a creature with an attack roll, you can try to instantly transport the target through the Lower Planes. The target must succeed on a Charisma saving throw against your spell save DC, or the target disappears and hurtles through a nightmare landscape. The target takes {@damage 8d10} Psychic damage if it isn't a Fiend, and it has the {@condition Incapacitated|XPHB} condition until the end of your next turn, when it returns to the space it previously occupied or the nearest unoccupied space.",
-				"Once you use this feature, you can't use it again until you finish a {@variantrule Long Rest|XPHB} unless you expend a Pact Magic spell slot (no action required) to restore your use of it."
+				"Once per turn when you hit a creature with an attack roll, you can try to instantly transport the target through the Lower Planes. The target must succeed on a Charisma saving throw against your spell save DC, or the target disappears and hurtles through a nightmare landscape. The target takes 8d10 Psychic damage if it isn't a Fiend, and it has the Incapacitated condition until the end of your next turn, when it returns to the space it previously occupied or the nearest unoccupied space.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest unless you expend a Pact Magic spell slot (no action required) to restore your use of it."
+			]
+		},
+		{
+			"name": "The First Vampire Patron",
+			"source": "GH:PG'24",
+			"page": 99,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "First Vampire",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"Wield the Power of Undeath",
+				"You have made a pact with a powerful vampire cursed by the gods or born as a creature of the night. Hundreds of haunted beings serve this vampire, so why enter a pact with you? Because you can act in the light of day unhindered? To cull weaker vampires? Level 3: Drain Life GH:PG'24 p99",
+				"You gain an innate power to drain life from the living. After you take the Attack or Magic action, you can use a Bonus Action to make an Unarmed Strike. On a hit, the Unarmed Strike deals Necrotic damage equal to 1d6 plus your Charisma modifier instead of its normal damage.",
+				"When you hit a creature with Drain Life, you can expend a Pact Magic spell slot to deal an extra 1d8 Necrotic damage to the target, plus another 1d8 per level of the spell slot. When you expend a spell slot in this way, you regain Hit Points equal to the amount of damage dealt. Level 3: Nocturnal Predator GH:PG'24 p99",
+				"As a predator of the night, you have been blessed with enhanced vision in darkness. You have Darkvision with a range of 60 feet. If you already have Darkvision, its range increases by 60 feet. Level 3: First Vampire Spells GH:PG'24 p100",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the First Vampire Spells table, you thereafter always have the listed spells prepared. First Vampire SpellsWarlock Level Spells",
+				"3\tBane, Command, False Life, Fog Cloud",
+				"5\tConjure Animals (bats, rats, or wolves only), Gaseous Form",
+				"7\tDominate Person, Seeming",
+				"9\tLittle Death, Telekinesis"
+			]
+		},
+		{
+			"name": "Creature of the Night",
+			"source": "GH:PG'24",
+			"page": 100,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "First Vampire",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"You always have the Polymorph spell prepared. With this feature, you can cast it only on yourself without expending a spell slot and without Material components to transform into a Bat, Rat, or Wolf.",
+				"Your game statistics are replaced by the Beast's stat block, but you retain your creature type; Hit Points; Hit Point Dice; Intelligence, Wisdom, and Charisma scores; class features; languages; and feats. You also retain your skill and saving throw proficiencies and use your Proficiency Bonus for them, in addition to gaining the proficiencies of the creature. If a skill or saving throw modifier in the Beast's stat block is higher than yours, use the one in the stat block.",
+				"You can use this feature a number of times equal to your Charisma modifier (minimum of once). You regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Eldritch Appetite",
+			"source": "GH:PG'24",
+			"page": 100,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "First Vampire",
+			"subclassSource": "GH:PG'24",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"When you reduce an enemy to 0 Hit Points with your Drain Life feature, you can take a Reaction to consume the last of its fleeting mortality. When you do so, you regain one of your expended Pact Magic spell slots.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Eternal Night",
+			"source": "GH:PG'24",
+			"page": 100,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "First Vampire",
+			"subclassSource": "GH:PG'24",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Your vampire patron grants you a taste of true immortality. You no longer age, and you gain Resistance to Necrotic damage.",
+				"As a Bonus Action, you gain the following benefits for 1 minute:",
+				"At the start of each of your turns, you regain 1d6 Hit Points if you have at least 1 Hit Point and you aren't in direct sunlight or running water. If you take Radiant damage, you don't regain Hit Points from this feature at the start of your next turn.",
+				"When you use your Drain Life feature, you can deal an extra 1d8 Necrotic damage without expending a spell slot.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Flesh Patron",
+			"source": "SCGtD",
+			"page": 174,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Flesh",
+			"subclassSource": "SCGtD",
+			"level": 3,
+			"entries": [
+				"A Warlock of the Flesh has made a pact with an entity so alien and unknown that its mere existence is enough to cause madness in most people. These warlocks have allowed an alien entity to inhabit their bodies, answering to some ancient and eldritch thing from beyond comprehension. This entity creates a symbiotic relationship with the host, granting them powers while reshaping and twisting their form. Level 1: Expanded Spell List SCGtD p174",
+				"The Flesh lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. Expanded Spell ListSpell Level Spell",
+				"1st\tjump, shield",
+				"2nd\tenhance ability, enlarge/reduce",
+				"3rd\thaste, slow",
+				"4th\tblack tentacles, polymorph",
+				"5th\tgreater restoration, reincarnate",
+				"Level 1: Unarmored Defense SCGtD p174",
+				"While you are wearing no armor and not wielding a shield, your AC equals 10 + your Dexterity modifier + your Constitution modifier. Level 1: Reshape Flesh SCGtD p174",
+				"As an action, you can take on a reshaped form, which lasts until you become incapacitated, use an action to change back, or use this feature again. When you do, choose from one of the reshaped forms below:",
+				"Inverse Kneecaps. Your legs become more powerful, and your knees now bend the opposite direction. While in this form, you increase your walking speed by 10 feet, and you can double your long and high jump distance.",
+				"Aquatic Attributes. You grow gills and your skin becomes slimy, the flesh between your fingers and toes becomes webbed. While in this form, you can breathe underwater, and gain a swimming speed equal to your walking speed.",
+				"Natural Weapons. You grow claws, fangs, spines, horns, or a different natural weapon of your choice. Your unarmed strikes deal 1d6 bludgeoning, piercing, or slashing damage, as appropriate to the natural weapon you chose, and you are proficient with your unarmed strikes. You can use your Charisma modifier for attack and damage rolls. The damage of your unarmed strikes increases as you gain levels in this class: 2d6 damage beginning at 10th level, and 3d6 damage at 14th level."
+			]
+		},
+		{
+			"name": "Body Modification",
+			"source": "SCGtD",
+			"page": 174,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Flesh",
+			"subclassSource": "SCGtD",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"When you choose your reshaped form, you can choose any two options available to you.",
+				"You gain the following additional options when you take on a reshaped form:",
+				"Gelatin Bones. Your skin looks loose and saggy as you struggle to maintain your structure. You can now fit into spaces as small as one inch in diameter and gain advantage on Stealth checks.",
+				"Change Appearance. You transform your appearance. You decide what you look like, including your height, weight, facial features, sound of your voice, hair length, coloration, and distinguishing characteristics, if any. You can make yourself appear as a member of another race, though none of your statistics change. You can't appear as a creature of a different size than you, and your basic shape stays the same. For example, if you're bipedal, you can't use this spell to become quadrupedal.",
+				"Combat Instincts. You can attack twice, instead of once, when you take the Attack action on your turn. In addition, your natural weapons and unarmed strikes are considered magical for the purposes of overcoming resistance to bludgeoning, piercing, and slashing damage.",
+				"Spider Claws. Your hands and feet grow strange mucus-slicked insectoid features that allow you to climb surfaces. You gain a climb speed equal to your walk speed and can stick to ceilings as well without needing to make an ability check."
+			]
+		},
+		{
+			"name": "Physiological Mastery",
+			"source": "SCGtD",
+			"page": 174,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Flesh",
+			"subclassSource": "SCGtD",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"You gain the following additional options when you take on a reshaped form:",
+				"Aerial Adaptation. Feathered or batlike wings rip out of your back, you gain a flying speed equal to your walking speed.",
+				"Toxic Fumes. A cloud of noxious gas seeps from your pores, you appear sickly, and green slime oozes from your pores. You have disadvantage on Charisma checks while in this form, but any creature that starts its turn within 10 feet of you takes 2d6 poison damage and has disadvantage on attack rolls against you.",
+				"Hardened Skin. You gain resistance to bludgeoning, piercing, and slashing damage from non-magical weapons."
+			]
+		},
+		{
+			"name": "Unfathomable Horror",
+			"source": "SCGtD",
+			"page": 174,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Flesh",
+			"subclassSource": "SCGtD",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"You can choose any three available options when you transform using your Reshape Flesh feature. Additionally, you are immune to any spell or effect that would alter your form against your will."
+			]
+		},
+		{
+			"name": "Future You Patron",
+			"source": "VSS:PP",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Future You",
+			"subclassSource": "VSS:PP",
+			"level": 3,
+			"entries": [
+				"Manipulate Time with Help from the Future",
+				"Your patron is you in a decades-distant future. Perhaps your future self found an artifact of great power connecting them to the past, which they must now lead you to discover, or perhaps they were taught the mystic arts by their future self long ago, a cycle you will have to continue someday. Your future self has forgotten the fine details of some things and outright refuses to tell you about things you \"can't know yet,\" but nevertheless offers compelling insight and guidance. You're not quite sure what your future self is planning for your future (and for their past), but one thing is certain—they need you alive. Level 3: Future You Spells VSS:PP",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Future You Spells table, you thereafter always have the listed spells prepared. New spells are marked with an asterisk (*). Future You SpellsWarlock Level Spells",
+				"3\tAccelerate/Decelerate, Delay, Enhance Ability, Moment to Think, Recall",
+				"5\tProtection from Energy, Slow",
+				"7\tDeath Ward, Dire Warning",
+				"9\tLegend Lore, Telepathic Bond",
+				"In addition, strange effects linger after communicating with your future self. You gain one of the traits from the Future You Quirks table. Future You Quirksd6 Quirks",
+				"1\tYou often speak in the wrong tense or refer to yourself in a plural.",
+				"2\tYou sometimes refer to a person by name before they've introduced themselves.",
+				"3\tYou are unreasonably calm in dire circumstances.",
+				"4\tIn certain lighting, you look much older than you are.",
+				"5\tSeeing certain people alive instantly reduces you to tears.",
+				"6\tYour future fashion sense clashes completely with that of today.",
+				"Level 3: It Happened Like This VSS:PP",
+				"Your discussions of the future with yourself have given you peripheral knowledge about how events will play out. Whenever you finish a Short or Long Rest, the GM rolls a d20 and a d4 in secret and records the number rolled on the d20. The GM tells you the recorded d20 roll, unless they roll a 4 on the d4; in that case, they lie about the recorded d20 roll.",
+				"You can replace any D20 Test made by you or a creature you can see with the recorded d20 roll (no action required). You must choose to do so before the roll. If the GM lied about the roll, they inform you of the actual recorded d20 roll only after you replace the test with it."
+			]
+		},
+		{
+			"name": "I Could Do With Fewer Scars",
+			"source": "VSS:PP",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Future You",
+			"subclassSource": "VSS:PP",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Your future self warns you of particular attacks to watch out for. When a creature you can see hits you with an attack roll, you can take a Reaction to gain a +10 bonus to your AC against that attack, potentially causing it to miss.",
+				"You can use this feature twice. You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Expect an Ambush",
+			"source": "VSS:PP",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Future You",
+			"subclassSource": "VSS:PP",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"You have Advantage on Initiative rolls and Resistance to all damage on the first round of combat."
+			]
+		},
+		{
+			"name": "Grandfather Paradox",
+			"source": "VSS:PP",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Future You",
+			"subclassSource": "VSS:PP",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"As a Magic action, you can goad a creature within 60 feet of you that can see or hear you into causing a paradox. The creature must make an Intelligence saving throw against your spell save DC. On a failed save, the creature takes 10d6 Psychic damage and has the Stunned condition for 1 minute as it is locked between opposing timelines. On a successful save, the target takes half as much damage only. The Stunned creature repeats the save at the end of each of its turns, ending the condition on itself on a success.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "The Genie",
+			"source": "TCE",
+			"page": 73,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Genie",
+			"subclassSource": "TCE",
+			"level": 3,
+			"entries": [
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"You have made a pact with one of the rarest kinds of genie, a noble genie. Such entities rule vast fiefs on the Elemental Planes and have great influence over lesser genies and elemental creatures. Noble genies are varied in their motivations, but most are arrogant and wield power that rivals that of lesser deities. They delight in turning the table on mortals, who often bind genies into servitude, and readily enter into pacts that expand their reach.",
+				"You choose your patron's kind or determine it randomly, using the Genie Kind table. Genie Kindd4 Kind Element",
+				"1\tDao\tEarth",
+				"2\tDjinni\tAir",
+				"3\tEfreeti\tFire",
+				"4\tMarid\tWater",
+				"Expanded Spell List",
+				"1st-level Genie feature",
+				"The Genie lets you choose from an expanded list of spells when you learn a warlock spell. The Genie Expanded Spells table shows the genie spells that are added to the warlock spell list for you, along with the spells associated in the table with your patron's kind: dao, djinni, efreeti, or marid. Genie Expanded SpellsSpell Level Genie Spells Dao Spells Djinni Spells Efreeti Spells Marid Spells",
+				"1st\tdetect evil and good\tsanctuary\tthunderwave\tburning hands\tfog cloud",
+				"2nd\tphantasmal force\tspike growth\tgust of wind\tscorching ray\tblur",
+				"3rd\tcreate food and water\tmeld into stone\twind wall\tfireball\tsleet storm",
+				"4th\tphantasmal killer\tstone shape\tgreater invisibility\tfire shield\tcontrol water",
+				"5th\tcreation\twall of stone\tseeming\tflame strike\tcone of cold",
+				"9th\twish\t—\t—\t—\t—",
+				"Genie's Vessel TCE p73",
+				"1st-level Genie feature",
+				"Your patron gifts you a magical vessel that grants you a measure of the genie's power. The vessel is a Tiny object, and you can use it as a spellcasting focus for your warlock spells. You decide what the object is, or you can determine what it is randomly by rolling on the Genie's Vessel table. Genie's Vesseld6 Vessel",
+				"1\tOil lamp",
+				"2\tUrn",
+				"3\tRing with a compartment",
+				"4\tStoppered bottle",
+				"5\tHollow statuette",
+				"6\tOrnate lantern",
+				"While you are touching the vessel, you can use it in the following ways:",
+				"Bottled Respite. As an action, you can magically vanish and enter your vessel, which remains in the space you left. The interior of the vessel is an extradimensional space in the shape of a 20-foot-radius cylinder, 20 feet high, and resembles your vessel. The interior is appointed with cushions and low tables and is a comfortable temperature. While inside, you can hear the area around your vessel as if you were in its space. You can remain inside the vessel up to a number of hours equal to twice your proficiency bonus. You exit the vessel early if you use a bonus action to leave, if you die, or if the vessel is destroyed. When you exit the vessel, you appear in the unoccupied space closest to it. Any objects left in the vessel remain there until carried out, and if the vessel is destroyed, every object stored there harmlessly appears in the unoccupied spaces closest to the vessel's former space. Once you enter the vessel, you can't enter again until you finish a long rest.",
+				"Genie's Wrath. Once during each of your turns when you hit with an attack roll, you can deal extra damage to the target equal to your proficiency bonus. The type of this damage is determined by your patron: bludgeoning (dao), thunder (djinni), fire (efreeti), or cold (marid).",
+				"The vessel's AC equals your spell save DC. Its hit points equal your warlock level plus your proficiency bonus, and it is immune to poison and psychic damage.",
+				"If the vessel is destroyed or you lose it, you can perform a 1-hour ceremony to receive a replacement from your patron. This ceremony can be performed during a short or long rest, and the previous vessel is destroyed if it still exists. The vessel vanishes in a flare of elemental power when you die."
+			]
+		},
+		{
+			"name": "Elemental Gift",
+			"source": "TCE",
+			"page": 73,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Genie",
+			"subclassSource": "TCE",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"6th-level Genie feature",
+				"You begin to take on characteristics of your patron's kind. You now have resistance to a damage type determined by your patron's kind: bludgeoning (dao), thunder (djinni), fire (efreeti), or cold (marid).",
+				"In addition, as a bonus action, you can give yourself a flying speed of 30 feet that lasts for 10 minutes, during which you can hover. You can use this bonus action a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest."
+			]
+		},
+		{
+			"name": "Sanctuary Vessel",
+			"source": "TCE",
+			"page": 73,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Genie",
+			"subclassSource": "TCE",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"10th-level Genie feature",
+				"When you enter your Genie's Vessel via the Bottled Respite feature, you can now choose up to five willing creatures that you can see within 30 feet of you, and the chosen creatures are drawn into the vessel with you.",
+				"As a bonus action, you can eject any number of creatures from the vessel, and everyone is ejected if you leave or die or if the vessel is destroyed.",
+				"In addition, anyone (including you) who remains within the vessel for at least 10 minutes gains the benefit of finishing a short rest, and anyone can add your proficiency bonus to the number of hit points they regain if they spend any Hit Dice as part of a short rest there."
+			]
+		},
+		{
+			"name": "Limited Wish",
+			"source": "TCE",
+			"page": 73,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Genie",
+			"subclassSource": "TCE",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"14th-level Genie feature",
+				"You entreat your patron to grant you a small wish. As an action, you can speak your desire to your Genie's Vessel, requesting the effect of one spell that is 6th level or lower and has a casting time of 1 action. The spell can be from any class's spell list, and you don't need to meet the requirements in that spell, including costly components; the spell simply takes effect as part of this action.",
+				"Once you use this feature, you can't use it again until you finish 1d4 long rests."
+			]
+		},
+		{
+			"name": "Great Fool Patron",
+			"source": "TCM'24",
+			"page": 90,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Great Fool",
+			"subclassSource": "TCM'24",
+			"level": 3,
+			"entries": [
+				"Laugh in the Face of Danger with Foolish Antics",
+				"What horrors and sorrows can't be remedied by maniacal laughter? Warlocks that have made a pact with the Great Fool draw their enigmatic power from a powerful, otherworldly being of jolly revelry, whose twisted sense of humor is lost on mortal understanding. They are a mocking mirror to bring low the arrogant and mighty, though the Great Fool's ultimate designs are often nonsensical and incomprehensible.",
+				"Many Warlocks of the Great Fool adopt a signature aesthetic and performance style that best represents their folly. The Foolish Personas table offers archetypes of fools with suggestions for corresponding outfits and routines. Foolish Personas1d6 Persona",
+				"1\tThe Harlequin. An elegant outfit of diamond motley with a painted mask—performs dances, gives eloquent speeches, and plays tricks",
+				"2\tThe Jester. A two-toned, checkered motley outfit with cap and bells—favors feats of acrobatics, tumbling, and juggling",
+				"3\tThe Joker. A vibrant, colorful suit with wild hair and bowler hat—favors silly jokes, slapstick comedy, and clumsy self-deprecation",
+				"4\tThe Mime. A striped, black-and-white shirt with a flat cap and red suspenders—pantomimes comical scenarios without speaking",
+				"5\tThe Sad Clown. A monochromatic, one-piece outfit with pointed hat and puffball buttons—utilizes melodramatic melancholy and song",
+				"6\tThe Tramp. A patch-covered coat, tattered scarf, scuffed shoes, and cigar—leverages sardonic wit, insults, and mocking observations",
+				"Level 3: Great Fool Spells TCM'24 p90",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Great Fool Spells table, you thereafter always have the listed spells prepared. Great Fool SpellsWarlock Level Spells",
+				"3\tDisguise Self, Tasha's Hideous Laughter, Rope Trick, Spiritual Weapon, Vicious Mockery",
+				"5\tBlink, Stinking Cloud",
+				"7\tPhantasmal Killer, Puppet Master",
+				"9\tBigby's Hand, Mislead",
+				"Level 3: Killing Joke TCM'24 p91",
+				"You see the humor in everything—especially in the end of things. When a creature you can see within 60 feet of you takes damage or fails a saving throw, you can take a Reaction to cast Vicious Mockery on that creature. You can use this Reaction a number of times equal to your Charisma modifier (minimum of once). You regain one expended use when you finish a Short Rest, and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Jester's Japes",
+			"source": "TCM'24",
+			"page": 91,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Great Fool",
+			"subclassSource": "TCM'24",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"By calling down an aspect of the Great Fool, you can curse your foes. As a Magic action, you target a creature you can see within 60 feet of you and force it to succeed on a Charisma saving throw against your spell save DC or suffer one of the following curses (your choice).",
+				"Flower Spurt. You spray a strange liquid at the creature's eyes, giving it the Blinded condition.",
+				"Clown Shoes. The creature's feet or similar appendages grow to awkwardly exaggerated proportions. The creature's Speed is halved, and it has Disadvantage on ability checks and saving throws that rely on Dexterity.",
+				"Honk Honk. The creature emits sounds, such as honks, chimes, or squeaks, that are audible out to 100 feet with every movement, no matter how slight. The creature can't benefit from the Invisible condition.",
+				"Jolly Arms. Any weapon or Unarmed Strike the creature attacks with, including natural weapons such as fangs and claws, takes on a comical appearance as if it were made of wood, stuffed cloth, or balloons. The target deals half damage with weapon attacks and Unarmed Strikes.",
+				"The curse lasts for 1 minute. The creature repeats the saving throw at the end of each of its turns, ending the curse on a success.",
+				"Once you use this feature, you can't do so again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Mocking Banter",
+			"source": "TCM'24",
+			"page": 91,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Great Fool",
+			"subclassSource": "TCM'24",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"Your witty and insulting japes become biting to the point of needling your foes' very psyche. When a creature damages you, you can take a Reaction to force the creature to make a Wisdom saving throw against your spell save DC. On a failed save, the creature takes Psychic damage equal to the triggering damage you took, or half as much damage on a successful one.",
+				"Once you use this Reaction, you can't use it again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Send in the Clowns",
+			"source": "TCM'24",
+			"page": 91,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Great Fool",
+			"subclassSource": "TCM'24",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"You can call upon the laughing, jeering spirits of the followers of the Great Fool to strike down your foes. As a Magic action, you summon three ghostly fools. The fools are translucent and intangible, and they resemble clowns, jesters, or similar entertainers. Make up to three melee spell attacks against creatures within 60 feet of you. On a hit, a target takes 2d10 Psychic damage and has the Frightened condition until the end of its next turn, or the Prone condition (your choice). You can use your action on subsequent turns to repeat the attacks.",
+				"The fools remain for 1 minute or until you have the Incapacitated condition or you die. Once you use this feature, you can't do so again until you finish a Long Rest."
 			]
 		},
 		{
@@ -1890,93 +2235,17 @@
 			"subclassSource": "XPHB",
 			"level": 3,
 			"entries": [
-				"{@i Unearth Forbidden Lore of Ineffable Beings}",
-				"When you choose this subclass, you might bind yourself to an unspeakable being from the Far Realm or an elder god—a being such as Tharizdun, the Chained God; Zargon, the Returner; Hadar, the Dark Hunger; or Great Cthulhu. Or you might invoke several entities without yoking yourself to one. The motives of these beings are incomprehensible, and the Great Old One might be indifferent to your existence. But the secrets you've learned nevertheless allow you to draw strange magic from it.",
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Great Old One Spells|Warlock|XPHB|Great Old One|XPHB|3"
-				},
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Awakened Mind|Warlock|XPHB|Great Old One|XPHB|3"
-				},
-				{
-					"type": "refSubclassFeature",
-					"subclassFeature": "Psychic Spells|Warlock|XPHB|Great Old One|XPHB|3"
-				}
-			]
-		},
-		{
-			"name": "Awakened Mind",
-			"source": "XPHB",
-			"page": 162,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Great Old One",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 1,
-			"entries": [
-				"You can form a telepathic connection between your mind and the mind of another. As a {@variantrule Bonus Action|XPHB}, choose one creature you can see within 30 feet of yourself. You and the chosen creature can communicate telepathically with each other while the two of you are within a number of miles of each other equal to your Charisma modifier (minimum of 1 mile). To understand each other, you each must mentally use a language the other knows.",
-				"The telepathic connection lasts for a number of minutes equal to your Warlock level. It ends early if you use this feature to connect with a different creature."
-			]
-		},
-		{
-			"name": "Great Old One Spells",
-			"source": "XPHB",
-			"page": 163,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Great Old One",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 1,
-			"entries": [
-				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Great Old One Spells table, you thereafter always have the listed spells prepared.",
-				{
-					"type": "table",
-					"caption": "Great Old One Spells",
-					"colLabels": [
-						"Warlock Level",
-						"Spells"
-					],
-					"colStyles": [
-						"col-2 text-center",
-						"col-10"
-					],
-					"rows": [
-						[
-							"3",
-							"{@spell Detect Thoughts|XPHB}, {@spell Dissonant Whispers|XPHB}, {@spell Phantasmal Force|XPHB}, {@spell Tasha's Hideous Laughter|XPHB}"
-						],
-						[
-							"5",
-							"{@spell Clairvoyance|XPHB}, {@spell Hunger of Hadar|XPHB}"
-						],
-						[
-							"7",
-							"{@spell Confusion|XPHB}, {@spell Summon Aberration|XPHB}"
-						],
-						[
-							"9",
-							"{@spell Modify Memory|XPHB}, {@spell Telekinesis|XPHB}"
-						]
-					]
-				}
-			]
-		},
-		{
-			"name": "Psychic Spells",
-			"source": "XPHB",
-			"page": 163,
-			"className": "Warlock",
-			"classSource": "XPHB",
-			"subclassShortName": "Great Old One",
-			"subclassSource": "XPHB",
-			"level": 3,
-			"header": 1,
-			"entries": [
-				"When you cast a Warlock spell that deals damage, you can change its damage type to Psychic. In addition, when you cast a Warlock spell that is an {@filter Enchantment|spells|class=Warlock|school=E} or {@filter Illusion|spells|class=Warlock|school=I}, you can do so without Verbal or Somatic components."
+				"Unearth Forbidden Lore of Ineffable Beings",
+				"When you choose this subclass, you might bind yourself to an unspeakable being from the Far Realm or an elder god—a being such as Tharizdun, the Chained God; Zargon, the Returner; Hadar, the Dark Hunger; or Great Cthulhu. Or you might invoke several entities without yoking yourself to one. The motives of these beings are incomprehensible, and the Great Old One might be indifferent to your existence. But the secrets you've learned nevertheless allow you to draw strange magic from it. Level 3: Great Old One Spells PHB'24 p163",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Great Old One Spells table, you thereafter always have the listed spells prepared. Great Old One SpellsWarlock Level Spells",
+				"3\tDetect Thoughts, Dissonant Whispers, Phantasmal Force, Tasha's Hideous Laughter",
+				"5\tClairvoyance, Hunger of Hadar",
+				"7\tConfusion, Summon Aberration",
+				"9\tModify Memory, Telekinesis",
+				"Level 3: Awakened Mind PHB'24 p162",
+				"You can form a telepathic connection between your mind and the mind of another. As a Bonus Action, choose one creature you can see within 30 feet of yourself. You and the chosen creature can communicate telepathically with each other while the two of you are within a number of miles of each other equal to your Charisma modifier (minimum of 1 mile). To understand each other, you each must mentally use a language the other knows.",
+				"The telepathic connection lasts for a number of minutes equal to your Warlock level. It ends early if you use this feature to connect with a different creature. Level 3: Psychic Spells PHB'24 p163",
+				"When you cast a Warlock spell that deals damage, you can change its damage type to Psychic. In addition, when you cast a Warlock spell that is an Enchantment or Illusion, you can do so without Verbal or Somatic components."
 			]
 		},
 		{
@@ -1990,8 +2259,8 @@
 			"level": 6,
 			"header": 2,
 			"entries": [
-				"When you form a telepathic bond with a creature using your Awakened Mind, you can force that creature to make a Wisdom saving throw against your spell save DC. On a failed save, the creature has {@variantrule Disadvantage|XPHB} on attack rolls against you, and you have {@variantrule Advantage|XPHB} on attack rolls against that creature for the duration of the bond.",
-				"Once you use this feature, you can't use it again until you finish a {@variantrule Short Rest|XPHB|Short} or {@variantrule Long Rest|XPHB} unless you expend a Pact Magic spell slot (no action required) to restore your use of it."
+				"When you form a telepathic bond with a creature using your Awakened Mind, you can force that creature to make a Wisdom saving throw against your spell save DC. On a failed save, the creature has Disadvantage on attack rolls against you, and you have Advantage on attack rolls against that creature for the duration of the bond.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest unless you expend a Pact Magic spell slot (no action required) to restore your use of it."
 			]
 		},
 		{
@@ -2005,7 +2274,7 @@
 			"level": 10,
 			"header": 2,
 			"entries": [
-				"Your alien patron grants you a powerful curse. You always have the {@spell Hex|XPHB} spell prepared. When you cast {@spell Hex|XPHB} and choose an ability, the target also has {@variantrule Disadvantage|XPHB} on saving throws of the chosen ability for the duration of the spell."
+				"Your alien patron grants you a powerful curse. You always have the Hex spell prepared. When you cast Hex and choose an ability, the target also has Disadvantage on saving throws of the chosen ability for the duration of the spell."
 			]
 		},
 		{
@@ -2019,7 +2288,7 @@
 			"level": 10,
 			"header": 2,
 			"entries": [
-				"Your thoughts can't be read by telepathy or other means unless you allow it. You also have {@variantrule Resistance|XPHB} to Psychic damage, and whenever a creature deals Psychic damage to you, that creature takes the same amount of damage that you take."
+				"Your thoughts can't be read by telepathy or other means unless you allow it. You also have Resistance to Psychic damage, and whenever a creature deals Psychic damage to you, that creature takes the same amount of damage that you take."
 			]
 		},
 		{
@@ -2033,8 +2302,746 @@
 			"level": 14,
 			"header": 2,
 			"entries": [
-				"When you cast {@spell Summon Aberration|XPHB}, you can modify it so that it doesn't require {@status Concentration|XPHB}. If you do so, the spell's duration becomes 1 minute for that casting, and when summoned, the Aberration has a number of {@variantrule Temporary Hit Points|XPHB} equal to your Warlock level plus your Charisma modifier.",
-				"In addition, the first time each turn the Aberration hits a creature under the effect of your {@spell Hex|XPHB}, the Aberration deals extra Psychic damage to the target equal to the bonus damage of that spell."
+				"When you cast Summon Aberration, you can modify it so that it doesn't require Concentration. If you do so, the spell's duration becomes 1 minute for that casting, and when summoned, the Aberration has a number of Temporary Hit Points equal to your Warlock level plus your Charisma modifier.",
+				"In addition, the first time each turn the Aberration hits a creature under the effect of your Hex, the Aberration deals extra Psychic damage to the target equal to the bonus damage of that spell."
+			]
+		},
+		{
+			"name": "The Hexblade",
+			"source": "XGE",
+			"page": 55,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Hexblade",
+			"subclassSource": "XGE",
+			"level": 3,
+			"entries": [
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"You have made your pact with a mysterious entity from the Shadowfell—a force that manifests in sentient magic weapons carved from the stuff of shadow. The mighty sword Blackrazor is the most notable of these weapons, which have been spread across the multiverse over the ages. The shadowy force behind these weapons can offer power to warlocks who form pacts with it. Many Hexblade warlocks create weapons that emulate those formed in the Shadowfell. Others forgo such arms, content to weave the dark magic of that plane into their spellcasting.",
+				"Because the Raven Queen is known to have forged the first of these weapons, many sages speculate that she and the force are one and that the weapons, along with Hexblade warlocks, are tools she uses to manipulate events on the Material Plane to her inscrutable ends. Expanded Spell List",
+				"The Hexblade lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. Hexblade Expanded SpellsSpell Level Spells",
+				"1st\tshield, wrathful smite",
+				"2nd\tblur, branding smite",
+				"3rd\tblink, elemental weapon",
+				"4th\tphantasmal killer, staggering smite",
+				"5th\tbanishing smite, cone of cold",
+				"Hexblade's Curse XGE p55",
+				"Starting at 1st level, you gain the ability to place a baleful curse on someone. As a bonus action, choose one creature you can see within 30 feet of you. The target is cursed for 1 minute. The curse ends early if the target dies, you die, or you are incapacitated. Until the curse ends, you gain the following benefits:",
+				"You gain a bonus to damage rolls against the cursed target. The bonus equals your proficiency bonus.",
+				"Any attack roll you make against the cursed target is a critical hit on a roll of 19 or 20 on the d20.",
+				"If the cursed target dies, you regain hit points equal to your warlock level + your Charisma modifier (minimum of 1 hit point).",
+				"You can't use this feature again until you finish a short or long rest. Hex Warrior XGE p55",
+				"At 1st level, you acquire the training necessary to effectively arm yourself for battle. You gain proficiency with medium armor, shields, and martial weapons.",
+				"The influence of your patron also allows you to mystically channel your will through a particular weapon. Whenever you finish a long rest, you can touch one weapon that you are proficient with and that lacks the two-handed property. When you attack with that weapon, you can use your Charisma modifier, instead of Strength or Dexterity, for the attack and damage rolls. This benefit lasts until you finish a long rest. If you later gain the Pact of the Blade feature, this benefit extends to every pact weapon you conjure with that feature, no matter the weapon's type.",
+				"“Hexblade. What a cool name! So is your sword evil or cursed or something? But you're evil, right?... Okay, now I don't like the name. Names aren't cool if they don't make sense. Like mine: The Xanathar. See? It's cool, and it makes sense!”",
+				"— Xanathar"
+			]
+		},
+		{
+			"name": "Accursed Specter",
+			"source": "XGE",
+			"page": 55,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Hexblade",
+			"subclassSource": "XGE",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Starting at 6th level, you can curse the soul of a person you slay, temporarily binding it to your service. When you slay a humanoid, you can cause its spirit to rise from its corpse as a specter, the statistics for which are in the Monster Manual. When the specter appears, it gains temporary hit points equal to half your warlock level. Roll initiative for the specter, which has its own turns. It obeys your verbal commands, and it gains a special bonus to its attack rolls equal to your Charisma modifier (minimum of +0).",
+				"The specter remains in your service until the end of your next long rest, at which point it vanishes to the afterlife.",
+				"Once you bind a specter with this feature, you can't use the feature again until you finish a long rest."
+			]
+		},
+		{
+			"name": "Armor of Hexes",
+			"source": "XGE",
+			"page": 55,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Hexblade",
+			"subclassSource": "XGE",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"At 10th level, your hex grows more powerful. If the target cursed by your Hexblade's Curse hits you with an attack roll, you can use your reaction to roll a d6. On a 4 or higher, the attack instead misses you, regardless of its roll."
+			]
+		},
+		{
+			"name": "Master of Hexes",
+			"source": "XGE",
+			"page": 55,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Hexblade",
+			"subclassSource": "XGE",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Starting at 14th level, you can spread your Hexblade's Curse from a slain creature to another creature. When the creature cursed by your Hexblade's Curse dies, you can apply the curse to a different creature you can see within 30 feet of you, provided you aren't incapacitated. When you apply the curse in this way, you don't regain hit points from the death of the previously cursed creature."
+			]
+		},
+		{
+			"name": "Horned King Patron",
+			"source": "TCM'24",
+			"page": 92,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Horned King",
+			"subclassSource": "TCM'24",
+			"level": 3,
+			"entries": [
+				"Live Deliciously with Bewitching Power",
+				"Whether motivated by desperation or cunning, warlocks that have signed their name in the book of the Horned King have chosen to live deliciously in a pact sealed in blood and a corrupted soul. Bestowed the power of witchcraft by the beast that stalks the deepest woods and darkest hearts, they perfect ancient rituals and weave maledictions toward aims only they know. With each victim of their malign spells filled with rot, hate, and agony, they become more like their patron until they effortlessly wield his kingly might.",
+				"Warlocks of the Horned King prefer particular implements in working their magic. The Witchcraft Implements table offers options for your favored reagents. Witchcraft Implements1d6 Implements",
+				"1\tCandles made from tallow mixed with blood",
+				"2\tDried bundles of herbs or mushrooms",
+				"3\tSkulls or long bones carved with glyphs",
+				"4\tCrushed berries or roots mixed into a paste",
+				"5\tIron cauldron marked with symbols",
+				"6\tCurved blade for offering animal sacrifices",
+				"Level 3: Horned King Spells TCM'24 p92",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Horned King Spells table, you thereafter always have the listed spells prepared. Horned King SpellsWarlock Level Spells",
+				"3\tAnimal Friendship, Bane, Spike Growth, Suggestion",
+				"5\tBestow Curse, Fly",
+				"7\tPhantasmal Killer, Polymorph",
+				"9\tDominate Person, Scrying",
+				"Level 3: Witch Mark TCM'24 p92",
+				"When you finish a Long Rest, you can imbue magic into a nonmagical Tiny object you're holding. Choose one of your prepared Warlock spells that has a casting time of an action. A creature holding the marked object can take a Magic action to cast the spell (using your Charisma modifier, spell attack bonus, or spell save DC). The mark fades when the spell is cast from it or when you finish a Long Rest. Level 3: Malediction TCM'24 p93",
+				"You can call upon the Horned King's malice to manipulate luck and fate. As a Magic action, you can curse a creature you can see within 60 feet of you until the end of its next turn. Alternatively, when a creature within range targets you with an attack roll or a spell, you can take a Reaction to curse the creature with your choice of one of the curses below. You can use this feature a number of times equal to your Charisma modifier (minimum of once). You regain all expended uses when you finish a Long Rest.",
+				"Agony. The target has Disadvantage on its next attack roll or Constitution saving throw to maintain Concentration (your choice).",
+				"Hate. The target has Disadvantage on its next Intelligence, Wisdom, or Charisma saving throw (your choice).",
+				"Rot. The next time the target takes damage, it takes an extra 1d10 Necrotic damage, and it can't regain Hit Points until the end of its next turn."
+			]
+		},
+		{
+			"name": "Spiteful Curse",
+			"source": "TCM'24",
+			"page": 93,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Horned King",
+			"subclassSource": "TCM'24",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"When you use Malediction, you can now cast Bestow Curse once without a spell slot as the action or Reaction for that feature, and you regain the ability to cast it in that way when you finish a Long Rest. If the target succeeds on its saving throw against the spell, your use of this feature isn't expended.",
+				"When you cast the spell in this way, its range becomes 60 feet, and it lasts 1 minute with no Concentration required. If the target succeeds on its saving throw against the spell, choose one of the Malediction curses, and the target suffers that curse instead."
+			]
+		},
+		{
+			"name": "Crown of Horns",
+			"source": "TCM'24",
+			"page": 93,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Horned King",
+			"subclassSource": "TCM'24",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"As a Bonus Action, you can manifest the majestic might of the Horned King for 1 minute. For the duration, a visible mark appears on you—such as a crown made of horns surmounting your head, or you grow great antlers—and you gain the benefits listed below. Once you use this Bonus Action, you can't use it again until you finish a Long Rest unless you expend a Pact Magic spell slot (no action required) to restore your use of it.",
+				"Dark Heart. Once on each of your turns when you damage a creature, the target takes an extra 1d8 Necrotic damage.",
+				"King of All. You radiate an aura of power in a 20-foot Emanation that originates from you. When you activate this feature, and at the start of each of your turns, you can choose a creature you can see in the aura. The target must succeed on a Charisma saving throw against your spell save DC or suffer one of the following effects of your choice until the start of your next turn:",
+				"Enticement. The target has the Charmed condition.",
+				"Wickedness. The target has Disadvantage on attack rolls and ability checks.",
+				"Terror. The target has the Frightened condition and must move away from you by the safest route during its turn unless there is nowhere to move."
+			]
+		},
+		{
+			"name": "Gather the Coven",
+			"source": "TCM'24",
+			"page": 93,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Horned King",
+			"subclassSource": "TCM'24",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"You can now share the Horned King's power with those you deem worthy. You perform a 1-hour ritual, which can be done during a rest, forming a bond with up to six willing creatures that must remain within 10 feet of you during the ritual. You can end the bond for any number of the creatures (no action required), and the bond ends when you die. The bond grants the following benefits.",
+				"Witchcraft. Choose one of the curses from your Malediction feature. The bonded creatures can now each use that Reaction option once, and they regain the ability to do so when they finish a Long Rest.",
+				"Fly By Night. As a Bonus Action, choose one of the bonded creatures. If you and the target are on the same plane of existence, you magically teleport to the nearest unoccupied space next to the creature. You can use this benefit once, and you regain the ability to do so when you finish a Short or Long Rest. If your Crown of Horns feature is active when you use this Bonus Action, the use isn't expended.",
+				"Hand of the King. While your Crown of Horns feature is active, the first time a bonded creature damages another creature during its turn, the target takes an extra 1d10 Necrotic damage."
+			]
+		},
+		{
+			"name": "The Many",
+			"source": "TGS2",
+			"page": 226,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Many",
+			"subclassSource": "TGS2",
+			"level": 3,
+			"entries": [
+				"Your patron is a powerful entity composed of a multitude of heads. These heads provide unique strengths, such as the regenerative properties of a mighty hydra, or the bewitching gaze of a medusa. Your patron may consider you one of its estranged or forgotten heads, allowing you to do as you please, or compel you to work toward a shared goal as one of its own. Those that make a pact with a patron such as this may find beauty in patterns or matching sets, or become plagued with internal bickering and indecisiveness. Regardless, one thing is for certain: two heads are always better than one.",
+				"Entities of this type include extremely powerful or godlike multi-headed or -conscioused beings, swarms, or hiveminds. Example patrons in this book include the Butcher Dray, Three-Headed Ettin; Grihoo, the Superhydra; Lady Feluciana, Legendary Medusa Sorceress; the Thousand Voices, Supreme Soul Vortex; and Vaanor, Primeval Cerberus. Details on these patrons can be found in appendix I on page 378. Level 1: Expanded Spell List TGS2 p226",
+				"The Many lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. Spell Level Spells",
+				"1st\tentangle, magic missile",
+				"2nd\tscorching ray, see invisibility",
+				"3rd\tblink, nondetection",
+				"4th\tarcane eye, black tentacles",
+				"5th\tmislead, telepathic bond",
+				"Level 1: Eldritch Heads TGS2 p226",
+				"At 1st level, you gain a number of eldritch heads equal to your proficiency bonus. Only you and creatures with truesight can see these heads, which sprout from your shoulders as representations of your patron. You can choose to ignore the heads and cause them to vanish from your vision.",
+				"These eldritch heads provide you with motes of power from your patron that can be expended to grant you the following benefits:",
+				"Once per turn, you can expend one head when you hit a creature with an attack to cause that creature to take extra psychic damage equal to 1 + your proficiency bonus.",
+				"When you make a Charisma (Intimidation) check, you can expend one head to gain advantage on the roll. When you do, your eldritch heads become briefly visible to everyone.",
+				"When you fail a death saving throw, you can expend one head to succeed instead.",
+				"When a head is expended, its appearance becomes wispy and gaseous, but its glowing eyes remain. You regain all expended heads when you finish a long rest.",
+				"In addition, you can use a bonus action to beseech your patron to restore two of your expended heads. Once you use this ability, you can't use it again until you finish a long rest. Level 1: Guarded TGS2 p227",
+				"Also at 1st level, while you have at least one eldritch head remaining, you can't be surprised, and if a creature would gain advantage on an attack roll against you due to having its ally within 5 feet of you, it makes the attack roll without advantage."
+			]
+		},
+		{
+			"name": "Improved Eldritch Heads",
+			"source": "TGS2",
+			"page": 227,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Many",
+			"subclassSource": "TGS2",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"At 6th level, you've devised more ways to use your eldritch heads. You gain the following benefits:",
+				"You can use a bonus action to expend one eldritch head, reabsorbing it to gain a number of temporary hit points equal to 2d6 + your Charisma modifier.",
+				"Once per turn, you can expend one head to take a reaction even if you've already used your reaction. You can't use this benefit on the same turn that you take your normal reaction.",
+				"When you fail a saving throw against being charmed, frightened, or put to sleep by magic, you can expend one head to reroll the saving throw. If you do so, you must use the new roll."
+			]
+		},
+		{
+			"name": "Groupthink",
+			"source": "TGS2",
+			"page": 227,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Many",
+			"subclassSource": "TGS2",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"Starting at 10th level, your eldritch heads are always there to support your mortal mind and body. You gain a bonus to Intelligence checks, Wisdom (Perception) checks, and Intelligence saving throws equal to half your proficiency bonus."
+			]
+		},
+		{
+			"name": "Eldritch Frenzy",
+			"source": "TGS2",
+			"page": 227,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Many",
+			"subclassSource": "TGS2",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Starting at 14th level, you can use an action to revive your expended eldritch heads in a frenzied burst, during which time they become visible to everyone. When you do, you regain all expended heads, which releases a thunderous roar audible out to 300 feet as they tear into existence. Choose a number of creatures within 60 feet of you up to the number of heads you regain in this way. Each target must make an Intelligence saving throw against your warlock spell save DC. On a failed save, a target takes 4d8 psychic damage and is incapacitated until the end of your next turn as its mind is flooded with otherworldly energy. On a successful save, a target takes half as much psychic damage and isn't incapacitated.",
+				"Once you use this feature, you can't use it again until you finish a long rest."
+			]
+		},
+		{
+			"name": "Mother of Sorrows",
+			"source": "BoET",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Mother of Sorrows",
+			"subclassSource": "BoET",
+			"level": 3,
+			"entries": [
+				"Universal suffering has given rise to an enigmatic being known as the Mother of Sorrows, and warlocks who bind themselves to her cause seek to spread her poisonous vengeance. The Mother of Sorrows was born from the suffering of parents who have lost children to pestilence, disease, and treachery, and her gifts grant warlocks the power to avenge the thousands of sorrows laid at her feet. Expanded Spell List",
+				"The Mother of Sorrows lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. Expanded Spell ListSpell Level Spells",
+				"1st\tdetect poison and disease, inflict wounds",
+				"2nd\tray of enfeeblement, silence",
+				"3rd\tstinking cloud, vampiric touch",
+				"4th\tgreater invisibility, phantasmal killer",
+				"5th\tcloudkill, contagion",
+				"Level 1: Poison Soul BoET",
+				"Starting at 1st level, your affinity for poison becomes supernatural. Any poison damage you deal ignores any resistance or immunity. Level 1: Venomous Mark BoET",
+				"Also at 1st level, as a bonus action, choose one creature you can see within 30 feet of you. The target is cursed for 1 minute. The curse ends early if the target dies, you die, or you are incapacitated. Until the curse ends, you deal an extra 1d6 poison damage to the target whenever you hit it with a spell attack. (You can only apply this damage once per spell even if there are multiple spell attack instances, such as with eldritch blast.)",
+				"If the target drops to 0 hit points before the curse ends, you can use a bonus action on a subsequent turn of yours to curse a new creature. Only one creature can be affected with a venomous mark at any given time."
+			]
+		},
+		{
+			"name": "Sickening Revenge",
+			"source": "BoET",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Mother of Sorrows",
+			"subclassSource": "BoET",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Starting at 6th level, you can take vengeance on those who harm you. When you take damage, you can use your reaction to attempt to poison the creature that damaged you. The triggering creature must make a Constitution saving throw against your warlock spell save DC or become poisoned for 1 minute. An affected creature can repeat the saving throw at the end of each of its turns, ending the condition on a success.",
+				"Once you use this feature, you can't use it again until you finish a short or long rest."
+			]
+		},
+		{
+			"name": "Dark Inoculation",
+			"source": "BoET",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Mother of Sorrows",
+			"subclassSource": "BoET",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"Starting at 10th level, your poisonous magic has infused your body. You are immune to disease, poison damage, and the poisoned condition."
+			]
+		},
+		{
+			"name": "Touch of Sorrow",
+			"source": "BoET",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Mother of Sorrows",
+			"subclassSource": "BoET",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Starting at 14th level, when you hit a creature with an attack, you can use this feature to infuse the target with your sorrow. The target must make a Wisdom saving throw or be paralyzed and poisoned for 24 hours. The creature remains paralyzed until it takes damage or is no longer poisoned.",
+				"You must finish a short or long rest before you can use this feature again."
+			]
+		},
+		{
+			"name": "The Parasite",
+			"source": "HGtMH",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite",
+			"subclassSource": "HGtMH",
+			"level": 3,
+			"entries": [
+				"You have bonded, mind and body, with a rare and enigmatic being that calls your body home, whether you like it or not Its origins are unknown; perhaps it came from a vat of biomantic mut-x, the nightmares of an astral projector, or a subterranean pool of primordial ooze. Survival is its watchword and you are its host. Level 1: Expanded Spell List HGtMH",
+				"The Parasite lets you choose from an expanded list of spells when you learn a warlock spell The following spells are added to the warlock spell list for you. Parasite Expanded SpellsSpell Level Spells",
+				"1st\theroism, sanctuary",
+				"2nd\tenhance ability, enlarge/reduce",
+				"3rd\thaste, spirit guardians",
+				"4th\tEvard's black tentacles, freedom of movement",
+				"5th\tendure, dominate person",
+				"Some of the spells in the Parasite Expanded Spells table have a divine flavour to them. Feel free to corrupt these to fit your parasitic patron! For example, sanctuary might be represented as part of your parasitic symbiont warding the target of your spell from damaging blows. Spirit guardians probably deals necrotic damage, even if you're not evil, and could manifest as viscous threads of corrupting ichor that whirl around you with a mind of their own. If you're especially into horror, you could even express dominate person as a part of your patron physically invading your target's cranium through a nostril! Level 1: Parasitic Weapon HGtMH",
+				"Your patron can manifest on and protrude from your body in the form of a parasitic weapon—claws, teeth, tendrils, or other appendages As a bonus action, you can manifest this parasitic weapon; you gain a new attack option that you can use when you take the Attack action on your turn This special attack is a melee weapon attack, with a reach equal to five times your proficiency bonus. You are proficient with this weapon and, when you make a weapon attack with it, you must use your Charisma modifier instead of your Strength modifier for the attack roll The attack deals 1d12 bludgeoning, piercing, or slashing damage on a hit (your choice when you manifest the weapon). You don't add your ability modifier to the damage of the parasitic weapon.",
+				"The parasitic weapon retracts back into your body if you are incapacitated or you use a bonus action to end it.",
+				"Parasitic Fury. The number of attacks you can make with your parasitic weapons when you take the Attack action on your turn increases when you reach certain levels in this class, increasing to two attacks at 5th level, three attacks at 11th level, and four attacks at 17th level If you have another feature that allows you to make multiple attacks as part of the Attack action (such as Extra Attack), making any of those extra attacks each replace one of these parasitic weapon attacks.",
+				"Magical Weapons. Starting at 6th level, your attacks with your parasitic weapon count as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage. Opportunity Attacks & Parasitic Weapon",
+				"This parasitic weapon can't be used for opportunity attacks; it specifies that it is only usable when you take the Attack action. Opportunity attacks are made using reactions. Opportunity attacks with a 30-foot-reach weapon are hard to keep track of! Level 1: Symbiotic Reinforcement HGtMH",
+				"Invested in your survival, your patron manifests in protective ways You can use your Charisma modifier in place of your Strength modifier when making Strength saving throws In addition, as a bonus action, you can cause your patron to manifest as a shield in your free hand, with which you are proficient. This shield disappears if you are incapacitated or if you dismiss it as a bonus action The increase to AC rises to 3 when you reach 10th level in this class. Invocations & Parasitic Weapon",
+				"If you are the GM, consider allowing invocations that have thethat have the eldritch blast cantrip as a prerequisite to also benefit attacks the warlock makes with their parasitic weapon. For example, Repelling Blast would permit the parasitic weapon to push targets, while Agonizing Blast would allow the warlock to add their Charisma modifier to its damage rolls. However, take this with a pinch of salt; Eldritch Spear extends the weapon's reach by a factor of 2.5 only, not 180 feet!"
+			]
+		},
+		{
+			"name": "The Parasite Patron",
+			"source": "GH:PG'24",
+			"page": 100,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite Patron",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"entries": [
+				"Become One with a Cosmic Being",
+				"Your patron is a cosmic parasite, draining the vitality of entire peoples and worlds. Upon forging a pact with such a patron, you become host to one of its nascent offspring. As you grow in power, the boundary between your identity and the parasitic larva within blurs. Level 3: Spell Siphon GH:PG'24 p100",
+				"Your patron has taught you to siphon magic from your enemies and make it your own. Immediately after a creature you can see within 60 feet of you casts a spell, you can take a Reaction to force the creature to make a Charisma saving throw. The DC equals your spell save DC. On a failed save, that creature can't cast a spell again until 8 hours have passed. While this effect lasts, if the spell was at least level 1 and of a level you can cast, you have that spell prepared.",
+				"The maximum number of spell levels you can have siphoned at once equals 1 plus your Charisma modifier (minimum of 1). If you have the Incapacitated condition or die, you lose all siphoned spells. When you finish a Long Rest, you lose all siphoned spells. Level 3: Physical Specimen GH:PG'24 p101",
+				"Your patron has enhanced your physical form to improve your utility as a host and pawn. As a Bonus Action, once per Long Rest, choose a number of the following benefits up to your Charisma modifier (minimum of one) that lasts until you finish a Long Rest. Whenever you finish a Short Rest, you can choose one of your selected benefits and replace it with another from this list.",
+				"Your Hit Point maximum increases by an amount equal to your Warlock level.",
+				"You gain Darkvision with a range of 60 feet. If you already have Darkvision, its range increases by 60 feet.",
+				"You Speed increases by 5 feet.",
+				"You have Advantage on saving throws to avoid or end the Poisoned condition.",
+				"Your jump distance is tripled, and you gain a Climb Speed equal to your Speed.",
+				"Add your Charisma modifier to your Strength (Athletics) check or Dexterity (Acrobatics) checks."
+			]
+		},
+		{
+			"name": "Birth Parasite",
+			"source": "HGtMH",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite",
+			"subclassSource": "HGtMH",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Over the course of 1 minute, you can extrude an independent piece of your patron, causing it to manifest in an unoccupied space within 5 feet of you This parasite acts as a familiar, as if with the find familiar spell See this creature's game statistics in the parasitic ooze stat block, which uses your proficiency bonus (PB) in several places.",
+				"If you have the Pact of the Chain feature, the parasite counts as a familiar for you for the purpose of applying any benefits from that feature or your invocations.",
+				"After you birth a parasite, you can't do so again until you finish a short or long rest. If you use this feature while you already have a parasite, the previous one dissolves in a puddle of goo."
+			]
+		},
+		{
+			"name": "Liquefied Body",
+			"source": "HGtMH",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite",
+			"subclassSource": "HGtMH",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"As a bonus action, you can transform your body into a viscous, liquid form for 10 minutes You choose whether your equipment falls to the ground in your space or merges into your new form For the duration, you can squeeze through a space as narrow as 6 inches wide, and moving through difficult terrain costs you no extra movement. After you use this feature, you can't do so again until you finish a short or long rest.",
+				"Magical Weapons. Starting at 6th level, your attacks with your parasitic weapon count as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage."
+			]
+		},
+		{
+			"name": "Symbiotic Sentinel",
+			"source": "GH:PG'24",
+			"page": 101,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite Patron",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Your patron remains alert to threats to its host at all times. You can't be surprised and you have Advantage on Initiative rolls. You also have Advantage on saving throws to avoid or end the Charmed and Frightened conditions."
+			]
+		},
+		{
+			"name": "Spawn Pawn",
+			"source": "GH:PG'24",
+			"page": 101,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite Patron",
+			"subclassSource": "GH:PG'24",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"You always have the Dominate Person spell prepared. You can also cast it once without a spell slot, and you regain the ability to do so when you finish a Long Rest.",
+				"In addition, taking damage can't break your Concentration on Dominate Person. When a creature succeeds on its saving throw, it takes Psychic damage equal to your Warlock level."
+			]
+		},
+		{
+			"name": "Transmit Parasite",
+			"source": "HGtMH",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite",
+			"subclassSource": "HGtMH",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"At 10th level, you learn new ways to use your parasitic ooze to aid your friends or harm your foes As a bonus action while your parasitic ooze isn't incapacitated, you can command it to immediately use one of the options below.",
+				"Detonate Ooze. The ooze moves up to its speed and then explodes, causing it to drop to 0 hit points Each creature within 10 feet of the ooze must make a Dexterity saving throw against your warlock spell save DC On a failed save, a creature takes 4d6 necrotic damage and is blinded until the end of your next turn On a successful save, the creature takes half as much damage and isn't blinded.",
+				"Symbiote's Ward. The ooze moves up to its speed and attaches to the body of a willing creature within 5 feet of it While attached in this way, the ooze is incapacitated, has a speed of 0, and you can communicate telepathically with the creature it's attached to, whether or not you share a common language Whenever the creature the ooze is attached to takes damage, the ooze takes the damage instead As a bonus action, you can command the parasite to detach from the creature."
+			]
+		},
+		{
+			"name": "Larval Regeneration",
+			"source": "GH:PG'24",
+			"page": 101,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite Patron",
+			"subclassSource": "GH:PG'24",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"When you die, a larval parasite bursts from your corpse. You control the parasite. The parasite uses the Rat stat block except it has your Hit Points; Hit Point Dice; Intelligence, Wisdom, and Charisma scores; class features; languages; and feats. It can't cast spells. In addition, it has the following ability:",
+				"Burrowing Possession. As a Magic action, the parasite can cause a Humanoid within 5 feet of it to make a Strength or Dexterity saving throw (your choice) against your Warlock spell save DC. On a failed save, the parasite burrows into the creature, dealing Piercing damage equal to your Warlock level. While burrowed inside a creature, the parasite can't take any action, Bonus Action, or Reaction, has Total Cover, and has Immunity to all damage except Psychic damage.",
+				"On each of the creature's subsequent turns, it can use its action to make a Constitution saving throw against your Warlock spell save DC. If the creature succeeds, the parasite is ejected from its body and into an unoccupied space of the creature's choice within 5 feet of it. If the parasite is burrowed inside the creature when the creature's turn ends, the creature takes Necrotic damage equal to twice your Warlock level. If this damage reduces the creature to 0 Hit Points, it immediately dies, the parasite disappears, and you take over the body of the Humanoid as if you had been targeted by the Reincarnate spell and rolled the species the Humanoid had been.",
+				"If you are returned to life, such as by the Revivify spell, your parasite immediately disappears.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Virulent Form",
+			"source": "HGtMH",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Parasite",
+			"subclassSource": "HGtMH",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Your patron allows you to unleash a modicum of its true power as it envelops your form As an action, you can gain the following benefits for 1 minute:",
+				"You grow in size by one category—from Medium to Large, for example If you lack the room to grow, your size doesn't change.",
+				"You gain a number of temporary hit points equal to your Charisma modifier (minimum 1) at the start of each of your turns.",
+				"The damage dice of your parasitic weapon increases to 2d8",
+				"Your parasitic weapon attacks score a critical hit on a roll of 19 or 20.",
+				"Whenever you take damage from a creature within your parasitic weapon's reach, you can use your reaction to make an attack with the parasitic weapon against that creature.",
+				"Once you use this feature, you can't do so again until you finish a short or long rest."
+			]
+		},
+		{
+			"name": "The Predator",
+			"source": "HWT",
+			"page": 174,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Predator",
+			"subclassSource": "HWT",
+			"level": 3,
+			"entries": [
+				"Your patron is a primal beast, driven by a bloodthirsty need to hunt. These beings tempt creatures to give in to their base instincts and become apex predators. Ancient white dragons, demons with a bestial bent, and the Amaranthine Kren have all been known to occasionally grant feral powers to those desperate enough to seek their aid. Many who strike a pact with a Predator find themselves forever changed, bearing razor teeth and wicked claws, an aspect of their predatory patron. Level 1: Expanded Spell List HWT p174",
+				"The Predator lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. [–] The Predator Expanded Spell List HWT p174 Spell Level Spells",
+				"1st\thunter's mark, jump",
+				"2nd\talter self, ambush prey*",
+				"3rd\tblink, slow",
+				"4th\tdominate beast, freedom of movement",
+				"5th\tcontagion, mislead",
+				"Level 1: Bonus Proficiencies HWT p174",
+				"Starting at 1st level, your patron grants you enhanced tracking skills. You gain expertise with the Survival skill, and you add double your proficiency bonus to any Wisdom (Survival) skill checks you make. Level 1: Form of the Beast HWT p174",
+				"At 1st level, you can use your bonus action to channel the ferocity and guile of your patron, transforming into a beastly figure. For 10 minutes, you gain the following abilities:",
+				"You are flooded with adrenaline, feeling nothing besides the thrill of the hunt. You gain temporary hit points equal to two times your warlock level, up to a maximum of 20 temporary hit points at 10th level. These temporary hit points last until the end of your transformation.",
+				"Your senses become supernaturally keen. You have advantage on Dexterity (Stealth), Wisdom (Perception), and Wisdom (Survival) checks you make to track or stalk your prey.",
+				"You sprout a set of pointed teeth and razor-sharp claws, which are natural weapons you can use to make unarmed strikes against creatures within 5 feet of you. You have proficiency with these weapons and can use your Charisma modifier for the attack and damage rolls made using these natural weapons. On a hit, your bite deals 1d6 piercing damage, and your claws deal 1d4 slashing damage. If you already had a bite or claw attack (talon attacks count as claw attacks), its damage increases by one step (a d4 becomes a d6, a d6 becomes a d8, etc.). As a bonus action, after making a bite attack, you can make a claw attack.",
+				"Starting at 5th level, your muscles strengthen, and your movements quicken. You can now make two claw attacks using your bonus action after you have made a bite attack with your action. Additionally, at 5th level, you can take the Dash or Hide action as a bonus action while you are in your Form of the Beast.",
+				"You can use this feature twice per short or long rest. At 6th level, your transformation lasts for 1 hour instead of 10 minutes. Nature's Fangs and Ferocity Nature's Fangs and Ferocity"
+			]
+		},
+		{
+			"name": "Thrill of the Hunt",
+			"source": "HWT",
+			"page": 175,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Predator",
+			"subclassSource": "HWT",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"At 6th level, you gain the ability to feast on the vitality of your foes while you are in your Form of the Beast. Once per turn, when you hit a creature with your bite attack, you can cause the attack to deal an extra 3d6 points of necrotic damage. You regain a number of hit points equal to half the total damage dealt with this attack.",
+				"Once you use this feature, you can't use it again until you score a critical hit with a bite or claw attack or until you finish a short or long rest.",
+				"At 10th level, the extra necrotic damage provided by this feature increases to 5d6."
+			]
+		},
+		{
+			"name": "Fearsome Presence",
+			"source": "HWT",
+			"page": 176,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Predator",
+			"subclassSource": "HWT",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"At 10th level, you learn how to channel the presence of a frightful beast, even when not transformed. You can use your action to cause each hostile creature you can see within a 30-foot radius to make a Wisdom saving throw against your spell save DC. On a failure, the target becomes frightened of you for 1 minute, and it is restrained until the end of your next turn. A frightened creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
+				"Once you use this feature, you can't use it again until you finish a short or long rest."
+			]
+		},
+		{
+			"name": "Uncaged Beast",
+			"source": "HWT",
+			"page": 176,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Predator",
+			"subclassSource": "HWT",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Upon reaching 14th level, you become even more ferocious when pushed to your limits. When an attacker that you can see hits you with an attack, you can use your reaction to immediately transform into your Form of the Beast and then make one bite or claw attack at an enemy within 5 feet of you.",
+				"Additionally, while transformed into your Form of the Beast, when you take damage from a creature that is within 5 feet of you, you can use your reaction to make a bite or claw attack against that creature."
+			]
+		},
+		{
+			"name": "Stone Sovereign Patron",
+			"source": "FoEQ",
+			"page": 154,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Stone Sovereign",
+			"subclassSource": "FoEQ",
+			"level": 3,
+			"entries": [
+				"Hear the Whispering of the Stones",
+				"You have listened to the will of the stone, and made a pact with one of Eberron's great earthen powers. The whispers of the daelkyr Orlassk corrupt many Warlocks to their cause, but similar magics may be the gifts of the greedy fey King Grayfinger or even the medusa Queen Sheshka of Cazhaak Draal. The gnomes of Lorghalan draw their power from their friendship with the earth elementals of their island; perhaps you have made peace with the earth itself. Level 3: Eternity in Stone FoEQ p154",
+				"When you reduce a creature to 0 Hit Points, you can cause it to turn to stone. If you do so, you gain Temporary Hit Points equal to 1d10 + your Warlock level. A creature turned to stone in this way has the Petrified condition.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest. Level 3: Stone Speaker FoEQ p154",
+				"Your pact grants you the ability to commune with earth and stone. As a Magic action, you imbue stones in an immobile 30-foot Emanation with limited sentience, giving them the ability to communicate with you. You can question stones about events in the spell's area within the past day, gaining information about creatures that have passed, items that might have been removed from the area, and other circumstances.",
+				"If an earth Elemental or a creature with the Petrified condition is in the area, you can communicate with it as if you shared a language, but you gain no magical ability to influence it.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest. Level 3: Stone Sovereign Spells FoEQ p154",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Stone Sovereign Spells table, you thereafter always have the listed spells prepared. Stone Sovereign SpellsWarlock Level Prepared Spells",
+				"3\tAbsorb Elements, Earthbind, Earth Tremor, Spike Growth",
+				"5\tMagic Circle, Slow",
+				"7\tStone Shape, Stoneskin",
+				"9\tBigby's Hand, Wall of Stone"
+			]
+		},
+		{
+			"name": "Form of Stone",
+			"source": "FoEQ",
+			"page": 155,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Stone Sovereign",
+			"subclassSource": "FoEQ",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Stone is no prison to you. Whenever you have the Petrified condition, you are aware of your surroundings and you have Immunity to Bludgeoning, Piercing, and Slashing damage.",
+				"Additionally, you have learned to take on a stone form to protect yourself from injury. As a Reaction when you take damage, you can give yourself the Petrified condition until the start of your next turn. The Petrified condition applies before you take the triggering damage, possibly granting Resistance or Immunity to that damage. When the Petrified condition ends, you can choose to emerge from a stone surface into an unoccupied space you can see within 30 feet of yourself.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Stone's Embrace",
+			"source": "FoEQ",
+			"page": 155,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Stone Sovereign",
+			"subclassSource": "FoEQ",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"You always have the Meld into Stone spell prepared. When you cast Meld into Stone, you can choose up to five willing creatures within 5 feet of you to also gain the benefits of the spell. Each creature must be touching a stone object or surface large enough to fully contain their body. Affected creatures can end the effect on themselves early by using 5 feet of movement to leave the stone where they entered it.",
+				"Creatures who finish a Short or Long Rest while under the effect of your Meld into Stone spell gain Resistance against the first instance of damage they take after leaving the stone."
+			]
+		},
+		{
+			"name": "Stone Servant",
+			"source": "FoEQ",
+			"page": 155,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Stone Sovereign",
+			"subclassSource": "FoEQ",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"You gain the ability to control the actions of Petrified creatures, while bestowing upon them the power of your patron. One creature with the Petrified condition that you touch becomes an Earth Elemental Spirit under your control as if you had cast the Summon Elemental spell at 6th-level. The creature's size does not change and you do not need to maintain Concentration. The transformation lasts until a Greater Restoration spell is cast on the creature, until the Elemental Spirit is reduced to 0 Hit Points, or until you use this feature again."
+			]
+		},
+		{
+			"name": "Undead Patron",
+			"source": "RHW",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undead",
+			"subclassSource": "RHW",
+			"level": 3,
+			"entries": [
+				"Defy Death for Profane Power",
+				"You've made a pact with a creature that defies the cycle of life and death: a powerful lich, a vampire, or another entity of undeath. Having once been mortal, these ancient patrons know firsthand the paths of ambition and the routes past the doors of death. They eagerly share this profane knowledge and other secrets with those who work their will among the living. Level 3: Form of Dread RHW",
+				"As a Bonus Action, you transform into an avatar of your patron's dreadful power, gaining the benefits below for 1 minute, until you have the Incapacitated condition, or until you end the form (no action required). You can transform a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.",
+				"Facsimile of Life. You gain Temporary Hit Points equal to 1d10 plus your Warlock level.",
+				"Fearless Form. You have Immunity to the Frightened condition. If you are Frightened when you transform, the condition immediately ends for you.",
+				"Frightful Avatar. Once per turn, when you hit a creature with an attack roll, you can force it to make a Wisdom saving throw against your spell save DC. On a failed save, the target has the Frightened condition until the end of your next turn. Level 3: Undead Spells RHW",
+				"The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Undead Spells table, you thereafter always have the listed spells prepared. Undead SpellsWarlock Level Spells",
+				"3\tBane, Blindness/Deafness, Phantasmal Force, Ray of Sickness",
+				"5\tSpeak with Dead, Summon Undead",
+				"7\tGreater Invisibility, Phantasmal Killer",
+				"9\tAntilife Shell, Cloudkill",
+				"Undead Patron Warlock Undead Patron Warlock"
+			]
+		},
+		{
+			"name": "Grave Touched",
+			"source": "RHW",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undead",
+			"subclassSource": "RHW",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Your patron's powers have a profound effect on your body and magic, granting you the following benefits.",
+				"Arcane Necrosis. Necrotic damage from your attacks, Warlock spells, and Warlock features ignores Resistance to Necrotic damage. Once per turn when you cast a spell that deals damage, you can change that spell's damage type to Necrotic.",
+				"Dreaded Necrosis. When you hit a creature with an attack roll and deal Necrotic damage while using your Form of Dread, you can roll one additional damage die when determining the Necrotic damage the target takes. You can use this benefit only once per turn.",
+				"Undead Endurance. You don't gain Exhaustion levels from dehydration, malnutrition, or suffocation. In addition, you don't need to sleep, and magic can't put you to sleep."
+			]
+		},
+		{
+			"name": "Necrotic Husk",
+			"source": "RHW",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undead",
+			"subclassSource": "RHW",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"Your connection to undeath saturates your body. You gain the following benefits.",
+				"Necrotic Resilience. You have Resistance to Necrotic damage. While using your Form of Dread, you have Immunity to Necrotic damage.",
+				"Unholy Resuscitation. If you drop to 0 Hit Points and don't die outright, you can cause your body to erupt with deathly energy. Each creature of your choice in a 30-foot Emanation originating from you makes a Constitution saving throw against your spell save DC, taking Necrotic damage equal to 2d10 plus your Charisma modifier on a failed save or half as much damage on a successful one. Your Hit Points then change to twice your Warlock level, and you gain 1 Exhaustion level.",
+				"Once you use this benefit, you can't use it again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Superior Dread",
+			"source": "RHW",
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undead",
+			"subclassSource": "RHW",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"Your Form of Dread improves, granting you the following benefits while you are using it.",
+				"Dread Resistance. You have Resistance to Bludgeoning, Piercing, and Slashing damage.",
+				"Ghostly Flight. You have a Fly Speed equal to your Speed and can hover. You can move through creatures and objects as if they were Difficult Terrain, but you take 1d10 Force damage if you end your turn inside a creature or an object.",
+				"Profane Casting. Whenever you cast a Warlock spell from the Conjuration or Necromancy school, you cast it without any Verbal, Somatic, or Material components, except Material components that are costly or consumed."
+			]
+		},
+		{
+			"name": "The Undying",
+			"source": "SCAG",
+			"page": 139,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undying",
+			"subclassSource": "SCAG",
+			"level": 3,
+			"entries": [
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"Death holds no sway over your patron, who has unlocked the secrets of everlasting life, although such a prize—like all power—comes at a price. Once mortal, the Undying has seen mortal lifetimes pass like the seasons, like the flicker of endless days and nights. It has the secrets of the ages to share, secrets of life and death. Beings of this sort include Vecna, Lord of the Hand and the Eye; the dread Iuz; the lich-queen Vol; the Undying Court of Aerenal; Vlaakith, lich-queen of the githyanki; and the deathless wizard Fistandantilus.",
+				"In the Realms, Undying patrons include Larloch the Shadow King, legendary master of Warlock's Crypt, and Gilgeam, the God-King of Unther. Expanded Spell List",
+				"The Undying lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you. Undying Expanded SpellsSpell Level Spells",
+				"1st\tfalse life, ray of sickness",
+				"2nd\tblindness/deafness, silence",
+				"3rd\tfeign death, speak with dead",
+				"4th\taura of life, death ward",
+				"5th\tcontagion, legend lore",
+				"Among the Dead SCAG p139",
+				"Starting at 1st level, you learn the spare the dying cantrip, which counts as a warlock cantrip for you. You also have advantage on saving throws against any disease.",
+				"Additionally, undead have difficulty harming you. If an undead targets you directly with an attack or a harmful spell, that creature must make a Wisdom saving throw against your spell save DC (an undead needn't make the save when it includes you in an area effect, such as the explosion of fireball). On a failed save, the creature must choose a new target or forfeit targeting someone instead of you, potentially wasting the attack or spell. On a successful save, the creature is immune to this effect for 24 hours. An undead is also immune to this effect for 24 hours if you target it with an attack or a harmful spell."
+			]
+		},
+		{
+			"name": "Defy Death",
+			"source": "SCAG",
+			"page": 139,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undying",
+			"subclassSource": "SCAG",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Starting at 6th level, you can give yourself vitality when you cheat death or when you help someone else cheat it. You can regain hit points equal to 1d8 + your Constitution modifier (minimum of 1 hit point) when you succeed on a death saving throw or when you stabilize a creature with spare the dying.",
+				"Once you use this feature, you can't use it again until you finish a long rest."
+			]
+		},
+		{
+			"name": "Undying Nature",
+			"source": "SCAG",
+			"page": 139,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undying",
+			"subclassSource": "SCAG",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"Beginning at 10th level, you can hold your breath indefinitely, and you don't require food, water, or sleep, although you still require rest to reduce exhaustion and still benefit from finishing short and long rests.",
+				"In addition, you age at a slower rate. For every 10 years that pass, your body ages only 1 year, and you are immune to being magically aged."
+			]
+		},
+		{
+			"name": "Indestructible Life",
+			"source": "SCAG",
+			"page": 139,
+			"className": "Warlock",
+			"classSource": "XPHB",
+			"subclassShortName": "Undying",
+			"subclassSource": "SCAG",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"When you reach 14th level, you partake some of the true secrets of the Undying. On your turn, you can use a bonus action to regain hit points equal to 1d8 + your warlock level. Additionally, if you put a severed body part of yours back in place when you use this feature, the part reattaches.",
+				"Once you use this feature, you can't use it again until you finish a short or long rest."
 			]
 		}
 	]
