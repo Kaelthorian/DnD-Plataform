@@ -34,7 +34,8 @@
       {
         "provider": "github",
         "owner": "Kaelthorian",
-        "repo": "DnD-Plataform"
+        "repo": "DnD-Plataform",
+        "releaseType": "release"
       }
     ],
     "electronUpdaterCompatibility": ">=2.16",
