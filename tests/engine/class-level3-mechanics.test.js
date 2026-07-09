@@ -226,15 +226,20 @@ assert.ok(/once\|twice\|thrice/.test(RENDERER), "renderer parses multi-use free 
   );
   assert.deepStrictEqual(
     plain(context.baseArmorClassCandidatesFromFeatures(2, 1, 0, 3, { armor: true })),
-    [],
-    "Genie's Splendor does not apply while wearing armor"
+    [{ ac: 15, allowsShield: true }],
+    "Genie's Splendor calculates 10 + DEX + CHA even while wearing armor"
   );
 
-  featureEntries = [{ title: "Natural Defense", description: "Your base AC is 13 + your Dexterity modifier." }];
+  featureEntries = [{ title: "Natural Defense", description: "When you aren't wearing armor, your base AC is 13 + your Dexterity modifier." }];
   assert.deepStrictEqual(
     plain(context.baseArmorClassCandidatesFromFeatures(2, 1, 0, 3, null)),
     [{ ac: 15, allowsShield: true }],
     "feature AC parser still handles single-modifier formulas"
+  );
+  assert.deepStrictEqual(
+    plain(context.baseArmorClassCandidatesFromFeatures(2, 1, 0, 3, { armor: true })),
+    [],
+    "other no-armor AC features still require no armor"
   );
 }
 

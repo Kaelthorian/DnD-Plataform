@@ -15008,7 +15008,8 @@
       featureEffectEntries().forEach(({ title, description }) => {
         const lower = `${title}\n${description}`.toLowerCase();
         const requiresNoArmor = /not wearing (?:any )?armor|aren't wearing (?:any )?armor|are not wearing (?:any )?armor|without wearing (?:any )?armor/.test(lower);
-        if (requiresNoArmor && hasArmor) return;
+        const ignoresArmorRequirement = lower.includes("genie's splendor");
+        if (requiresNoArmor && hasArmor && !ignoresArmorRequirement) return;
         const allowsShield = !/not (?:using|wielding|holding) (?:a )?shield|without (?:a )?shield|no shield/.test(lower);
         const baseWithAbilities = lower.match(/(?:base armor class|base ac|armor class|ac)\s*(?:is|equals|becomes|of)?\s*(\d+)\s*(?:\+|plus)\s*your\s+([^.;]+?)\s+modifiers?\b/);
         if (baseWithAbilities) {
