@@ -69,7 +69,6 @@
       ]
     },
     "nsis": {
-      "disableWebInstaller": true,
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
