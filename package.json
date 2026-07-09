@@ -1,6 +1,6 @@
 {
   "name": "dnd-character-sheet-desktop",
-  "version": "10.0.2",
+  "version": "10.0.4",
   "description": "Desktop DnD character sheet",
   "main": "src/app/main/main.js",
   "author": "WallyCode",
@@ -34,8 +34,7 @@
       {
         "provider": "github",
         "owner": "Kaelthorian",
-        "repo": "DnD-Plataform",
-        "releaseType": "release"
+        "repo": "DnD-Plataform"
       }
     ],
     "electronUpdaterCompatibility": ">=2.16",
