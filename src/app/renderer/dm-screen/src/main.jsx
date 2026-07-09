@@ -4032,14 +4032,266 @@ function MapTokenImage({ token, className = "" }) {
   return <MonsterTokenImage monster={token?.monsterCustom || token?.monster} className={className} />;
 }
 
+const TOKEN_CROP_PREVIEW_SIZE = 280;
+const TOKEN_CROP_OUTPUT_SIZE = 512;
+
+function tokenCropImageName(name, fallbackName = "Token") {
+  const cleanName = String(name || fallbackName || "Token").trim();
+  const baseName = cleanName.replace(/\.[a-z0-9]+$/i, "") || fallbackName || "Token";
+  return `${baseName}-token.png`;
+}
+
+function TokenImageCropperModal({ sourceImage, title = "Token", onCancel, onConfirm }) {
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const dragRef = useRef(null);
+
+  useEffect(() => {
+    let disposed = false;
+    setNaturalSize({ width: 0, height: 0 });
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+    setError("");
+    if (!sourceImage?.dataUrl) return undefined;
+    loadImageElement(sourceImage.dataUrl)
+      .then((image) => {
+        if (disposed) return;
+        setNaturalSize({
+          width: image.naturalWidth || image.width || 0,
+          height: image.naturalHeight || image.height || 0
+        });
+      })
+      .catch((loadError) => {
+        console.error(loadError);
+        if (!disposed) setError("No pude leer la imagen.");
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [sourceImage?.dataUrl]);
+
+  const cropGeometry = useMemo(() => {
+    const width = naturalSize.width;
+    const height = naturalSize.height;
+    if (!width || !height) return null;
+    const coverScale = Math.max(TOKEN_CROP_PREVIEW_SIZE / width, TOKEN_CROP_PREVIEW_SIZE / height);
+    const displayWidth = width * coverScale * zoom;
+    const displayHeight = height * coverScale * zoom;
+    return {
+      displayWidth,
+      displayHeight,
+      sourceScale: displayWidth / width,
+      maxOffsetX: Math.max(0, (displayWidth - TOKEN_CROP_PREVIEW_SIZE) / 2),
+      maxOffsetY: Math.max(0, (displayHeight - TOKEN_CROP_PREVIEW_SIZE) / 2)
+    };
+  }, [naturalSize.height, naturalSize.width, zoom]);
+
+  function clampCropOffset(nextOffset, geometry = cropGeometry) {
+    if (!geometry) return { x: 0, y: 0 };
+    return {
+      x: clamp(nextOffset.x, -geometry.maxOffsetX, geometry.maxOffsetX),
+      y: clamp(nextOffset.y, -geometry.maxOffsetY, geometry.maxOffsetY)
+    };
+  }
+
+  function updateZoom(value) {
+    const nextZoom = clamp(Number(value) || 1, 1, 4);
+    setZoom(nextZoom);
+    if (!naturalSize.width || !naturalSize.height) return;
+    const coverScale = Math.max(TOKEN_CROP_PREVIEW_SIZE / naturalSize.width, TOKEN_CROP_PREVIEW_SIZE / naturalSize.height);
+    const nextGeometry = {
+      displayWidth: naturalSize.width * coverScale * nextZoom,
+      displayHeight: naturalSize.height * coverScale * nextZoom
+    };
+    nextGeometry.maxOffsetX = Math.max(0, (nextGeometry.displayWidth - TOKEN_CROP_PREVIEW_SIZE) / 2);
+    nextGeometry.maxOffsetY = Math.max(0, (nextGeometry.displayHeight - TOKEN_CROP_PREVIEW_SIZE) / 2);
+    setOffset((current) => clampCropOffset(current, nextGeometry));
+  }
+
+  function moveCropBy(deltaX, deltaY) {
+    setOffset((current) => clampCropOffset({ x: current.x + deltaX, y: current.y + deltaY }));
+  }
+
+  async function confirmCrop() {
+    if (!sourceImage?.dataUrl || !cropGeometry || !onConfirm) return;
+    setSaving(true);
+    setError("");
+    try {
+      const imageElement = await loadImageElement(sourceImage.dataUrl);
+      const sourceScale = cropGeometry.sourceScale || 1;
+      const sourceX = (cropGeometry.displayWidth / 2 - TOKEN_CROP_PREVIEW_SIZE / 2 - offset.x) / sourceScale;
+      const sourceY = (cropGeometry.displayHeight / 2 - TOKEN_CROP_PREVIEW_SIZE / 2 - offset.y) / sourceScale;
+      const sourceSize = TOKEN_CROP_PREVIEW_SIZE / sourceScale;
+      const canvas = document.createElement("canvas");
+      canvas.width = TOKEN_CROP_OUTPUT_SIZE;
+      canvas.height = TOKEN_CROP_OUTPUT_SIZE;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Could not prepare token crop.");
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(
+        imageElement,
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        TOKEN_CROP_OUTPUT_SIZE,
+        TOKEN_CROP_OUTPUT_SIZE
+      );
+      const croppedImage = storedImageSnapshot({
+        ...sourceImage,
+        id: `token-image-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: tokenCropImageName(sourceImage.name, `${title || "Token"} token`),
+        type: "image/png",
+        size: 0,
+        dataUrl: canvas.toDataURL("image/png"),
+        updatedAt: new Date().toISOString()
+      });
+      setSaving(false);
+      onConfirm(croppedImage);
+      return;
+    } catch (cropError) {
+      console.error(cropError);
+      setError("No pude guardar el recorte.");
+      setSaving(false);
+    }
+  }
+
+  if (!sourceImage?.dataUrl) return null;
+
+  const imageStyle = cropGeometry ? {
+    width: `${cropGeometry.displayWidth}px`,
+    height: `${cropGeometry.displayHeight}px`,
+    left: "50%",
+    top: "50%",
+    transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)`
+  } : {};
+
+  return createPortal((
+    <div
+      className="fixed inset-0 z-[10050] flex items-center justify-center bg-neutral-950/80 p-4"
+      role="dialog"
+      aria-modal="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <div className="w-full max-w-[520px] border border-amber-500 bg-neutral-950 text-neutral-200 shadow-2xl">
+        <div className="flex items-start justify-between gap-3 border-b border-neutral-800 px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="truncate font-serif text-lg font-bold uppercase tracking-wide text-amber-400">Ajustar token</h2>
+            <p className="mt-1 text-xs text-neutral-500">Arrastra la imagen y ajusta el zoom.</p>
+          </div>
+          <button
+            className="h-7 w-7 shrink-0 rounded-sm border border-neutral-700 bg-neutral-900 text-sm font-bold text-neutral-200 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            type="button"
+            aria-label="Cerrar recorte"
+            onClick={onCancel}
+          >
+            X
+          </button>
+        </div>
+        <div className="space-y-4 px-4 py-4">
+          <div className="flex justify-center">
+            <div
+              className="relative overflow-hidden rounded-full border-2 border-amber-300 bg-neutral-900 shadow-inner ring-4 ring-neutral-900"
+              style={{ width: TOKEN_CROP_PREVIEW_SIZE, height: TOKEN_CROP_PREVIEW_SIZE, touchAction: "none" }}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.currentTarget.setPointerCapture?.(event.pointerId);
+                dragRef.current = {
+                  pointerId: event.pointerId,
+                  clientX: event.clientX,
+                  clientY: event.clientY
+                };
+              }}
+              onPointerMove={(event) => {
+                const drag = dragRef.current;
+                if (!drag || drag.pointerId !== event.pointerId) return;
+                const deltaX = event.clientX - drag.clientX;
+                const deltaY = event.clientY - drag.clientY;
+                drag.clientX = event.clientX;
+                drag.clientY = event.clientY;
+                moveCropBy(deltaX, deltaY);
+              }}
+              onPointerUp={(event) => {
+                if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+              }}
+              onPointerCancel={(event) => {
+                if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+              }}
+              onWheel={(event) => {
+                event.preventDefault();
+                updateZoom(zoom + (event.deltaY < 0 ? 0.08 : -0.08));
+              }}
+            >
+              {cropGeometry ? (
+                <img
+                  className="absolute max-w-none select-none object-fill"
+                  src={sourceImage.dataUrl}
+                  alt=""
+                  draggable={false}
+                  style={imageStyle}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-wide text-neutral-500">Cargando</div>
+              )}
+              <div className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-inset ring-white/45" />
+              <div className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0_0_30px_rgba(0,0,0,0.55)]" />
+            </div>
+          </div>
+          <label className="block">
+            <div className="mb-1 flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+              <span>Zoom</span>
+              <span>{Math.round(zoom * 100)}%</span>
+            </div>
+            <input
+              className="w-full accent-amber-400"
+              type="range"
+              min="1"
+              max="4"
+              step="0.01"
+              value={zoom}
+              onChange={(event) => updateZoom(event.target.value)}
+            />
+          </label>
+          {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-neutral-800 px-4 py-3">
+          <button
+            className="border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs font-bold uppercase tracking-wide text-neutral-300 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-500/40"
+            type="button"
+            onClick={onCancel}
+          >
+            Cancelar
+          </button>
+          <button
+            className="border border-amber-400 bg-amber-500 px-3 py-2 text-xs font-bold uppercase tracking-wide text-neutral-950 hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            disabled={!cropGeometry || saving}
+            onClick={confirmCrop}
+          >
+            {saving ? "Guardando" : "Usar token"}
+          </button>
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
 function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null, onMonsterEdit = null, onMonsterTokenImageChange = null }) {
+  const [pendingTokenImage, setPendingTokenImage] = useState(null);
+
   async function handleTokenImageChange(event) {
     const input = event.currentTarget;
     const file = Array.from(input.files || []).find((entry) => String(entry.type || "").startsWith("image/"));
     if (!file || !onMonsterTokenImageChange) return;
     try {
       const image = await readImageFileAsStoredImage(file, `${monster?.name || "Monster"} token`);
-      onMonsterTokenImageChange(storedImageSnapshot({
+      setPendingTokenImage(storedImageSnapshot({
         ...image,
         name: file.name || `${monster?.name || "Monster"} token`
       }));
@@ -4149,6 +4401,17 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
           ) : null}
         </div>
       </div>
+      {pendingTokenImage ? (
+        <TokenImageCropperModal
+          sourceImage={pendingTokenImage}
+          title={monster?.name || title || "Token"}
+          onCancel={() => setPendingTokenImage(null)}
+          onConfirm={(image) => {
+            onMonsterTokenImageChange(image);
+            setPendingTokenImage(null);
+          }}
+        />
+      ) : null}
     </header>
   );
 }
