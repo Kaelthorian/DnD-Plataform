@@ -199,6 +199,36 @@ assert.ok(/function preparedSpellsProgressionForCharacter\(\)/.test(RENDERER), "
 assert.ok(!/className !== "paladin"/.test(RENDERER), "prepared spell alerts are not Paladin-only");
 assert.ok(/"second wind", "favored enemy"/.test(RENDERER), "renderer tracks class-table resource uses for Fighter and Ranger");
 assert.ok(/once\|twice\|thrice/.test(RENDERER), "renderer parses multi-use free spell casts");
+assert.ok(/const THIRD_CASTER_SLOTS/.test(RENDERER), "renderer has third-caster slot progression");
+assert.ok(/progression === "1\/3"/.test(RENDERER), "renderer applies third-caster slot progression");
+assert.ok(/function selectedSubclassSpellcastingSource\(\)/.test(RENDERER), "renderer can use subclass spellcasting data");
+assert.ok(/spellcastingSourceForCharacter\(\)\?\.cantripProgression/.test(RENDERER), "renderer reads subclass cantrip progression");
+assert.ok(/spellcastingSourceForCharacter\(\)\?\.preparedSpellsProgression/.test(RENDERER), "renderer reads subclass prepared-spell progression");
+assert.ok(/collectBucket\(group\.expanded, true\)/.test(RENDERER), "renderer reads subclass expanded spell lists");
+assert.ok(/item\.choose \|\| item\.all \|\| item/.test(RENDERER), "renderer parses expanded spell filters");
+assert.ok(/spell\.classes\?\.some\(\(name\) => normalizeName\(name\) === normalizeName\(grant\.className\)\)/.test(RENDERER), "renderer matches subclass expanded class spell filters");
+assert.ok(/spellcastingSourceForCharacter\(\)\?\.spellcastingAbility/.test(RENDERER), "renderer uses subclass spellcasting ability");
+
+{
+  const { file } = loadClass("rogue");
+  const arcaneTrickster = (file.subclass || []).find((subclass) => subclass.name === "Arcane Trickster" && subclass.source === "XPHB");
+  assert.ok(arcaneTrickster, "Rogue has Arcane Trickster subclass");
+  assert.strictEqual(arcaneTrickster.spellcastingAbility, "int", "Arcane Trickster casts with Intelligence");
+  assert.strictEqual(arcaneTrickster.casterProgression, "1/3", "Arcane Trickster uses third-caster slots");
+  assert.deepStrictEqual(arcaneTrickster.cantripProgression.slice(0, 3), [0, 0, 2], "Arcane Trickster has two chosen cantrips at level 3");
+  assert.deepStrictEqual(arcaneTrickster.preparedSpellsProgression.slice(0, 3), [0, 0, 3], "Arcane Trickster prepares three spells at level 3");
+  const additionalSpells = arcaneTrickster.additionalSpells?.[0] || {};
+  assert.ok(JSON.stringify(additionalSpells.known || {}).includes("mage hand|xphb#c"), "Arcane Trickster auto-knows Mage Hand at level 3");
+  assert.ok(JSON.stringify(additionalSpells.expanded || {}).includes("level=0|class=Wizard"), "Arcane Trickster can choose Wizard cantrips");
+  assert.ok(JSON.stringify(additionalSpells.expanded || {}).includes("level=1|class=Wizard"), "Arcane Trickster can choose level 1 Wizard spells");
+  const level3Features = (file.subclassFeature || []).filter((feature) => (
+    feature.subclassShortName === "Arcane Trickster"
+    && feature.subclassSource === "XPHB"
+    && Number(feature.level) === 3
+  ));
+  assert.ok(level3Features.some((feature) => feature.name === "Spellcasting"), "Arcane Trickster has Spellcasting at level 3");
+  assert.ok(level3Features.some((feature) => feature.name === "Mage Hand Legerdemain"), "Arcane Trickster has Mage Hand Legerdemain at level 3");
+}
 
 {
   const { file } = loadClass("paladin");

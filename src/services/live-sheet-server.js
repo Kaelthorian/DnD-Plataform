@@ -13,6 +13,7 @@ const MAX_VVT_TOKENS = 200;
 const MAX_VVT_MARKERS = 200;
 const MAX_VVT_PING_AGE_MS = 5000;
 const MAX_HAND_QUEUE = 40;
+const VVT_ANONYMOUS_MONSTER_NAME = "Criatura desconocida";
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -211,25 +212,36 @@ function sanitizeVvtToken(token) {
   if (!isPlainObject(token)) return null;
   if (token.hidden || token.playerHidden) return null;
   const id = sanitizeText(token.id, 120) || crypto.randomUUID?.() || `token-${Date.now()}`;
-  const name = sanitizeText(token.name || token.character?.name || token.monster?.name, 120);
+  const kind = token.kind === "character" ? "character" : "monster";
+  const identityHidden = kind === "monster" && Boolean(token.identityHidden || token.anonymous || token.hideIdentity);
+  const nameHidden = kind === "monster" && Boolean(token.nameHidden || token.hideName);
+  const name = identityHidden || nameHidden
+    ? VVT_ANONYMOUS_MONSTER_NAME
+    : sanitizeText(token.name || token.character?.name || token.monster?.name, 120);
   if (!name) return null;
   return {
     id,
-    kind: token.kind === "character" ? "character" : "monster",
+    kind,
     name,
     x: clampNumber(token.x, 0, 20000, 0),
     y: clampNumber(token.y, 0, 20000, 0),
     size: clampNumber(token.size, 8, 500, 56),
-    ac: sanitizeText(token.ac, 40),
-    hpCurrent: sanitizeText(token.hpCurrent ?? token.hp, 40),
-    hpMax: sanitizeText(token.hpMax, 40),
-    initiative: sanitizeText(token.initiative, 40),
-    image: {
+    ac: identityHidden ? "" : sanitizeText(token.ac, 40),
+    hpCurrent: identityHidden ? "" : sanitizeText(token.hpCurrent ?? token.hp, 40),
+    hpMax: identityHidden ? "" : sanitizeText(token.hpMax, 40),
+    initiative: identityHidden ? "" : sanitizeText(token.initiative, 40),
+    image: identityHidden ? {
+      name: "",
+      type: "",
+      dataUrl: ""
+    } : {
       name: sanitizeText(token.image?.name, 180) || "",
       type: sanitizeText(token.image?.type, 80) || "",
       dataUrl: sanitizeDataUrl(token.image?.dataUrl)
     },
-    imageRequest: sanitizeVvtTokenImageRequest(token)
+    imageRequest: identityHidden ? null : sanitizeVvtTokenImageRequest(token),
+    identityHidden,
+    nameHidden
   };
 }
 

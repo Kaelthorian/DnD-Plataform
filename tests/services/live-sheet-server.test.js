@@ -224,6 +224,30 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
         hpCurrent: 7,
         hpMax: 7
       }, {
+        id: "masked-name-goblin",
+        name: "Goblin Boss",
+        monster: { name: "Goblin Boss", source: "MM" },
+        image: { name: "Goblin Boss.png", type: "image/png", dataUrl: tinyPng },
+        nameHidden: true,
+        x: 150,
+        y: 90,
+        size: 56,
+        hpCurrent: 12,
+        hpMax: 12,
+        ac: "15"
+      }, {
+        id: "masked-owlbear",
+        name: "Owlbear",
+        monster: { name: "Owlbear", source: "MM" },
+        image: { name: "Owlbear.png", type: "image/png", dataUrl: tinyPng },
+        identityHidden: true,
+        x: 180,
+        y: 100,
+        size: 64,
+        hpCurrent: 18,
+        hpMax: 59,
+        ac: "13"
+      }, {
         id: "hidden-imp",
         name: "Hidden Imp",
         hidden: true,
@@ -250,10 +274,20 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(broadcast.type, "dm:vvt:state");
     assert.strictEqual(broadcast.state.active, true);
     assert.strictEqual(broadcast.state.fogOfWar.revealed.length, 1);
-    assert.strictEqual(broadcast.state.tokens.length, 1);
+    assert.strictEqual(broadcast.state.tokens.length, 3);
     assert.strictEqual(broadcast.state.tokens[0].name, "Goblin");
     assert.strictEqual(broadcast.state.tokens[0].image.dataUrl, tinyPng);
     assert.deepStrictEqual(broadcast.state.tokens[0].imageRequest, { sources: ["MM"], names: ["Goblin"] });
+    assert.strictEqual(broadcast.state.tokens[1].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.tokens[1].image.dataUrl, tinyPng);
+    assert.deepStrictEqual(broadcast.state.tokens[1].imageRequest, { sources: ["MM"], names: ["Goblin Boss"] });
+    assert.strictEqual(broadcast.state.tokens[1].hpCurrent, "12");
+    assert.strictEqual(broadcast.state.tokens[1].ac, "15");
+    assert.strictEqual(broadcast.state.tokens[2].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.tokens[2].image.dataUrl, "");
+    assert.strictEqual(broadcast.state.tokens[2].imageRequest, null);
+    assert.strictEqual(broadcast.state.tokens[2].hpCurrent, "");
+    assert.strictEqual(broadcast.state.tokens[2].ac, "");
     assert.strictEqual(broadcast.state.markers.length, 1);
     assert.strictEqual(broadcast.state.markers[0].label, "Secret Door");
     assert.deepStrictEqual(broadcast.state.sourceViewport, { width: 760, height: 432 });

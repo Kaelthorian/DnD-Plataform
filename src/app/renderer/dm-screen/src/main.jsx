@@ -127,6 +127,7 @@ const DM_MAP_IMAGE_STORE_NAME = "map-images";
 const DM_BOARD_SAVE_DEBOUNCE_MS = 700;
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
+const MAP_TOKEN_ANONYMOUS_NAME = "Criatura desconocida";
 const MAP_MARKER_SIZE = 28;
 const MAP_MARKER_SHAPE_MIN_SIZE = 24;
 const MAP_MARKER_SHAPE_DEFAULT_SIZE = 120;
@@ -1371,19 +1372,45 @@ function monsterTokenShareImageCacheKey(request) {
   return `${sources}::${names}`;
 }
 
+function anonymizeMapTokenShareSnapshot(snapshot) {
+  if (snapshot?.kind !== "monster" || !snapshot.identityHidden) return snapshot;
+  return {
+    ...snapshot,
+    name: MAP_TOKEN_ANONYMOUS_NAME,
+    monster: null,
+    monsterCustom: null,
+    image: null,
+    ac: "",
+    hpCurrent: "",
+    hpMax: "",
+    initiative: "",
+    initiativeDetail: "",
+    actorNote: null
+  };
+}
+
+function hideMapTokenShareName(snapshot) {
+  if (snapshot?.kind !== "monster" || !snapshot.nameHidden) return snapshot;
+  return {
+    ...snapshot,
+    name: MAP_TOKEN_ANONYMOUS_NAME
+  };
+}
+
 async function mapTokenShareSnapshot(token) {
   const snapshot = mapTokenSnapshot(token);
   if (!snapshot) return null;
   if (snapshot.hidden) return null;
-  if (snapshot.image?.dataUrl) return snapshot;
+  if (snapshot.kind === "monster" && snapshot.identityHidden) return anonymizeMapTokenShareSnapshot(snapshot);
+  if (snapshot.image?.dataUrl) return hideMapTokenShareName(snapshot);
   const customMonsterImage = snapshot.kind === "monster" ? normalizeMapTokenImage(snapshot.monsterCustom?.tokenImage || snapshot.monster?.tokenImage) : null;
-  if (customMonsterImage) return { ...snapshot, image: customMonsterImage };
+  if (customMonsterImage) return hideMapTokenShareName({ ...snapshot, image: customMonsterImage });
   if (snapshot.kind !== "monster") return snapshot;
   const request = monsterTokenRequest(snapshot.monster);
   const cacheKey = monsterTokenShareImageCacheKey(request);
   if (cacheKey && mapTokenShareImageCache.has(cacheKey)) {
     const cachedImage = mapTokenShareImageCache.get(cacheKey);
-    return cachedImage ? { ...snapshot, image: cachedImage } : snapshot;
+    return hideMapTokenShareName(cachedImage ? { ...snapshot, image: cachedImage } : snapshot);
   }
   try {
     const dataImage = await window.dndSheet?.getMonsterTokenDataUrl?.(request);
@@ -1394,17 +1421,17 @@ async function mapTokenShareSnapshot(token) {
         dataUrl: dataImage.dataUrl
       };
       if (cacheKey) mapTokenShareImageCache.set(cacheKey, image);
-      return { ...snapshot, image };
+      return hideMapTokenShareName({ ...snapshot, image });
     }
     const api = window.dndSheet?.getMonsterTokenUrl;
     if (!api) {
       if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
-      return snapshot;
+      return hideMapTokenShareName(snapshot);
     }
     const tokenUrl = await api(request);
     if (!tokenUrl) {
       if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
-      return snapshot;
+      return hideMapTokenShareName(snapshot);
     }
     const response = await fetch(tokenUrl);
     const blob = await response.blob();
@@ -1414,11 +1441,11 @@ async function mapTokenShareSnapshot(token) {
       dataUrl: await blobToDataUrl(blob)
     };
     if (cacheKey) mapTokenShareImageCache.set(cacheKey, image);
-    return { ...snapshot, image };
+    return hideMapTokenShareName({ ...snapshot, image });
   } catch (error) {
     console.error(error);
     if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
-    return snapshot;
+    return hideMapTokenShareName(snapshot);
   }
 }
 
@@ -1667,6 +1694,8 @@ function normalizeMapToken(token) {
     groupId: String(token.groupId || ""),
     attachedMarkerId: String(token.attachedMarkerId || "").trim(),
     hidden: Boolean(token.hidden || token.playerHidden),
+    identityHidden: kind === "monster" && Boolean(token.identityHidden || token.anonymous || token.hideIdentity),
+    nameHidden: kind === "monster" && Boolean(token.nameHidden || token.hideName),
     ...normalizeMapTokenCombatFields(token),
     actorNote: normalizeTokenActorNote(token.actorNote, token)
   };
@@ -7134,10 +7163,10 @@ function MapNote({
               return (
                 <button
                   key={token.id}
-                  className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : "border-amber-300"} ${token.hidden ? "border-dashed opacity-50 saturate-50" : ""}`}
+                  className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : token.identityHidden ? "border-violet-300 ring-2 ring-violet-400/60" : token.nameHidden ? "border-cyan-300 ring-2 ring-cyan-400/50" : "border-amber-300"} ${token.hidden ? "border-dashed opacity-50 saturate-50" : ""}`}
                   type="button"
                   data-map-token="true"
-                  title={`${token.name || token.character?.name || token.monster?.name || "Token"}${token.hidden ? " (hidden)" : ""}`}
+                  title={`${token.name || token.character?.name || token.monster?.name || "Token"}${token.hidden ? " (hidden)" : ""}${token.identityHidden ? " (identity hidden)" : ""}${token.nameHidden ? " (name hidden)" : ""}`}
                   style={{
                     left: visualPoint.x,
                     top: visualPoint.y,
@@ -12027,6 +12056,40 @@ function DmScreenApp() {
     setTokenContextMenu(null);
   }
 
+  function toggleMapTokenIdentityHiddenFromMenu() {
+    const entry = findMapTokenContextEntry();
+    if (!entry || entry.token.kind === "character") return;
+    const nextIdentityHidden = !Boolean(entry.token.identityHidden);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapTokens: (page.mapTokens || []).map((token) => (
+            token.id === entry.token.id ? { ...token, identityHidden: nextIdentityHidden } : token
+          ))
+        }))
+        : note
+    )));
+    setTokenContextMenu(null);
+  }
+
+  function toggleMapTokenNameHiddenFromMenu() {
+    const entry = findMapTokenContextEntry();
+    if (!entry || entry.token.kind === "character") return;
+    const nextNameHidden = !Boolean(entry.token.nameHidden);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapTokens: (page.mapTokens || []).map((token) => (
+            token.id === entry.token.id ? { ...token, nameHidden: nextNameHidden } : token
+          ))
+        }))
+        : note
+    )));
+    setTokenContextMenu(null);
+  }
+
   function noteLinkedToMapToken(note, link) {
     const current = normalizeLinkedMapTokenLink(note?.linkedMapToken);
     return Boolean(current && link
@@ -14060,7 +14123,9 @@ function DmScreenApp() {
             <p className="truncate font-serif text-base font-bold uppercase text-amber-500">
               {activeTokenContext.token.name || activeTokenContext.token.character?.name || activeTokenContext.token.monster?.name || "Token"}
             </p>
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">{`${activeTokenContext.token.kind === "character" ? "Player token" : "Monster token"}${activeTokenContext.token.hidden ? " - hidden" : ""}`}</p>
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">
+              {`${activeTokenContext.token.kind === "character" ? "Player token" : "Monster token"}${activeTokenContext.token.hidden ? " - hidden" : ""}${activeTokenContext.token.identityHidden ? " - identity hidden" : ""}${activeTokenContext.token.nameHidden ? " - name hidden" : ""}`}
+            </p>
           </div>
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
@@ -14075,9 +14140,29 @@ function DmScreenApp() {
             type="button"
             onClick={toggleMapTokenHiddenFromMenu}
           >
-            <span>Hide</span>
+            <span>Ocultar token</span>
             <span className="text-neutral-500">{activeTokenContext.token.hidden ? "ON" : "OFF"}</span>
           </button>
+          {activeTokenContext.token.kind !== "character" ? (
+            <>
+              <button
+                className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-cyan-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                type="button"
+                onClick={toggleMapTokenNameHiddenFromMenu}
+              >
+                <span>Ocultar nombre</span>
+                <span className="text-neutral-500">{activeTokenContext.token.nameHidden ? "ON" : "OFF"}</span>
+              </button>
+              <button
+                className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-violet-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                type="button"
+                onClick={toggleMapTokenIdentityHiddenFromMenu}
+              >
+                <span>Ocultar identidad</span>
+                <span className="text-neutral-500">{activeTokenContext.token.identityHidden ? "ON" : "OFF"}</span>
+              </button>
+            </>
+          ) : null}
           <div className="grid grid-cols-2 gap-1 border-y border-neutral-800 p-1">
             <button
               className="px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-600"
