@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld("dndSheet", {
     runSelfTest: () => ipcRenderer.invoke("live-sheet:self-test"),
     getPlayers: () => ipcRenderer.invoke("live-sheet:get-players"),
     kickPlayer: (playerId) => ipcRenderer.invoke("live-sheet:kick-player", playerId),
+    getRaisedHands: () => ipcRenderer.invoke("live-sheet:get-raised-hands"),
+    lowerPlayerHand: (playerId) => ipcRenderer.invoke("live-sheet:lower-player-hand", playerId),
     updatePlayerSheet: (playerId, patch) => ipcRenderer.invoke("live-sheet:update-player-sheet", { playerId, patch }),
     publishVvtState: (state) => ipcRenderer.invoke("live-sheet:publish-vvt-state", state),
     publishVvtPing: (ping) => ipcRenderer.invoke("live-sheet:publish-vvt-ping", ping),
@@ -50,6 +52,7 @@ contextBridge.exposeInMainWorld("dndSheet", {
     onPlayerDisconnected: (callback) => onRendererEvent("live-sheet:player-disconnected", callback),
     onPlayerRoll: (callback) => onRendererEvent("live-sheet:player-roll", callback),
     onVvtPing: (callback) => onRendererEvent("live-sheet:vvt-ping", callback),
+    onPlayerHandQueue: (callback) => onRendererEvent("live-sheet:player-hand-queue", callback),
     onServerStatus: (callback) => onRendererEvent("live-sheet:server-status", callback)
   },
   obsidian: {

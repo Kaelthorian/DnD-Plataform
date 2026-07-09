@@ -4,6 +4,7 @@ const { WebSocket } = require("ws");
 const {
   LiveSheetServer,
   listLocalAddresses,
+  sanitizeSheetPatch,
   websocketSelfTest
 } = require("../../src/services/live-sheet-server");
 
@@ -123,9 +124,11 @@ async function testTokenAcceptanceAndProtocol() {
   await withServer({ tokenEnabled: true, sessionToken: "GOOD" }, async (server, port) => {
     const socket = await openSocket(port);
     send(socket, { type: "player:hello", sessionToken: "GOOD" });
-    const welcome = await nextMessage(socket);
+    const [welcome, handState] = await nextMessages(socket, 2);
     assert.strictEqual(welcome.type, "server:welcome");
     assert.strictEqual(welcome.recommendedMode === "tailscale" || welcome.recommendedMode === "lan", true);
+    assert.strictEqual(handState.type, "dm:hand:state");
+    assert.strictEqual(handState.raised, false);
 
     send(socket, {
       type: "sheet:update",
@@ -143,6 +146,7 @@ async function testTokenAcceptanceAndProtocol() {
     assert.strictEqual(patch.type, "dm:sheet:patch");
     assert.deepStrictEqual(patch.patch, { HPCurrent: "7", AC: "16" });
     assert.strictEqual(server.getPlayers()[0].data.HPCurrent, "7");
+    assert.deepStrictEqual(sanitizeSheetPatch({ Equipment: "1 Rope\n1 Torch" }), { Equipment: "1 Rope\n1 Torch" });
 
     const rollPromise = new Promise((resolve) => server.once("player-roll", resolve));
     send(socket, {
@@ -194,8 +198,10 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
   await withServer({ tokenEnabled: false }, async (server, port) => {
     const socket = await openSocket(port);
     send(socket, { type: "player:hello" });
-    const welcome = await nextMessage(socket);
+    const [welcome, handState] = await nextMessages(socket, 2);
     assert.strictEqual(welcome.type, "server:welcome");
+    assert.strictEqual(handState.type, "dm:hand:state");
+    assert.strictEqual(handState.raised, false);
 
     const broadcastPromise = nextMessage(socket);
     const tinyPng = "data:image/png;base64,iVBORw0KGgo=";
@@ -253,12 +259,14 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
     assert.deepStrictEqual(broadcast.state.sourceViewport, { width: 760, height: 432 });
 
     const secondSocket = await openSocket(port);
-    const replayMessagesPromise = nextMessages(secondSocket, 2);
+    const replayMessagesPromise = nextMessages(secondSocket, 3);
     send(secondSocket, { type: "player:hello" });
-    const [secondWelcome, replay] = await replayMessagesPromise;
+    const [secondWelcome, replay, secondHandState] = await replayMessagesPromise;
     assert.strictEqual(secondWelcome.type, "server:welcome");
     assert.strictEqual(replay.type, "dm:vvt:state");
     assert.strictEqual(replay.state.title, "Dungeon");
+    assert.strictEqual(secondHandState.type, "dm:hand:state");
+    assert.strictEqual(secondHandState.raised, false);
     socket.close();
     secondSocket.close();
   });
@@ -270,8 +278,12 @@ async function testRollBroadcastToOtherPlayers() {
     const bob = await openSocket(port);
     sendAs(alice, "alice", "Alice", { type: "player:hello" });
     sendAs(bob, "bob", "Bob", { type: "player:hello" });
-    assert.strictEqual((await nextMessage(alice)).type, "server:welcome");
-    assert.strictEqual((await nextMessage(bob)).type, "server:welcome");
+    const [aliceWelcome, aliceHandState] = await nextMessages(alice, 2);
+    const [bobWelcome, bobHandState] = await nextMessages(bob, 2);
+    assert.strictEqual(aliceWelcome.type, "server:welcome");
+    assert.strictEqual(aliceHandState.type, "dm:hand:state");
+    assert.strictEqual(bobWelcome.type, "server:welcome");
+    assert.strictEqual(bobHandState.type, "dm:hand:state");
 
     const dmRollPromise = new Promise((resolve) => server.once("player-roll", resolve));
     const bobRollPromise = nextMessage(bob);
@@ -297,6 +309,52 @@ async function testRollBroadcastToOtherPlayers() {
   });
 }
 
+async function testRaisedHandQueue() {
+  await withServer({ tokenEnabled: false }, async (server, port) => {
+    const alice = await openSocket(port);
+    const bob = await openSocket(port);
+    sendAs(alice, "alice", "Alice", { type: "player:hello" });
+    sendAs(bob, "bob", "Bob", { type: "player:hello" });
+    const [aliceWelcome, aliceHandState] = await nextMessages(alice, 2);
+    const [bobWelcome, bobHandState] = await nextMessages(bob, 2);
+    assert.strictEqual(aliceWelcome.type, "server:welcome");
+    assert.strictEqual(aliceHandState.type, "dm:hand:state");
+    assert.strictEqual(aliceHandState.raised, false);
+    assert.strictEqual(bobWelcome.type, "server:welcome");
+    assert.strictEqual(bobHandState.type, "dm:hand:state");
+    assert.strictEqual(bobHandState.raised, false);
+
+    const aliceQueuePromise = new Promise((resolve) => server.once("player-hand-queue", resolve));
+    sendAs(alice, "alice", "Alice", { type: "player:hand", raised: true });
+    const aliceAck = await nextMessage(alice);
+    const aliceQueue = await aliceQueuePromise;
+    assert.strictEqual(aliceAck.type, "dm:hand:state");
+    assert.strictEqual(aliceAck.raised, true);
+    assert.deepStrictEqual(aliceQueue.map((hand) => hand.playerName), ["Alice"]);
+
+    const bobQueuePromise = new Promise((resolve) => server.once("player-hand-queue", resolve));
+    sendAs(bob, "bob", "Bob", { type: "player:hand", raised: true });
+    const bobAck = await nextMessage(bob);
+    const bobQueue = await bobQueuePromise;
+    assert.strictEqual(bobAck.type, "dm:hand:state");
+    assert.strictEqual(bobAck.raised, true);
+    assert.deepStrictEqual(bobQueue.map((hand) => hand.playerName), ["Alice", "Bob"]);
+    assert.deepStrictEqual(server.getRaisedHands().map((hand) => hand.position), [1, 2]);
+
+    const lowerQueuePromise = new Promise((resolve) => server.once("player-hand-queue", resolve));
+    const aliceLoweredPromise = nextMessage(alice);
+    const result = server.lowerPlayerHand("alice");
+    const [lowerQueue, aliceLowered] = await Promise.all([lowerQueuePromise, aliceLoweredPromise]);
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(aliceLowered.type, "dm:hand:state");
+    assert.strictEqual(aliceLowered.raised, false);
+    assert.deepStrictEqual(lowerQueue.map((hand) => hand.playerName), ["Bob"]);
+
+    alice.close();
+    bob.close();
+  });
+}
+
 (async () => {
   await testAddressDetection();
   await testStartStopAndSelfTest();
@@ -304,6 +362,7 @@ async function testRollBroadcastToOtherPlayers() {
   await testTokenAcceptanceAndProtocol();
   await testVvtStateBroadcastAndWelcomeReplay();
   await testRollBroadcastToOtherPlayers();
+  await testRaisedHandQueue();
   console.log("live-sheet-server tests passed");
 })().catch((error) => {
   console.error(error);

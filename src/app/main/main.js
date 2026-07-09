@@ -573,6 +573,14 @@ ipcMain.handle("live-sheet:kick-player", async (_event, playerId) => {
   return liveSheetServer.kickPlayer(playerId);
 });
 
+ipcMain.handle("live-sheet:get-raised-hands", async () => {
+  return liveSheetServer.getRaisedHands();
+});
+
+ipcMain.handle("live-sheet:lower-player-hand", async (_event, playerId) => {
+  return liveSheetServer.lowerPlayerHand(playerId);
+});
+
 ipcMain.handle("live-sheet:update-player-sheet", async (_event, { playerId, patch } = {}) => {
   return liveSheetServer.updatePlayerSheet(playerId, patch);
 });
@@ -599,6 +607,10 @@ liveSheetServer.on("player-roll", (roll) => {
 
 liveSheetServer.on("vvt-ping", (ping) => {
   broadcastToRenderers("live-sheet:vvt-ping", ping);
+});
+
+liveSheetServer.on("player-hand-queue", (raisedHands) => {
+  broadcastToRenderers("live-sheet:player-hand-queue", raisedHands);
 });
 
 liveSheetServer.on("server-status", (status) => {

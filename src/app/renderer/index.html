@@ -14974,14 +14974,42 @@
         if (!match) return;
 
         const lower = text.toLowerCase();
-        if (/wearing (?:light, medium, or heavy )?armor|wearing armor|while you(?:'re| are) wearing/i.test(text) && !hasArmor) return;
-        if (/wielding .*shield|holding .*shield|while you have a shield/i.test(text) && !hasShield) return;
-        if (/not wearing armor|aren't wearing armor|are not wearing armor/i.test(text) && hasArmor) return;
+        if (/wearing (?:light, medium, or heavy )?armor|wearing armor|while you(?:'re| are) wearing/.test(lower) && !hasArmor) return;
+        if (/wielding .*shield|holding .*shield|while you have a shield/.test(lower) && !hasShield) return;
+        if (/not wearing armor|aren't wearing armor|are not wearing armor|without wearing armor/.test(lower) && hasArmor) return;
 
         if (lower.includes("defense") && !hasArmor) return;
         bonus += Number.parseInt(match[1], 10) || 0;
       });
       return bonus;
+    }
+
+    function baseArmorClassCandidatesFromFeatures(dexModifier, conModifier, wisModifier, equippedArmor) {
+      const hasArmor = Boolean(equippedArmor && isArmorItem(equippedArmor));
+      const abilityModifiers = {
+        dexterity: dexModifier,
+        dex: dexModifier,
+        constitution: conModifier,
+        con: conModifier,
+        wisdom: wisModifier,
+        wis: wisModifier
+      };
+      const candidates = [];
+      featureEffectEntries().forEach(({ title, description }) => {
+        const lower = `${title}\n${description}`.toLowerCase();
+        const requiresNoArmor = /not wearing armor|aren't wearing armor|are not wearing armor|without wearing armor/.test(lower);
+        if (requiresNoArmor && hasArmor) return;
+        const allowsShield = !/not (?:using|wielding|holding) (?:a )?shield|without (?:a )?shield|no shield/.test(lower);
+        const baseWithAbility = lower.match(/(?:base armor class|base ac|armor class|ac)\s*(?:is|equals|becomes|of)?\s*(\d+)\s*\+\s*your\s+(dexterity|dex|constitution|con|wisdom|wis)\s+modifier/);
+        if (baseWithAbility) {
+          const modifier = abilityModifiers[baseWithAbility[2]];
+          if (modifier != null) candidates.push({ ac: Number.parseInt(baseWithAbility[1], 10) + modifier, allowsShield });
+          return;
+        }
+        const flatBase = lower.match(/(?:base armor class|base ac|armor class|ac)\s*(?:is|equals|becomes|of)?\s*(\d+)\b/);
+        if (flatBase && requiresNoArmor) candidates.push({ ac: Number.parseInt(flatBase[1], 10), allowsShield });
+      });
+      return candidates;
     }
 
     function calculateArmorClass() {
@@ -15015,6 +15043,9 @@
           candidates.push({ ac, allowsShield: true });
         });
       }
+      baseArmorClassCandidatesFromFeatures(dexModifier, conModifier, wisModifier, equippedArmor).forEach((candidate) => {
+        candidates.push(candidate);
+      });
 
       const best = Math.max(...candidates.map((candidate) => candidate.ac + (candidate.allowsShield ? shieldBonus : 0)));
       return String(best + raceBonus + featureBonus + statusBonus);

@@ -12,6 +12,7 @@ const MAX_VVT_FOG_POINTS = 1200;
 const MAX_VVT_TOKENS = 200;
 const MAX_VVT_MARKERS = 200;
 const MAX_VVT_PING_AGE_MS = 5000;
+const MAX_HAND_QUEUE = 40;
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -21,6 +22,18 @@ function sanitizeText(value, maxLength = MAX_NAME_LENGTH) {
   return String(value || "")
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function sanitizeMultilineText(value, maxLength = 5000) {
+  return String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[^\S\n]+/g, " ")
+    .split("\n")
+    .map((line) => line.replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, maxLength);
 }
@@ -95,7 +108,7 @@ function sanitizeSheetPatch(patch) {
       sanitized[normalizedKey] = String(value);
       return;
     }
-    if (typeof value === "string") sanitized[normalizedKey] = sanitizeText(value, 5000);
+    if (typeof value === "string") sanitized[normalizedKey] = sanitizeMultilineText(value, 5000);
   });
   return Object.keys(sanitized).length ? sanitized : null;
 }
@@ -223,12 +236,27 @@ function sanitizeVvtToken(token) {
 function sanitizeVvtMarker(marker, index = 0) {
   if (!isPlainObject(marker)) return null;
   if (marker.hidden || marker.playerHidden) return null;
+  const markerType = marker.markerType === "shape" || marker.kind === "shape" ? "shape" : "pin";
+  const formType = ["cone", "square", "circle"].includes(marker.formType || marker.shapeType || marker.shape)
+    ? (marker.formType || marker.shapeType || marker.shape)
+    : "square";
+  const icon = sanitizeText(marker.icon || marker.markerIcon || marker.symbol, 40).toLowerCase();
+  const markerIcons = new Set(["marker", "shop", "tavern", "inn", "swords", "shield", "castle", "temple", "camp", "cave", "treasure", "danger", "quest", "portal"]);
+  const pattern = sanitizeText(marker.pattern || marker.mask || marker.areaPattern, 80).toLowerCase();
   return {
     id: sanitizeText(marker.id, 120) || crypto.randomUUID?.() || `marker-${Date.now()}-${index}`,
     label: sanitizeText(marker.label || marker.name || `Marker ${index + 1}`, 120) || `Marker ${index + 1}`,
+    markerType,
+    formType,
     x: clampNumber(marker.x, 0, 20000, 0),
     y: clampNumber(marker.y, 0, 20000, 0),
-    color: sanitizeText(marker.color, 40) || "amber"
+    width: clampNumber(marker.width, 8, 2000, 120),
+    height: clampNumber(marker.height, 8, 2000, 120),
+    rotation: clampNumber(marker.rotation, 0, 360, 0),
+    color: sanitizeText(marker.color, 40) || "amber",
+    opacity: clampNumber(marker.opacity ?? marker.alpha ?? marker.fillOpacity, 0.08, 0.85, 0.32),
+    pattern: markerType === "shape" ? (pattern || "none") : "none",
+    icon: markerType === "pin" && markerIcons.has(icon) ? icon : "marker"
   };
 }
 
@@ -241,6 +269,10 @@ function sanitizeVvtPing(ping) {
     color: sanitizeText(ping.color, 40) || "sky",
     createdAt: sanitizeText(ping.createdAt, 40) || new Date().toISOString()
   };
+}
+
+function sanitizeHandRaised(value) {
+  return value === true || value === "true" || value === 1 || value === "1";
 }
 
 function sanitizeVvtState(payload) {
@@ -339,6 +371,7 @@ class LiveSheetServer extends EventEmitter {
     this.tokenEnabled = false;
     this.sessionToken = "";
     this.vvtState = { active: false, updatedAt: new Date().toISOString() };
+    this.raisedHands = new Map();
     this.selfTests = {
       local: null,
       tailscale: null
@@ -388,6 +421,58 @@ class LiveSheetServer extends EventEmitter {
       .map((player) => this.playerSnapshot(player))
       .filter(Boolean)
       .sort((left, right) => String(left.playerName || "").localeCompare(String(right.playerName || ""), undefined, { sensitivity: "base" }));
+  }
+
+  getRaisedHands() {
+    return [...this.raisedHands.values()]
+      .slice(0, MAX_HAND_QUEUE)
+      .map((entry, index) => ({
+        ...entry,
+        position: index + 1
+      }));
+  }
+
+  emitHandQueue() {
+    this.emit("player-hand-queue", this.getRaisedHands());
+  }
+
+  setPlayerHand(playerId, playerName, raised) {
+    const normalizedId = sanitizePlayerId(playerId);
+    if (!normalizedId) return { ok: false, error: "Jugador invalido." };
+    const safeName = sanitizeText(playerName) || "Jugador";
+    if (raised) {
+      const existing = this.raisedHands.get(normalizedId);
+      this.raisedHands.set(normalizedId, {
+        playerId: normalizedId,
+        playerName: safeName,
+        raisedAt: existing?.raisedAt || new Date().toISOString()
+      });
+      while (this.raisedHands.size > MAX_HAND_QUEUE) {
+        const oldestId = this.raisedHands.keys().next().value;
+        if (!oldestId) break;
+        this.raisedHands.delete(oldestId);
+      }
+    } else {
+      this.raisedHands.delete(normalizedId);
+    }
+    this.emitHandQueue();
+    return { ok: true, raisedHands: this.getRaisedHands() };
+  }
+
+  lowerPlayerHand(playerId) {
+    const normalizedId = sanitizePlayerId(playerId);
+    if (!normalizedId) return { ok: false, error: "Jugador invalido." };
+    const removed = this.raisedHands.delete(normalizedId);
+    const player = this.players.get(normalizedId);
+    if (player?.connected && player.ws?.readyState === WebSocket.OPEN) {
+      sendJson(player.ws, {
+        version: 1,
+        type: "dm:hand:state",
+        raised: false
+      });
+    }
+    if (removed) this.emitHandQueue();
+    return { ok: true, raisedHands: this.getRaisedHands() };
   }
 
   emitStatus(extra = {}) {
@@ -476,6 +561,7 @@ class LiveSheetServer extends EventEmitter {
     this.tokenEnabled = false;
     this.sessionToken = "";
     this.selfTests = { local: null, tailscale: null };
+    this.raisedHands.clear();
     for (const socket of server.clients || []) {
       if (socket.readyState !== WebSocket.CLOSED) {
         socket.terminate();
@@ -492,6 +578,7 @@ class LiveSheetServer extends EventEmitter {
         this.emit("player-disconnected", this.playerSnapshot(player));
       }
     }
+    this.emitHandQueue();
 
     await new Promise((resolve) => server.close(() => resolve())).catch(() => {});
     this.emitStatus();
@@ -504,10 +591,12 @@ class LiveSheetServer extends EventEmitter {
     if (!player) return { ok: false, error: "Jugador no encontrado." };
 
     this.players.delete(normalizedId);
+    this.raisedHands.delete(normalizedId);
     if (player.ws && player.ws.readyState === WebSocket.OPEN) {
       player.ws.close(4000, "Kicked by DM");
     }
     this.emit("player-disconnected", { ...this.playerSnapshot(player), removed: true });
+    this.emitHandQueue();
     this.emitStatus();
     return { ok: true };
   }
@@ -637,6 +726,14 @@ class LiveSheetServer extends EventEmitter {
         ws: socket
       };
       this.players.set(validated.playerId, player);
+      const raisedHand = this.raisedHands.get(validated.playerId);
+      if (raisedHand && raisedHand.playerName !== validated.playerName) {
+        this.raisedHands.set(validated.playerId, {
+          ...raisedHand,
+          playerName: validated.playerName
+        });
+        this.emitHandQueue();
+      }
       if (validated.messageType === "player:hello") {
         sendJson(socket, {
           version: 1,
@@ -651,9 +748,14 @@ class LiveSheetServer extends EventEmitter {
             state: this.vvtState
           });
         }
+        sendJson(socket, {
+          version: 1,
+          type: "dm:hand:state",
+          raised: this.raisedHands.has(validated.playerId)
+        });
       }
       if (
-        !["roll:event", "vvt:ping"].includes(validated.messageType)
+        !["roll:event", "vvt:ping", "player:hand"].includes(validated.messageType)
         || !previous
         || !previous.connected
         || previous.playerName !== validated.playerName
@@ -703,6 +805,14 @@ class LiveSheetServer extends EventEmitter {
         });
         this.emit("vvt-ping", ping);
       }
+      if (validated.messageType === "player:hand") {
+        this.setPlayerHand(validated.playerId, validated.playerName, validated.handRaised);
+        sendJson(socket, {
+          version: 1,
+          type: "dm:hand:state",
+          raised: validated.handRaised
+        });
+      }
       this.emitStatus();
     });
 
@@ -713,7 +823,9 @@ class LiveSheetServer extends EventEmitter {
       player.connected = false;
       player.disconnectedAt = new Date().toISOString();
       player.ws = null;
+      this.raisedHands.delete(activePlayerId);
       this.emit("player-disconnected", this.playerSnapshot(player));
+      this.emitHandQueue();
       this.emitStatus();
     });
 
@@ -724,7 +836,7 @@ class LiveSheetServer extends EventEmitter {
 
   validatePayload(payload) {
     if (!isPlainObject(payload)) return { ok: false, error: "Payload invalido." };
-    if (!["player:hello", "sheet:update", "roll:event", "vvt:ping"].includes(payload.type) || payload.version !== 1) {
+    if (!["player:hello", "sheet:update", "roll:event", "vvt:ping", "player:hand"].includes(payload.type) || payload.version !== 1) {
       return { ok: false, error: "Tipo de mensaje no compatible." };
     }
     const playerId = sanitizePlayerId(payload.playerId);
@@ -742,7 +854,8 @@ class LiveSheetServer extends EventEmitter {
       sessionToken: sanitizeText(payload.sessionToken, 128),
       data: payload.type === "sheet:update" ? payload.data : null,
       roll,
-      ping
+      ping,
+      handRaised: payload.type === "player:hand" ? sanitizeHandRaised(payload.raised ?? payload.handRaised) : false
     };
   }
 }

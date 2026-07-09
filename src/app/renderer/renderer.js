@@ -135,6 +135,7 @@
     let liveVvtView = { scale: 1, x: 0, y: 0 };
     let liveVvtViewKey = "";
     let liveVvtPointer = null;
+    let liveVvtHandRaised = false;
     const liveVvtTokenImageCache = new Map();
     const LIVE_VVT_PING_TTL_MS = 5000;
     const LIVE_VVT_MIN_ZOOM = 1;
@@ -303,6 +304,21 @@
           color: #f9fafb;
           font-weight: 700;
         }
+        .live-vvt-hand {
+          height: 28px;
+          min-width: 96px;
+          border: 1px solid #4b5563;
+          background: #1f2937;
+          color: #fde68a;
+          font: 900 11px/1 system-ui, sans-serif;
+          text-transform: uppercase;
+        }
+        .live-vvt-hand[aria-pressed="true"] {
+          border-color: #fbbf24;
+          background: #fbbf24;
+          color: #111827;
+          box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.24);
+        }
         .live-vvt-body {
           position: relative;
           flex: 1;
@@ -441,6 +457,17 @@
         .live-vvt-marker-pin span {
           transform: rotate(45deg);
         }
+        .live-vvt-marker-pin-icon {
+          display: flex;
+          width: 58%;
+          height: 58%;
+          align-items: center;
+          justify-content: center;
+        }
+        .live-vvt-marker-pin-icon svg {
+          width: 100%;
+          height: 100%;
+        }
         .live-vvt-marker-label {
           max-width: 128px;
           margin-top: 4px;
@@ -545,6 +572,7 @@
         <header class="live-vvt-header">
           <div class="live-vvt-title"></div>
           <div class="live-vvt-window-actions">
+            <button class="live-vvt-hand" type="button" aria-label="Levantar la mano" aria-pressed="false">Levantar</button>
             <button class="live-vvt-minimize" type="button" aria-label="Minimizar VVT">-</button>
           </div>
         </header>
@@ -562,6 +590,7 @@
       const elements = {
         root,
         title: root.querySelector(".live-vvt-title"),
+        hand: root.querySelector(".live-vvt-hand"),
         minimize: root.querySelector(".live-vvt-minimize"),
         body: root.querySelector(".live-vvt-body"),
         empty: root.querySelector(".live-vvt-empty"),
@@ -579,6 +608,7 @@
         elements.minimize.setAttribute("aria-label", minimized ? "Restaurar VVT" : "Minimizar VVT");
         if (!minimized) requestAnimationFrame(updateLiveVvtLayout);
       });
+      elements.hand.addEventListener("click", toggleLiveVvtHand);
       elements.body.addEventListener("pointerdown", handleLiveVvtPointerDown);
       elements.body.addEventListener("pointermove", handleLiveVvtPointerMove);
       elements.body.addEventListener("pointerup", handleLiveVvtPointerUp);
@@ -587,6 +617,7 @@
       elements.image.addEventListener("load", updateLiveVvtLayout);
       window.addEventListener("resize", updateLiveVvtLayout);
       liveVvtElements = elements;
+      setLiveVvtHandRaised(liveVvtHandRaised);
       return elements;
     }
 
@@ -818,6 +849,34 @@
       return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
     }
 
+    const LIVE_VVT_MARKER_ICON_VALUES = new Set(["marker", "shop", "tavern", "inn", "swords", "shield", "castle", "temple", "camp", "cave", "treasure", "danger", "quest", "portal"]);
+
+    function normalizeLiveVvtMarkerIcon(icon) {
+      const value = String(icon || "").trim().toLowerCase();
+      return LIVE_VVT_MARKER_ICON_VALUES.has(value) ? value : "marker";
+    }
+
+    function liveVvtMarkerIconSvg(icon) {
+      const stroke = 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+      const paths = {
+        shop: `<path ${stroke} d="M4 10h16"/><path ${stroke} d="M5 10l1-5h12l1 5"/><path ${stroke} d="M6 10v9h12v-9"/><path ${stroke} d="M9 19v-5h6v5"/><path ${stroke} d="M7 10v2a2 2 0 0 0 4 0v-2"/><path ${stroke} d="M13 10v2a2 2 0 0 0 4 0v-2"/>`,
+        tavern: `<path ${stroke} d="M7 4h9v11a4.5 4.5 0 0 1-9 0V4z"/><path ${stroke} d="M16 7h2.5a2.5 2.5 0 0 1 0 5H16"/><path ${stroke} d="M8 20h8"/><path ${stroke} d="M10 8h3"/>`,
+        inn: `<path ${stroke} d="M4 20V9l8-5 8 5v11"/><path ${stroke} d="M8 20v-6h8v6"/><path ${stroke} d="M8 11h8"/><path ${stroke} d="M12 14v6"/>`,
+        swords: `<path ${stroke} d="M4 20l6-6"/><path ${stroke} d="M14 10l6-6"/><path ${stroke} d="M12 8l4 4"/><path ${stroke} d="M3 5l16 16"/><path ${stroke} d="M7 17l-2 2"/><path ${stroke} d="M17 7l2-2"/>`,
+        shield: `<path ${stroke} d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3z"/><path ${stroke} d="M12 7v9"/>`,
+        castle: `<path ${stroke} d="M5 20V8"/><path ${stroke} d="M19 20V8"/><path ${stroke} d="M5 8V5h3v3h3V5h2v3h3V5h3v3"/><path ${stroke} d="M4 20h16"/><path ${stroke} d="M10 20v-5a2 2 0 0 1 4 0v5"/>`,
+        temple: `<path ${stroke} d="M4 9l8-5 8 5H4z"/><path ${stroke} d="M6 10v8"/><path ${stroke} d="M10 10v8"/><path ${stroke} d="M14 10v8"/><path ${stroke} d="M18 10v8"/><path ${stroke} d="M4 20h16"/>`,
+        camp: `<path ${stroke} d="M4 20L12 5l8 15"/><path ${stroke} d="M9 20l3-6 3 6"/><path ${stroke} d="M6 20h12"/><path ${stroke} d="M12 5v15"/>`,
+        cave: `<path ${stroke} d="M4 20v-5a8 8 0 0 1 16 0v5"/><path ${stroke} d="M9 20v-4a3 3 0 0 1 6 0v4"/><path ${stroke} d="M5 20h14"/>`,
+        treasure: `<path ${stroke} d="M4 10h16v9H4z"/><path ${stroke} d="M4 10a8 5 0 0 1 16 0"/><path ${stroke} d="M12 10v9"/><path ${stroke} d="M10 14h4"/>`,
+        danger: `<path ${stroke} d="M12 4l9 16H3L12 4z"/><path ${stroke} d="M12 9v5"/><path ${stroke} d="M12 17h.01"/>`,
+        quest: `<path ${stroke} d="M12 18h.01"/><path ${stroke} d="M9.5 9a2.7 2.7 0 1 1 4.8 1.7c-1.5 1.3-2.3 1.9-2.3 3.3"/><circle ${stroke} cx="12" cy="12" r="9"/>`,
+        portal: `<ellipse ${stroke} cx="12" cy="12" rx="7" ry="9"/><path ${stroke} d="M9 7c4 1 6 4 5 9"/><path ${stroke} d="M15 7c-4 1-6 4-5 9"/>`,
+        marker: `<path ${stroke} d="M12 21s6-5.2 6-11a6 6 0 0 0-12 0c0 5.8 6 11 6 11z"/><circle ${stroke} cx="12" cy="10" r="2"/>`
+      };
+      return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[normalizeLiveVvtMarkerIcon(icon)] || paths.marker}</svg>`;
+    }
+
     function liveVvtTokenImageCacheKey(request) {
       const sources = Array.isArray(request?.sources) ? request.sources.join("|") : "";
       const names = Array.isArray(request?.names) ? request.names.join("|") : "";
@@ -937,7 +996,6 @@
       const height = Math.max(1, Number(sourceViewport?.height) || Number(layout?.height) || 1);
       const scaleX = (Number(layout?.width) || element.clientWidth || width) / width;
       const scaleY = (Number(layout?.height) || element.clientHeight || height) / height;
-      const scale = Math.min(scaleX, scaleY);
       const nodes = visibleMarkers.map((marker) => {
         const node = document.createElement("div");
         node.className = "live-vvt-marker";
@@ -984,10 +1042,11 @@
 
         const pin = document.createElement("span");
         pin.className = "live-vvt-marker-pin";
-        pin.style.width = `${28 * scale}px`;
-        pin.style.height = `${28 * scale}px`;
+        pin.style.width = "28px";
+        pin.style.height = "28px";
         const pinText = document.createElement("span");
-        pinText.textContent = "M";
+        pinText.className = "live-vvt-marker-pin-icon";
+        pinText.innerHTML = liveVvtMarkerIconSvg(marker.icon);
         pin.appendChild(pinText);
         node.appendChild(pin);
 
@@ -1128,6 +1187,26 @@
           createdAt: new Date().toISOString()
         }
       });
+    }
+
+    function setLiveVvtHandRaised(raised) {
+      liveVvtHandRaised = Boolean(raised);
+      const handButton = liveVvtElements?.hand;
+      if (!handButton) return;
+      handButton.setAttribute("aria-pressed", liveVvtHandRaised ? "true" : "false");
+      handButton.textContent = liveVvtHandRaised ? "Bajar mano" : "Levantar";
+      handButton.setAttribute("aria-label", liveVvtHandRaised ? "Bajar la mano" : "Levantar la mano");
+    }
+
+    function toggleLiveVvtHand(event) {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      const nextRaised = !liveVvtHandRaised;
+      if (!sendLiveSheetMessage({ type: "player:hand", raised: nextRaised })) {
+        showStatus("No estas conectado al DM.");
+        return;
+      }
+      setLiveVvtHandRaised(nextRaised);
     }
 
     function handleLiveVvtPointerDown(event) {
@@ -1311,6 +1390,7 @@
         }
       }
       liveSheetClientSocket = null;
+      setLiveVvtHandRaised(false);
       renderLiveVvtState({ active: false });
       setLiveSheetClientStatus("live.disconnected", "neutral");
       showStatus(t("live.disconnectedStatus"));
@@ -1379,12 +1459,16 @@
           if (payload?.type === "dm:vvt:ping") {
             addLiveVvtPing(payload.ping);
           }
+          if (payload?.type === "dm:hand:state") {
+            setLiveVvtHandRaised(Boolean(payload.raised));
+          }
           if (payload?.type === "player:roll") {
             window.showLiveSheetRoll?.(payload.roll);
           }
         });
         socket.addEventListener("close", () => {
           if (liveSheetClientSocket === socket) liveSheetClientSocket = null;
+          setLiveVvtHandRaised(false);
           renderLiveVvtState({ active: false });
           setLiveSheetClientStatus(liveSheetClientManualDisconnect ? "live.disconnected" : "live.disconnectedFromDm", liveSheetClientManualDisconnect ? "neutral" : "error");
         });

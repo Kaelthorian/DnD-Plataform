@@ -160,6 +160,23 @@ const MAP_MARKER_FORM_LABELS = {
   square: "Cuadrado",
   circle: "Circulo"
 };
+const MAP_MARKER_ICON_OPTIONS = [
+  { value: "marker", label: "Marker" },
+  { value: "shop", label: "Tienda" },
+  { value: "tavern", label: "Taberna" },
+  { value: "inn", label: "Posada" },
+  { value: "swords", label: "Espadas" },
+  { value: "shield", label: "Escudo" },
+  { value: "castle", label: "Castillo" },
+  { value: "temple", label: "Templo" },
+  { value: "camp", label: "Campamento" },
+  { value: "cave", label: "Cueva" },
+  { value: "treasure", label: "Tesoro" },
+  { value: "danger", label: "Peligro" },
+  { value: "quest", label: "Quest" },
+  { value: "portal", label: "Portal" }
+];
+const MAP_MARKER_ICON_VALUES = new Set(MAP_MARKER_ICON_OPTIONS.map((option) => option.value));
 const MAP_MARKER_OPACITY_MIN = 0.08;
 const MAP_MARKER_OPACITY_MAX = 0.85;
 const MAP_MARKER_OPACITY_DEFAULT = 0.32;
@@ -1405,9 +1422,54 @@ async function mapTokenShareSnapshot(token) {
   }
 }
 
-async function mapTokensShareSnapshot(tokens) {
+function mapShareViewportFromDom(note, page) {
+  const noteId = String(note?.id || "");
+  const element = Array.from(document.querySelectorAll("[data-map-body-note-id]"))
+    .find((entry) => entry.dataset.mapBodyNoteId === noteId);
+  const left = Number(element?.dataset.mapBaseLeft);
+  const top = Number(element?.dataset.mapBaseTop);
+  const width = Number(element?.dataset.mapBaseWidth);
+  const height = Number(element?.dataset.mapBaseHeight);
+  if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+    return {
+      left: Number.isFinite(left) ? left : 0,
+      top: Number.isFinite(top) ? top : 0,
+      width,
+      height
+    };
+  }
+  return {
+    left: 0,
+    top: 0,
+    width: Math.max(1, Number(page?.frameWidth || note?.width) || NOTE_DEFAULT_WIDTH),
+    height: Math.max(1, (Number(page?.frameHeight || note?.height) || NOTE_DEFAULT_HEIGHT) - 88)
+  };
+}
+
+function mapShareViewportEntrySnapshot(entry, viewport) {
+  if (!entry || !viewport) return entry;
+  return {
+    ...entry,
+    x: (Number(entry.x) || 0) - (Number(viewport.left) || 0),
+    y: (Number(entry.y) || 0) - (Number(viewport.top) || 0)
+  };
+}
+
+function mapGridShareSnapshot(grid, viewport) {
+  const snapshot = mapGridSnapshot(grid);
+  if (!viewport) return snapshot;
+  return {
+    ...snapshot,
+    offsetX: (Number(snapshot.offsetX) || 0) - (Number(viewport.left) || 0),
+    offsetY: (Number(snapshot.offsetY) || 0) - (Number(viewport.top) || 0)
+  };
+}
+
+async function mapTokensShareSnapshot(tokens, viewport = null) {
   const list = Array.isArray(tokens) ? tokens : [];
-  return (await Promise.all(list.filter((token) => !token?.hidden).map(mapTokenShareSnapshot))).filter(Boolean);
+  return (await Promise.all(list.filter((token) => !token?.hidden).map(mapTokenShareSnapshot)))
+    .filter(Boolean)
+    .map((token) => mapShareViewportEntrySnapshot(token, viewport));
 }
 
 function mapTokenMonsterSnapshot(monster) {
@@ -1518,6 +1580,11 @@ function normalizeTokenActorNote(actorNote, token = {}) {
     monster,
     monsterCustom,
     character,
+    livePlayerId: kind === "character" ? String(actorNote.livePlayerId || token.livePlayerId || "") : "",
+    livePlayerName: kind === "character" ? String(actorNote.livePlayerName || token.livePlayerName || "") : "",
+    liveSheetData: kind === "character" && actorNote.liveSheetData ? cloneForBoardState(actorNote.liveSheetData) : null,
+    liveConnected: kind === "character" ? Boolean(actorNote.liveConnected ?? token.liveConnected ?? false) : false,
+    liveLastUpdate: kind === "character" ? (actorNote.liveLastUpdate || token.liveLastUpdate || null) : null,
     monsterTextNotes,
     monsterActiveTabId,
     titleOverride: String(actorNote.titleOverride || ""),
@@ -1560,6 +1627,11 @@ function tokenActorNoteSnapshot(note) {
     monster: note.kind === "monster" ? note.monster : null,
     monsterCustom: note.kind === "monster" && note.monsterCustom ? cloneForBoardState(note.monsterCustom) : null,
     character: note.kind === "character" ? note.character : null,
+    livePlayerId: note.kind === "character" ? String(note.livePlayerId || "") : "",
+    livePlayerName: note.kind === "character" ? String(note.livePlayerName || "") : "",
+    liveSheetData: note.kind === "character" && note.liveSheetData ? cloneForBoardState(note.liveSheetData) : null,
+    liveConnected: note.kind === "character" ? Boolean(note.liveConnected) : false,
+    liveLastUpdate: note.kind === "character" ? (note.liveLastUpdate || null) : null,
     monsterTextNotes: note.kind === "monster" ? normalizeMonsterTextNotes(note.monsterTextNotes) : [],
     monsterActiveTabId: note.kind === "monster" ? monsterActivePanelId(note) : "stats",
     titleOverride: note.titleOverride || "",
@@ -1584,6 +1656,10 @@ function normalizeMapToken(token) {
     monster,
     monsterCustom: token.monsterCustom ? cloneForBoardState(token.monsterCustom) : null,
     character,
+    livePlayerId: String(token.livePlayerId || ""),
+    livePlayerName: String(token.livePlayerName || ""),
+    liveConnected: Boolean(token.liveConnected),
+    liveLastUpdate: token.liveLastUpdate || null,
     x: Number.isFinite(Number(token.x)) ? Number(token.x) : 0,
     y: Number.isFinite(Number(token.y)) ? Number(token.y) : 0,
     size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140),
@@ -1690,6 +1766,11 @@ function normalizeMapMarkerPattern(pattern) {
   return MAP_MARKER_PATTERN_VALUES.has(value) ? value : "none";
 }
 
+function normalizeMapMarkerIcon(icon) {
+  const value = String(icon || "").trim().toLowerCase();
+  return MAP_MARKER_ICON_VALUES.has(value) ? value : "marker";
+}
+
 function decodeMapMarkerPatternGlyph(glyph) {
   return String(glyph || "").replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)));
 }
@@ -1735,6 +1816,7 @@ function normalizeMapMarker(marker, index = 0) {
     height: clamp(Number(source.height) || defaultHeight, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
     rotation: Number.isFinite(Number(source.rotation)) ? Number(source.rotation) : 0,
     color: normalizeMapMarkerColor(source.color),
+    icon: markerType === "pin" ? normalizeMapMarkerIcon(source.icon || source.markerIcon || source.symbol) : "marker",
     opacity: markerType === "shape" ? normalizeMapMarkerOpacity(source.opacity ?? source.alpha ?? source.fillOpacity) : MAP_MARKER_OPACITY_DEFAULT,
     pattern: markerType === "shape" ? normalizeMapMarkerPattern(source.pattern || source.mask || source.areaPattern) : "none",
     attachedTokenId: markerType === "shape" ? String(source.attachedTokenId || "").trim() : "",
@@ -1750,8 +1832,10 @@ function mapMarkersSnapshot(markers) {
   return Array.isArray(markers) ? markers.map(mapMarkerSnapshot).filter(Boolean) : [];
 }
 
-function mapMarkersShareSnapshot(markers) {
-  return mapMarkersSnapshot(markers).filter((marker) => !marker.hidden);
+function mapMarkersShareSnapshot(markers, viewport = null) {
+  return mapMarkersSnapshot(markers)
+    .filter((marker) => !marker.hidden)
+    .map((marker) => mapShareViewportEntrySnapshot(marker, viewport));
 }
 
 function normalizeMapGrid(grid) {
@@ -2531,7 +2615,7 @@ function appendCharacterEquipmentItem(equipmentText, itemName) {
   const existing = equipmentResourceCandidates(equipmentText).some((item) => normalizeResourceName(item.display) === normalizeResourceName(cleanItem));
   if (existing) return String(equipmentText || "");
   const current = String(equipmentText || "").trim();
-  return [current, `- ${cleanItem}`].filter(Boolean).join("\n");
+  return [current, `1 ${cleanItem}`].filter(Boolean).join("\n");
 }
 
 function removeCharacterEquipmentItem(equipmentText, itemName) {
@@ -3309,6 +3393,145 @@ function DiceGlyph({ sides, className = "h-10 w-10" }) {
   }
 }
 
+function MapMarkerIcon({ icon = "marker", className = "h-4 w-4" }) {
+  const normalizedIcon = normalizeMapMarkerIcon(icon);
+  const strokeProps = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2.2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  };
+
+  switch (normalizedIcon) {
+    case "shop":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M4 10h16" />
+          <path {...strokeProps} d="M5 10l1-5h12l1 5" />
+          <path {...strokeProps} d="M6 10v9h12v-9" />
+          <path {...strokeProps} d="M9 19v-5h6v5" />
+          <path {...strokeProps} d="M7 10v2a2 2 0 0 0 4 0v-2" />
+          <path {...strokeProps} d="M13 10v2a2 2 0 0 0 4 0v-2" />
+        </svg>
+      );
+    case "tavern":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M7 4h9v11a4.5 4.5 0 0 1-9 0V4z" />
+          <path {...strokeProps} d="M16 7h2.5a2.5 2.5 0 0 1 0 5H16" />
+          <path {...strokeProps} d="M8 20h8" />
+          <path {...strokeProps} d="M10 8h3" />
+        </svg>
+      );
+    case "inn":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M4 20V9l8-5 8 5v11" />
+          <path {...strokeProps} d="M8 20v-6h8v6" />
+          <path {...strokeProps} d="M8 11h8" />
+          <path {...strokeProps} d="M12 14v6" />
+        </svg>
+      );
+    case "swords":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M4 20l6-6" />
+          <path {...strokeProps} d="M14 10l6-6" />
+          <path {...strokeProps} d="M12 8l4 4" />
+          <path {...strokeProps} d="M3 5l16 16" />
+          <path {...strokeProps} d="M7 17l-2 2" />
+          <path {...strokeProps} d="M17 7l2-2" />
+        </svg>
+      );
+    case "shield":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3z" />
+          <path {...strokeProps} d="M12 7v9" />
+        </svg>
+      );
+    case "castle":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M5 20V8" />
+          <path {...strokeProps} d="M19 20V8" />
+          <path {...strokeProps} d="M5 8V5h3v3h3V5h2v3h3V5h3v3" />
+          <path {...strokeProps} d="M4 20h16" />
+          <path {...strokeProps} d="M10 20v-5a2 2 0 0 1 4 0v5" />
+        </svg>
+      );
+    case "temple":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M4 9l8-5 8 5H4z" />
+          <path {...strokeProps} d="M6 10v8" />
+          <path {...strokeProps} d="M10 10v8" />
+          <path {...strokeProps} d="M14 10v8" />
+          <path {...strokeProps} d="M18 10v8" />
+          <path {...strokeProps} d="M4 20h16" />
+        </svg>
+      );
+    case "camp":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M4 20L12 5l8 15" />
+          <path {...strokeProps} d="M9 20l3-6 3 6" />
+          <path {...strokeProps} d="M6 20h12" />
+          <path {...strokeProps} d="M12 5v15" />
+        </svg>
+      );
+    case "cave":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M4 20v-5a8 8 0 0 1 16 0v5" />
+          <path {...strokeProps} d="M9 20v-4a3 3 0 0 1 6 0v4" />
+          <path {...strokeProps} d="M5 20h14" />
+        </svg>
+      );
+    case "treasure":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M4 10h16v9H4z" />
+          <path {...strokeProps} d="M4 10a8 5 0 0 1 16 0" />
+          <path {...strokeProps} d="M12 10v9" />
+          <path {...strokeProps} d="M10 14h4" />
+        </svg>
+      );
+    case "danger":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M12 4l9 16H3L12 4z" />
+          <path {...strokeProps} d="M12 9v5" />
+          <path {...strokeProps} d="M12 17h.01" />
+        </svg>
+      );
+    case "quest":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M12 18h.01" />
+          <path {...strokeProps} d="M9.5 9a2.7 2.7 0 1 1 4.8 1.7c-1.5 1.3-2.3 1.9-2.3 3.3" />
+          <circle {...strokeProps} cx="12" cy="12" r="9" />
+        </svg>
+      );
+    case "portal":
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <ellipse {...strokeProps} cx="12" cy="12" rx="7" ry="9" />
+          <path {...strokeProps} d="M9 7c4 1 6 4 5 9" />
+          <path {...strokeProps} d="M15 7c-4 1-6 4-5 9" />
+        </svg>
+      );
+    default:
+      return (
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+          <path {...strokeProps} d="M12 21s6-5.2 6-11a6 6 0 0 0-12 0c0 5.8 6 11 6 11z" />
+          <circle {...strokeProps} cx="12" cy="10" r="2" />
+        </svg>
+      );
+  }
+}
+
 function MonsterSummary({ monster }) {
   return (
     <div className="space-y-4 text-sm text-neutral-300">
@@ -3422,6 +3645,7 @@ function CtrlEditableText({
   multiline = false,
   title = "Ctrl+click para editar",
   editOnDoubleClick = false,
+  style = null,
   onCommit,
   children
 }) {
@@ -3471,6 +3695,7 @@ function CtrlEditableText({
   return (
     <span
       className={`${className} ${onCommit ? "cursor-text rounded-sm hover:bg-amber-500/10" : ""}`}
+      style={style || undefined}
       title={onCommit ? title : undefined}
       onPointerDown={(event) => {
         if (!event.ctrlKey && !event.metaKey) return;
@@ -4371,6 +4596,7 @@ function MonsterNote({
       <article
         className={`absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border bg-neutral-900 px-3 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-amber-500"}`}
         data-dm-note="true"
+        data-note-kind="monster"
         style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: clamp(frameNote.width, 220, 340) }}
         onPointerDown={onFocus}
       >
@@ -4401,6 +4627,7 @@ function MonsterNote({
     <article
       className={`absolute flex overflow-hidden border bg-neutral-900 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-neutral-950"}`}
       data-dm-note="true"
+      data-note-kind="monster"
       data-note-action-id={noteActionId}
       style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: frameNote.width, height: frameNote.height, flexDirection: "column" }}
       onPointerDown={onFocus}
@@ -5398,7 +5625,8 @@ function MapNote({
   onMapMarkerDragStart,
   onMapMarkerResizeStart,
   onMapMarkerContextMenu,
-  vvtPings = []
+  vvtPings = [],
+  boardScale = 1
 }) {
   const inputRef = useRef(null);
   const bodyRef = useRef(null);
@@ -5478,6 +5706,7 @@ function MapNote({
     height: baseImageLayout.height * mapView.scale
   } : null;
   const mapVisualScale = imageLayout?.width && baseImageLayout?.width ? imageLayout.width / baseImageLayout.width : 1;
+  const fixedOverlayScale = 1 / clamp(Number(boardScale) || 1, BOARD_MIN_ZOOM, BOARD_MAX_ZOOM);
   const localImageLayout = imageLayout ? { left: 0, top: 0, width: imageLayout.width, height: imageLayout.height } : null;
 
   useEffect(() => {
@@ -6577,7 +6806,10 @@ function MapNote({
                         }}
                       />
                     ) : null}
-                    <span className="pointer-events-none absolute left-1 top-1 max-w-[calc(100%-8px)] truncate border border-neutral-800 bg-neutral-950/80 px-1.5 py-0.5 text-[10px] font-bold uppercase text-neutral-100 shadow">
+                    <span
+                      className="pointer-events-none absolute left-1 top-1 max-w-[calc(100%-8px)] truncate border border-neutral-800 bg-neutral-950/80 px-1.5 py-0.5 text-[10px] font-bold uppercase text-neutral-100 shadow"
+                      style={{ transform: `scale(${fixedOverlayScale})`, transformOrigin: "left top" }}
+                    >
                       {marker.label || MAP_MARKER_FORM_LABELS[marker.formType] || "Forma"}
                     </span>
                     <button
@@ -6590,7 +6822,7 @@ function MapNote({
                   </div>
                 );
               }
-              const markerSize = Math.max(12, visualSizeFromBaseSize(MAP_MARKER_SIZE));
+              const markerSize = MAP_MARKER_SIZE * fixedOverlayScale;
               return (
                 <div
                   key={marker.id}
@@ -6605,7 +6837,7 @@ function MapNote({
                   onContextMenu={(event) => onMapMarkerContextMenu?.(event, noteActionId, activePage.id, marker.id)}
                 >
                   <div
-                    className="flex items-center justify-center border-2 border-neutral-950 bg-amber-400 text-[11px] font-black leading-none text-neutral-950 shadow-[0_3px_10px_rgba(0,0,0,0.7)]"
+                    className="flex items-center justify-center border-2 border-neutral-950 bg-amber-400 text-neutral-950 shadow-[0_3px_10px_rgba(0,0,0,0.7)]"
                     style={{
                       width: markerSize,
                       height: markerSize,
@@ -6613,12 +6845,15 @@ function MapNote({
                       transform: "rotate(-45deg)"
                     }}
                   >
-                    <span style={{ transform: "rotate(45deg)" }}>M</span>
+                    <span className="flex h-full w-full items-center justify-center" style={{ transform: "rotate(45deg)" }}>
+                      <MapMarkerIcon icon={marker.icon} className="h-[58%] w-[58%]" />
+                    </span>
                   </div>
                   <CtrlEditableText
                     value={marker.label || "Marker"}
                     className="mt-1 max-w-32 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow"
                     inputClassName="mt-1 w-32 border border-amber-500 bg-neutral-950 px-1 py-0.5 text-[10px] font-bold uppercase text-amber-100 shadow focus:outline-none"
+                    style={{ transform: `scale(${fixedOverlayScale})`, transformOrigin: "top center" }}
                     title="Doble click o Ctrl+click para editar"
                     editOnDoubleClick
                     onCommit={(value) => onMapMarkerRename?.(noteActionId, activePage.id, marker.id, value)}
@@ -6650,7 +6885,10 @@ function MapNote({
                   onContextMenu={(event) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, token.id)}
                 >
                   <MapTokenImage token={token} className="h-full w-full border-0" />
-                  <span className="pointer-events-none absolute left-1/2 top-full mt-1 max-w-28 -translate-x-1/2 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold text-neutral-100 shadow">
+                  <span
+                    className="pointer-events-none absolute left-1/2 top-full mt-1 max-w-28 -translate-x-1/2 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold text-neutral-100 shadow"
+                    style={{ transform: `translateX(-50%) scale(${fixedOverlayScale})`, transformOrigin: "top center" }}
+                  >
                     {token.name || token.character?.name || token.monster?.name || "Token"}
                   </span>
                 </button>
@@ -7437,6 +7675,19 @@ function sanitizeDisplayText(value, fallback = "") {
     .trim();
   return text || fallback;
 }
+
+function normalizeRaisedHandQueue(entries) {
+  return (Array.isArray(entries) ? entries : [])
+    .filter((entry) => entry?.playerId)
+    .map((entry, index) => ({
+      playerId: String(entry.playerId),
+      playerName: sanitizeDisplayText(entry.playerName, "Jugador"),
+      raisedAt: entry.raisedAt || "",
+      position: Number(entry.position) || index + 1
+    }))
+    .sort((left, right) => (left.position - right.position) || String(left.raisedAt).localeCompare(String(right.raisedAt)));
+}
+
 function formatLiveTimestamp(value) {
   if (!value) return "Never";
   const date = new Date(value);
@@ -8506,6 +8757,43 @@ function ObsidianMarkdown({ markdown, noteRelativePath, onOpenWiki, onOpenExtern
   );
 }
 
+function RaisedHandsNote({ hands, onLowerHand }) {
+  const queue = normalizeRaisedHandQueue(hands);
+  if (!queue.length) return null;
+  return (
+    <aside
+      className="fixed bottom-4 right-4 z-50 w-[min(340px,calc(100vw-32px))] border border-amber-500 bg-neutral-900/95 text-neutral-200 shadow-2xl"
+      data-board-control="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <header className="border-b-2 border-amber-500 px-3 py-2">
+        <h2 className="font-serif text-lg font-bold uppercase tracking-wide text-amber-500">Manos levantadas</h2>
+        <p className="mt-1 text-[11px] uppercase tracking-wide text-neutral-500">Orden de prioridad para hablar</p>
+      </header>
+      <div className="grid gap-1 p-2">
+        {queue.map((hand) => (
+          <div key={hand.playerId} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border border-neutral-800 bg-neutral-950 px-2 py-2 text-xs">
+            <span className="flex h-7 w-7 items-center justify-center border border-amber-500 bg-amber-500 text-sm font-black text-neutral-950">
+              {hand.position}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-bold text-neutral-100">{hand.playerName}</p>
+              <p className="text-[11px] text-neutral-500">{hand.raisedAt ? `Desde ${formatLiveTimestamp(hand.raisedAt)}` : "Esperando turno"}</p>
+            </div>
+            <button
+              className="border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] font-bold uppercase text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              type="button"
+              onClick={() => onLowerHand?.(hand.playerId)}
+            >
+              Bajar
+            </button>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
 function ObsidianNote({
   note,
   shellNote = null,
@@ -9119,6 +9407,7 @@ function DmScreenApp() {
   const [liveServerStatus, setLiveServerStatus] = useState({ running: false, port: 8787, addresses: [], tailscaleAddresses: [], lanAddresses: [], playerCount: 0 });
   const [liveDiagnostics, setLiveDiagnostics] = useState(null);
   const [livePlayers, setLivePlayers] = useState([]);
+  const [raisedHands, setRaisedHands] = useState([]);
   const [liveHostPort, setLiveHostPort] = useState("8787");
   const [liveHostTokenEnabled, setLiveHostTokenEnabled] = useState(true);
   const [liveHostError, setLiveHostError] = useState("");
@@ -9374,7 +9663,8 @@ function DmScreenApp() {
         const { note, page } = sharedVvtTarget;
         const image = await mapImageShareSnapshot(page.mapImage);
         if (cancelled || !image?.dataUrl) return;
-        const tokens = await mapTokensShareSnapshot(page.mapTokens);
+        const sourceViewport = mapShareViewportFromDom(note, page);
+        const tokens = await mapTokensShareSnapshot(page.mapTokens, sourceViewport);
         if (cancelled) return;
         await liveSheet.publishVvtState({
           active: true,
@@ -9382,12 +9672,12 @@ function DmScreenApp() {
           pageName: page.name || "",
           image,
           fogOfWar: mapFogSnapshot(page.fogOfWar),
-          grid: mapGridSnapshot(page.mapGrid),
+          grid: mapGridShareSnapshot(page.mapGrid, sourceViewport),
           tokens,
-          markers: mapMarkersShareSnapshot(page.mapMarkers),
+          markers: mapMarkersShareSnapshot(page.mapMarkers, sourceViewport),
           sourceViewport: {
-            width: Math.max(1, Number(note.width) || NOTE_DEFAULT_WIDTH),
-            height: Math.max(1, (Number(note.height) || NOTE_DEFAULT_HEIGHT) - 88)
+            width: Math.max(1, Number(sourceViewport.width) || NOTE_DEFAULT_WIDTH),
+            height: Math.max(1, Number(sourceViewport.height) || NOTE_DEFAULT_HEIGHT)
           },
           updatedAt: new Date().toISOString()
         });
@@ -9530,6 +9820,11 @@ function DmScreenApp() {
         }
       })
       .catch(console.error);
+    liveSheet.getRaisedHands?.()
+      .then((hands) => {
+        if (!disposed) setRaisedHands(normalizeRaisedHandQueue(hands));
+      })
+      .catch(console.error);
 
     const unsubscribeStatus = liveSheet.onServerStatus((status) => {
       setLiveServerStatus(status || { running: false, port: 8787, addresses: [], tailscaleAddresses: [], lanAddresses: [], playerCount: 0 });
@@ -9554,11 +9849,12 @@ function DmScreenApp() {
       setMonsterNotes((notes) => {
         const liveNote = notes.find((note) => note.livePlayerId === player.playerId);
         if (player.removed && liveNote) return closeSingleNoteInCollection(notes, liveNote.id);
-        return notes.map((note) => (
+        const nextNotes = notes.map((note) => (
           note.livePlayerId === player.playerId
             ? { ...note, liveConnected: false, liveLastUpdate: player.lastUpdate || note.liveLastUpdate || null }
             : note
         ));
+        return liveNote ? persistLinkedTokenNotesInCollection(nextNotes, [liveNote.id]) : nextNotes;
       });
     });
     const unsubscribeRoll = liveSheet.onPlayerRoll?.((roll) => {
@@ -9568,6 +9864,9 @@ function DmScreenApp() {
     const unsubscribeVvtPing = liveSheet.onVvtPing?.((ping) => {
       appendVvtPing(ping);
     });
+    const unsubscribeHandQueue = liveSheet.onPlayerHandQueue?.((hands) => {
+      setRaisedHands(normalizeRaisedHandQueue(hands));
+    });
 
     return () => {
       disposed = true;
@@ -9576,6 +9875,7 @@ function DmScreenApp() {
       unsubscribeDisconnected?.();
       unsubscribeRoll?.();
       unsubscribeVvtPing?.();
+      unsubscribeHandQueue?.();
     };
   }, []);
 
@@ -9674,6 +9974,17 @@ function DmScreenApp() {
     const liveSheet = window.dndSheet?.liveSheet;
     if (!liveSheet) return;
     await liveSheet.kickPlayer(playerId);
+  }
+
+  async function lowerRaisedHand(playerId) {
+    if (!playerId) return;
+    setRaisedHands((hands) => normalizeRaisedHandQueue(hands).filter((hand) => hand.playerId !== playerId));
+    try {
+      const result = await window.dndSheet?.liveSheet?.lowerPlayerHand?.(playerId);
+      if (result?.raisedHands) setRaisedHands(normalizeRaisedHandQueue(result.raisedHands));
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   function screenToBoardPoint(clientX, clientY, view = boardViewRef.current) {
@@ -10318,7 +10629,7 @@ function DmScreenApp() {
       const existing = notes.find((note) => note.livePlayerId === player.playerId);
       const characterHp = character.hpMax || character.hpCurrent || "";
       if (existing) {
-        return notes.map((note) => (
+        const nextNotes = notes.map((note) => (
           note.id === existing.id
             ? {
               ...note,
@@ -10332,6 +10643,7 @@ function DmScreenApp() {
             }
             : note
         ));
+        return persistLinkedTokenNotesInCollection(nextNotes, [existing.id]);
       }
 
       const liveIndex = notes.filter((note) => note.livePlayerId).length;
@@ -10546,7 +10858,12 @@ function DmScreenApp() {
         dicePanelOpen: false,
         minimized: false,
         hpCurrent: payload.hpCurrent ?? character?.hpCurrent ?? hpAverage,
-        hpMax: payload.hpMax ?? characterHp ?? hpAverage
+        hpMax: payload.hpMax ?? characterHp ?? hpAverage,
+        livePlayerId: payload.kind === "character" ? String(payload.livePlayerId || "") : "",
+        liveSheetData: payload.kind === "character" && payload.liveSheetData ? cloneForBoardState(payload.liveSheetData) : null,
+        livePlayerName: payload.kind === "character" ? String(payload.livePlayerName || "") : "",
+        liveConnected: payload.kind === "character" && payload.livePlayerId ? payload.liveConnected !== false : Boolean(payload.liveConnected),
+        liveLastUpdate: payload.kind === "character" ? (payload.liveLastUpdate || null) : null
       }
     ]);
   }
@@ -10767,6 +11084,7 @@ function DmScreenApp() {
         y: clamp(Number(y) || 0, 0, Math.max(1, metrics.height - (isShape ? height : 0))),
         width,
         height,
+        icon: normalizeMapMarkerIcon(target.icon),
         color: MAP_MARKER_COLOR_OPTIONS[0].value
       }, markerCount);
       return updateMapNotePage(note, target.pageId, (page) => ({
@@ -10879,7 +11197,7 @@ function DmScreenApp() {
     const notes = monsterNotesRef.current;
     const sourceNote = activeNoteForRoot(sourceRootId, notes);
     const mapNote = activeNoteForRoot(targetRootId, notes);
-    if (!["monster", "character"].includes(sourceNote?.kind) || mapNote?.kind !== "map") return false;
+    if (sourceNote?.kind !== "monster" || mapNote?.kind !== "map") return false;
     const page = activeMapPageForNote(mapNote);
     if (!page) return false;
 
@@ -10890,29 +11208,25 @@ function DmScreenApp() {
     const localY = metrics.top == null ? boardPoint.y - mapNote.y - 88 : (clientY - metrics.top) / metrics.scale;
     const basePoint = mapVisualPointToBase(metrics, localX, localY);
     const point = clampMapTokenPoint(mapNote, basePoint.x - size / 2, basePoint.y - size / 2, size, page.id);
-    const isCharacter = sourceNote.kind === "character";
-    const monster = isCharacter ? null : mapTokenMonsterSnapshot(sourceNote.monster);
-    const character = isCharacter ? mapTokenCharacterSnapshot(sourceNote.character) : null;
-    const tokenImage = isCharacter ? null : normalizeMapTokenImage(sourceNote.monsterCustom?.tokenImage || sourceNote.monster?.tokenImage);
-    if (!monster && !character) return false;
+    const monster = mapTokenMonsterSnapshot(sourceNote.monster);
+    const tokenImage = normalizeMapTokenImage(sourceNote.monsterCustom?.tokenImage || sourceNote.monster?.tokenImage);
+    if (!monster) return false;
 
     const token = {
       id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      kind: isCharacter ? "character" : "monster",
-      name: isCharacter
-        ? (sourceNote.character?.name || sourceNote.livePlayerName || "Player")
-        : (sourceNote.monster?.name || "Monster"),
+      kind: "monster",
+      name: sourceNote.monster?.name || "Monster",
       monster,
       monsterCustom: sourceNote.monsterCustom ? cloneForBoardState(sourceNote.monsterCustom) : null,
-      character,
+      character: null,
       image: tokenImage,
       x: point.x,
       y: point.y,
       size,
       ...mapActorCombatState({
-        kind: isCharacter ? "character" : "monster",
-        monster: isCharacter ? null : sourceNote.monster,
-        character,
+        kind: "monster",
+        monster: sourceNote.monster,
+        character: null,
         hpCurrent: sourceNote.hpCurrent,
         hpMax: sourceNote.hpMax
       })
@@ -11487,7 +11801,11 @@ function DmScreenApp() {
       monster: snapshot.kind === "monster" ? mapTokenMonsterSnapshot(snapshot.monster) : token.monster,
       monsterCustom: snapshot.kind === "monster" && snapshot.monsterCustom ? cloneForBoardState(snapshot.monsterCustom) : token.monsterCustom,
       image: snapshot.kind === "monster" ? (monsterImage || (hasMonsterImageField ? null : token.image)) : token.image,
-      character: snapshot.kind === "character" ? mapTokenCharacterSnapshot(snapshot.character) : token.character
+      character: snapshot.kind === "character" ? mapTokenCharacterSnapshot(snapshot.character) : token.character,
+      livePlayerId: snapshot.kind === "character" ? String(actorNote.livePlayerId || snapshot.livePlayerId || token.livePlayerId || "") : token.livePlayerId,
+      livePlayerName: snapshot.kind === "character" ? String(actorNote.livePlayerName || snapshot.livePlayerName || token.livePlayerName || "") : token.livePlayerName,
+      liveConnected: snapshot.kind === "character" ? Boolean(actorNote.liveConnected ?? snapshot.liveConnected ?? token.liveConnected) : token.liveConnected,
+      liveLastUpdate: snapshot.kind === "character" ? (actorNote.liveLastUpdate || snapshot.liveLastUpdate || token.liveLastUpdate || null) : token.liveLastUpdate
     };
   }
 
@@ -11542,6 +11860,11 @@ function DmScreenApp() {
       monster: actorNote.kind === "monster" ? actorNote.monster : null,
       monsterCustom: actorNote.kind === "monster" && actorNote.monsterCustom ? cloneForBoardState(actorNote.monsterCustom) : null,
       character: actorNote.kind === "character" ? actorNote.character : null,
+      livePlayerId: actorNote.kind === "character" ? String(actorNote.livePlayerId || token.livePlayerId || "") : "",
+      livePlayerName: actorNote.kind === "character" ? String(actorNote.livePlayerName || token.livePlayerName || "") : "",
+      liveSheetData: actorNote.kind === "character" && actorNote.liveSheetData ? cloneForBoardState(actorNote.liveSheetData) : null,
+      liveConnected: actorNote.kind === "character" ? Boolean(actorNote.liveConnected ?? token.liveConnected ?? false) : false,
+      liveLastUpdate: actorNote.kind === "character" ? (actorNote.liveLastUpdate || token.liveLastUpdate || null) : null,
       monsterTextNotes: actorNote.kind === "monster" ? normalizeMonsterTextNotes(actorNote.monsterTextNotes) : [],
       monsterActiveTabId: actorNote.kind === "monster" ? monsterActivePanelId(actorNote) : "stats",
       titleOverride: actorNote.titleOverride,
@@ -11670,14 +11993,56 @@ function DmScreenApp() {
       setTokenContextMenu(null);
       return;
     }
+    const livePlayerId = payload.kind === "character"
+      ? String(payload.livePlayerId || entry.token.livePlayerId || entry.token.actorNote?.livePlayerId || "")
+      : "";
+    if (livePlayerId) {
+      const liveNote = monsterNotesRef.current.find((note) => note.livePlayerId === livePlayerId);
+      if (liveNote) {
+        setMonsterNotes((notes) => {
+          const nextNotes = notes.map((note) => (
+            note.id === liveNote.id ? { ...note, linkedMapToken: link, minimized: false } : note
+          ));
+          return persistLinkedTokenNotesInCollection(nextNotes, [liveNote.id]);
+        });
+        restoreNote(liveNote.id);
+        focusNote(liveNote.id);
+        setTokenContextMenu(null);
+        return;
+      }
+    }
     const width = payload.kind === "monster" ? MONSTER_NOTE_DEFAULT_WIDTH : NOTE_DEFAULT_WIDTH;
     const height = NOTE_DEFAULT_HEIGHT;
     const spawnPoint = clampBoardPoint({
-      x: tokenContextMenu.boardX + 24,
-      y: tokenContextMenu.boardY + 24
+      x: (tokenContextMenu?.boardX || 0) + 24,
+      y: (tokenContextMenu?.boardY || 0) + 24
     }, width, height);
+    let notePayload = payload;
+    if (livePlayerId) {
+      const livePlayer = livePlayers.find((player) => player.playerId === livePlayerId);
+      const liveSheetData = livePlayer?.data && Object.keys(livePlayer.data).length
+        ? livePlayer.data
+        : (payload.liveSheetData || {});
+      let liveCharacter = payload.character;
+      if (liveSheetData && Object.keys(liveSheetData).length) {
+        try {
+          liveCharacter = characterFromSheetData(liveSheetData);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      notePayload = {
+        ...payload,
+        character: liveCharacter,
+        livePlayerId,
+        livePlayerName: livePlayer?.playerName || payload.livePlayerName || "",
+        liveSheetData: cloneForBoardState(liveSheetData),
+        liveConnected: livePlayer ? Boolean(livePlayer.connected) : payload.liveConnected !== false,
+        liveLastUpdate: livePlayer?.lastUpdate || payload.liveLastUpdate || null
+      };
+    }
     addBoardNote({
-      ...payload,
+      ...notePayload,
       width,
       height,
       linkedMapToken: link
@@ -11731,6 +12096,23 @@ function DmScreenApp() {
           ...page,
           mapMarkers: (page.mapMarkers || []).map((marker) => (
             marker.id === entry.marker.id ? { ...marker, color: nextColor } : marker
+          ))
+        }))
+        : note
+    )));
+    setMarkerContextMenu(null);
+  }
+
+  function updateMapMarkerIconFromMenu(icon) {
+    const entry = findMapMarkerContextEntry();
+    if (!entry || entry.marker.markerType !== "pin") return;
+    const nextIcon = normalizeMapMarkerIcon(icon);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id ? { ...marker, icon: nextIcon } : marker
           ))
         }))
         : note
@@ -12439,6 +12821,11 @@ function DmScreenApp() {
     return Boolean(event.target?.closest?.("[data-dm-note='true']"));
   }
 
+  function isPointerOverMonsterNote(event) {
+    const noteElement = event.target?.closest?.("[data-dm-note='true']");
+    return noteElement?.dataset?.noteKind === "monster";
+  }
+
   function shouldIgnoreBoardPointer(event, { allowNote = false } = {}) {
     if (isBoardUiBlocker(event)) return true;
     return !allowNote && isPointerOverNote(event);
@@ -12486,6 +12873,7 @@ function DmScreenApp() {
 
   function handleBoardPointerDownCapture(event) {
     if (!event.shiftKey || !isPointerOverNote(event) || isBoardUiBlocker(event)) return;
+    if (isPointerOverMonsterNote(event)) return;
     closeBoardContextMenu(event);
     startBoardPan(event, { allowNote: true });
     if (panRef.current?.pointerId === event.pointerId) event.stopPropagation();
@@ -12539,7 +12927,9 @@ function DmScreenApp() {
     const rootId = resolveRootNoteId(noteId, monsterNotes);
     const note = monsterNotes.find((entry) => entry.id === rootId);
     if (!note) return;
-    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+    const activeDragNote = activeNoteForRoot(rootId, monsterNotes);
+    const isMonsterShiftDrag = event.shiftKey && activeDragNote?.kind === "monster";
+    if ((event.shiftKey && !isMonsterShiftDrag) || event.ctrlKey || event.metaKey) {
       setSelectedRootNoteIds((ids) => (
         ids.includes(rootId) ? ids.filter((id) => id !== rootId) : [...ids, rootId]
       ));
@@ -12547,9 +12937,13 @@ function DmScreenApp() {
       return;
     }
     const rootNotes = monsterNotes.filter((entry) => !entry.parentNoteId);
-    const selectedDragIds = selectedRootNoteIds.includes(rootId)
-      ? selectedRootNoteIds.filter((id) => rootNotes.some((entry) => entry.id === id))
-      : [rootId];
+    const selectedDragIds = isMonsterShiftDrag
+      ? [rootId]
+      : (
+        selectedRootNoteIds.includes(rootId)
+          ? selectedRootNoteIds.filter((id) => rootNotes.some((entry) => entry.id === id))
+          : [rootId]
+      );
     const dragNotes = rootNotes.filter((entry) => selectedDragIds.includes(entry.id));
     if (!selectedRootNoteIds.includes(rootId)) setSelectedRootNoteIds([rootId]);
     zRef.current += dragNotes.length;
@@ -12851,14 +13245,18 @@ function DmScreenApp() {
         if (addItemNoteToCharacterEquipment(completedDrag.noteId, completedDrag.dropTargetNoteId)) {
           return;
         }
-        const mapDropTargetId = findMapDropTargetAtPointer(completedDrag.noteId, lastClientX, lastClientY) || completedDrag.dropTargetNoteId;
-        if (addActorTokenToMap(
-          completedDrag.noteId,
-          mapDropTargetId,
-          lastClientX,
-          lastClientY
-        )) {
-          restoreDraggedNotesToStart(completedDrag);
+        const dropTargetActiveNote = completedDrag.dropTargetNoteId ? activeNoteForRoot(completedDrag.dropTargetNoteId) : null;
+        const mapDropTargetId = findMapDropTargetAtPointer(completedDrag.noteId, lastClientX, lastClientY)
+          || (dropTargetActiveNote?.kind === "map" ? completedDrag.dropTargetNoteId : null);
+        if (mapDropTargetId) {
+          if (event.shiftKey && addActorTokenToMap(
+            completedDrag.noteId,
+            mapDropTargetId,
+            lastClientX,
+            lastClientY
+          )) {
+            restoreDraggedNotesToStart(completedDrag);
+          }
           return;
         }
         if (completedDrag.dropTargetNoteId) groupNoteIntoRoot(completedDrag.noteId, completedDrag.dropTargetNoteId);
@@ -12936,6 +13334,7 @@ function DmScreenApp() {
         onKick={kickLivePlayer}
         onAddMapNote={() => addMapNote()}
       />
+      <RaisedHandsNote hands={raisedHands} onLowerHand={lowerRaisedHand} />
       <GlobalDiceTray
         isOpen={freeDiceOpen}
         selection={freeDiceSelection}
@@ -13091,6 +13490,7 @@ function DmScreenApp() {
               onMapMarkerDragStart={startMapMarkerDrag}
               onMapMarkerResizeStart={startMapMarkerResize}
               onMapMarkerContextMenu={openMapMarkerContextMenu}
+              boardScale={boardView.scale}
             />
           ) : activeNote.kind === "obsidian" ? (
             <ObsidianNote
@@ -13235,6 +13635,27 @@ function DmScreenApp() {
                 </button>
               </div>
             </form>
+          ) : null}
+          {activeMarkerContext.marker.markerType === "pin" ? (
+            <div className="grid gap-2 border-b border-neutral-800 p-2">
+              <span className="px-1 text-[11px] font-bold uppercase tracking-wide text-neutral-500">Icono</span>
+              <div className="grid grid-cols-2 gap-1">
+                {MAP_MARKER_ICON_OPTIONS.map((option) => {
+                  const active = normalizeMapMarkerIcon(activeMarkerContext.marker.icon) === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      className={`flex items-center gap-2 border px-2 py-1.5 text-left text-xs font-bold uppercase ${active ? "border-amber-400 bg-amber-500 text-neutral-950" : "border-neutral-700 bg-neutral-950 text-neutral-200 hover:border-neutral-500 hover:bg-neutral-800"}`}
+                      type="button"
+                      onClick={() => updateMapMarkerIconFromMenu(option.value)}
+                    >
+                      <MapMarkerIcon icon={option.value} className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ) : null}
           {activeMarkerContext.marker.markerType === "shape" ? (
             <div className="grid gap-2 border-b border-neutral-800 p-2">
