@@ -16,6 +16,13 @@ contextBridge.exposeInMainWorld("dndSheet", {
   clearSlot: (slotId) => ipcRenderer.invoke("sheet:slot:clear", slotId),
   openDmScreen: () => ipcRenderer.invoke("app:navigate", "dm-screen"),
   openCharacterSheet: () => ipcRenderer.invoke("app:navigate", "character-sheet"),
+  updater: {
+    getState: () => ipcRenderer.invoke("updater:get-state"),
+    check: () => ipcRenderer.invoke("updater:check"),
+    download: () => ipcRenderer.invoke("updater:download"),
+    install: () => ipcRenderer.invoke("updater:install"),
+    onStateChanged: (callback) => onRendererEvent("updater:state", callback)
+  },
   loadPdf: () => ipcRenderer.invoke("pdf:load"),
   getBackgroundImageUrl: () => ipcRenderer.invoke("background:image-url"),
   getPlatformBackgroundImageUrl: () => ipcRenderer.invoke("platform-background:image-url"),

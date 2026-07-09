@@ -33,6 +33,9 @@
     const dmScreenButton = document.getElementById("dmScreenButton");
     const liveSheetClientButton = document.getElementById("liveSheetClientButton");
     const generateSheetCodeButton = document.getElementById("generateSheetCodeButton");
+    const checkUpdatesButton = document.getElementById("checkUpdatesButton");
+    const downloadReleaseText = document.getElementById("downloadReleaseText");
+    const downloadReleaseButton = document.getElementById("downloadReleaseButton");
     const saveSlotControl = document.getElementById("saveSlotControl");
     const saveSlotSelect = document.getElementById("saveSlotSelect");
     const saveSlotLabel = document.getElementById("saveSlotLabel");
@@ -1565,6 +1568,126 @@
       appSettingsPanel.hidden = !open;
     }
 
+    function updateReleaseText(key, fallback, params) {
+      return t(key, params) || translateDynamicText(key, fallback, params) || fallback;
+    }
+
+    function updateVersionLabel(state) {
+      const version = state?.updateInfo?.version || "";
+      return version ? ` ${version}` : "";
+    }
+
+    function renderUpdaterState(state = {}) {
+      const updater = desktopStore?.updater;
+      if (!downloadReleaseText || !downloadReleaseButton) return;
+      if (!updater || state.status === "unavailable") {
+        downloadReleaseText.closest(".download-release")?.setAttribute("hidden", "");
+        if (checkUpdatesButton) checkUpdatesButton.disabled = true;
+        return;
+      }
+
+      downloadReleaseText.closest(".download-release")?.removeAttribute("hidden");
+      downloadReleaseButton.dataset.updaterAction = "check";
+      downloadReleaseButton.disabled = false;
+      if (checkUpdatesButton) checkUpdatesButton.disabled = state.status === "checking" || state.status === "downloading";
+
+      if (state.status === "checking") {
+        downloadReleaseText.textContent = updateReleaseText("release.checkingNow", "Checking for updates...");
+        downloadReleaseButton.textContent = updateReleaseText("release.check", "Check");
+        downloadReleaseButton.disabled = true;
+        return;
+      }
+
+      if (state.status === "available") {
+        downloadReleaseText.textContent = updateReleaseText("release.available", `Version${updateVersionLabel(state)} is available`, { version: state.updateInfo?.version || "" });
+        downloadReleaseButton.textContent = updateReleaseText("release.downloadUpdate", "Download update");
+        downloadReleaseButton.dataset.updaterAction = "download";
+        return;
+      }
+
+      if (state.status === "downloading") {
+        const percent = Math.max(0, Math.min(100, Math.round(state.progress?.percent || 0)));
+        downloadReleaseText.textContent = updateReleaseText("release.downloading", `Downloading update ${percent}%`, { percent });
+        downloadReleaseButton.textContent = `${percent}%`;
+        downloadReleaseButton.disabled = true;
+        return;
+      }
+
+      if (state.status === "downloaded") {
+        downloadReleaseText.textContent = updateReleaseText("release.downloaded", "Update ready to install");
+        downloadReleaseButton.textContent = updateReleaseText("release.restartInstall", "Restart and install");
+        downloadReleaseButton.dataset.updaterAction = "install";
+        return;
+      }
+
+      if (state.status === "up-to-date") {
+        downloadReleaseText.textContent = updateReleaseText("release.upToDate", "Latest version installed");
+        downloadReleaseButton.textContent = updateReleaseText("release.check", "Check");
+        return;
+      }
+
+      if (state.status === "error") {
+        downloadReleaseText.textContent = state.error || updateReleaseText("release.error", "Could not check for updates");
+        downloadReleaseButton.textContent = updateReleaseText("release.tryAgain", "Try again");
+        return;
+      }
+
+      downloadReleaseText.textContent = updateReleaseText("release.checking", "Checking latest version...");
+      downloadReleaseButton.textContent = updateReleaseText("release.check", "Check");
+    }
+
+    async function runUpdaterAction(action = "check") {
+      const updater = desktopStore?.updater;
+      if (!updater) return;
+      try {
+        if (action === "download") {
+          renderUpdaterState({ status: "downloading", progress: null });
+          renderUpdaterState(await updater.download());
+          return;
+        }
+        if (action === "install") {
+          if (typeof saveData === "function") await saveData();
+          renderUpdaterState(await updater.install());
+          return;
+        }
+        renderUpdaterState({ status: "checking" });
+        renderUpdaterState(await updater.check());
+      } catch (error) {
+        console.error(error);
+        renderUpdaterState({ status: "error", error: error?.message || updateReleaseText("release.error", "Could not check for updates") });
+      }
+    }
+
+    function setupUpdaterUi() {
+      const updater = desktopStore?.updater;
+      if (!downloadReleaseText || !downloadReleaseButton) return;
+
+      downloadReleaseButton.addEventListener("click", () => {
+        runUpdaterAction(downloadReleaseButton.dataset.updaterAction || "check").catch(console.error);
+      });
+      checkUpdatesButton?.addEventListener("click", () => {
+        setAppSettingsMenuOpen(false);
+        runUpdaterAction("check").catch(console.error);
+      });
+
+      if (!updater) {
+        renderUpdaterState({ status: "unavailable" });
+        return;
+      }
+
+      updater.getState()
+        .then(renderUpdaterState)
+        .catch((error) => renderUpdaterState({ status: "error", error: error?.message || String(error) }));
+      const unsubscribeUpdater = updater.onStateChanged(renderUpdaterState);
+      window.addEventListener("beforeunload", () => {
+        try {
+          unsubscribeUpdater?.();
+        } catch (_error) {
+          // Ignore listener cleanup errors.
+        }
+      }, { once: true });
+    }
+
     async function loadPdfJs() {
       try {
         if (!Promise.try) {
@@ -2143,6 +2266,7 @@
       updateEquipmentPanel();
       updateInteractionState();
       syncSettingsControls();
+      setupUpdaterUi();
       topControlsLauncher?.addEventListener("pointerdown", (event) => {
         event.stopPropagation();
       });
@@ -2305,36 +2429,3 @@
       });
       loading.style.display = "none";
     }
-
-
-    const RELEASE_REPO = "Kaelthorian/DnD-Plataform";
-    const downloadReleaseText = document.getElementById("downloadReleaseText");
-    const downloadReleaseButton = document.getElementById("downloadReleaseButton");
-
-    function pickReleaseAsset(assets) {
-      const preferredExtensions = [".exe", ".msi", ".zip", ".7z"];
-      return preferredExtensions
-        .map((extension) => assets.find((asset) => asset.name.toLowerCase().endsWith(extension)))
-        .find(Boolean) || assets[0] || null;
-    }
-
-    async function loadDownloadRelease() {
-      try {
-        const response = await fetch(`https://api.github.com/repos/${RELEASE_REPO}/releases/latest`, {
-          headers: { Accept: "application/vnd.github+json" }
-        });
-        if (!response.ok) throw new Error(`GitHub respondio ${response.status}`);
-
-        const release = await response.json();
-        const asset = pickReleaseAsset(release.assets || []);
-        downloadReleaseText.textContent = release.tag_name ? `Ultima version: ${release.tag_name}` : "Ultima version disponible";
-        downloadReleaseButton.href = asset ? asset.browser_download_url : release.html_url;
-        downloadReleaseButton.textContent = asset ? "Descargar" : "Ver release";
-      } catch (error) {
-        downloadReleaseText.textContent = "Ultima version";
-        downloadReleaseButton.href = `https://github.com/${RELEASE_REPO}/releases/latest`;
-        downloadReleaseButton.textContent = "Ver release";
-      }
-    }
-
-    loadDownloadRelease();

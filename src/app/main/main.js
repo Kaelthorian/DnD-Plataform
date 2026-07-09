@@ -3,6 +3,8 @@ const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
+const log = require("electron-log");
+const { autoUpdater } = require("electron-updater");
 
 const dataLoader = require("../../services/data-loader");
 const { liveSheetServer, listLocalAddresses } = require("../../services/live-sheet-server");
@@ -15,6 +17,171 @@ const platformBackgroundWatchers = new Map();
 let scheduledPlatformBackgroundBroadcast = null;
 let lastPlatformBackgroundUrl = null;
 let obsidianService = null;
+let autoUpdaterConfigured = false;
+let autoUpdaterState = {
+  status: "idle",
+  currentVersion: app.getVersion(),
+  updateInfo: null,
+  progress: null,
+  error: null,
+  canUpdate: false,
+  reason: ""
+};
+
+function compactUpdateInfo(info) {
+  if (!info) return null;
+  return {
+    version: info.version || "",
+    releaseName: info.releaseName || "",
+    releaseNotes: info.releaseNotes || "",
+    releaseDate: info.releaseDate || "",
+    files: Array.isArray(info.files) ? info.files.map((file) => ({
+      url: file.url || "",
+      size: file.size || 0
+    })) : []
+  };
+}
+
+function compactProgressInfo(progress) {
+  if (!progress) return null;
+  return {
+    percent: Number.isFinite(progress.percent) ? progress.percent : 0,
+    transferred: Number.isFinite(progress.transferred) ? progress.transferred : 0,
+    total: Number.isFinite(progress.total) ? progress.total : 0,
+    bytesPerSecond: Number.isFinite(progress.bytesPerSecond) ? progress.bytesPerSecond : 0
+  };
+}
+
+function setAutoUpdaterState(patch) {
+  autoUpdaterState = {
+    ...autoUpdaterState,
+    ...patch,
+    currentVersion: app.getVersion(),
+    canUpdate: Boolean(app.isPackaged)
+  };
+  broadcastToRenderers("updater:state", autoUpdaterState);
+  return autoUpdaterState;
+}
+
+function updaterErrorMessage(error) {
+  return error?.message || String(error || "Unknown updater error");
+}
+
+function configureAutoUpdater() {
+  if (autoUpdaterConfigured) return autoUpdaterState;
+  autoUpdaterConfigured = true;
+
+  log.transports.file.level = "info";
+  autoUpdater.logger = log;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  if (!app.isPackaged) {
+    return setAutoUpdaterState({
+      status: "unavailable",
+      reason: "Auto updates are only available in packaged builds."
+    });
+  }
+
+  setAutoUpdaterState({ status: "idle", reason: "", error: null });
+
+  autoUpdater.on("checking-for-update", () => {
+    setAutoUpdaterState({ status: "checking", progress: null, error: null });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    setAutoUpdaterState({
+      status: "available",
+      updateInfo: compactUpdateInfo(info),
+      progress: null,
+      error: null
+    });
+  });
+
+  autoUpdater.on("update-not-available", (info) => {
+    setAutoUpdaterState({
+      status: "up-to-date",
+      updateInfo: compactUpdateInfo(info),
+      progress: null,
+      error: null
+    });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    setAutoUpdaterState({
+      status: "downloading",
+      progress: compactProgressInfo(progress),
+      error: null
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    setAutoUpdaterState({
+      status: "downloaded",
+      updateInfo: compactUpdateInfo(info),
+      progress: null,
+      error: null
+    });
+  });
+
+  autoUpdater.on("error", (error) => {
+    log.error(error);
+    setAutoUpdaterState({
+      status: "error",
+      progress: null,
+      error: updaterErrorMessage(error)
+    });
+  });
+
+  return autoUpdaterState;
+}
+
+async function checkForAppUpdates() {
+  configureAutoUpdater();
+  if (!app.isPackaged) return autoUpdaterState;
+  if (autoUpdaterState.status === "checking" || autoUpdaterState.status === "downloading") return autoUpdaterState;
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    if (result?.updateInfo && autoUpdaterState.status === "idle") {
+      setAutoUpdaterState({ updateInfo: compactUpdateInfo(result.updateInfo) });
+    }
+  } catch (error) {
+    log.error(error);
+    setAutoUpdaterState({
+      status: "error",
+      progress: null,
+      error: updaterErrorMessage(error)
+    });
+  }
+  return autoUpdaterState;
+}
+
+async function downloadAppUpdate() {
+  configureAutoUpdater();
+  if (!app.isPackaged) return autoUpdaterState;
+  if (autoUpdaterState.status !== "available") return autoUpdaterState;
+  try {
+    setAutoUpdaterState({ status: "downloading", progress: null, error: null });
+    await autoUpdater.downloadUpdate();
+  } catch (error) {
+    log.error(error);
+    setAutoUpdaterState({
+      status: "error",
+      progress: null,
+      error: updaterErrorMessage(error)
+    });
+  }
+  return autoUpdaterState;
+}
+
+function installDownloadedUpdate() {
+  configureAutoUpdater();
+  if (!app.isPackaged || autoUpdaterState.status !== "downloaded") return autoUpdaterState;
+  setImmediate(() => {
+    autoUpdater.quitAndInstall(false, true);
+  });
+  return setAutoUpdaterState({ status: "installing", error: null });
+}
 
 function safePathSegment(value, fallback) {
   return String(value || fallback)
@@ -388,7 +555,14 @@ async function createWindow(routeName = "characterSheet") {
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   getObsidianService().refreshWatchers().catch(() => {});
-  return createWindow();
+  return createWindow().then(() => {
+    configureAutoUpdater();
+    if (app.isPackaged) {
+      setTimeout(() => {
+        checkForAppUpdates().catch((error) => log.error(error));
+      }, 3000);
+    }
+  });
 });
 
 app.on("window-all-closed", () => {
@@ -431,6 +605,22 @@ ipcMain.handle("app:navigate", async (event, target) => {
     sourceWindow.close();
   }
   return { ok: true, target: routeName };
+});
+
+ipcMain.handle("updater:get-state", async () => {
+  return configureAutoUpdater();
+});
+
+ipcMain.handle("updater:check", async () => {
+  return checkForAppUpdates();
+});
+
+ipcMain.handle("updater:download", async () => {
+  return downloadAppUpdate();
+});
+
+ipcMain.handle("updater:install", async () => {
+  return installDownloadedUpdate();
 });
 
 ipcMain.handle("pdf:load", async () => {

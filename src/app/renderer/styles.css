@@ -2228,6 +2228,10 @@
       font: 12px/1.25 "Segoe UI", Arial, sans-serif;
     }
 
+    .download-release[hidden] {
+      display: none;
+    }
+
     .download-release-text {
       min-width: 0;
       overflow: hidden;
@@ -2242,17 +2246,29 @@
       align-items: center;
       justify-content: center;
       padding: 0 12px;
+      border: 0;
       border-radius: 4px;
       background: #111;
       color: #fff;
       font-weight: 700;
       text-decoration: none;
+      cursor: pointer;
     }
 
     .download-release-button:hover,
     .download-release-button:focus {
       background: #8b1e24;
       outline: none;
+    }
+
+    .download-release-button:disabled {
+      cursor: default;
+      opacity: 0.62;
+    }
+
+    .download-release-button:disabled:hover,
+    .download-release-button:disabled:focus {
+      background: #111;
     }
 
     .top-controls-menu {
