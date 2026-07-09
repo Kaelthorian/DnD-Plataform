@@ -178,7 +178,7 @@ function installDownloadedUpdate() {
   configureAutoUpdater();
   if (!app.isPackaged || autoUpdaterState.status !== "downloaded") return autoUpdaterState;
   setImmediate(() => {
-    autoUpdater.quitAndInstall(false, true);
+    autoUpdater.quitAndInstall(true, true);
   });
   return setAutoUpdaterState({ status: "installing", error: null });
 }
