@@ -208,6 +208,8 @@ assert.ok(/collectBucket\(group\.expanded, true\)/.test(RENDERER), "renderer rea
 assert.ok(/item\.choose \|\| item\.all \|\| item/.test(RENDERER), "renderer parses expanded spell filters");
 assert.ok(/spell\.classes\?\.some\(\(name\) => normalizeName\(name\) === normalizeName\(grant\.className\)\)/.test(RENDERER), "renderer matches subclass expanded class spell filters");
 assert.ok(/spellcastingSourceForCharacter\(\)\?\.spellcastingAbility/.test(RENDERER), "renderer uses subclass spellcasting ability");
+assert.ok(/function canLearnCantrip\(spellName\)[\s\S]*return spellMatchesSelection\(spell, 0\);/.test(RENDERER), "renderer learns subclass-expanded cantrips");
+assert.ok(/function getAccessibleCantripOptions\(\)[\s\S]*spellMatchesSelection\(spell, 0\)[\s\S]*!autoCantrips\.has/.test(RENDERER), "renderer lists subclass-expanded cantrips and excludes auto cantrips");
 
 {
   const { file } = loadClass("rogue");
@@ -236,6 +238,21 @@ assert.ok(/spellcastingSourceForCharacter\(\)\?\.spellcastingAbility/.test(RENDE
   assert.ok(genieSplendor, "Paladin Noble Genies has Genie's Splendor");
   assert.ok(/base Armor Class equals 10 plus your Dexterity and Charisma modifiers/.test(flattenForTest(genieSplendor.entries)), "Genie's Splendor uses DEX plus CHA for unarmored AC");
 
+  const featureEffectSource = extractRendererFunction("featureEffectEntries");
+  const featureEffectContext = {
+    generatedFeaturesAndTraitsEntries: () => [{
+      type: "classFeature",
+      feature: genieSplendor,
+      description: flattenForTest(genieSplendor.entries)
+    }],
+    flattenEntryText: flattenForTest
+  };
+  vm.runInNewContext(featureEffectSource, featureEffectContext);
+  assert.ok(
+    featureEffectContext.featureEffectEntries().some((entry) => entry.title === "Genie's Splendor"),
+    "Genie's Splendor remains an active passive effect after choosing its skill"
+  );
+
   const source = extractRendererFunction("baseArmorClassCandidatesFromFeatures");
   let featureEntries = [{
     title: "Genie's Splendor",
@@ -250,8 +267,8 @@ assert.ok(/spellcastingSourceForCharacter\(\)\?\.spellcastingAbility/.test(RENDE
   const plain = (value) => JSON.parse(JSON.stringify(value));
 
   assert.deepStrictEqual(
-    plain(context.baseArmorClassCandidatesFromFeatures(2, 1, 0, 3, null)),
-    [{ ac: 15, allowsShield: true }],
+    plain(context.baseArmorClassCandidatesFromFeatures(4, 1, 0, 4, null)),
+    [{ ac: 18, allowsShield: true }],
     "Genie's Splendor calculates 10 + DEX + CHA while unarmored"
   );
   assert.deepStrictEqual(

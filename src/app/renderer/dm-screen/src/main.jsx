@@ -1712,6 +1712,7 @@ function normalizeMapTokenGroup(group, index = 0) {
     id: String(source.id || `map-token-group-${Date.now()}-${Math.random().toString(16).slice(2)}`),
     name: String(source.name || fallbackName).trim().slice(0, 80) || fallbackName,
     global: Boolean(source.global || source.crossPage || source.sharedAcrossMaps),
+    inCombat: Boolean(source.inCombat || source.combat || source.combatActive),
     sourcePageId: source.sourcePageId ? String(source.sourcePageId) : "",
     sourcePageName: source.sourcePageName ? String(source.sourcePageName) : ""
   };
@@ -5405,7 +5406,8 @@ function MapTokenTracker({
   onTokenGroupRename,
   onTokenGroupRemove,
   onTokenGroupChange,
-  onTokenGroupGlobalChange
+  onTokenGroupGlobalChange,
+  onTokenGroupCombatChange
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isAddingGroup, setIsAddingGroup] = useState(false);
@@ -5526,8 +5528,9 @@ function MapTokenTracker({
     onRollInitiativeTokens?.(tokenTargets);
   }
 
-  function renderTokenRow(token) {
+  function renderTokenRow(token, section) {
     const isDragging = draggedTokenId === token.id;
+    const showHealth = section?.ungrouped || Boolean(section?.inCombat);
     return (
       <div
         key={token.id}
@@ -5570,24 +5573,30 @@ function MapTokenTracker({
           </div>
         </div>
         <div className="truncate text-center font-bold text-sky-200" title={token.ac || "Unknown"}>{token.ac || "?"}</div>
-        <div
-          className="flex items-center justify-center gap-1"
-          onClick={(event) => event.stopPropagation()}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          <NumericExpressionInput
-            className="h-7 w-10 border border-neutral-700 bg-neutral-900 px-1 text-center font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
-            value={token.hpCurrent}
-            integer
-            onPointerDown={(event) => event.stopPropagation()}
-            onChange={(value) => onHpChange?.(token.id, value, token.sourcePageId || activePageId)}
-          />
-          {token.hpMax !== "" ? <span className="min-w-0 text-[10px] text-neutral-500">/{token.hpMax}</span> : null}
-        </div>
+        {showHealth ? (
+          <div
+            className="flex items-center justify-center gap-1"
+            onClick={(event) => event.stopPropagation()}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <NumericExpressionInput
+              className="h-7 w-10 border border-neutral-700 bg-neutral-900 px-1 text-center font-bold text-neutral-100 focus:border-amber-500 focus:outline-none"
+              value={token.hpCurrent}
+              integer
+              onPointerDown={(event) => event.stopPropagation()}
+              onChange={(value) => onHpChange?.(token.id, value, token.sourcePageId || activePageId)}
+            />
+            {token.hpMax !== "" ? <span className="min-w-0 text-[10px] text-neutral-500">/{token.hpMax}</span> : null}
+          </div>
+        ) : (
+          <div className="text-center text-[10px] font-bold uppercase text-neutral-600" title="Fuera de combate">
+            --
+          </div>
+        )}
         <div className="text-center font-bold text-amber-300" title={token.initiativeDetail || ""}>
           {token.initiative !== "" ? token.initiative : "--"}
         </div>
@@ -5729,6 +5738,17 @@ function MapTokenTracker({
                   </button>
                   {!section.ungrouped ? (
                     <button
+                      className={`h-6 w-7 shrink-0 border text-sm font-black leading-none focus:outline-none focus:ring-1 ${section.inCombat ? "border-red-400/80 bg-red-950/80 text-red-200 hover:bg-red-900 focus:ring-red-400" : "border-neutral-700 bg-neutral-950 text-neutral-500 hover:border-neutral-500 hover:text-neutral-200 focus:ring-neutral-500"}`}
+                      type="button"
+                      aria-label={section.inCombat ? "Marcar grupo fuera de combate" : "Marcar grupo en combate"}
+                      title={section.inCombat ? "En combate: click para sacar de combate" : "Fuera de combate: click para entrar en combate"}
+                      onClick={() => onTokenGroupCombatChange?.(section.id, !section.inCombat, section.sourcePageId || activePageId)}
+                    >
+                      {"\u2694"}
+                    </button>
+                  ) : null}
+                  {!section.ungrouped ? (
+                    <button
                       className={`h-6 shrink-0 border px-2 text-[10px] font-bold uppercase focus:outline-none focus:ring-1 ${section.global ? "border-emerald-400/70 bg-emerald-950/70 text-emerald-100 hover:bg-emerald-900 focus:ring-emerald-400" : "border-neutral-700 bg-neutral-950 text-neutral-400 hover:border-sky-400 hover:text-sky-100 focus:ring-sky-400"}`}
                       type="button"
                       title={section.global ? "Este grupo se ve en todos los mapas" : "Hacer visible este grupo en todos los mapas"}
@@ -5750,7 +5770,7 @@ function MapTokenTracker({
                 </div>
               ) : null}
               {isCollapsed ? null : (
-                section.tokens.length ? section.tokens.map(renderTokenRow) : (
+                section.tokens.length ? section.tokens.map((token) => renderTokenRow(token, section)) : (
                   <div className="px-3 py-3 text-center text-[11px] font-bold uppercase text-neutral-600">Sin tokens</div>
                 )
               )}
@@ -5905,6 +5925,7 @@ function MapNote({
   onMapTokenGroupRemove,
   onMapTokenGroupChange,
   onMapTokenGroupGlobalChange,
+  onMapTokenGroupCombatChange,
   onMapTrackerTokenDrop,
   selectedMapTokenIds = [],
   onMapTokenSelectionChange,
@@ -7221,6 +7242,7 @@ function MapNote({
             onTokenGroupRemove={(groupId, sourcePageId) => onMapTokenGroupRemove?.(noteActionId, sourcePageId || activePage.id, groupId)}
             onTokenGroupChange={(tokenId, groupId, sourcePageId) => onMapTokenGroupChange?.(noteActionId, sourcePageId || activePage.id, tokenId, groupId)}
             onTokenGroupGlobalChange={(groupId, global, sourcePageId) => onMapTokenGroupGlobalChange?.(noteActionId, sourcePageId || activePage.id, groupId, global)}
+            onTokenGroupCombatChange={(groupId, inCombat, sourcePageId) => onMapTokenGroupCombatChange?.(noteActionId, sourcePageId || activePage.id, groupId, inCombat)}
             onTokenContextMenu={(event, tokenId, sourcePageId) => onMapTokenContextMenu?.(event, noteActionId, sourcePageId || activePage.id, tokenId)}
             onRollInitiativeTokens={(tokenIds) => onMapTokensRollInitiative?.(noteActionId, activePage.id, tokenIds)}
           />
@@ -11851,6 +11873,18 @@ function DmScreenApp() {
     )));
   }
 
+  function setMapTokenGroupCombat(noteId, pageId, groupId, inCombat) {
+    if (!groupId) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+        ...page,
+        mapTokenGroups: mapTokenGroupsSnapshot(page.mapTokenGroups).map((group) => (
+          group.id === groupId ? { ...group, inCombat: Boolean(inCombat) } : group
+        ))
+      })) : note
+    )));
+  }
+
   function removeMapTokenGroup(noteId, pageId, groupId) {
     if (!groupId) return;
     setMonsterNotes((notes) => notes.map((note) => (
@@ -12025,16 +12059,18 @@ function DmScreenApp() {
   function resizeMapTokenFromMenu(delta) {
     const entry = findMapTokenContextEntry();
     if (!entry) return;
-    const { mapNote, page, token } = entry;
-    const currentSize = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
-    const nextSize = clamp(currentSize + delta, 32, 140);
-    const point = clampMapTokenPoint(mapNote, Number(token.x) || 0, Number(token.y) || 0, nextSize, page.id);
+    const targetIds = new Set(mapTokenContextTargetIds(entry));
+    if (!targetIds.size) return;
     setMonsterNotes((notes) => notes.map((note) => (
-      note.id === mapNote.id ? updateMapNotePage(note, page.id, (page) => ({
+      note.id === entry.mapNote.id ? updateMapNotePage(note, entry.page.id, (page) => ({
         ...page,
-        mapTokens: (page.mapTokens || []).map((candidate) => (
-          candidate.id === token.id ? { ...candidate, size: nextSize, x: point.x, y: point.y } : candidate
-        ))
+        mapTokens: (page.mapTokens || []).map((candidate) => {
+          if (!targetIds.has(candidate.id)) return candidate;
+          const currentSize = clamp(Number(candidate.size) || MAP_TOKEN_SIZE, 32, 140);
+          const nextSize = clamp(currentSize + delta, 32, 140);
+          const point = clampMapTokenPoint(entry.mapNote, Number(candidate.x) || 0, Number(candidate.y) || 0, nextSize, entry.page.id);
+          return { ...candidate, size: nextSize, x: point.x, y: point.y };
+        })
       })) : note
     )));
   }
@@ -12042,13 +12078,15 @@ function DmScreenApp() {
   function toggleMapTokenHiddenFromMenu() {
     const entry = findMapTokenContextEntry();
     if (!entry) return;
+    const targetIds = new Set(mapTokenContextTargetIds(entry));
+    if (!targetIds.size) return;
     const nextHidden = !Boolean(entry.token.hidden);
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === entry.mapNote.id
         ? updateMapNotePage(note, entry.page.id, (page) => ({
           ...page,
           mapTokens: (page.mapTokens || []).map((token) => (
-            token.id === entry.token.id ? { ...token, hidden: nextHidden } : token
+            targetIds.has(token.id) ? { ...token, hidden: nextHidden } : token
           ))
         }))
         : note
@@ -12059,13 +12097,15 @@ function DmScreenApp() {
   function toggleMapTokenIdentityHiddenFromMenu() {
     const entry = findMapTokenContextEntry();
     if (!entry || entry.token.kind === "character") return;
+    const targetIds = new Set(mapTokenContextTargetIds(entry));
+    if (!targetIds.size) return;
     const nextIdentityHidden = !Boolean(entry.token.identityHidden);
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === entry.mapNote.id
         ? updateMapNotePage(note, entry.page.id, (page) => ({
           ...page,
           mapTokens: (page.mapTokens || []).map((token) => (
-            token.id === entry.token.id ? { ...token, identityHidden: nextIdentityHidden } : token
+            targetIds.has(token.id) && token.kind !== "character" ? { ...token, identityHidden: nextIdentityHidden } : token
           ))
         }))
         : note
@@ -12076,13 +12116,15 @@ function DmScreenApp() {
   function toggleMapTokenNameHiddenFromMenu() {
     const entry = findMapTokenContextEntry();
     if (!entry || entry.token.kind === "character") return;
+    const targetIds = new Set(mapTokenContextTargetIds(entry));
+    if (!targetIds.size) return;
     const nextNameHidden = !Boolean(entry.token.nameHidden);
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === entry.mapNote.id
         ? updateMapNotePage(note, entry.page.id, (page) => ({
           ...page,
           mapTokens: (page.mapTokens || []).map((token) => (
-            token.id === entry.token.id ? { ...token, nameHidden: nextNameHidden } : token
+            targetIds.has(token.id) && token.kind !== "character" ? { ...token, nameHidden: nextNameHidden } : token
           ))
         }))
         : note
@@ -12163,6 +12205,27 @@ function DmScreenApp() {
     const page = mapPagesForNote(mapNote).find((entry) => entry.id === menu.pageId) || activeMapPageForNote(mapNote);
     const token = page?.mapTokens?.find((entry) => entry.id === menu.tokenId);
     return mapNote && page && token ? { mapNote, page, token } : null;
+  }
+
+  function mapTokenContextTargetIds(entry = findMapTokenContextEntry()) {
+    if (!entry) return [];
+    const selection = selectedMapTokensRef.current;
+    const selectedIds = Array.isArray(selection?.tokenIds) ? selection.tokenIds : [];
+    if (
+      selection?.mapNoteId === entry.mapNote.id
+      && selection?.pageId === entry.page.id
+      && selectedIds.includes(entry.token.id)
+    ) {
+      const pageTokenIds = new Set((entry.page.mapTokens || []).map((token) => token.id));
+      return selectedIds.filter((tokenId) => pageTokenIds.has(tokenId));
+    }
+    return [entry.token.id];
+  }
+
+  function mapTokenContextTargets(entry = findMapTokenContextEntry()) {
+    if (!entry) return [];
+    const targetIds = new Set(mapTokenContextTargetIds(entry));
+    return (entry.page.mapTokens || []).filter((token) => targetIds.has(token.id));
   }
 
   function findMapMarkerContextEntry(menu = markerContextMenu) {
@@ -12273,30 +12336,34 @@ function DmScreenApp() {
   function duplicateMapTokenFromMenu() {
     const entry = findMapTokenContextEntry();
     if (!entry) return;
-    const { mapNote, page, token } = entry;
+    const { mapNote, page } = entry;
+    const targets = mapTokenContextTargets(entry);
+    if (!targets.length) return;
     const grid = normalizeMapGrid(page.mapGrid);
-    const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
-    const offsetX = grid.enabled ? grid.cellWidth : size + 12;
-    const point = clampMapTokenPoint(mapNote, (Number(token.x) || 0) + offsetX, Number(token.y) || 0, size, page.id);
-    const duplicate = normalizeMapToken({
-      ...token,
-      id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      x: point.x,
-      y: point.y,
-      size,
-      attachedMarkerId: "",
-      ...mapActorCombatState({
-        kind: token.kind,
-        monster: token.kind === "character" ? null : monsterFromMapToken(token),
-        character: token.kind === "character" ? token.character : null,
-        hpMax: token.hpMax
-      })
-    });
-    if (!duplicate) return;
+    const duplicates = targets.map((token, index) => {
+      const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
+      const offsetX = grid.enabled ? grid.cellWidth : size + 12;
+      const point = clampMapTokenPoint(mapNote, (Number(token.x) || 0) + offsetX, Number(token.y) || 0, size, page.id);
+      return normalizeMapToken({
+        ...token,
+        id: `map-token-${Date.now()}-${index}-${Math.random().toString(16).slice(2)}`,
+        x: point.x,
+        y: point.y,
+        size,
+        attachedMarkerId: "",
+        ...mapActorCombatState({
+          kind: token.kind,
+          monster: token.kind === "character" ? null : monsterFromMapToken(token),
+          character: token.kind === "character" ? token.character : null,
+          hpMax: token.hpMax
+        })
+      });
+    }).filter(Boolean);
+    if (!duplicates.length) return;
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === mapNote.id ? updateMapNotePage(note, page.id, (page) => ({
         ...page,
-        mapTokens: [...(page.mapTokens || []), duplicate]
+        mapTokens: [...(page.mapTokens || []), ...duplicates]
       })) : note
     )));
     setTokenContextMenu(null);
@@ -12556,17 +12623,20 @@ function DmScreenApp() {
   function removeMapTokenFromMenu() {
     const entry = findMapTokenContextEntry();
     if (!entry) return;
+    const targetIds = new Set(mapTokenContextTargetIds(entry));
+    if (!targetIds.size) return;
     setMonsterNotes((notes) => notes.map((note) => (
       note.id === entry.mapNote.id
         ? updateMapNotePage(note, entry.page.id, (page) => ({
           ...page,
-          mapTokens: (page.mapTokens || []).filter((token) => token.id !== entry.token.id),
+          mapTokens: (page.mapTokens || []).filter((token) => !targetIds.has(token.id)),
           mapMarkers: (page.mapMarkers || []).map((marker) => (
-            marker.attachedTokenId === entry.token.id ? { ...marker, attachedTokenId: "" } : marker
+            targetIds.has(marker.attachedTokenId) ? { ...marker, attachedTokenId: "" } : marker
           ))
         }))
         : note
     )));
+    setMapTokenSelection(entry.mapNote.id, entry.page.id, []);
     setTokenContextMenu(null);
   }
 
@@ -13599,6 +13669,8 @@ function DmScreenApp() {
   }
 
   const activeTokenContext = findMapTokenContextEntry();
+  const activeTokenContextTargets = activeTokenContext ? mapTokenContextTargets(activeTokenContext) : [];
+  const activeTokenContextTargetCount = activeTokenContextTargets.length || (activeTokenContext ? 1 : 0);
   const activeMarkerContext = findMapMarkerContextEntry();
   const pendingMapMarkerAttachEntry = pendingMapMarkerAttach ? findMapMarkerContextEntry(pendingMapMarkerAttach) : null;
 
@@ -13804,6 +13876,7 @@ function DmScreenApp() {
               onMapTokenGroupRemove={removeMapTokenGroup}
               onMapTokenGroupChange={changeMapTokenGroup}
               onMapTokenGroupGlobalChange={setMapTokenGroupGlobal}
+              onMapTokenGroupCombatChange={setMapTokenGroupCombat}
               onMapTrackerTokenDrop={dropMapTrackerToken}
               selectedMapTokenIds={selectedMapTokens.mapNoteId === activeNote.id && selectedMapTokens.pageId === activeMapPageForNote(activeNote)?.id ? selectedMapTokens.tokenIds : []}
               onMapTokenSelectionChange={setMapTokenSelection}
@@ -14126,6 +14199,11 @@ function DmScreenApp() {
             <p className="text-[11px] uppercase tracking-wide text-neutral-500">
               {`${activeTokenContext.token.kind === "character" ? "Player token" : "Monster token"}${activeTokenContext.token.hidden ? " - hidden" : ""}${activeTokenContext.token.identityHidden ? " - identity hidden" : ""}${activeTokenContext.token.nameHidden ? " - name hidden" : ""}`}
             </p>
+            {activeTokenContextTargetCount > 1 ? (
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-sky-300">
+                {activeTokenContextTargetCount} tokens seleccionados
+              </p>
+            ) : null}
           </div>
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
@@ -14168,7 +14246,7 @@ function DmScreenApp() {
               className="px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-600"
               type="button"
               onClick={() => resizeMapTokenFromMenu(-8)}
-              disabled={(Number(activeTokenContext.token.size) || MAP_TOKEN_SIZE) <= 32}
+              disabled={activeTokenContextTargets.every((token) => (Number(token.size) || MAP_TOKEN_SIZE) <= 32)}
             >
               - Tamaño
             </button>
@@ -14176,7 +14254,7 @@ function DmScreenApp() {
               className="px-3 py-2 text-left font-bold text-sky-200 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-600"
               type="button"
               onClick={() => resizeMapTokenFromMenu(8)}
-              disabled={(Number(activeTokenContext.token.size) || MAP_TOKEN_SIZE) >= 140}
+              disabled={activeTokenContextTargets.every((token) => (Number(token.size) || MAP_TOKEN_SIZE) >= 140)}
             >
               + Tamaño
             </button>
@@ -14195,7 +14273,7 @@ function DmScreenApp() {
             type="button"
             onClick={removeMapTokenFromMenu}
           >
-            <span>Eliminar token</span>
+            <span>{activeTokenContextTargetCount > 1 ? "Eliminar tokens" : "Eliminar token"}</span>
             <span className="text-neutral-500">X</span>
           </button>
         </div>

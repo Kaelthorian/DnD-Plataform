@@ -1688,8 +1688,7 @@
     function canLearnCantrip(spellName) {
       const spell = findSpellByName(spellName);
       if (!spell || spell.level !== 0) return false;
-      const className = normalizeName(getSelectedClassName());
-      return !className || spell.classes?.some((name) => normalizeName(name) === className);
+      return spellMatchesSelection(spell, 0);
     }
 
     function assignCantripToSheet(spellName) {
@@ -8642,10 +8641,9 @@
     }
 
     function getAccessibleCantripOptions() {
-      const className = normalizeName(getSelectedClassName());
       const autoCantrips = new Set(autoCantripNames().map(normalizeName));
       return spells.filter((spell) => spell.level === 0
-        && (!className || spell.classes?.some((name) => normalizeName(name) === className))
+        && spellMatchesSelection(spell, 0)
         && !autoCantrips.has(normalizeName(spell.name)));
     }
 
@@ -15014,7 +15012,6 @@
 
     function featureEffectEntries() {
       return generatedFeaturesAndTraitsEntries()
-        .filter((entry) => entry.type !== "classFeature" || selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0)
         .map((entry) => ({
           title: entry.feature?.name || entry.optionalFeature?.name || entry.title || "",
           description: String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "")
