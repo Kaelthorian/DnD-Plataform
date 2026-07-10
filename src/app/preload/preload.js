@@ -55,6 +55,8 @@ contextBridge.exposeInMainWorld("dndSheet", {
     updatePlayerSheet: (playerId, patch) => ipcRenderer.invoke("live-sheet:update-player-sheet", { playerId, patch }),
     publishVvtState: (state) => ipcRenderer.invoke("live-sheet:publish-vvt-state", state),
     publishVvtPing: (ping) => ipcRenderer.invoke("live-sheet:publish-vvt-ping", ping),
+    publishDmAudio: (audio) => ipcRenderer.invoke("live-sheet:publish-dm-audio", audio),
+    publishDmAudioControl: (control) => ipcRenderer.invoke("live-sheet:publish-dm-audio-control", control),
     onPlayerUpdated: (callback) => onRendererEvent("live-sheet:player-updated", callback),
     onPlayerDisconnected: (callback) => onRendererEvent("live-sheet:player-disconnected", callback),
     onPlayerRoll: (callback) => onRendererEvent("live-sheet:player-roll", callback),

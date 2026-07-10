@@ -141,6 +141,8 @@
     let liveVvtViewKey = "";
     let liveVvtPointer = null;
     let liveVvtHandRaised = false;
+    let liveDmAudioPlayers = [];
+    const liveDmAudioPlayersById = new Map();
     const liveVvtTokenImageCache = new Map();
     const LIVE_VVT_PING_TTL_MS = 5000;
     const LIVE_VVT_MIN_ZOOM = 1;
@@ -1168,6 +1170,67 @@
       }, timeout + 40);
     }
 
+    function playLiveDmAudio(audioPayload) {
+      const dataUrl = String(audioPayload?.dataUrl || "");
+      if (!dataUrl || !/^data:audio\//i.test(dataUrl)) return;
+      const audioId = String(audioPayload?.id || "");
+      try {
+        const audio = new Audio(dataUrl);
+        audio.volume = Math.min(1, Math.max(0, Number(audioPayload?.volume) || 1));
+        audio.preload = "auto";
+        const cleanup = () => {
+          liveDmAudioPlayers = liveDmAudioPlayers.filter((entry) => entry !== audio);
+          if (audioId && liveDmAudioPlayersById.has(audioId)) {
+            const entries = liveDmAudioPlayersById.get(audioId);
+            entries.delete(audio);
+            if (!entries.size) liveDmAudioPlayersById.delete(audioId);
+          }
+        };
+        audio.addEventListener("ended", cleanup, { once: true });
+        audio.addEventListener("error", cleanup, { once: true });
+        liveDmAudioPlayers.push(audio);
+        if (audioId) {
+          if (!liveDmAudioPlayersById.has(audioId)) liveDmAudioPlayersById.set(audioId, new Set());
+          liveDmAudioPlayersById.get(audioId).add(audio);
+        }
+        while (liveDmAudioPlayers.length > 8) {
+          const staleAudio = liveDmAudioPlayers.shift();
+          try {
+            staleAudio?.pause?.();
+          } catch (_error) {
+            // Ignore cleanup errors from stale audio elements.
+          }
+        }
+        const playPromise = audio.play();
+        if (playPromise?.catch) {
+          playPromise.catch((error) => {
+            cleanup();
+            console.error(error);
+            showStatus("No se pudo reproducir el audio del DM.");
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        showStatus("No se pudo reproducir el audio del DM.");
+      }
+    }
+
+    function controlLiveDmAudio(control) {
+      const action = String(control?.action || "").toLowerCase();
+      if (action !== "pause") return;
+      const audioId = String(control?.id || "");
+      const targets = audioId
+        ? [...(liveDmAudioPlayersById.get(audioId) || [])]
+        : [...liveDmAudioPlayers];
+      targets.forEach((audio) => {
+        try {
+          audio.pause();
+        } catch (_error) {
+          // Ignore pause errors from stale audio elements.
+        }
+      });
+    }
+
     function liveVvtPointFromEvent(event) {
       if (!liveVvtState?.active || !liveVvtElements || liveVvtElements.image.hidden) return null;
       const elements = liveVvtElements;
@@ -1463,6 +1526,12 @@
           }
           if (payload?.type === "dm:vvt:ping") {
             addLiveVvtPing(payload.ping);
+          }
+          if (payload?.type === "dm:audio:play") {
+            playLiveDmAudio(payload.audio);
+          }
+          if (payload?.type === "dm:audio:control") {
+            controlLiveDmAudio(payload.control);
           }
           if (payload?.type === "dm:hand:state") {
             setLiveVvtHandRaised(Boolean(payload.raised));

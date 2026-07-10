@@ -1,6 +1,6 @@
 {
   "name": "dnd-character-sheet-desktop",
-  "version": "10.1.11",
+  "version": "10.2.11",
   "description": "Desktop DnD character sheet",
   "main": "src/app/main/main.js",
   "author": "WallyCode",

@@ -122,8 +122,11 @@ const BOARD_MAX_ZOOM = 1.8;
 const BOARD_ZOOM_STEP = 0.15;
 const DM_BOARD_STORAGE_KEY = "dnd-dm-screen-board-v1";
 const DM_LIVE_PLAYERS_PANEL_STORAGE_KEY = "dnd-dm-screen-live-players-panel-v1";
+const DM_SOUND_BAR_PANEL_STORAGE_KEY = "dnd-dm-screen-sound-bar-panel-v1";
 const DM_MAP_IMAGE_DB_NAME = "dnd-dm-screen-map-images-v1";
 const DM_MAP_IMAGE_STORE_NAME = "map-images";
+const DM_SOUND_DB_NAME = "dnd-dm-screen-sounds-v1";
+const DM_SOUND_STORE_NAME = "sounds";
 const DM_BOARD_SAVE_DEBOUNCE_MS = 700;
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
@@ -1224,6 +1227,132 @@ async function getMapImageAsset(assetId) {
   } finally {
     db.close();
   }
+}
+
+function openSoundDatabase() {
+  if (typeof indexedDB === "undefined") return Promise.reject(new Error("IndexedDB no esta disponible."));
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DM_SOUND_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(DM_SOUND_STORE_NAME)) db.createObjectStore(DM_SOUND_STORE_NAME, { keyPath: "id" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Could not open the sound store."));
+  });
+}
+
+function soundRecordSnapshot(record) {
+  if (!record?.id) return null;
+  return {
+    id: String(record.id),
+    name: String(record.name || record.fileName || "Audio"),
+    fileName: String(record.fileName || record.name || "audio"),
+    type: String(record.type || record.blob?.type || ""),
+    size: Number(record.size || record.blob?.size) || 0,
+    updatedAt: String(record.updatedAt || "")
+  };
+}
+
+async function putSoundAsset(record) {
+  const db = await openSoundDatabase();
+  try {
+    const transaction = db.transaction(DM_SOUND_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(DM_SOUND_STORE_NAME);
+    const completePromise = new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Could not save the sound."));
+      transaction.onabort = () => reject(transaction.error || new Error("Could not save the sound."));
+    });
+    await indexedDbRequest(store.put(record));
+    await completePromise;
+  } finally {
+    db.close();
+  }
+}
+
+async function getSoundAsset(soundId) {
+  if (!soundId) return null;
+  const db = await openSoundDatabase();
+  try {
+    const transaction = db.transaction(DM_SOUND_STORE_NAME, "readonly");
+    const store = transaction.objectStore(DM_SOUND_STORE_NAME);
+    return await indexedDbRequest(store.get(soundId));
+  } finally {
+    db.close();
+  }
+}
+
+async function listSoundAssets() {
+  const db = await openSoundDatabase();
+  try {
+    const transaction = db.transaction(DM_SOUND_STORE_NAME, "readonly");
+    const store = transaction.objectStore(DM_SOUND_STORE_NAME);
+    const records = await indexedDbRequest(store.getAll());
+    return (records || [])
+      .map(soundRecordSnapshot)
+      .filter(Boolean)
+      .sort((left, right) => String(left.name).localeCompare(String(right.name), undefined, { sensitivity: "base" }));
+  } finally {
+    db.close();
+  }
+}
+
+async function deleteSoundAsset(soundId) {
+  if (!soundId) return;
+  const db = await openSoundDatabase();
+  try {
+    const transaction = db.transaction(DM_SOUND_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(DM_SOUND_STORE_NAME);
+    const completePromise = new Promise((resolve, reject) => {
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Could not delete the sound."));
+      transaction.onabort = () => reject(transaction.error || new Error("Could not delete the sound."));
+    });
+    await indexedDbRequest(store.delete(soundId));
+    await completePromise;
+  } finally {
+    db.close();
+  }
+}
+
+function isAudioFile(file) {
+  const type = String(file?.type || "");
+  const name = String(file?.name || "");
+  return type.startsWith("audio/") || /\.(mp3|wav|ogg|opus|webm|m4a|aac|flac)$/i.test(name);
+}
+
+function soundNameFromFile(file) {
+  return String(file?.name || "Audio").replace(/\.[^.]+$/, "").trim() || "Audio";
+}
+
+async function readAudioFileAsSoundAsset(file) {
+  if (!isAudioFile(file)) throw new Error("Elegi un archivo de audio.");
+  const id = `sound-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const updatedAt = new Date().toISOString();
+  const record = {
+    id,
+    name: soundNameFromFile(file),
+    fileName: file.name || "audio",
+    type: file.type || "",
+    size: file.size || 0,
+    updatedAt,
+    blob: file
+  };
+  await putSoundAsset(record);
+  return soundRecordSnapshot(record);
+}
+
+async function renameSoundAsset(soundId, name) {
+  const record = await getSoundAsset(soundId);
+  if (!record) throw new Error("Audio no encontrado.");
+  const nextRecord = {
+    ...record,
+    name: sanitizeDisplayText(name, record.name || "Audio").slice(0, 80),
+    updatedAt: new Date().toISOString()
+  };
+  await putSoundAsset(nextRecord);
+  return soundRecordSnapshot(nextRecord);
 }
 
 function dataUrlToBlob(dataUrl) {
@@ -2588,6 +2717,27 @@ function saveLivePlayersPanelCollapsed(collapsed) {
     localStorage.setItem(DM_LIVE_PLAYERS_PANEL_STORAGE_KEY, collapsed ? "collapsed" : "expanded");
   } catch (error) {
     console.error("Could not save live players panel state", error);
+  }
+}
+
+function loadSoundBarCollapsed() {
+  if (typeof localStorage === "undefined") return true;
+  try {
+    const stored = localStorage.getItem(DM_SOUND_BAR_PANEL_STORAGE_KEY);
+    if (!stored) return true;
+    return stored === "collapsed";
+  } catch (error) {
+    console.error("Could not load sound bar panel state", error);
+    return true;
+  }
+}
+
+function saveSoundBarCollapsed(collapsed) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(DM_SOUND_BAR_PANEL_STORAGE_KEY, collapsed ? "collapsed" : "expanded");
+  } catch (error) {
+    console.error("Could not save sound bar panel state", error);
   }
 }
 
@@ -8075,6 +8225,47 @@ function MultiplayerIcon({ className = "" }) {
   );
 }
 
+function SoundIcon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 9.5h4l5-4v13l-5-4H4v-5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 9c1.1 1.5 1.1 4.5 0 6M18.7 6.5c2.4 3.2 2.4 7.8 0 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PauseIcon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 5.5h3.5v13H7v-13ZM13.5 5.5H17v13h-3.5v-13Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function UploadIcon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 16V4m0 0 4.5 4.5M12 4 7.5 8.5M5 18.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 7h14M9 7V5h6v2m-8 0 .7 12h8.6L17 7M10 10.5v5M14 10.5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function LivePlayersPanel({
   status,
   diagnostics,
@@ -8351,6 +8542,193 @@ function LivePlayersPanel({
             </section>
         </div>
       </>
+    </aside>
+  );
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes) || 0;
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(size >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+  if (size >= 1024) return `${Math.round(size / 1024)} KB`;
+  return `${size} B`;
+}
+
+function SoundButtonRow({ sound, busy, active, onRename, onPlay, onPause, onDelete }) {
+  const [draftName, setDraftName] = useState(sound.name || "Audio");
+
+  useEffect(() => {
+    setDraftName(sound.name || "Audio");
+  }, [sound.id, sound.name]);
+
+  function commitName() {
+    const nextName = sanitizeDisplayText(draftName, sound.name || "Audio").slice(0, 80);
+    setDraftName(nextName);
+    if (nextName !== sound.name) onRename(sound.id, nextName);
+  }
+
+  return (
+    <div className="grid min-w-[260px] grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 border border-neutral-800 bg-neutral-950/80 px-2 py-2">
+      <button
+        className="flex h-9 w-9 items-center justify-center border border-amber-500/60 bg-amber-500 text-neutral-950 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 disabled:cursor-wait disabled:opacity-60"
+        type="button"
+        aria-label={`Reproducir ${sound.name || "audio"}`}
+        title="Reproducir para jugadores"
+        disabled={busy}
+        onClick={() => onPlay(sound.id)}
+      >
+        <PlayIcon className="h-4 w-4" />
+      </button>
+      <div className="min-w-0">
+        <input
+          className="h-7 w-full border border-transparent bg-transparent px-1 text-sm font-bold text-neutral-100 outline-none hover:border-neutral-700 focus:border-amber-500 focus:bg-neutral-900"
+          value={draftName}
+          spellCheck="false"
+          onChange={(event) => setDraftName(event.target.value)}
+          onBlur={commitName}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+            if (event.key === "Escape") {
+              setDraftName(sound.name || "Audio");
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <p className="truncate px-1 text-[11px] text-neutral-500">{formatFileSize(sound.size)} {sound.type ? `| ${sound.type}` : ""}</p>
+      </div>
+      <button
+        className={`flex h-8 w-8 items-center justify-center border bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-sky-500 text-sky-200 hover:bg-sky-950/40" : "border-neutral-700 text-neutral-500"}`}
+        type="button"
+        aria-label={`Pausar ${sound.name || "audio"}`}
+        title="Pausar audio"
+        disabled={!active || busy}
+        onClick={() => onPause(sound.id)}
+      >
+        <PauseIcon className="h-4 w-4" />
+      </button>
+      <button
+        className="flex h-8 w-8 items-center justify-center border border-neutral-700 bg-neutral-900 text-red-300 hover:border-red-500 hover:bg-red-950/40 focus:outline-none focus:ring-2 focus:ring-red-500/40 disabled:cursor-wait disabled:opacity-50"
+        type="button"
+        aria-label={`Eliminar ${sound.name || "audio"}`}
+        title="Eliminar audio"
+        disabled={busy}
+        onClick={() => onDelete(sound.id)}
+      >
+        <TrashIcon className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function SoundBarPanel({
+  sounds,
+  collapsed,
+  error,
+  busyId,
+  activeSoundIds,
+  connectedPlayerCount,
+  fileInputRef,
+  onToggleCollapsed,
+  onPickFiles,
+  onFilesSelected,
+  onRename,
+  onPlay,
+  onPause,
+  onDelete
+}) {
+  if (collapsed) {
+    return (
+      <div
+        className="fixed bottom-4 right-4 z-40"
+        data-board-control="true"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <button
+          className="relative flex h-14 w-14 items-center justify-center border border-amber-500 bg-neutral-900/95 text-amber-300 shadow-2xl transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          type="button"
+          aria-label="Expandir sound bar"
+          title={`Sound Bar: ${sounds.length} audios`}
+          onClick={onToggleCollapsed}
+        >
+          <SoundIcon className="h-8 w-8" />
+          {sounds.length ? (
+            <span className="absolute -bottom-1 -left-1 inline-flex h-6 min-w-6 items-center justify-center border border-neutral-950 bg-amber-500 px-1 text-[11px] font-black leading-none text-neutral-950">
+              {sounds.length}
+            </span>
+          ) : null}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <aside
+      className="fixed bottom-4 right-4 z-40 flex max-h-[42vh] w-[min(760px,calc(100vw-32px))] flex-col border border-neutral-700 bg-neutral-900/95 text-neutral-200 shadow-2xl"
+      data-board-control="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <input
+        ref={fileInputRef}
+        className="hidden"
+        type="file"
+        accept="audio/*,.mp3,.wav,.ogg,.opus,.webm,.m4a,.aac,.flac"
+        multiple
+        onChange={onFilesSelected}
+      />
+      <header className="flex items-start justify-between gap-3 border-b-2 border-amber-500 p-3">
+        <div className="min-w-0">
+          <h2 className="font-serif text-lg font-bold uppercase tracking-wide text-amber-500">Sound Bar</h2>
+          <p className="truncate text-xs text-neutral-500">
+            {connectedPlayerCount} jugadores conectados
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button
+            className="flex h-8 items-center gap-2 border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold uppercase text-emerald-300 hover:border-emerald-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+            type="button"
+            onClick={onPickFiles}
+          >
+            <UploadIcon className="h-4 w-4" />
+            <span>Subir</span>
+          </button>
+          <button
+            className="h-8 w-8 border border-neutral-700 bg-neutral-950 text-sm font-bold text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label="Colapsar sound bar"
+            title="Colapsar"
+          >
+            -
+          </button>
+        </div>
+      </header>
+      {error ? <p className="border-b border-red-500/30 bg-red-950/40 px-3 py-2 text-xs text-red-200">{error}</p> : null}
+      <div className="min-h-0 overflow-auto p-3">
+        {sounds.length ? (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2">
+            {sounds.map((sound) => (
+              <SoundButtonRow
+                key={sound.id}
+                sound={sound}
+                busy={Boolean(busyId)}
+                active={activeSoundIds.includes(sound.id)}
+                onRename={onRename}
+                onPlay={onPlay}
+                onPause={onPause}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        ) : (
+          <button
+            className="flex w-full items-center justify-center gap-2 border border-dashed border-neutral-700 bg-neutral-950/60 p-5 text-sm font-bold uppercase text-neutral-400 hover:border-amber-500 hover:text-amber-200"
+            type="button"
+            onClick={onPickFiles}
+          >
+            <UploadIcon className="h-5 w-5" />
+            <span>Subir audios</span>
+          </button>
+        )}
+      </div>
     </aside>
   );
 }
@@ -9726,6 +10104,11 @@ function DmScreenApp() {
   const [liveHostTokenEnabled, setLiveHostTokenEnabled] = useState(true);
   const [liveHostError, setLiveHostError] = useState("");
   const [livePlayersCollapsed, setLivePlayersCollapsed] = useState(loadLivePlayersPanelCollapsed);
+  const [soundBarCollapsed, setSoundBarCollapsed] = useState(loadSoundBarCollapsed);
+  const [soundButtons, setSoundButtons] = useState([]);
+  const [soundBarError, setSoundBarError] = useState("");
+  const [soundBarBusyId, setSoundBarBusyId] = useState("");
+  const [activeSoundIds, setActiveSoundIds] = useState([]);
   const [sharedVvtMap, setSharedVvtMap] = useState(null);
   const [vvtPings, setVvtPings] = useState([]);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
@@ -9744,6 +10127,9 @@ function DmScreenApp() {
   const resizeRef = useRef(null);
   const panRef = useRef(null);
   const selectionRef = useRef(null);
+  const soundFileInputRef = useRef(null);
+  const dmSoundAudioPlayersRef = useRef([]);
+  const dmSoundAudioPlayersByIdRef = useRef(new Map());
   const tokenContextPointerRef = useRef(null);
   const boardViewRef = useRef(boardView);
   const handleBoardWheelRef = useRef(null);
@@ -10008,6 +10394,25 @@ function DmScreenApp() {
   useEffect(() => {
     saveLivePlayersPanelCollapsed(livePlayersCollapsed);
   }, [livePlayersCollapsed]);
+
+  useEffect(() => {
+    saveSoundBarCollapsed(soundBarCollapsed);
+  }, [soundBarCollapsed]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listSoundAssets()
+      .then((sounds) => {
+        if (!cancelled) setSoundButtons(sounds);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) setSoundBarError(error?.message || "No se pudo cargar la libreria de sonidos.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!vvtPings.length) return undefined;
@@ -10298,6 +10703,186 @@ function DmScreenApp() {
       if (result?.raisedHands) setRaisedHands(normalizeRaisedHandQueue(result.raisedHands));
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async function refreshSoundButtons() {
+    const sounds = await listSoundAssets();
+    setSoundButtons(sounds);
+    return sounds;
+  }
+
+  function pickSoundFiles() {
+    setSoundBarError("");
+    soundFileInputRef.current?.click?.();
+  }
+
+  async function addSoundFiles(event) {
+    const files = Array.from(event.target?.files || []);
+    if (event.target) event.target.value = "";
+    if (!files.length) return;
+    setSoundBarError("");
+    setSoundBarBusyId("upload");
+    try {
+      const imported = [];
+      for (const file of files) imported.push(await readAudioFileAsSoundAsset(file));
+      setSoundButtons((sounds) => [...sounds, ...imported]
+        .filter(Boolean)
+        .sort((left, right) => String(left.name).localeCompare(String(right.name), undefined, { sensitivity: "base" })));
+      setSoundBarCollapsed(false);
+    } catch (error) {
+      console.error(error);
+      setSoundBarError(error?.message || "No se pudo subir el audio.");
+      refreshSoundButtons().catch(console.error);
+    } finally {
+      setSoundBarBusyId("");
+    }
+  }
+
+  async function renameSoundButton(soundId, name) {
+    if (!soundId) return;
+    setSoundBarError("");
+    try {
+      const renamed = await renameSoundAsset(soundId, name);
+      setSoundButtons((sounds) => sounds
+        .map((sound) => (sound.id === soundId ? renamed : sound))
+        .filter(Boolean)
+        .sort((left, right) => String(left.name).localeCompare(String(right.name), undefined, { sensitivity: "base" })));
+    } catch (error) {
+      console.error(error);
+      setSoundBarError(error?.message || "No se pudo renombrar el audio.");
+      refreshSoundButtons().catch(console.error);
+    }
+  }
+
+  async function deleteSoundButton(soundId) {
+    if (!soundId) return;
+    setSoundBarError("");
+    setSoundBarBusyId(soundId);
+    try {
+      await deleteSoundAsset(soundId);
+      setSoundButtons((sounds) => sounds.filter((sound) => sound.id !== soundId));
+    } catch (error) {
+      console.error(error);
+      setSoundBarError(error?.message || "No se pudo eliminar el audio.");
+    } finally {
+      setSoundBarBusyId("");
+    }
+  }
+
+  function playLocalDmSound(record) {
+    const blob = record?.blob;
+    if (!blob) return;
+    const soundId = String(record.id || "");
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const audio = new Audio(objectUrl);
+      audio.volume = 1;
+      audio.preload = "auto";
+      const cleanup = () => {
+        dmSoundAudioPlayersRef.current = dmSoundAudioPlayersRef.current.filter((entry) => entry !== audio);
+        if (soundId && dmSoundAudioPlayersByIdRef.current.has(soundId)) {
+          const entries = dmSoundAudioPlayersByIdRef.current.get(soundId);
+          entries.delete(audio);
+          if (!entries.size) {
+            dmSoundAudioPlayersByIdRef.current.delete(soundId);
+            setActiveSoundIds((ids) => ids.filter((id) => id !== soundId));
+          }
+        }
+        URL.revokeObjectURL(objectUrl);
+      };
+      audio.addEventListener("ended", cleanup, { once: true });
+      audio.addEventListener("error", cleanup, { once: true });
+      dmSoundAudioPlayersRef.current = [...dmSoundAudioPlayersRef.current, audio];
+      if (soundId) {
+        if (!dmSoundAudioPlayersByIdRef.current.has(soundId)) dmSoundAudioPlayersByIdRef.current.set(soundId, new Set());
+        dmSoundAudioPlayersByIdRef.current.get(soundId).add(audio);
+        setActiveSoundIds((ids) => (ids.includes(soundId) ? ids : [...ids, soundId]));
+      }
+      while (dmSoundAudioPlayersRef.current.length > 8) {
+        const staleAudio = dmSoundAudioPlayersRef.current.shift();
+        try {
+          staleAudio?.pause?.();
+        } catch (_error) {
+          // Ignore cleanup errors from stale audio elements.
+        }
+      }
+      const playPromise = audio.play();
+      if (playPromise?.catch) {
+        playPromise.catch((error) => {
+          cleanup();
+          console.error(error);
+          setSoundBarError("No se pudo reproducir el audio en el DM screen.");
+        });
+      }
+    } catch (error) {
+      URL.revokeObjectURL(objectUrl);
+      console.error(error);
+      setSoundBarError("No se pudo reproducir el audio en el DM screen.");
+    }
+  }
+
+  function pauseLocalDmSound(soundId) {
+    const normalizedId = String(soundId || "");
+    const targets = normalizedId
+      ? [...(dmSoundAudioPlayersByIdRef.current.get(normalizedId) || [])]
+      : [...dmSoundAudioPlayersRef.current];
+    targets.forEach((audio) => {
+      try {
+        audio.pause();
+      } catch (_error) {
+        // Ignore pause errors from stale audio elements.
+      }
+    });
+    if (normalizedId) setActiveSoundIds((ids) => ids.filter((id) => id !== normalizedId));
+    else setActiveSoundIds([]);
+  }
+
+  async function pauseSoundButton(soundId) {
+    if (!soundId) return;
+    setSoundBarError("");
+    pauseLocalDmSound(soundId);
+    try {
+      const result = await window.dndSheet?.liveSheet?.publishDmAudioControl?.({
+        id: soundId,
+        action: "pause",
+        sentAt: new Date().toISOString()
+      });
+      if (result && !result.ok) throw new Error(result.error || "No se pudo pausar el audio.");
+    } catch (error) {
+      console.error(error);
+      setSoundBarError(error?.message || "No se pudo pausar el audio.");
+    }
+  }
+
+  async function playSoundButton(soundId) {
+    if (!soundId) return;
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet?.publishDmAudio) {
+      setSoundBarError("Live sheet API unavailable in this renderer.");
+      return;
+    }
+    setSoundBarError("");
+    setSoundBarBusyId(soundId);
+    try {
+      const record = await getSoundAsset(soundId);
+      if (!record?.blob) throw new Error("Audio no encontrado.");
+      playLocalDmSound(record);
+      const dataUrl = await blobToDataUrl(record.blob);
+      const result = await liveSheet.publishDmAudio({
+        id: record.id,
+        name: record.name || record.fileName || "Audio",
+        type: record.type || record.blob.type || "",
+        dataUrl,
+        volume: 1,
+        playedAt: new Date().toISOString()
+      });
+      if (!result?.ok) throw new Error(result?.error || "No se pudo enviar el audio.");
+    } catch (error) {
+      console.error(error);
+      setSoundBarError(error?.message || "No se pudo enviar el audio.");
+    } finally {
+      setSoundBarBusyId("");
     }
   }
 
@@ -13731,6 +14316,22 @@ function DmScreenApp() {
         onRunSelfTest={runLiveHostSelfTest}
         onKick={kickLivePlayer}
         onAddMapNote={() => addMapNote()}
+      />
+      <SoundBarPanel
+        sounds={soundButtons}
+        collapsed={soundBarCollapsed}
+        error={soundBarError}
+        busyId={soundBarBusyId}
+        activeSoundIds={activeSoundIds}
+        connectedPlayerCount={livePlayers.filter((player) => player.connected).length}
+        fileInputRef={soundFileInputRef}
+        onToggleCollapsed={() => setSoundBarCollapsed((value) => !value)}
+        onPickFiles={pickSoundFiles}
+        onFilesSelected={addSoundFiles}
+        onRename={renameSoundButton}
+        onPlay={playSoundButton}
+        onPause={pauseSoundButton}
+        onDelete={deleteSoundButton}
       />
       <RaisedHandsNote hands={raisedHands} onLowerHand={lowerRaisedHand} />
       <GlobalDiceTray

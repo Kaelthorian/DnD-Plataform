@@ -343,6 +343,46 @@ async function testRollBroadcastToOtherPlayers() {
   });
 }
 
+async function testDmAudioBroadcast() {
+  await withServer({ tokenEnabled: false }, async (server, port) => {
+    const socket = await openSocket(port);
+    send(socket, { type: "player:hello" });
+    const [welcome, handState] = await nextMessages(socket, 2);
+    assert.strictEqual(welcome.type, "server:welcome");
+    assert.strictEqual(handState.type, "dm:hand:state");
+
+    const audioPromise = nextMessage(socket);
+    const tinyAudio = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+    const result = server.publishDmAudio({
+      id: "intro",
+      name: "Intro",
+      type: "audio/wav",
+      dataUrl: tinyAudio,
+      volume: 0.7
+    });
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.audio.dataUrl, "");
+    const message = await audioPromise;
+    assert.strictEqual(message.type, "dm:audio:play");
+    assert.strictEqual(message.audio.name, "Intro");
+    assert.strictEqual(message.audio.type, "audio/wav");
+    assert.strictEqual(message.audio.volume, 0.7);
+    assert.strictEqual(message.audio.dataUrl, tinyAudio);
+
+    const pausePromise = nextMessage(socket);
+    const pauseResult = server.publishDmAudioControl({
+      id: "intro",
+      action: "pause"
+    });
+    assert.strictEqual(pauseResult.ok, true);
+    const pauseMessage = await pausePromise;
+    assert.strictEqual(pauseMessage.type, "dm:audio:control");
+    assert.strictEqual(pauseMessage.control.id, "intro");
+    assert.strictEqual(pauseMessage.control.action, "pause");
+    socket.close();
+  });
+}
+
 async function testRaisedHandQueue() {
   await withServer({ tokenEnabled: false }, async (server, port) => {
     const alice = await openSocket(port);
@@ -396,6 +436,7 @@ async function testRaisedHandQueue() {
   await testTokenAcceptanceAndProtocol();
   await testVvtStateBroadcastAndWelcomeReplay();
   await testRollBroadcastToOtherPlayers();
+  await testDmAudioBroadcast();
   await testRaisedHandQueue();
   console.log("live-sheet-server tests passed");
 })().catch((error) => {

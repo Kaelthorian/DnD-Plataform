@@ -8,6 +8,7 @@ const MAX_MESSAGE_BYTES = 512 * 1024;
 const MAX_NAME_LENGTH = 80;
 const MAX_ROLL_TEXT_LENGTH = 600;
 const MAX_VVT_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_DM_AUDIO_BYTES = 18 * 1024 * 1024;
 const MAX_VVT_FOG_POINTS = 1200;
 const MAX_VVT_TOKENS = 200;
 const MAX_VVT_MARKERS = 200;
@@ -124,6 +125,13 @@ function sanitizeDataUrl(value) {
   const text = String(value || "");
   if (!/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(text)) return "";
   if (Buffer.byteLength(text, "utf8") > MAX_VVT_IMAGE_BYTES) return "";
+  return text;
+}
+
+function sanitizeAudioDataUrl(value) {
+  const text = String(value || "");
+  if (!/^data:audio\/(?:mpeg|mp3|wav|wave|ogg|opus|webm|mp4|aac|flac|x-wav);base64,/i.test(text)) return "";
+  if (Buffer.byteLength(text, "utf8") > MAX_DM_AUDIO_BYTES) return "";
   return text;
 }
 
@@ -280,6 +288,31 @@ function sanitizeVvtPing(ping) {
     y: clampNumber(ping.y, 0, 1, 0),
     color: sanitizeText(ping.color, 40) || "sky",
     createdAt: sanitizeText(ping.createdAt, 40) || new Date().toISOString()
+  };
+}
+
+function sanitizeDmAudio(payload) {
+  if (!isPlainObject(payload)) return null;
+  const dataUrl = sanitizeAudioDataUrl(payload.dataUrl || payload.audio?.dataUrl);
+  if (!dataUrl) return null;
+  return {
+    id: sanitizeText(payload.id, 120) || crypto.randomUUID?.() || `audio-${Date.now()}`,
+    name: sanitizeText(payload.name || payload.audio?.name, 140) || "Audio",
+    type: sanitizeText(payload.type || payload.audio?.type, 80) || "",
+    dataUrl,
+    volume: clampNumber(payload.volume, 0, 1, 1),
+    playedAt: sanitizeText(payload.playedAt, 80) || new Date().toISOString()
+  };
+}
+
+function sanitizeDmAudioControl(payload) {
+  if (!isPlainObject(payload)) return null;
+  const action = sanitizeText(payload.action, 40).toLowerCase();
+  if (!["pause"].includes(action)) return null;
+  return {
+    id: sanitizeText(payload.id, 120),
+    action,
+    sentAt: sanitizeText(payload.sentAt, 80) || new Date().toISOString()
   };
 }
 
@@ -674,6 +707,28 @@ class LiveSheetServer extends EventEmitter {
     });
     this.emit("vvt-ping", ping);
     return { ok: true, ping };
+  }
+
+  publishDmAudio(payload) {
+    const audio = sanitizeDmAudio(payload);
+    if (!audio) return { ok: false, error: "Audio invalido o demasiado grande." };
+    this.broadcastToPlayers({
+      version: 1,
+      type: "dm:audio:play",
+      audio
+    });
+    return { ok: true, audio: { ...audio, dataUrl: "" } };
+  }
+
+  publishDmAudioControl(payload) {
+    const control = sanitizeDmAudioControl(payload);
+    if (!control) return { ok: false, error: "Control de audio invalido." };
+    this.broadcastToPlayers({
+      version: 1,
+      type: "dm:audio:control",
+      control
+    });
+    return { ok: true, control };
   }
 
   broadcastToPlayers(payload, exceptPlayerId = "") {

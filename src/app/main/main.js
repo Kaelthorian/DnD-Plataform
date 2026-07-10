@@ -783,6 +783,14 @@ ipcMain.handle("live-sheet:publish-vvt-ping", async (_event, ping) => {
   return liveSheetServer.publishVvtPing(ping);
 });
 
+ipcMain.handle("live-sheet:publish-dm-audio", async (_event, audio) => {
+  return liveSheetServer.publishDmAudio(audio);
+});
+
+ipcMain.handle("live-sheet:publish-dm-audio-control", async (_event, control) => {
+  return liveSheetServer.publishDmAudioControl(control);
+});
+
 liveSheetServer.on("player-updated", (player) => {
   broadcastToRenderers("live-sheet:player-updated", player);
 });
