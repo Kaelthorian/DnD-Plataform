@@ -12096,7 +12096,8 @@ function DmScreenApp() {
     const notes = monsterNotesRef.current;
     const sourceNote = activeNoteForRoot(sourceRootId, notes);
     const mapNote = activeNoteForRoot(targetRootId, notes);
-    if (sourceNote?.kind !== "monster" || mapNote?.kind !== "map") return false;
+    const kind = sourceNote?.kind === "character" ? "character" : sourceNote?.kind === "monster" ? "monster" : "";
+    if (!kind || mapNote?.kind !== "map") return false;
     const page = activeMapPageForNote(mapNote);
     if (!page) return false;
 
@@ -12107,36 +12108,58 @@ function DmScreenApp() {
     const localY = metrics.top == null ? boardPoint.y - mapNote.y - 88 : (clientY - metrics.top) / metrics.scale;
     const basePoint = mapVisualPointToBase(metrics, localX, localY);
     const point = clampMapTokenPoint(mapNote, basePoint.x - size / 2, basePoint.y - size / 2, size, page.id);
-    const monster = mapTokenMonsterSnapshot(sourceNote.monster);
-    const tokenImage = normalizeMapTokenImage(sourceNote.monsterCustom?.tokenImage || sourceNote.monster?.tokenImage);
-    if (!monster) return false;
+    const monster = kind === "monster" ? mapTokenMonsterSnapshot(sourceNote.monster) : null;
+    const character = kind === "character" ? mapTokenCharacterSnapshot(sourceNote.character) : null;
+    const actorNote = tokenActorNoteSnapshot(sourceNote);
+    const tokenImage = kind === "monster" ? normalizeMapTokenImage(sourceNote.monsterCustom?.tokenImage || sourceNote.monster?.tokenImage) : null;
+    if (kind === "monster" && !monster) return false;
+    if (kind === "character" && !character) return false;
+    if (!actorNote) return false;
+    const tokenId = `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
     const token = {
-      id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      kind: "monster",
-      name: sourceNote.monster?.name || "Monster",
+      id: tokenId,
+      kind,
+      name: noteDisplayName(sourceNote),
       monster,
-      monsterCustom: sourceNote.monsterCustom ? cloneForBoardState(sourceNote.monsterCustom) : null,
-      character: null,
+      monsterCustom: kind === "monster" && sourceNote.monsterCustom ? cloneForBoardState(sourceNote.monsterCustom) : null,
+      character,
+      livePlayerId: kind === "character" ? String(sourceNote.livePlayerId || "") : "",
+      livePlayerName: kind === "character" ? String(sourceNote.livePlayerName || "") : "",
+      liveSheetData: kind === "character" && sourceNote.liveSheetData ? cloneForBoardState(sourceNote.liveSheetData) : null,
+      liveConnected: kind === "character" ? Boolean(sourceNote.liveConnected) : false,
+      liveLastUpdate: kind === "character" ? (sourceNote.liveLastUpdate || null) : null,
       image: tokenImage,
       x: point.x,
       y: point.y,
       size,
+      actorNote,
       ...mapActorCombatState({
-        kind: "monster",
-        monster: sourceNote.monster,
-        character: null,
+        kind,
+        monster: kind === "monster" ? sourceNote.monster : null,
+        character: kind === "character" ? sourceNote.character : null,
         hpCurrent: sourceNote.hpCurrent,
         hpMax: sourceNote.hpMax
       })
     };
+    const link = {
+      mapNoteId: mapNote.id,
+      pageId: page.id,
+      tokenId
+    };
 
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === mapNote.id ? updateMapNotePage(note, page.id, (page) => ({
-        ...page,
-        mapTokens: [...(page.mapTokens || []), token]
-      })) : note
-    )));
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id === mapNote.id) {
+        return updateMapNotePage(note, page.id, (page) => ({
+          ...page,
+          mapTokens: [...(page.mapTokens || []), token]
+        }));
+      }
+      if (kind === "character" && note.id === sourceNote.id) {
+        return { ...note, linkedMapToken: link };
+      }
+      return note;
+    }));
     return true;
   }
 
@@ -13909,8 +13932,8 @@ function DmScreenApp() {
     const note = monsterNotes.find((entry) => entry.id === rootId);
     if (!note) return;
     const activeDragNote = activeNoteForRoot(rootId, monsterNotes);
-    const isMonsterShiftDrag = event.shiftKey && activeDragNote?.kind === "monster";
-    if ((event.shiftKey && !isMonsterShiftDrag) || event.ctrlKey || event.metaKey) {
+    const isActorShiftDrag = event.shiftKey && ["monster", "character"].includes(activeDragNote?.kind);
+    if ((event.shiftKey && !isActorShiftDrag) || event.ctrlKey || event.metaKey) {
       setSelectedRootNoteIds((ids) => (
         ids.includes(rootId) ? ids.filter((id) => id !== rootId) : [...ids, rootId]
       ));
@@ -13918,7 +13941,7 @@ function DmScreenApp() {
       return;
     }
     const rootNotes = monsterNotes.filter((entry) => !entry.parentNoteId);
-    const selectedDragIds = isMonsterShiftDrag
+    const selectedDragIds = isActorShiftDrag
       ? [rootId]
       : (
         selectedRootNoteIds.includes(rootId)
@@ -13953,6 +13976,7 @@ function DmScreenApp() {
       lastClientX: event.clientX,
       lastClientY: event.clientY,
       moved: false,
+      createActorTokenOnDrop: isActorShiftDrag,
       dropTargetNoteId: null,
       startNoteX: note.x,
       startNoteY: note.y,
@@ -14230,7 +14254,7 @@ function DmScreenApp() {
         const mapDropTargetId = findMapDropTargetAtPointer(completedDrag.noteId, lastClientX, lastClientY)
           || (dropTargetActiveNote?.kind === "map" ? completedDrag.dropTargetNoteId : null);
         if (mapDropTargetId) {
-          if (event.shiftKey && addActorTokenToMap(
+          if ((completedDrag.createActorTokenOnDrop || event.shiftKey) && addActorTokenToMap(
             completedDrag.noteId,
             mapDropTargetId,
             lastClientX,
