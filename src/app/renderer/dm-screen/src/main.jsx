@@ -156,7 +156,6 @@ const DEFAULT_MAP_FOG = {
   revealed: []
 };
 const mapImageShareSnapshotCache = new Map();
-const mapTokenShareImageCache = new Map();
 const MAP_FOG_BRUSH_SHAPES = new Set(["circle", "square"]);
 const MAP_MARKER_FORM_TYPES = new Set(["cone", "square", "circle"]);
 const MAP_MARKER_FORM_LABELS = {
@@ -1180,6 +1179,44 @@ function mapImageUrl(image) {
   return image?.objectUrl || image?.dataUrl || "";
 }
 
+function releaseMapImageObjectUrl(image) {
+  if (!image?.objectUrl) return;
+  try {
+    URL.revokeObjectURL(image.objectUrl);
+  } catch (_error) {
+    // The browser owns object URL lifetime; stale URLs are safe to ignore.
+  }
+}
+
+function mapImageWithoutObjectUrl(image) {
+  return image?.objectUrl ? { ...image, objectUrl: "" } : image;
+}
+
+function releaseMapNoteImages(note) {
+  if (note?.kind !== "map") return;
+  const released = new Set();
+  mapPagesForNote(note).forEach((page) => {
+    const objectUrl = page.mapImage?.objectUrl;
+    if (!objectUrl || released.has(objectUrl)) return;
+    released.add(objectUrl);
+    releaseMapImageObjectUrl(page.mapImage);
+  });
+}
+
+function unloadMapNoteImages(note) {
+  if (note?.kind !== "map") return note;
+  releaseMapNoteImages(note);
+  const mapPages = mapPagesForNote(note).map((page) => (
+    page.mapImage?.objectUrl ? { ...page, mapImage: mapImageWithoutObjectUrl(page.mapImage) } : page
+  ));
+  const activePage = mapPages.find((page) => page.id === note.activeMapPageId) || mapPages[0] || null;
+  return {
+    ...note,
+    mapPages,
+    mapImage: activePage?.mapImage || mapImageWithoutObjectUrl(note.mapImage)
+  };
+}
+
 function indexedDbRequest(request) {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -1452,6 +1489,12 @@ function mapImageShareCacheKey(snapshot) {
   ].join("|");
 }
 
+function cacheMapImageShareSnapshot(cacheKey, image) {
+  if (!cacheKey) return;
+  if (!mapImageShareSnapshotCache.has(cacheKey)) mapImageShareSnapshotCache.clear();
+  mapImageShareSnapshotCache.set(cacheKey, image);
+}
+
 async function mapImageShareSnapshot(image) {
   const snapshot = mapImageRuntimeSnapshot(image);
   if (!snapshot) return null;
@@ -1464,7 +1507,7 @@ async function mapImageShareSnapshot(image) {
       type: snapshot.type,
       dataUrl: snapshot.dataUrl
     };
-    if (cacheKey) mapImageShareSnapshotCache.set(cacheKey, sharedImage);
+    cacheMapImageShareSnapshot(cacheKey, sharedImage);
     return sharedImage;
   }
   if (snapshot.assetId) {
@@ -1475,7 +1518,7 @@ async function mapImageShareSnapshot(image) {
         type: snapshot.type || record.type || record.blob.type || "",
         dataUrl: await blobToDataUrl(record.blob)
       };
-      if (cacheKey) mapImageShareSnapshotCache.set(cacheKey, sharedImage);
+      cacheMapImageShareSnapshot(cacheKey, sharedImage);
       return sharedImage;
     }
   }
@@ -1487,18 +1530,12 @@ async function mapImageShareSnapshot(image) {
       type: snapshot.type || blob.type || "",
       dataUrl: await blobToDataUrl(blob)
     };
-    if (cacheKey) mapImageShareSnapshotCache.set(cacheKey, sharedImage);
+    cacheMapImageShareSnapshot(cacheKey, sharedImage);
     return sharedImage;
   }
   const hydrated = await hydrateMapImage(snapshot);
   if (hydrated?.dataUrl || hydrated?.objectUrl) return mapImageShareSnapshot(hydrated);
   return null;
-}
-
-function monsterTokenShareImageCacheKey(request) {
-  const sources = Array.isArray(request?.sources) ? request.sources.join("|") : "";
-  const names = Array.isArray(request?.names) ? request.names.join("|") : "";
-  return `${sources}::${names}`;
 }
 
 function anonymizeMapTokenShareSnapshot(snapshot) {
@@ -1509,6 +1546,7 @@ function anonymizeMapTokenShareSnapshot(snapshot) {
     monster: null,
     monsterCustom: null,
     image: null,
+    imageUnchanged: false,
     ac: "",
     hpCurrent: "",
     hpMax: "",
@@ -1526,56 +1564,46 @@ function hideMapTokenShareName(snapshot) {
   };
 }
 
-async function mapTokenShareSnapshot(token) {
+function mapTokenEmbeddedImage(token) {
+  return normalizeMapTokenImage(
+    token?.image
+    || token?.monsterCustom?.tokenImage
+    || token?.monster?.tokenImage
+  );
+}
+
+function mapTokenEmbeddedImageKey(token) {
+  const image = mapTokenEmbeddedImage(token);
+  if (!image?.dataUrl) return "";
+  return `${image.id}|${image.type}|${image.dataUrl.length}`;
+}
+
+async function mapTokenShareSnapshot(token, { includeImage = true } = {}) {
   const snapshot = mapTokenSnapshot(token);
   if (!snapshot) return null;
   if (snapshot.hidden) return null;
-  if (snapshot.kind === "monster" && snapshot.identityHidden) return anonymizeMapTokenShareSnapshot(snapshot);
-  if (snapshot.image?.dataUrl) return hideMapTokenShareName(snapshot);
-  const customMonsterImage = snapshot.kind === "monster" ? normalizeMapTokenImage(snapshot.monsterCustom?.tokenImage || snapshot.monster?.tokenImage) : null;
-  if (customMonsterImage) return hideMapTokenShareName({ ...snapshot, image: customMonsterImage });
-  if (snapshot.kind !== "monster") return snapshot;
-  const request = monsterTokenRequest(snapshot.monster);
-  const cacheKey = monsterTokenShareImageCacheKey(request);
-  if (cacheKey && mapTokenShareImageCache.has(cacheKey)) {
-    const cachedImage = mapTokenShareImageCache.get(cacheKey);
-    return hideMapTokenShareName(cachedImage ? { ...snapshot, image: cachedImage } : snapshot);
-  }
-  try {
-    const dataImage = await window.dndSheet?.getMonsterTokenDataUrl?.(request);
-    if (dataImage?.dataUrl) {
-      const image = {
-        name: dataImage.name || `${snapshot.name || "Token"}.png`,
-        type: dataImage.type || "image/png",
-        dataUrl: dataImage.dataUrl
-      };
-      if (cacheKey) mapTokenShareImageCache.set(cacheKey, image);
-      return hideMapTokenShareName({ ...snapshot, image });
-    }
-    const api = window.dndSheet?.getMonsterTokenUrl;
-    if (!api) {
-      if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
-      return hideMapTokenShareName(snapshot);
-    }
-    const tokenUrl = await api(request);
-    if (!tokenUrl) {
-      if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
-      return hideMapTokenShareName(snapshot);
-    }
-    const response = await fetch(tokenUrl);
-    const blob = await response.blob();
-    const image = {
-      name: `${snapshot.name || "Token"}.png`,
-      type: blob.type || "image/png",
-      dataUrl: await blobToDataUrl(blob)
-    };
-    if (cacheKey) mapTokenShareImageCache.set(cacheKey, image);
-    return hideMapTokenShareName({ ...snapshot, image });
-  } catch (error) {
-    console.error(error);
-    if (cacheKey) mapTokenShareImageCache.set(cacheKey, null);
-    return hideMapTokenShareName(snapshot);
-  }
+  const embeddedImage = mapTokenEmbeddedImage(token);
+  const shareSnapshot = {
+    id: snapshot.id,
+    kind: snapshot.kind,
+    name: snapshot.name,
+    monster: snapshot.monster,
+    character: snapshot.kind === "character" && snapshot.character ? { name: snapshot.character.name } : null,
+    x: snapshot.x,
+    y: snapshot.y,
+    size: snapshot.size,
+    ac: snapshot.ac,
+    hpCurrent: snapshot.hpCurrent,
+    hpMax: snapshot.hpMax,
+    initiative: snapshot.initiative,
+    hidden: snapshot.hidden,
+    identityHidden: snapshot.identityHidden,
+    nameHidden: snapshot.nameHidden,
+    image: includeImage ? embeddedImage : null,
+    imageUnchanged: Boolean(embeddedImage && !includeImage)
+  };
+  if (shareSnapshot.kind === "monster" && shareSnapshot.identityHidden) return anonymizeMapTokenShareSnapshot(shareSnapshot);
+  return hideMapTokenShareName(shareSnapshot);
 }
 
 function mapShareViewportFromDom(note, page) {
@@ -1621,9 +1649,11 @@ function mapGridShareSnapshot(grid, viewport) {
   };
 }
 
-async function mapTokensShareSnapshot(tokens, viewport = null) {
+async function mapTokensShareSnapshot(tokens, viewport = null, { includeImage = () => true } = {}) {
   const list = Array.isArray(tokens) ? tokens : [];
-  return (await Promise.all(list.filter((token) => !token?.hidden).map(mapTokenShareSnapshot)))
+  return (await Promise.all(list
+    .filter((token) => !token?.hidden)
+    .map((token) => mapTokenShareSnapshot(token, { includeImage: includeImage(token) }))))
     .filter(Boolean)
     .map((token) => mapShareViewportEntrySnapshot(token, viewport));
 }
@@ -2088,9 +2118,7 @@ function normalizeMapPage(page, fallbackId = "map-page-default", index = 0) {
 
 function mapPagesForNote(note) {
   if (note?.kind !== "map") return [];
-  const pages = Array.isArray(note.mapPages) && note.mapPages.length
-    ? note.mapPages.map((page, index) => normalizeMapPage(page, page.id || `${defaultMapPageId(note.id)}-${index + 1}`, index)).filter(Boolean)
-    : [];
+  const pages = Array.isArray(note.mapPages) && note.mapPages.length ? note.mapPages : [];
   if (pages.length) return pages;
   return [normalizeMapPage({
     id: defaultMapPageId(note.id),
@@ -2118,15 +2146,21 @@ function activeMapPageForNote(note) {
 }
 
 function syncMapNoteActivePage(note, pages, activePageId = null) {
-  const normalizedPages = (pages || []).map((page, index) => normalizeMapPage(page, page.id || `${defaultMapPageId(note?.id)}-${index + 1}`, index));
-  const safePages = normalizedPages.length ? normalizedPages : mapPagesForNote(note);
+  const providedPages = (pages || []).filter(Boolean);
+  const safePages = providedPages.length ? providedPages : mapPagesForNote(note);
   const nextActiveId = activePageId || note?.activeMapPageId || safePages[0]?.id || null;
   const activePage = safePages.find((page) => page.id === nextActiveId) || safePages[0] || null;
+  const activeObjectUrl = activePage?.mapImage?.objectUrl || "";
+  const memorySafePages = safePages.map((page) => {
+    if (page.id === activePage?.id || !page.mapImage?.objectUrl || page.mapImage.objectUrl === activeObjectUrl) return page;
+    releaseMapImageObjectUrl(page.mapImage);
+    return { ...page, mapImage: mapImageWithoutObjectUrl(page.mapImage) };
+  });
   const frameWidth = activePage?.frameWidth || note.width;
   const frameHeight = activePage?.frameHeight || note.height;
   return {
     ...note,
-    mapPages: safePages,
+    mapPages: memorySafePages,
     activeMapPageId: activePage?.id || null,
     mapImage: activePage?.mapImage || null,
     mapTokens: activePage?.mapTokens || [],
@@ -2147,7 +2181,8 @@ function updateMapNotePage(note, pageId, updater) {
   const updatedPages = pages.map((page) => (
     page.id === targetId ? normalizeMapPage(updater(page), page.id) : page
   ));
-  return syncMapNoteActivePage(note, updatedPages, targetId);
+  const activePageId = note.activeMapPageId || activeMapPageForNote(note)?.id || targetId;
+  return syncMapNoteActivePage(note, updatedPages, activePageId);
 }
 
 function mapPageStorageSnapshot(page) {
@@ -6095,6 +6130,7 @@ function MapNote({
   const bodyRef = useRef(null);
   const imageRef = useRef(null);
   const fogBrushPointerRef = useRef(null);
+  const fogStrokeRef = useRef(null);
   const fogBrushModeRef = useRef("reveal");
   const pendingImageModeRef = useRef("replace");
   const leftControlDownRef = useRef(false);
@@ -6107,6 +6143,7 @@ function MapNote({
   const [isFogBrushActive, setIsFogBrushActive] = useState(false);
   const [fogBrushMode, setFogBrushMode] = useState("reveal");
   const [fogBrushPreview, setFogBrushPreview] = useState(null);
+  const [fogStroke, setFogStroke] = useState(null);
   const [fogContextMenu, setFogContextMenu] = useState(null);
   const [contextMenuOpenSections, setContextMenuOpenSections] = useState({ fog: true, token: false, markers: false, forms: false });
   const [baseImageLayout, setBaseImageLayout] = useState(null);
@@ -6161,6 +6198,7 @@ function MapNote({
   const markers = Array.isArray(activePage.mapMarkers) ? activePage.mapMarkers : [];
   const grid = normalizeMapGrid(activePage.mapGrid);
   const fog = normalizeMapFog(activePage.fogOfWar);
+  const displayedFog = fogStroke || fog;
   const fogMaskId = `map-fog-${noteActionId}-${activePage.id}`.replace(/[^a-zA-Z0-9_-]/g, "-");
   const imageLayout = baseImageLayout ? {
     left: baseImageLayout.left + mapView.x,
@@ -6175,6 +6213,12 @@ function MapNote({
   useEffect(() => {
     fogBrushModeRef.current = fogBrushMode;
   }, [fogBrushMode]);
+
+  useEffect(() => {
+    fogBrushPointerRef.current = null;
+    fogStrokeRef.current = null;
+    setFogStroke(null);
+  }, [activePage.id]);
 
   useEffect(() => {
     handleMapWheelRef.current = handleMapWheel;
@@ -6424,7 +6468,9 @@ function MapNote({
     const point = fogPointFromPointer(event);
     if (!point) return;
     setFogBrushPreview(point);
-    onMapFogChange?.(noteActionId, activePage.id, appendMapFogPoint(fog, point));
+    const nextFog = appendMapFogPoint(fogStrokeRef.current || fog, point);
+    fogStrokeRef.current = nextFog;
+    setFogStroke(nextFog);
   }
 
   function startFogBrush(event) {
@@ -6452,6 +6498,10 @@ function MapNote({
     event.stopPropagation();
     fogBrushPointerRef.current = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
+    const completedFog = fogStrokeRef.current;
+    fogStrokeRef.current = null;
+    setFogStroke(null);
+    if (completedFog) onMapFogChange?.(noteActionId, activePage.id, completedFog);
   }
 
   function leaveFogBrush(event) {
@@ -7201,7 +7251,7 @@ function MapNote({
               />
             ) : null}
             <MapFogOverlay
-              fog={fog}
+              fog={displayedFog}
               layout={localImageLayout}
               maskId={fogMaskId}
               preview={isFogBrushActive ? fogBrushPreview : null}
@@ -7210,6 +7260,7 @@ function MapNote({
               onPointerDown={startFogBrush}
               onPointerMove={moveFogBrush}
               onPointerUp={stopFogBrush}
+              onPointerCancel={stopFogBrush}
               onPointerLeave={leaveFogBrush}
               onContextMenu={openFogContextMenu}
             />
@@ -7233,6 +7284,8 @@ function MapNote({
                     className={`absolute z-[8] ${marker.hidden ? "opacity-50 saturate-50" : ""}`}
                     data-board-control="true"
                     data-map-form-shape="true"
+                    data-map-marker-id={marker.id}
+                    data-map-page-id={activePage.id}
                     title={`${marker.label || MAP_MARKER_FORM_LABELS[marker.formType] || "Forma"}${marker.hidden ? " (hidden)" : ""}`}
                     style={{
                       left: visualPoint.x,
@@ -7291,6 +7344,8 @@ function MapNote({
                   key={marker.id}
                   className={`absolute z-[9] flex -translate-x-1/2 -translate-y-full flex-col items-center ${marker.hidden ? "opacity-50 saturate-50" : ""}`}
                   data-board-control="true"
+                  data-map-marker-id={marker.id}
+                  data-map-page-id={activePage.id}
                   title={`${marker.label || "Marker"}${marker.hidden ? " (hidden)" : ""}`}
                   style={{
                     left: visualPoint.x,
@@ -7337,6 +7392,8 @@ function MapNote({
                   className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : token.identityHidden ? "border-violet-300 ring-2 ring-violet-400/60" : token.nameHidden ? "border-cyan-300 ring-2 ring-cyan-400/50" : "border-amber-300"} ${token.hidden ? "border-dashed opacity-50 saturate-50" : ""}`}
                   type="button"
                   data-map-token="true"
+                  data-map-token-id={token.id}
+                  data-map-page-id={activePage.id}
                   title={`${token.name || token.character?.name || token.monster?.name || "Token"}${token.hidden ? " (hidden)" : ""}${token.identityHidden ? " (identity hidden)" : ""}${token.nameHidden ? " (name hidden)" : ""}`}
                   style={{
                     left: visualPoint.x,
@@ -10134,6 +10191,8 @@ function DmScreenApp() {
   const boardViewRef = useRef(boardView);
   const handleBoardWheelRef = useRef(null);
   const monsterNotesRef = useRef(monsterNotes);
+  const publishedVvtTargetKeyRef = useRef("");
+  const publishedVvtTokenImageKeysRef = useRef(new Map());
   const librariesReadyRef = useRef(librariesReady);
   const pendingBoardSaveRef = useRef({ notes: monsterNotes, view: boardView });
   const boardSaveTimerRef = useRef(null);
@@ -10357,20 +10416,30 @@ function DmScreenApp() {
     const timer = window.setTimeout(async () => {
       try {
         if (!sharedVvtTarget?.page?.mapImage) {
-          await liveSheet.publishVvtState({ active: false });
+          if (publishedVvtTargetKeyRef.current) await liveSheet.publishVvtState({ active: false });
+          publishedVvtTargetKeyRef.current = "";
+          publishedVvtTokenImageKeysRef.current = new Map();
           return;
         }
         const { note, page } = sharedVvtTarget;
-        const image = await mapImageShareSnapshot(page.mapImage);
-        if (cancelled || !image?.dataUrl) return;
+        const targetKey = [
+          note.id,
+          page.id,
+          page.mapImage.assetId || page.mapImage.id || "inline",
+          page.mapImage.updatedAt || "",
+          page.mapImage.size || 0
+        ].join("|");
+        const publishFullState = publishedVvtTargetKeyRef.current !== targetKey || !liveSheet.publishVvtPatch;
+        const previousTokenImageKeys = publishedVvtTokenImageKeysRef.current;
+        const nextTokenImageKeys = new Map((page.mapTokens || []).map((token) => [token.id, mapTokenEmbeddedImageKey(token)]));
         const sourceViewport = mapShareViewportFromDom(note, page);
-        const tokens = await mapTokensShareSnapshot(page.mapTokens, sourceViewport);
+        const tokens = await mapTokensShareSnapshot(page.mapTokens, sourceViewport, {
+          includeImage: (token) => publishFullState || previousTokenImageKeys.get(token.id) !== nextTokenImageKeys.get(token.id)
+        });
         if (cancelled) return;
-        await liveSheet.publishVvtState({
-          active: true,
+        const statePatch = {
           title: noteDisplayName(note),
           pageName: page.name || "",
-          image,
           fogOfWar: mapFogSnapshot(page.fogOfWar),
           grid: mapGridShareSnapshot(page.mapGrid, sourceViewport),
           tokens,
@@ -10380,7 +10449,24 @@ function DmScreenApp() {
             height: Math.max(1, Number(sourceViewport.height) || NOTE_DEFAULT_HEIGHT)
           },
           updatedAt: new Date().toISOString()
-        });
+        };
+        let result = null;
+        if (publishFullState) {
+          const image = await mapImageShareSnapshot(page.mapImage);
+          if (cancelled || !image?.dataUrl) return;
+          result = await liveSheet.publishVvtState({ active: true, image, ...statePatch });
+        } else {
+          result = await liveSheet.publishVvtPatch(statePatch);
+          if (!result?.ok) {
+            const image = await mapImageShareSnapshot(page.mapImage);
+            if (cancelled || !image?.dataUrl) return;
+            result = await liveSheet.publishVvtState({ active: true, image, ...statePatch });
+          }
+        }
+        if (!cancelled && result?.ok) {
+          publishedVvtTargetKeyRef.current = targetKey;
+          publishedVvtTokenImageKeysRef.current = nextTokenImageKeys;
+        }
       } catch (error) {
         console.error(error);
       }
@@ -10389,7 +10475,7 @@ function DmScreenApp() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [sharedVvtTarget]);
+  }, [sharedVvtTarget?.note?.id, sharedVvtTarget?.note?.titleOverride, sharedVvtTarget?.page]);
 
   useEffect(() => {
     saveLivePlayersPanelCollapsed(livePlayersCollapsed);
@@ -11788,7 +11874,7 @@ function DmScreenApp() {
       textTitle: source.textTitle,
       textContent: source.textContent,
       textImages: Array.isArray(source.textImages) ? source.textImages.map((image) => ({ ...image })) : [],
-      mapImage: source.mapImage ? { ...source.mapImage } : null,
+      mapImage: source.mapImage ? mapImageWithoutObjectUrl(source.mapImage) : null,
       mapTokens: Array.isArray(source.mapTokens)
         ? source.mapTokens.map((token) => ({
           ...token,
@@ -11804,7 +11890,7 @@ function DmScreenApp() {
       fogOfWar: source.fogOfWar ? { ...source.fogOfWar, revealed: [...(source.fogOfWar.revealed || [])] } : null,
       mapPages: mapPagesForNote(source).map((page) => ({
         ...page,
-        mapImage: page.mapImage ? { ...page.mapImage } : null,
+        mapImage: page.mapImage ? mapImageWithoutObjectUrl(page.mapImage) : null,
         mapTokens: (page.mapTokens || []).map((token) => ({
           ...token,
           id: `map-token-${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -11928,6 +12014,7 @@ function DmScreenApp() {
       if (pages.length <= 1) return note;
       const pageToClose = pages.find((page) => page.id === pageId);
       if (mapPageHasTokens(pageToClose)) return note;
+      releaseMapImageObjectUrl(pageToClose?.mapImage);
       const nextPages = pages.filter((page) => page.id !== pageId);
       const nextActiveId = note.activeMapPageId === pageId ? nextPages[0]?.id : note.activeMapPageId;
       return syncMapNoteActivePage(note, nextPages, nextActiveId);
@@ -11939,7 +12026,11 @@ function DmScreenApp() {
       note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
         ...page,
         name: page.name || mapImage?.name || "Mapa 1",
-        mapImage: mapImageRuntimeSnapshot(mapImage)
+        mapImage: (() => {
+          const nextImage = mapImageRuntimeSnapshot(mapImage);
+          if (page.mapImage?.objectUrl && page.mapImage.objectUrl !== nextImage?.objectUrl) releaseMapImageObjectUrl(page.mapImage);
+          return nextImage;
+        })()
       })) : note
     )));
   }
@@ -12028,6 +12119,31 @@ function DmScreenApp() {
   function findMapBodyElement(mapNoteId) {
     return Array.from(document.querySelectorAll("[data-map-body-note-id]"))
       .find((element) => element.dataset.mapBodyNoteId === mapNoteId) || null;
+  }
+
+  function findMapOverlayElement(mapNoteId, pageId, dataKey, entryId) {
+    const body = findMapBodyElement(mapNoteId);
+    if (!body) return null;
+    return Array.from(body.querySelectorAll(`[data-${dataKey}]`)).find((element) => (
+      element.dataset.pageId === String(pageId || "")
+      && element.dataset[dataKey.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] === String(entryId || "")
+    )) || null;
+  }
+
+  function setMapOverlayPreviewPosition(mapNoteId, pageId, dataKey, entryId, point) {
+    const body = findMapBodyElement(mapNoteId);
+    const element = findMapOverlayElement(mapNoteId, pageId, dataKey, entryId);
+    if (!body || !element) return;
+    const baseLeft = Number(body.dataset.mapBaseLeft) || 0;
+    const baseTop = Number(body.dataset.mapBaseTop) || 0;
+    const baseWidth = Number(body.dataset.mapBaseWidth) || 0;
+    const baseHeight = Number(body.dataset.mapBaseHeight) || 0;
+    const viewWidth = Number(body.dataset.mapViewWidth) || 0;
+    const viewHeight = Number(body.dataset.mapViewHeight) || 0;
+    const x = baseWidth > 0 && viewWidth > 0 ? ((Number(point.x) - baseLeft) / baseWidth) * viewWidth : Number(point.x) || 0;
+    const y = baseHeight > 0 && viewHeight > 0 ? ((Number(point.y) - baseTop) / baseHeight) * viewHeight : Number(point.y) || 0;
+    element.style.left = `${x}px`;
+    element.style.top = `${y}px`;
   }
 
   function mapBodyMetrics(mapNote) {
@@ -12293,24 +12409,43 @@ function DmScreenApp() {
     const deltaY = (event.clientY - drag.startClientY) / drag.scale;
     const draggedIds = Array.isArray(drag.tokenIds) && drag.tokenIds.length ? drag.tokenIds : [drag.tokenId];
     const startPositions = drag.startPositions || {};
-    setMonsterNotes((notes) => notes.map((note) => {
-      if (note.id !== drag.mapNoteId) return note;
-      return updateMapNotePage(note, drag.pageId, (page) => ({
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === drag.pageId) || activeMapPageForNote(mapNote);
+    if (!page) return;
+    const previewPositions = {};
+    (page.mapTokens || []).forEach((token) => {
+      if (!draggedIds.includes(token.id)) return;
+      const start = startPositions[token.id] || { x: Number(token.x) || 0, y: Number(token.y) || 0, size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140) };
+      const point = clampMapTokenPoint(mapNote, start.x + deltaX, start.y + deltaY, start.size, drag.pageId);
+      previewPositions[token.id] = point;
+      setMapOverlayPreviewPosition(drag.mapNoteId, drag.pageId, "map-token-id", token.id, point);
+    });
+    const previewMarkerPositions = {};
+    (page.mapMarkers || []).forEach((marker) => {
+      const start = drag.attachedMarkerStartPositions?.[marker.id];
+      if (!start || !draggedIds.includes(marker.attachedTokenId)) return;
+      const point = clampMapMarkerPoint(mapNote, start.x + deltaX, start.y + deltaY, start);
+      previewMarkerPositions[marker.id] = point;
+      setMapOverlayPreviewPosition(drag.mapNoteId, drag.pageId, "map-marker-id", marker.id, point);
+    });
+    drag.previewPositions = previewPositions;
+    drag.previewMarkerPositions = previewMarkerPositions;
+  }
+
+  function commitMapTokenDrag(drag) {
+    const tokenPositions = drag.previewPositions || {};
+    const markerPositions = drag.previewMarkerPositions || {};
+    if (!Object.keys(tokenPositions).length && !Object.keys(markerPositions).length) return;
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === drag.mapNoteId ? updateMapNotePage(note, drag.pageId, (page) => ({
         ...page,
-        mapTokens: (page.mapTokens || []).map((token) => {
-          if (!draggedIds.includes(token.id)) return token;
-          const start = startPositions[token.id] || { x: Number(token.x) || 0, y: Number(token.y) || 0, size: clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140) };
-          const point = clampMapTokenPoint(mapNote, start.x + deltaX, start.y + deltaY, start.size, drag.pageId);
-          return { ...token, x: point.x, y: point.y };
-        }),
-        mapMarkers: (page.mapMarkers || []).map((marker) => {
-          const start = drag.attachedMarkerStartPositions?.[marker.id];
-          if (!start || !draggedIds.includes(marker.attachedTokenId)) return marker;
-          const point = clampMapMarkerPoint(mapNote, start.x + deltaX, start.y + deltaY, start);
-          return { ...marker, x: point.x, y: point.y };
-        })
-      }));
-    }));
+        mapTokens: (page.mapTokens || []).map((token) => (
+          tokenPositions[token.id] ? { ...token, ...tokenPositions[token.id] } : token
+        )),
+        mapMarkers: (page.mapMarkers || []).map((marker) => (
+          markerPositions[marker.id] ? { ...marker, ...markerPositions[marker.id] } : marker
+        ))
+      })) : note
+    )));
   }
 
   function startMapMarkerDrag(event, mapNoteId, pageId, markerId) {
@@ -13512,9 +13647,10 @@ function DmScreenApp() {
       const targetNote = notes.find((note) => note.id === tabNoteId) || root;
       const targetSize = noteTabFrameSize(targetNote, root);
       return notes.map((note) => {
-        if (note.id === rootNoteId) {
+        const memorySafeNote = note.id === currentActiveTabId ? unloadMapNoteImages(note) : note;
+        if (memorySafeNote.id === rootNoteId) {
           const nextRoot = {
-            ...note,
+            ...memorySafeNote,
             activeTabId: tabNoteId,
             width: targetSize.width,
             height: targetSize.height
@@ -13527,16 +13663,16 @@ function DmScreenApp() {
             }
             : nextRoot;
         }
-        if (note.id === currentActiveTabId && tabIds.has(note.id)) {
+        if (memorySafeNote.id === currentActiveTabId && tabIds.has(memorySafeNote.id)) {
           return {
-            ...note,
+            ...memorySafeNote,
             width: root.width,
             height: root.height,
             tabFrameWidth: root.width,
             tabFrameHeight: root.height
           };
         }
-        return note;
+        return memorySafeNote;
       });
     });
   }
@@ -13610,6 +13746,7 @@ function DmScreenApp() {
       if (!root) return notes;
       const idsToRemove = new Set(noteTabIds(root));
       if (notes.some((note) => idsToRemove.has(note.id) && mapNoteHasTokens(note))) return notes;
+      notes.filter((note) => idsToRemove.has(note.id)).forEach(releaseMapNoteImages);
       const preparedNotes = persistLinkedTokenNotesInCollection(notes, idsToRemove);
       return preparedNotes.filter((note) => !idsToRemove.has(note.id));
     });
@@ -13640,9 +13777,12 @@ function DmScreenApp() {
   function minimizeNote(noteId) {
     setMonsterNotes((notes) => {
       const rootId = resolveRootNoteId(noteId, notes);
-      return notes.map((note) => (
-        note.id === rootId ? { ...note, minimized: true, dicePanelOpen: false } : note
-      ));
+      const root = notes.find((note) => note.id === rootId);
+      const activeTabId = root?.activeTabId || rootId;
+      return notes.map((note) => {
+        const memorySafeNote = note.id === activeTabId ? unloadMapNoteImages(note) : note;
+        return memorySafeNote.id === rootId ? { ...memorySafeNote, minimized: true, dicePanelOpen: false } : memorySafeNote;
+      });
     });
   }
 
@@ -14210,6 +14350,7 @@ function DmScreenApp() {
       const drag = mapTokenDragRef.current;
       cancelPointerFrame(drag);
       if (drag.pendingClientX != null && drag.pendingClientY != null) moveMapToken({ clientX: drag.pendingClientX, clientY: drag.pendingClientY }, drag);
+      commitMapTokenDrag(drag);
       mapTokenDragRef.current = null;
     }
     if (selectionRef.current?.pointerId === event.pointerId) {

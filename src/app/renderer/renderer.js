@@ -134,6 +134,7 @@
     let liveSheetClientSendTimer = null;
     let liveSheetClientManualDisconnect = false;
     let liveVvtState = null;
+    let liveVvtImageDataUrl = "";
     let liveVvtElements = null;
     let liveVvtPings = [];
     let liveVvtBaseLayout = null;
@@ -1338,6 +1339,8 @@
         liveVvtViewKey = "";
         elements.root.hidden = true;
         elements.image.hidden = true;
+        elements.image.removeAttribute("src");
+        liveVvtImageDataUrl = "";
         elements.empty.hidden = false;
         elements.fog.hidden = true;
         elements.grid.hidden = true;
@@ -1356,7 +1359,10 @@
         liveVvtViewKey = nextViewKey;
       }
       elements.title.textContent = [state.title || "Mapa VVT", state.pageName || ""].filter(Boolean).join(" - ");
-      elements.image.src = state.image.dataUrl;
+      if (liveVvtImageDataUrl !== state.image.dataUrl) {
+        elements.image.src = state.image.dataUrl;
+        liveVvtImageDataUrl = state.image.dataUrl;
+      }
       elements.image.alt = state.image.name || "Mapa VVT";
       elements.image.hidden = false;
       elements.empty.hidden = true;
@@ -1366,6 +1372,24 @@
       renderLiveVvtMarkers(elements.markers, state.markers, state.sourceViewport);
       elements.root.hidden = false;
       requestAnimationFrame(updateLiveVvtLayout);
+    }
+
+    function renderLiveVvtPatch(patch) {
+      if (!patch || !liveVvtState?.active) return;
+      const nextPatch = { ...patch };
+      if (Array.isArray(patch.tokens)) {
+        const previousTokens = new Map((liveVvtState.tokens || []).map((token) => [token.id, token]));
+        nextPatch.tokens = patch.tokens.map((token) => {
+          const previous = previousTokens.get(token.id);
+          if (!token.imageUnchanged || token.image?.dataUrl || !previous?.image?.dataUrl) return token;
+          return { ...token, image: previous.image };
+        });
+      }
+      renderLiveVvtState({
+        ...liveVvtState,
+        ...nextPatch,
+        image: liveVvtState.image
+      });
     }
 
     function sendLiveSheetMessage(payload) {
@@ -1523,6 +1547,9 @@
           }
           if (payload?.type === "dm:vvt:state") {
             renderLiveVvtState(payload.state);
+          }
+          if (payload?.type === "dm:vvt:patch") {
+            renderLiveVvtPatch(payload.patch);
           }
           if (payload?.type === "dm:vvt:ping") {
             addLiveVvtPing(payload.ping);

@@ -247,6 +247,7 @@ function sanitizeVvtToken(token) {
       type: sanitizeText(token.image?.type, 80) || "",
       dataUrl: sanitizeDataUrl(token.image?.dataUrl)
     },
+    imageUnchanged: Boolean(token.imageUnchanged),
     imageRequest: identityHidden ? null : sanitizeVvtTokenImageRequest(token),
     identityHidden,
     nameHidden
@@ -354,6 +355,34 @@ function sanitizeVvtState(payload) {
     sourceViewport: sanitizeVvtViewport(payload.sourceViewport),
     updatedAt: sanitizeText(payload.updatedAt, 80) || new Date().toISOString()
   };
+}
+
+function sanitizeVvtPatch(payload) {
+  if (!isPlainObject(payload)) return null;
+  if (payload.active === false) {
+    return {
+      active: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+  const patch = {};
+  if (Object.prototype.hasOwnProperty.call(payload, "title")) patch.title = sanitizeText(payload.title, 140) || "Mapa VVT";
+  if (Object.prototype.hasOwnProperty.call(payload, "pageName")) patch.pageName = sanitizeText(payload.pageName, 140) || "";
+  if (Object.prototype.hasOwnProperty.call(payload, "fogOfWar")) patch.fogOfWar = sanitizeVvtFog(payload.fogOfWar);
+  if (Object.prototype.hasOwnProperty.call(payload, "grid")) patch.grid = sanitizeVvtGrid(payload.grid);
+  if (Object.prototype.hasOwnProperty.call(payload, "tokens")) {
+    patch.tokens = Array.isArray(payload.tokens)
+      ? payload.tokens.slice(0, MAX_VVT_TOKENS).map(sanitizeVvtToken).filter(Boolean)
+      : [];
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "markers")) {
+    patch.markers = Array.isArray(payload.markers)
+      ? payload.markers.slice(0, MAX_VVT_MARKERS).map(sanitizeVvtMarker).filter(Boolean)
+      : [];
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "sourceViewport")) patch.sourceViewport = sanitizeVvtViewport(payload.sourceViewport);
+  patch.updatedAt = sanitizeText(payload.updatedAt, 80) || new Date().toISOString();
+  return Object.keys(patch).length > 1 ? patch : null;
 }
 
 function localLanAddresses() {
@@ -688,6 +717,36 @@ class LiveSheetServer extends EventEmitter {
       state
     });
     return { ok: true, state };
+  }
+
+  patchVvtState(payload) {
+    const patch = sanitizeVvtPatch(payload);
+    if (!patch) return { ok: false, error: "Patch VVT invalido." };
+    if (patch.active === false) return this.setVvtState(patch);
+    if (!this.vvtState?.active || !this.vvtState.image?.dataUrl) {
+      return { ok: false, error: "No hay un mapa VVT activo para actualizar." };
+    }
+    const canonicalPatch = { ...patch };
+    if (Array.isArray(patch.tokens)) {
+      const previousTokens = new Map((this.vvtState.tokens || []).map((token) => [token.id, token]));
+      canonicalPatch.tokens = patch.tokens.map((token) => {
+        const previous = previousTokens.get(token.id);
+        if (!token.imageUnchanged || token.image?.dataUrl || !previous?.image?.dataUrl) return token;
+        return { ...token, image: previous.image };
+      });
+    }
+    this.vvtState = {
+      ...this.vvtState,
+      ...canonicalPatch,
+      active: true,
+      image: this.vvtState.image
+    };
+    this.broadcastToPlayers({
+      version: 1,
+      type: "dm:vvt:patch",
+      patch
+    });
+    return { ok: true, patch };
   }
 
   publishVvtPing(payload) {

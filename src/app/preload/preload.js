@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld("dndSheet", {
     lowerPlayerHand: (playerId) => ipcRenderer.invoke("live-sheet:lower-player-hand", playerId),
     updatePlayerSheet: (playerId, patch) => ipcRenderer.invoke("live-sheet:update-player-sheet", { playerId, patch }),
     publishVvtState: (state) => ipcRenderer.invoke("live-sheet:publish-vvt-state", state),
+    publishVvtPatch: (patch) => ipcRenderer.invoke("live-sheet:publish-vvt-patch", patch),
     publishVvtPing: (ping) => ipcRenderer.invoke("live-sheet:publish-vvt-ping", ping),
     publishDmAudio: (audio) => ipcRenderer.invoke("live-sheet:publish-dm-audio", audio),
     publishDmAudioControl: (control) => ipcRenderer.invoke("live-sheet:publish-dm-audio-control", control),
