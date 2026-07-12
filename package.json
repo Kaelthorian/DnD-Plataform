@@ -6,6 +6,9 @@
   "author": "WallyCode",
   "license": "UNLICENSED",
   "private": true,
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "build:dm-screen": "node ./scripts/ensure-dm-screen-build.js --force",
     "build:dm-screen:css": "tailwindcss -c ./src/app/renderer/dm-screen/tailwind.config.cjs -i ./src/app/renderer/dm-screen/styles.css -o ./src/app/renderer/dm-screen/dist/dm-screen.css --minify",
@@ -16,7 +19,7 @@
     "test:i18n": "node scripts/check-i18n.js",
     "test:backgrounds": "node tests/engine/backgrounds.test.js",
     "test:engine": "node tests/engine/backgrounds.test.js && node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/resource-state.test.js && node tests/engine/long-rest.test.js && node tests/engine/class-level3-mechanics.test.js",
-    "test:services": "node tests/services/obsidian-service.test.js && node tests/services/live-sheet-server.test.js",
+    "test:services": "node tests/services/save-service.test.js && node tests/services/obsidian-service.test.js && node tests/services/live-sheet-server.test.js",
     "test:renderer": "node tests/renderer/i18n.test.js",
     "predist": "node ./scripts/ensure-dm-screen-build.js",
     "dist": "node ./scripts/run-electron-builder.js --win nsis",

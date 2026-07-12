@@ -1,4 +1,6 @@
-# Feature Map
+# Feature Map (legacy summary)
+
+The maintained detailed map is [`feature-map.md`](./feature-map.md). Use [`REPOSITORY_MAP.md`](./REPOSITORY_MAP.md) first for task routing. This file remains as a compatibility entry point because both case variants are currently tracked.
 
 This is the high-signal map for future agents.
 

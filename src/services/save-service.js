@@ -9,6 +9,10 @@ function dataFilePath(userDataPath) {
   return path.join(userDataPath, "character-sheet.json");
 }
 
+function backupFilePath(userDataPath) {
+  return `${dataFilePath(userDataPath)}.bak`;
+}
+
 function slotIdForNumber(slotNumber) {
   return `slot-${slotNumber}`;
 }
@@ -101,30 +105,71 @@ function maybeNormalizeSaveStore(raw) {
   return createEmptyStore();
 }
 
+async function readJsonFile(filePath) {
+  const raw = await fs.readFile(filePath, "utf8");
+  return JSON.parse(raw);
+}
+
 async function readRawSaveFile(userDataPath) {
+  const primaryPath = dataFilePath(userDataPath);
   try {
-    const raw = await fs.readFile(dataFilePath(userDataPath), "utf8");
-    return JSON.parse(raw);
+    return { value: await readJsonFile(primaryPath), recoveredFromBackup: false };
   } catch (error) {
-    if (error.code === "ENOENT") return null;
-    throw error;
+    if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    try {
+      return { value: await readJsonFile(backupFilePath(userDataPath)), recoveredFromBackup: true };
+    } catch (backupError) {
+      if (error.code === "ENOENT" && backupError.code === "ENOENT") {
+        return { value: null, recoveredFromBackup: false };
+      }
+      throw error;
+    }
   }
 }
 
 async function loadSaveStore(userDataPath) {
-  const raw = await readRawSaveFile(userDataPath);
+  const { value: raw, recoveredFromBackup } = await readRawSaveFile(userDataPath);
   const normalized = maybeNormalizeSaveStore(raw);
-  if (raw != null && JSON.stringify(raw) !== JSON.stringify(normalized)) {
+  if (!recoveredFromBackup && raw != null && JSON.stringify(raw) !== JSON.stringify(normalized)) {
     await saveSaveStore(userDataPath, normalized);
   }
   return normalized;
 }
 
+async function copyValidPrimaryToBackup(userDataPath) {
+  const primaryPath = dataFilePath(userDataPath);
+  try {
+    await readJsonFile(primaryPath);
+    await fs.copyFile(primaryPath, backupFilePath(userDataPath));
+  } catch (error) {
+    if (error.code === "ENOENT" || error instanceof SyntaxError) return;
+    throw error;
+  }
+}
+
+async function writeJsonAtomically(userDataPath, value) {
+  const filePath = dataFilePath(userDataPath);
+  const temporaryPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  const contents = JSON.stringify(value, null, 2);
+  await fs.mkdir(userDataPath, { recursive: true });
+  await copyValidPrimaryToBackup(userDataPath);
+  try {
+    await fs.writeFile(temporaryPath, contents, { encoding: "utf8", flag: "wx" });
+    await fs.rename(temporaryPath, filePath);
+  } catch (error) {
+    try {
+      await fs.unlink(temporaryPath);
+    } catch (_cleanupError) {
+      // The temporary file may not have been created or may already have been renamed.
+    }
+    throw error;
+  }
+  return filePath;
+}
+
 async function saveSaveStore(userDataPath, store) {
   const normalized = maybeNormalizeSaveStore(store);
-  await fs.mkdir(userDataPath, { recursive: true });
-  const filePath = dataFilePath(userDataPath);
-  await fs.writeFile(filePath, JSON.stringify(normalized, null, 2), "utf8");
+  const filePath = await writeJsonAtomically(userDataPath, normalized);
   return { savedAt: new Date().toISOString(), path: filePath, store: normalized };
 }
 
@@ -166,6 +211,7 @@ async function clearSheet(userDataPath) {
 }
 
 module.exports = {
+  backupFilePath,
   clearActiveSlot,
   clearSheet,
   dataFilePath,

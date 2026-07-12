@@ -1,5 +1,11 @@
 node_modules/
 .tools/
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+.test-tmp/
 dist/
 release/
 installer/
@@ -12,4 +18,10 @@ installer-pdf-fields-temp*/
 *.log
 npm-debug.log*
 character-sheet.json
+character-sheet.json.*
+obsidian-vault-config.json
+*.tmp
+*.pfx
+*.pem
+*.key
 build/*.pfx

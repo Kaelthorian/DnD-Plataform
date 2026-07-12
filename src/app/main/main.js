@@ -67,6 +67,15 @@ function updaterErrorMessage(error) {
   return error?.message || String(error || "Unknown updater error");
 }
 
+function isAllowedExternalUrl(value) {
+  try {
+    const protocol = new URL(String(value || "")).protocol;
+    return protocol === "https:" || protocol === "http:";
+  } catch (_error) {
+    return false;
+  }
+}
+
 function configureAutoUpdater() {
   if (autoUpdaterConfigured) return autoUpdaterState;
   autoUpdaterConfigured = true;
@@ -530,7 +539,9 @@ async function createWindow(routeName = "characterSheet") {
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (isAllowedExternalUrl(url)) {
+      shell.openExternal(url).catch((error) => log.warn(`Could not open external URL: ${updaterErrorMessage(error)}`));
+    }
     return { action: "deny" };
   });
 

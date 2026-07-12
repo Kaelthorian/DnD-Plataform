@@ -77,6 +77,7 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
   - Character sheets use the existing `character-sheet.json` path with a versioned multi-slot store.
   - Store format is `version: 2`, `activeSlotId`, and six fixed slots containing `{ id, name, updatedAt, data }`.
   - Old single-sheet saves are migrated into `slot-1` without deleting player data.
+  - Writes use a same-directory temporary file and atomic rename; the last valid primary is retained as `character-sheet.json.bak` and used for recovery if the primary JSON is missing or corrupt.
 - Translation: `src/services/translation-service.js`
 - Live sheet sharing: `src/services/live-sheet-server.js`
   - Electron main owns the local WebSocket host through IPC handlers in `src/app/main/main.js`.

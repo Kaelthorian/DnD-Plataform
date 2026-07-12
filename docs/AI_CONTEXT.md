@@ -1,6 +1,6 @@
 # AI Context
 
-Use this file first when starting a task. The goal is to keep most feat or spell fixes to 3-6 files.
+Read root `AGENTS.md` and `docs/REPOSITORY_MAP.md` first. This legacy quick guide remains useful for feat and spell tasks; when it conflicts with the verified repository map, use the latter.
 
 ## Do Not Start In Vendor
 
