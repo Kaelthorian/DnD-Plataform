@@ -617,6 +617,30 @@
 			"source": "XGE",
 			"className": "Sorcerer",
 			"classSource": "XPHB",
+			"additionalSpells": [
+				{
+					"name": "Divine Magic",
+					"expanded": {
+						"_": [
+							{"all": "level=0|class=Cleric"},
+							{"all": "level=1|class=Cleric"},
+							{"all": "level=2|class=Cleric"},
+							{"all": "level=3|class=Cleric"},
+							{"all": "level=4|class=Cleric"},
+							{"all": "level=5|class=Cleric"},
+							{"all": "level=6|class=Cleric"},
+							{"all": "level=7|class=Cleric"},
+							{"all": "level=8|class=Cleric"},
+							{"all": "level=9|class=Cleric"}
+						]
+					}
+				},
+				{"name": "Good", "requiredChoice": "Good", "known": {"3": ["cure wounds|phb"]}},
+				{"name": "Evil", "requiredChoice": "Evil", "known": {"3": ["inflict wounds|phb"]}},
+				{"name": "Law", "requiredChoice": "Law", "known": {"3": ["bless|phb"]}},
+				{"name": "Chaos", "requiredChoice": "Chaos", "known": {"3": ["bane|phb"]}},
+				{"name": "Neutrality", "requiredChoice": "Neutrality", "known": {"3": ["protection from evil and good|phb"]}}
+			],
 			"_copy": {
 				"name": "Divine Soul",
 				"source": "XGE",
@@ -1902,18 +1926,99 @@
 			"subclassShortName": "Divine Soul",
 			"subclassSource": "XGE",
 			"level": 3,
-			"_copy": {
-				"name": "Divine Soul",
-				"source": "XGE",
-				"className": "Sorcerer",
-				"classSource": "XPHB",
-				"subclassShortName": "Divine Soul",
-				"subclassSource": "XGE",
-				"level": 1,
-				"_preserve": {
-					"page": true
+			"page": 50,
+			"entries": [
+				"Sometimes the spark of magic that fuels a sorcerer comes from a divine source that glimmers within the soul.",
+				"At 3rd level, your divine origin grants you the Divine Magic and Favored by the Gods features."
+			]
+		},
+		{
+			"name": "Divine Magic",
+			"source": "XGE",
+			"page": 50,
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Divine Soul",
+			"subclassSource": "XGE",
+			"level": 3,
+			"header": 1,
+			"entries": [
+				"Your link to the divine allows you to learn spells from the cleric class. When your Spellcasting feature lets you learn or replace a sorcerer cantrip or a sorcerer spell of 1st level or higher, you can choose the new spell from the cleric spell list or the sorcerer spell list. You must otherwise obey all the restrictions for selecting the spell, and it becomes a sorcerer spell for you.",
+				"In addition, choose an affinity for the source of your divine power. You learn the spell associated with that affinity. It is a sorcerer spell for you, but it doesn't count against your number of sorcerer spells known. If you later replace this spell, you must replace it with a spell from the cleric spell list.",
+				{
+					"type": "options",
+					"name": "Divine Affinity",
+					"count": 1,
+					"entries": [
+						{"name": "Good", "entry": "You learn {@spell cure wounds}."},
+						{"name": "Evil", "entry": "You learn {@spell inflict wounds}."},
+						{"name": "Law", "entry": "You learn {@spell bless}."},
+						{"name": "Chaos", "entry": "You learn {@spell bane}."},
+						{"name": "Neutrality", "entry": "You learn {@spell protection from evil and good}."}
+					]
 				}
-			}
+			]
+		},
+		{
+			"name": "Favored by the Gods",
+			"source": "XGE",
+			"page": 50,
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Divine Soul",
+			"subclassSource": "XGE",
+			"level": 3,
+			"header": 1,
+			"activation": "triggered",
+			"entries": [
+				"If you fail a saving throw or miss with an attack roll, you can roll {@dice 2d4} and add it to the total, possibly changing the outcome. Once you use this feature, you can't use it again until you finish a short or long rest."
+			]
+		},
+		{
+			"name": "Empowered Healing",
+			"source": "XGE",
+			"page": 50,
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Divine Soul",
+			"subclassSource": "XGE",
+			"level": 6,
+			"header": 2,
+			"activation": "triggered",
+			"consumes": {"name": "Sorcery Points"},
+			"entries": [
+				"Whenever you or an ally within 5 feet of you rolls dice to determine the number of hit points a spell restores, you can spend 1 sorcery point to reroll any number of those dice once, provided you aren't {@condition incapacitated}. You can use this feature only once per turn."
+			]
+		},
+		{
+			"name": "Otherworldly Wings",
+			"source": "XGE",
+			"page": 50,
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Divine Soul",
+			"subclassSource": "XGE",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"You can use a bonus action to manifest a pair of spectral wings from your back. While the wings are present, you have a flying speed of 30 feet. The wings last until you're {@condition incapacitated}, you die, or you dismiss them as a bonus action.",
+				"The affinity you chose for your Divine Magic feature determines the appearance of the spectral wings: eagle wings for good or law, bat wings for evil or chaos, and dragonfly wings for neutrality."
+			]
+		},
+		{
+			"name": "Unearthly Recovery",
+			"source": "XGE",
+			"page": 50,
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Divine Soul",
+			"subclassSource": "XGE",
+			"level": 18,
+			"header": 2,
+			"entries": [
+				"As a bonus action when you have fewer than half of your hit points remaining, you can regain a number of hit points equal to half your hit point maximum.",
+				"Once you use this feature, you can't use it again until you finish a long rest."
+			]
 		},
 		{
 			"name": "Shadow Magic",

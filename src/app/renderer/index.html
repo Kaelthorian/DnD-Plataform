@@ -992,7 +992,14 @@
       const subclass = selectedSubclassForCharacter();
       const characterLevel = getCharacterLevel();
       if (!subclass || !Array.isArray(subclass.additionalSpells)) return [];
-      return subclass.additionalSpells.flatMap((group) => {
+      const subclassChoices = new Set(
+        subclassFeaturesForCharacter()
+          .flatMap((feature) => selectedFeatureChoices(featureChoiceKey(feature)))
+          .map((choice) => normalizeName(choice))
+      );
+      return subclass.additionalSpells
+        .filter((group) => !group.requiredChoice || subclassChoices.has(normalizeName(group.requiredChoice)))
+        .flatMap((group) => {
         const grants = [];
         const collectBucket = (bucket, prepared) => {
           if (!bucket) return;
@@ -1000,7 +1007,7 @@
             const requiredLevel = levelKey === "_" ? 1 : Number.parseInt(levelKey, 10);
             if (Number.isFinite(requiredLevel) && characterLevel < requiredLevel) return;
             collectAdditionalSpellItems(value, prepared).forEach((grant) => {
-              if (!grant?.spellName) return;
+              if (!grant) return;
               grants.push({
                 ...grant,
                 prepared: prepared || grant.prepared,
@@ -3996,6 +4003,7 @@
       const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "";
       const description = String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "");
       const text = `${title}\n${description}`;
+      if (entry.feature?.activation === "triggered" || entry.optionalFeature?.activation === "triggered") return true;
       if (normalizeName(title).includes("arcane recovery")) return false;
       const hasAttackDamage = /\battack\b/i.test(text) && /\b\d+d\d+(?:\s*[+-]\s*\d+)?\b/i.test(text);
       if (/\bspellcasting\b|\bpact magic\b|\bspell attack\b/i.test(text) || hasAttackDamage) return false;
@@ -5234,6 +5242,7 @@
         const actionable = isActivatableFeature(entry) || attackRow;
         if (!actionable) return [];
         const types = turnActionTypesFromText(`${name}\n${description}`);
+        if (!types.length && (entry.feature?.activation === "triggered" || entry.optionalFeature?.activation === "triggered")) return [];
         const actionTypes = types.length ? types : isActivatableFeature(entry) ? [ACTION_TYPES.action] : [];
         if (!actionTypes.length) return [];
         const usesMax = featureUseMaximum(name, description, entry.feature || entry.optionalFeature || entry.feat);
@@ -5298,7 +5307,20 @@
       };
     }
 
+    function sorceryPointsResourceInfo() {
+      if (normalizeName(getMainClassName() || getSelectedClassName()) !== "sorcerer" || getCharacterLevel() < 2) return null;
+      const name = "Sorcery Points";
+      const usesMax = Math.max(1, getCharacterLevel());
+      const key = normalizeName(`resource:${name}`);
+      return { key, name, info: featureUseInfo({ key, name, usesMax }) };
+    }
+
     function turnActionResourceInfoByNames(names = [], entries = turnActionEntriesForLookups()) {
+      const normalizedNames = (Array.isArray(names) ? names : [names]).map((name) => normalizeName(name));
+      if (normalizedNames.some((name) => name === "sorcery point" || name === "sorcery points")) {
+        const resource = sorceryPointsResourceInfo();
+        if (resource) return resource;
+      }
       return turnActionResourceInfoFromEntry(findTurnActionEntryByNames(names, entries));
     }
 
@@ -5653,6 +5675,18 @@
       }
 
       const seen = new Set();
+      const sorceryPoints = sorceryPointsResourceInfo();
+      if (sorceryPoints?.info) {
+        seen.add(sorceryPoints.key);
+        resources.push({
+          key: sorceryPoints.key,
+          title: sorceryPoints.name,
+          remaining: sorceryPoints.info.remaining,
+          total: sorceryPoints.info.max,
+          detail: "Font of Magic",
+          source: "features"
+        });
+      }
       generatedFeaturesAndTraitsEntries()
         .concat(activeFeatEntriesForEffects())
         .forEach((entry) => {

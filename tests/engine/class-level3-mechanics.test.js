@@ -221,6 +221,8 @@ assert.ok(/spell\.classes\?\.some\(\(name\) => normalizeName\(name\) === normali
 assert.ok(/spellcastingSourceForCharacter\(\)\?\.spellcastingAbility/.test(RENDERER), "renderer uses subclass spellcasting ability");
 assert.ok(/function canLearnCantrip\(spellName\)[\s\S]*return spellMatchesSelection\(spell, 0\);/.test(RENDERER), "renderer learns subclass-expanded cantrips");
 assert.ok(/function getAccessibleCantripOptions\(\)[\s\S]*spellMatchesSelection\(spell, 0\)[\s\S]*!autoCantrips\.has/.test(RENDERER), "renderer lists subclass-expanded cantrips and excludes auto cantrips");
+assert.ok(/function sorceryPointsResourceInfo\(\)[\s\S]*resource:\$\{name\}/.test(RENDERER), "renderer exposes a shared Sorcery Points resource pool");
+assert.ok(/name === "sorcery point" \|\| name === "sorcery points"/.test(RENDERER), "Sorcerer features consume the shared Sorcery Points pool");
 
 {
   const { file } = loadClass("rogue");
@@ -241,6 +243,84 @@ assert.ok(/function getAccessibleCantripOptions\(\)[\s\S]*spellMatchesSelection\
   ));
   assert.ok(level3Features.some((feature) => feature.name === "Spellcasting"), "Arcane Trickster has Spellcasting at level 3");
   assert.ok(level3Features.some((feature) => feature.name === "Mage Hand Legerdemain"), "Arcane Trickster has Mage Hand Legerdemain at level 3");
+}
+
+{
+  const { file } = loadClass("sorcerer");
+  const divineSoul = (file.subclass || []).find((subclass) => subclass.name === "Divine Soul" && subclass.source === "XGE" && subclass.classSource === "XPHB");
+  assert.ok(divineSoul, "Sorcerer exposes the XGE Divine Soul adapted to level 3");
+
+  const features = (file.subclassFeature || []).filter((feature) => (
+    feature.subclassShortName === "Divine Soul"
+    && feature.subclassSource === "XGE"
+    && feature.classSource === "XPHB"
+  ));
+  const featureByName = (name) => features.find((feature) => feature.name === name);
+  assert.deepStrictEqual(
+    features.filter((feature) => ["Divine Magic", "Favored by the Gods", "Empowered Healing", "Otherworldly Wings", "Unearthly Recovery"].includes(feature.name)).map((feature) => feature.level),
+    [3, 3, 6, 14, 18],
+    "Divine Soul gains every feature at the adapted Sorcerer levels"
+  );
+
+  const divineMagic = featureByName("Divine Magic");
+  const divineMagicText = flattenForTest(divineMagic.entries);
+  assert.ok(/cleric spell list or the sorcerer spell list/i.test(divineMagicText), "Divine Magic expands every Sorcerer spell choice to Cleric spells");
+  const affinityOptions = divineMagic.entries.find((entry) => entry?.type === "options")?.entries || [];
+  assert.deepStrictEqual(
+    affinityOptions.map((option) => [option.name, option.entry.match(/\{@spell ([^}]+)}/)?.[1]]),
+    [
+      ["Good", "cure wounds"],
+      ["Evil", "inflict wounds"],
+      ["Law", "bless"],
+      ["Chaos", "bane"],
+      ["Neutrality", "protection from evil and good"]
+    ],
+    "Divine Magic preserves the five mutually exclusive affinity spell choices"
+  );
+
+  const expanded = divineSoul.additionalSpells?.find((group) => group.name === "Divine Magic")?.expanded?._ || [];
+  assert.deepStrictEqual(expanded.map((item) => item.all), Array.from({ length: 10 }, (_, level) => `level=${level}|class=Cleric`), "Divine Magic exposes Cleric cantrips and spell levels 1-9");
+  const affinityGroups = divineSoul.additionalSpells.filter((group) => group.requiredChoice);
+  assert.deepStrictEqual(affinityGroups.map((group) => group.requiredChoice), ["Good", "Evil", "Law", "Chaos", "Neutrality"], "only the selected Divine Affinity grants its bonus spell");
+
+  const favored = featureByName("Favored by the Gods");
+  assert.ok(/fail a saving throw or miss with an attack roll/i.test(flattenForTest(favored.entries)), "Favored by the Gods applies to failed saves and missed attacks");
+  assert.ok(/2d4/.test(flattenForTest(favored.entries)), "Favored by the Gods adds 2d4");
+  assert.ok(/short or long rest/i.test(flattenForTest(favored.entries)), "Favored by the Gods refreshes on either rest");
+  assert.strictEqual(favored.activation, "triggered", "Favored by the Gods is tracked as a no-action trigger");
+
+  const healing = featureByName("Empowered Healing");
+  assert.strictEqual(healing.consumes?.name, "Sorcery Points", "Empowered Healing consumes the shared Sorcery Points pool");
+  assert.ok(/within 5 feet/i.test(flattenForTest(healing.entries)), "Empowered Healing enforces its 5-foot ally range");
+  assert.ok(/reroll any number of those dice once/i.test(flattenForTest(healing.entries)), "Empowered Healing rerolls any chosen healing dice once");
+  assert.ok(/only once per turn/i.test(flattenForTest(healing.entries)), "Empowered Healing is limited to once per turn");
+
+  assert.ok(/bonus action[\s\S]*flying speed of 30 feet/i.test(flattenForTest(featureByName("Otherworldly Wings").entries)), "Otherworldly Wings grants persistent 30-foot flight as a bonus action");
+  const recoveryText = flattenForTest(featureByName("Unearthly Recovery").entries);
+  assert.ok(/bonus action when you have fewer than half/i.test(recoveryText), "Unearthly Recovery requires being below half HP and uses a bonus action");
+  assert.ok(/equal to half your hit point maximum/i.test(recoveryText), "Unearthly Recovery heals half maximum HP");
+  assert.ok(/finish a long rest/i.test(recoveryText), "Unearthly Recovery refreshes on a long rest");
+
+  const activeSubclassSpellGrantsSource = extractRendererFunction("activeSubclassSpellGrants");
+  const spellGrantContext = {
+    selectedSubclassForCharacter: () => divineSoul,
+    getCharacterLevel: () => 3,
+    subclassFeaturesForCharacter: () => features.filter((feature) => feature.level <= 3),
+    featureChoiceKey: (feature) => feature.name,
+    selectedFeatureChoices: (key) => key === "Divine Magic" ? ["Good"] : [],
+    normalizeName: (value) => String(value || "").toLowerCase(),
+    collectAdditionalSpellItems: (value, prepared) => (Array.isArray(value) ? value : [value]).map((item) => {
+      if (typeof item === "string") return { spellName: item.split("|")[0], level: 1, prepared };
+      const match = String(item?.all || "").match(/level=(\d+)\|class=([^|]+)/i);
+      return match ? { level: Number(match[1]), className: match[2], count: 1, prepared } : null;
+    }).filter(Boolean)
+  };
+  vm.runInNewContext(activeSubclassSpellGrantsSource, spellGrantContext);
+  const grants = spellGrantContext.activeSubclassSpellGrants();
+  assert.ok(grants.some((grant) => grant.className === "Cleric" && grant.level === 0), "renderer retains generic Cleric-list cantrip grants");
+  assert.ok(grants.some((grant) => grant.className === "Cleric" && grant.level === 9), "renderer retains generic Cleric-list level 9 grants");
+  assert.ok(grants.some((grant) => grant.spellName === "cure wounds"), "renderer grants the selected Good affinity spell");
+  assert.ok(!grants.some((grant) => grant.spellName === "inflict wounds"), "renderer does not grant unselected affinity spells");
 }
 
 {
