@@ -56,6 +56,17 @@ const classes = {
     slots: [[2], [3], [4, 2]],
     prepared: [4, 5, 6]
   },
+  sorcerer: {
+    features: {
+      1: ["Innate Sorcery", "Spellcasting"],
+      2: ["Font of Magic", "Metamagic", "Metamagic Options"],
+      3: ["Sorcerer Subclass"]
+    },
+    cantrips: [4, 4, 4],
+    slots: [[2], [3], [4, 2]],
+    prepared: [2, 4, 6],
+    resources: { "Sorcery Points": [0, 2, 3] }
+  },
   rogue: {
     features: {
       1: ["Expertise", "Sneak Attack", "Thieves' Cant", "Weapon Mastery"],

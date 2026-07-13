@@ -991,6 +991,182 @@
 				"Crown of Spellfire|Sorcerer|XPHB|Spellfire|FRHoF|18|FRHoF"
 			],
 			"hasFluffImages": true
+		},
+		{
+			"name": "Apocalypse Sorcery",
+			"shortName": "Apocalypse",
+			"source": "GH:PG'24",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"page": 94,
+			"entries": [
+				"Hasten or Stall the End of the World",
+				"Apocalypse Sorcerers have seen the shape of things to come. They may have visions of the Great Beast ushering in the end of Etharis or dreams of Gormadraug waking and devouring the land.",
+				"These prophecies besiege Apocalypse Sorcerers, plaguing and empowering in equal measure. Some find relief in putting these revelations into writing, producing texts that read as incoherent but slowly seep into the mind as sensible, even inevitable. When the apocalypse-bringer is freed to travel across Etharis unburdened, undoing the works of gods and men, magic will swell and pool, ripe for the taking. This sign of the end is also their gift."
+			],
+			"subclassFeatures": [
+				"Apocalyptic Spells|Sorcerer|XPHB|Apocalypse|GH:PG'24|3",
+				"Unhinged Asservations|Sorcerer|XPHB|Apocalypse|GH:PG'24|3",
+				"Bear Witness|Sorcerer|XPHB|Apocalypse|GH:PG'24|6",
+				"Arcane Apocrypha|Sorcerer|XPHB|Apocalypse|GH:PG'24|6",
+				"Forbidden Magic|Sorcerer|XPHB|Apocalypse|GH:PG'24|14",
+				"The End is Nigh|Sorcerer|XPHB|Apocalypse|GH:PG'24|18"
+			]
+		},
+		{
+			"name": "Crimson Sorcery",
+			"shortName": "Crimson",
+			"source": "TCM'24",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"page": 88,
+			"entries": [
+				"Control the Vital Power of Your Lifeblood",
+				"Crimson Sorcerers harness the ancient magic of blood and life essence. They twist and guide the flow of this quintessential energy as a hunger grows deep within them. They manipulate their power to infuse the vitality of others, or they can rip it away and steal it for themselves.",
+				"Crimson sorcery can be acquired in a variety of ways. Some with this power were born with it. Others were infused with it through a dark ritual or grim event. There are those who discover it through lost secrets.",
+				"Consult the Crimson Origins table for a possible origin of your power.",
+				"There are a variety of ways you might have received the ability to harness your Crimson Sorcery to manipulate vitality and life essence. The Crimson Origins table offers suggestions of where your power comes from. Crimson Origins1d6\tOrigin 1\tOne of your parents was a vampire. Though you aren't one yourself, you inherited their hunger, and it drives your magic. 2\tYou studied blood rites at a monastery that infused your own blood with power. 3\tYou survived a vampire's bite, though it left you forever changed and awakened your sorcery. 4\tYour family suffers under a generational curse that has reared its head with you, driving you to drain vital energy. 5\tYou studied the secrets of life and death, perhaps to save yourself or a loved one. In so doing, you unlocked the crimson power in your blood. 6\tYou died, and a cunning entity offered you a second chance at life. You accepted and awoke with crimson sorcery coursing through your veins."
+			],
+			"subclassFeatures": [
+				"Blood Well|Sorcerer|XPHB|Crimson|TCM'24|3",
+				"Crimson Spells|Sorcerer|XPHB|Crimson|TCM'24|3",
+				"Pool of Blood|Sorcerer|XPHB|Crimson|TCM'24|6",
+				"Scarlet Vigor|Sorcerer|XPHB|Crimson|TCM'24|6",
+				"Vital Siphoning|Sorcerer|XPHB|Crimson|TCM'24|14",
+				"Sanguine Feast|Sorcerer|XPHB|Crimson|TCM'24|18"
+			]
+		},
+		{
+			"name": "Delerium Soul",
+			"shortName": "Delerium Soul",
+			"source": "SCGtD",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"page": 171,
+			"entries": [
+				"Delerium is naturally drawn to magic and can twist and augment its presence in unnatural and unpredictable ways. Some who ventured into the ruins of Drakkenheim are twisted by the eldritch powers and emerge infused with contaminated energies. They become a living vessel for the Arcane Anomalies and twisting realities found within the ruins."
+			],
+			"subclassFeatures": [
+				"Delerium Spells|Sorcerer|XPHB|Delerium Soul|SCGtD|1",
+				"Mutant Manifestation|Sorcerer|XPHB|Delerium Soul|SCGtD|1",
+				"Contaminated Sorcery|Sorcerer|XPHB|Delerium Soul|SCGtD|6",
+				"Incomprehensible Arcana|Sorcerer|XPHB|Delerium Soul|SCGtD|14",
+				"Chaos Theory|Sorcerer|XPHB|Delerium Soul|SCGtD|18"
+			]
+		},
+		{
+			"name": "Desert Soul",
+			"shortName": "Desert Soul",
+			"source": "TGS2",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"page": 225,
+			"entries": [
+				"Your power comes from the relentless and punishing magic that lies at the heart of the world's most unforgiving deserts. Most sorcerers with this power were born to nomads or traveling pilgrims in the H'rethi desert, but perhaps yours came to you in the chaos of a raging sandstorm or the springs of a magical oasis. Regardless of its origin, this blistering magic spirals around inside of you in an ever-present storm that can reduce even the sturdiest enemies to rubble."
+			],
+			"subclassFeatures": [
+				"Dunetreader|Sorcerer|XPHB|Desert Soul|TGS2|1",
+				"Sandstorm|Sorcerer|XPHB|Desert Soul|TGS2|1",
+				"Mirage|Sorcerer|XPHB|Desert Soul|TGS2|6",
+				"Desert Nomad|Sorcerer|XPHB|Desert Soul|TGS2|14",
+				"Sand Form|Sorcerer|XPHB|Desert Soul|TGS2|18"
+			]
+		},
+		{
+			"name": "Haunted Sorcery",
+			"shortName": "Haunted",
+			"source": "GH:PG'24",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"page": 95,
+			"entries": [
+				"Commune with the Dead",
+				"Unlike other Sorcerers, the circumstances of your birth were mundane and you have no arcane inheritance passed down from strange ancestors. Instead, you gained your sorcerous powers after you survived an experience that left you near death. Since that experience, you've had a preternatural sense for danger and a ghostly companion that either can't, or won't, leave you alone. Some Haunted, as Sorcerers who share your origin are called, develop cordial relationships with their phantom, while others find their spectral companion to be a relentless nuisance."
+			],
+			"subclassFeatures": [
+				"Haunted Spells|Sorcerer|XPHB|Haunted|GH:PG'24|3",
+				"Sixth Sense|Sorcerer|XPHB|Haunted|GH:PG'24|3",
+				"Phantom Companion|Sorcerer|XPHB|Haunted|GH:PG'24|3",
+				"Strength of Spirit|Sorcerer|XPHB|Haunted|GH:PG'24|6",
+				"Deathly Pallor|Sorcerer|XPHB|Haunted|GH:PG'24|6",
+				"Phantom Possession|Sorcerer|XPHB|Haunted|GH:PG'24|14",
+				"Become Death|Sorcerer|XPHB|Haunted|GH:PG'24|18"
+			]
+		},
+		{
+			"name": "Nemesis Sorcery",
+			"shortName": "Nemesis",
+			"source": "FoEQ",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"page": 153,
+			"entries": [
+				"Devastate Foes with Speed and Precision",
+				"While some sorcerers revel in unleashing devastation on dozens of enemies at once, you specialize in the arcane duel. You act with absolute precision, focusing your energy to strike at the perfect moment. You learn to break spells directed against you, whether expending your own power to fully counter them or casually dispersing deadly force. You may have learned the arts of magic on the battlefields of the Last War, but now you're the epitome of the lone wandslinger, always ready for the next duel."
+			],
+			"subclassFeatures": [
+				"Nemesis Spells|Sorcerer|XPHB|Nemesis|FoEQ|3",
+				"Readied Magic|Sorcerer|XPHB|Nemesis|FoEQ|3",
+				"Spell Deflection|Sorcerer|XPHB|Nemesis|FoEQ|6",
+				"Always Ready|Sorcerer|XPHB|Nemesis|FoEQ|14",
+				"Mindset of Perfect Prediction|Sorcerer|XPHB|Nemesis|FoEQ|18"
+			]
+		},
+		{
+			"name": "Shadow Sorcery",
+			"shortName": "Shadow Sorcery",
+			"source": "RHW",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"entries": [
+				"Bend Doom and Darkness to Your Will",
+				"Your innate magic comes from the most nebulous and inscrutable forces of the Shadowfell or from other regions of supernatural darkness. You might trace your lineage to an entity from such a place, or perhaps you were exposed to the sinister energy of a shadow dragon and were transformed by it. Your shadowy magic allows you to command darkness, undeath, and woe."
+			],
+			"subclassFeatures": [
+				"Shadow Spells|Sorcerer|XPHB|Shadow Sorcery|RHW|3",
+				"Power of Shadow|Sorcerer|XPHB|Shadow Sorcery|RHW|3",
+				"Beasts of Ill Omen|Sorcerer|XPHB|Shadow Sorcery|RHW|6",
+				"Shadow Walk|Sorcerer|XPHB|Shadow Sorcery|RHW|14",
+				"Umbral Form|Sorcerer|XPHB|Shadow Sorcery|RHW|18"
+			]
+		},
+		{
+			"name": "Skinshifter",
+			"shortName": "Skinshifter",
+			"source": "HGtMH",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"entries": [
+				"Whether it be some distant doppelganger heritage or over-exposure to biomantic magic, your body thrums with the potential for change Though you may try to channel that power into those around you, the magic that inoculates your body is just as likely to change you, transforming your form into a myriad of magical morphs. Will you end up with two left feet and paper-thin skin, or rake through your enemies with toxic claws as spells bounce off of your reflective carapace?"
+			],
+			"subclassFeatures": [
+				"Skinshifter Magic|Sorcerer|XPHB|Skinshifter|HGtMH|1",
+				"Skinshift|Sorcerer|XPHB|Skinshifter|HGtMH|1",
+				"Selective Shift|Sorcerer|XPHB|Skinshifter|HGtMH|6",
+				"Reactive Mutations|Sorcerer|XPHB|Skinshifter|HGtMH|14",
+				"Shapeshift|Sorcerer|XPHB|Skinshifter|HGtMH|18"
+			]
+		},
+		{
+			"name": "Wretched Bloodline Sorcery",
+			"shortName": "Wretched Bloodline",
+			"source": "GH:PG'24",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"page": 96,
+			"entries": [
+				"Wield Your Curse Like a Weapon",
+				"With every promise whispered to a fairy, every contract signed with a devil, and every pact made with the dead, there's a chance someone doesn't keep their end of the bargain. The vengeance of immortal beings lasts much longer than one lifetime, and the lingering magic of these curses can affect the mortal's descendants.",
+				"These inherited magical afflictions may manifest as a plague, deformity, or aversion to the sun. In such families, children may be born who learn to master the latent magic within their inherited curses, turning their banes into personal boons—these sorcerers are known collectively as the Wretched."
+			],
+			"subclassFeatures": [
+				"Bad Luck Charm|Sorcerer|XPHB|Wretched Bloodline|GH:PG'24|3",
+				"Blood Ties|Sorcerer|XPHB|Wretched Bloodline|GH:PG'24|3",
+				"Wretched Curse|Sorcerer|XPHB|Wretched Bloodline|GH:PG'24|3",
+				"Share the Burden|Sorcerer|XPHB|Wretched Bloodline|GH:PG'24|6",
+				"Terrifying Visage|Sorcerer|XPHB|Wretched Bloodline|GH:PG'24|14",
+				"Vengeful Summons|Sorcerer|XPHB|Wretched Bloodline|GH:PG'24|18"
+			]
 		}
 	],
 	"classFeature": [
@@ -2517,6 +2693,898 @@
 			"entries": [
 				"Immediately after you cast a Sorcerer spell with a spell slot, you can create an effect of your choice from the {@table Wild Magic Surge|XPHB} table instead of rolling on that table. You can choose any effect in the table except for the final row, and if the chosen effect involves a roll, you must make it.",
 				"Once you use this feature, you can't do so again until you finish a {@variantrule Long Rest|XPHB}."
+			]
+		},
+		{
+			"name": "Apocalyptic Spells",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Apocalypse",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 94,
+			"entries": [
+				"When you reach a sorcerer level specified in the Apocalyptic Spells table, you thereafter always have the listed spells prepared. Apocalyptic SpellsSorcerer Level\tSpells 3\tAugury, Comprehend Languages, Hellish Rebuke, Ray of Enfeeblement 5\tBestow Curse, Revivify 7\tBanishment, Divination 9\tContagion, Insect Plague"
+			]
+		},
+		{
+			"name": "Unhinged Asservations",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Apocalypse",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 94,
+			"entries": [
+				"You are obsessed with documenting your visions. You gain proficiency with Calligrapher's Supplies and you can create Spell Scrolls in half the time and at half the cost in GP.",
+				"In addition, when you create a Spell Scroll, you can ensorcell it. When you ensorcell a Spell Scroll, you must expend a spell slot equal to or greater than the spell's level and you can spend Sorcery Points to apply one of your Metamagic options. Any creature that knows at least one language can use your ensorcelled Spell Scroll, which casts the spell with the benefit of the Metamagic option you chose. The Spell Scroll remains ensorcelled until it is used or you finish a Long Rest. Clockwork Sorcery PHB'24 p146",
+				"Channel Cosmic Forces of Order",
+				"The cosmic force of order has suffused you with magic. That power arises from Mechanus or a realm like it—a plane of existence shaped entirely by clockwork efficiency. You or someone from your lineage might have become entangled in the machinations of modrons, the orderly beings who inhabit Mechanus. Perhaps your ancestor even took part in the Great Modron March. Whatever its origin within you, the power of order can seem strange to others, but for you, it's part of a vast and glorious system. Level 3: Clockwork Spells PHB'24 p146",
+				"When you reach a Sorcerer level specified in the Clockwork Spells table, you thereafter always have the listed spells prepared. Clockwork SpellsSorcerer Level\tSpells 3rd\tAid, Alarm, Lesser Restoration, Protection from Evil and Good 5th\tDispel Magic, Protection From Energy 7th\tFreedom of Movement, Summon Construct 9th\tGreater Restoration, Wall of Force",
+				"In addition, consult the Manifestations of Order table and choose or randomly determine a way your connection to order manifests while you are casting any of your Sorcerer spells. Manifestations of Order1d6\tManifestation 1\tSpectral cogwheels hover behind you. 2\tThe hands of a clock spin in your eyes. 3\tYour skin glows with a brassy sheen. 4\tFloating equations and geometric objects overlay your body. 5\tYour Spellcasting Focus temporarily takes the form of a Tiny clockwork mechanism. 6\tThe ticking of gears or ringing of a clock can be heard by you and those affected by your magic. Level 3: Restore Balance PHB'24 p146",
+				"Your connection to the plane of absolute order allows you to equalize chaotic moments. When a creature you can see within 60 feet of yourself is about to roll a d20 with Advantage or Disadvantage, you can take a Reaction to prevent the roll from being affected by Advantage and Disadvantage.",
+				"You can use this feature a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Bear Witness",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Apocalypse",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"source": "GH:PG'24",
+			"page": 94,
+			"entries": [
+				"You have prepared your entire life for the end of the world. While your Innate Sorcery feature is active, you gain the following benefits.",
+				"Apocalyptic Inurement. You have Resistance to Force damage.",
+				"Recite Scripture. Once per active Innate Sorcery, as a Bonus Action you can use a Spell Scroll that has a spell with a casting time of Action.",
+				"Unflappable. You are Immune to the Frightened condition."
+			]
+		},
+		{
+			"name": "Arcane Apocrypha",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Apocalypse",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"source": "GH:PG'24",
+			"page": 94,
+			"entries": [
+				"Your obsessive reflections on the end of existence inspire your writing. Whenever you finish a Long Rest, you can create one Spell Scroll at no cost. It must be a spell of level 5 or lower that you can cast. This Spell Scroll disintegrates when you finish a Long Rest. Clockwork Sorcery: Level 6: Bastion of Law PHB'24 p147",
+				"You can tap into the grand equation of existence to imbue a creature with a shimmering shield of order. As a Magic action, you can expend 1 to 5 Sorcery Points to create a magical ward around yourself or another creature you can see within 30 feet of yourself. The ward is represented by a number of d8s equal to the number of Sorcery Points spent to create it. When the warded creature takes damage, it can expend a number of those dice, roll them, and reduce the damage taken by the total rolled on those dice.",
+				"The ward lasts until you finish a Long Rest or until you use this feature again."
+			]
+		},
+		{
+			"name": "Forbidden Magic",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Apocalypse",
+			"subclassSource": "GH:PG'24",
+			"level": 14,
+			"source": "GH:PG'24",
+			"page": 94,
+			"entries": [
+				"The end of Etharis is a time when magic is unbound and magical powers long hidden are unearthed. When you cast a Sorcerer spell using a spell slot, you can choose one option below.",
+				"Excessive. If the spell requires a Material component with a cost, you can cast the spell without the Material component. You take Force damage equal to four times the level of the spell slot immediately after you cast it. This damage ignores Resistance and Immunity",
+				"Inexorable. Taking damage can't break your Concentration on the spell. When the spell ends, you gain 1 Exhaustion level.",
+				"Pyrrhic. If the spell requires an attack roll, the spell automatically hits and the attack roll is a Critical Hit. Your Hit Point maximum is reduced by an amount equal to four times the level of the spell slot immediately after you cast it. When you finish a Long Rest, your Hit Point maximum returns to normal. Clockwork Sorcery: Level 14: Trance of Order PHB'24 p147",
+				"You gain the ability to align your consciousness with the endless calculations of Mechanus. As a Bonus Action, you can enter this state for 1 minute. For the duration, attack rolls against you can't benefit from Advantage, and whenever you make a D20 Test, you can treat a roll of 9 or lower on the d20 as a 10.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest unless you spend 5 Sorcery Points (no action required) to restore your use of it."
+			]
+		},
+		{
+			"name": "The End is Nigh",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Apocalypse",
+			"subclassSource": "GH:PG'24",
+			"level": 18,
+			"source": "GH:PG'24",
+			"page": 93,
+			"entries": [
+				"You loudly proclaim what will come to pass when the world ends. As a Magic action, you describe the end of days. When you do so, each creature of your choice in a 30-foot Emanation originating from you must make a Wisdom saving throw against your spell save DC. On a failed save, a creature takes 6d6 Psychic damage and 6d6 Force damage and has the Frightened condition for 1 minute. On a successful save, the creature takes half as much damage only. A Frightened creature can repeat the saving throw at the end of each of its turns, ending the Frightened condition on a successful save. If this damage reduces a creature to 0 Hit Points, the creature can be revived only by a True Resurrection or a Wish spell.",
+				"Once you use this feature, you can't do so again until you finish a Long Rest unless you spend 6 Sorcery Points (no action required) to restore your use of it. Clockwork Sorcery: Level 18: Clockwork Cavalcade PHB'24 p147",
+				"You momentarily summon spirits of order to expunge disorder around you. As a Magic action, you summon the spirits in a 30-foot Cube originating from you. The spirits look like modrons or other Constructs of your choice. The spirits are intangible and invulnerable, and they create the effects below within the Cube before vanishing. Once you use this action, you can't use it again until you finish a Long Rest unless you spend 7 Sorcery Points (no action required) to restore your use of it.",
+				"Heal. The spirits restore up to 100 Hit Points, divided as you choose among any number of creatures of your choice in the Cube.",
+				"Repair. Any damaged objects entirely in the Cube are repaired instantly.",
+				"Dispel. Every spell of level 6 and lower ends on creatures and objects of your choice in the Cube."
+			]
+		},
+		{
+			"name": "Blood Well",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Crimson",
+			"subclassSource": "TCM'24",
+			"level": 3,
+			"source": "TCM'24",
+			"page": 88,
+			"entries": [
+				"You hold a reserve of vital energy called your Blood Well, which you can use to empower your magic and fuel other powers from this subclass. When you deal damage or restore Hit Points to a creature, you can expend your Blood Well to add 1d8 to the total for one target.",
+				"You regain your expended Blood Well when you finish a Long Rest or when a creature takes 10 or more Necrotic damage from you at one time."
+			]
+		},
+		{
+			"name": "Crimson Spells",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Crimson",
+			"subclassSource": "TCM'24",
+			"level": 3,
+			"source": "TCM'24",
+			"page": 88,
+			"entries": [
+				"When you reach a Sorcerer level specified in the Crimson Spells table, you thereafter always have the listed spells prepared. Crimson SpellsSorcerer Level\tSpells 3\tAid, Blood Bolt, Cure Wounds, Inflict Wounds, Blood Sacrifice 5\tCrimson Harvest, Vampiric Touch 7\tDeath Ward, Sacrificial Siphon 9\tField of Reaping, Mass Cure Wounds"
+			]
+		},
+		{
+			"name": "Pool of Blood",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Crimson",
+			"subclassSource": "TCM'24",
+			"level": 6,
+			"source": "TCM'24",
+			"page": 89,
+			"entries": [
+				"As a Bonus Action, you can expend your Blood Well to magically dissolve into a pool of blood, along with everything you're wearing or carrying, for 1 hour. The transformation ends early if you drop to 0 Hit Points or if you choose to end it (no action required).",
+				"While you are a pool of blood, you use your game statistics with the following changes.",
+				"Your Speed becomes 10 feet.",
+				"You gain Climb and Swim Speeds equal to your Speed, and you can climb difficult surfaces, including along ceilings, without needing to make an ability check.",
+				"You have Resistance to Bludgeoning, Piercing, and Slashing damage.",
+				"You have Immunity to the Prone condition.",
+				"You have Advantage on Strength, Dexterity, and Constitution saving throws.",
+				"You can pass through small holes, narrow openings, and even mere cracks.",
+				"You can enter and occupy the space of another creature.",
+				"You can't drop, use, or otherwise interact with anything you were carrying or holding.",
+				"You can't talk, manipulate objects, attack, or cast spells."
+			]
+		},
+		{
+			"name": "Scarlet Vigor",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Crimson",
+			"subclassSource": "TCM'24",
+			"level": 6,
+			"source": "TCM'24",
+			"page": 89,
+			"entries": [
+				"You have Resistance to Necrotic damage. In addition, when you finish a Short Rest, you can expend your Blood Well to reduce your Exhaustion level, if any, by 1."
+			]
+		},
+		{
+			"name": "Vital Siphoning",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Crimson",
+			"subclassSource": "TCM'24",
+			"level": 14,
+			"source": "TCM'24",
+			"page": 89,
+			"entries": [
+				"You can feed on your own life essence to fuel your magic. As a Bonus Action, you can expend a Hit Points Die and choose one of the following benefits.",
+				"Blood Boil. You regain the use of your Blood Well.",
+				"Crimson Pulse. Expend your Blood Well to make the next Metamagic option you use this turn cost no Sorcery Points."
+			]
+		},
+		{
+			"name": "Sanguine Feast",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Crimson",
+			"subclassSource": "TCM'24",
+			"level": 18,
+			"source": "TCM'24",
+			"page": 89,
+			"entries": [
+				"Your hunger for vital essence is unquenchable. As a Magic action, you can unleash tendrils of blood that lash any creatures of your choice within 30 feet of you. A target must make a Constitution saving throw, taking 5d8 Necrotic damage on a failed save, or half as much damage on a successful one. If your Blood Well is already expended when you use this action, the targets have Disadvantage on the saving throw. If at least one creature takes damage from Sanguine Feast, you regain a number of Hit Points equal to the damage roll.",
+				"Once you use this feature, you can't do so again until you finish a Long Rest, unless you spend 5 Sorcery Points to use it again. Variant: Bloodless Crimson Sorcerers",
+				"If you're playing a character from a species that lacks blood in the traditional sense, you can still take the Crimson Sorcery subclass. The essence of Crimson Sorcery is lifeforce, or animating energy that approximates life."
+			]
+		},
+		{
+			"name": "Delerium Spells",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Delerium Soul",
+			"subclassSource": "SCGtD",
+			"level": 1,
+			"source": "SCGtD",
+			"page": 171,
+			"entries": [
+				"Imbued with the eldritch power of delerium, your magic is fundamentally contaminated. You learn additional spells when you reach certain levels in this class, as shown on the Delerium Spells table. Each of these spells counts as a sorcerer spell for you, but it doesn't count against the number of sorcerer spells you know.",
+				"Whenever you gain a sorcerer level, you can replace one spell you gained from this feature with another spell of the same level. The new spell must be a contaminated spell. Delerium Soul SpellsSorcerer Level\tSpells 1st\tcomet shards, feather fall 3rd\tcontrolled mutation, grasping ghost 5th\tvanish to the space between worlds, weave the elder sign 7th\tsiphon time, summon delerium elemental 9th\tcontaminated hands, wall of force"
+			]
+		},
+		{
+			"name": "Mutant Manifestation",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Delerium Soul",
+			"subclassSource": "SCGtD",
+			"level": 1,
+			"source": "SCGtD",
+			"page": 171,
+			"entries": [
+				"When you finish a long rest, you can choose to roll twice on the Mutations table (see page 231), and must select one of the results. You gain that mutation, which remains until you finish a long rest, even if you don't currently have any contamination levels."
+			]
+		},
+		{
+			"name": "Contaminated Sorcery",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Delerium Soul",
+			"subclassSource": "SCGtD",
+			"level": 6,
+			"source": "SCGtD",
+			"page": 171,
+			"entries": [
+				"When you cast a contaminated spell, you can cast it by expending a spell slot as normal or by spending a number of sorcery points equal to the spell's level. If you cast the spell using sorcery points, you don't gain a Contamination Level by casting the spell, and if the spell requires delerium as a material component, it is not consumed by the spell. In addition, casting a contaminated spell in this manner immediately causes an Arcane Anomaly (see page 233)."
+			]
+		},
+		{
+			"name": "Incomprehensible Arcana",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Delerium Soul",
+			"subclassSource": "SCGtD",
+			"level": 14,
+			"source": "SCGtD",
+			"page": 171,
+			"entries": [
+				"You can tap into contaminated energy to cast a spell you do not know. You can cast any spell from any class spell list. The spell must be of a level for which you have spell slots, and you must expend a spell slot as normal. Casting the spell uses the spell's normal casting time, and if the spell has material components, you must provide those components as normal. As part of casting the spell, but before the spell takes effect, you gain a number of Contamination Levels equal to half the spell's level, rounded down (minimum of one). You can't prevent or reduce these Contamination Levels by any means, but you can remove them as normal."
+			]
+		},
+		{
+			"name": "Chaos Theory",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Delerium Soul",
+			"subclassSource": "SCGtD",
+			"level": 18,
+			"source": "SCGtD",
+			"page": 171,
+			"entries": [
+				"Once per turn when you make an attack roll, ability check, or saving throw, you can choose to trigger an Arcane Anomaly (see page 233). If you do, you make that roll with advantage. You can use this feature a number of times equal to your Charisma modifier (minimum once). You regain all expended uses when you finish a long rest."
+			]
+		},
+		{
+			"name": "Dunetreader",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Desert Soul",
+			"subclassSource": "TGS2",
+			"level": 1,
+			"source": "TGS2",
+			"page": 225,
+			"entries": [
+				"Starting when you choose this origin at 1st level, you ignore difficult terrain created by sand, and you can tolerate temperatures as high as 150 degrees Fahrenheit without any additional protection."
+			]
+		},
+		{
+			"name": "Sandstorm",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Desert Soul",
+			"subclassSource": "TGS2",
+			"level": 1,
+			"source": "TGS2",
+			"page": 225,
+			"entries": [
+				"Starting at 1st level, you can cause the magical sandstorm within you to manifest as a nearby twister. When you cast a spell of 1st level or higher on your turn, you can use a bonus action to create this storm in a 5-foot cube in a space you can see within 30 feet of you. A Large or smaller creature in the area must succeed on a Strength saving throw against your sorcerer spell save DC. A creature that fails the saving throw is pushed up to 10 feet in a direction of your choice if it's Medium or smaller, or 5 feet if it's Large.",
+				"When you reach 6th level in this class, a creature that fails this saving throw also takes either 1d8 bludgeoning damage or 1d8 fire damage (your choice). The damage increases when you reach certain levels in this class, increasing to 2d8 at 14th level, and 3d8 at 18th level. Divine Soul XGE p50",
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"Sometimes the spark of magic that fuels a sorcerer comes from a divine source that glimmers within the soul. Having such a blessed soul is a sign that your innate magic might come from a distant but powerful familial connection to a divine being. Perhaps your ancestor was an angel, transformed into a mortal and sent to fight in a god's name.",
+				"Or your birth might align with an ancient prophecy, marking you as a servant of the gods or a chosen vessel of divine magic.",
+				"A Divine Soul, with a natural magnetism, is seen as a threat by some religious hierarchies. As an outsider who commands sacred power, a Divine Soul can undermine an existing order by claiming a direct tie to the divine.",
+				"In some cultures, only those who can claim the power of a Divine Soul may command religious power. In these lands, ecclesiastical positions are dominated by a few bloodlines and preserved over generations. Divine Magic XGE p50",
+				"Your link to the divine allows you to learn spells from the cleric class. When your Spellcasting feature lets you learn or replace a sorcerer cantrip or a sorcerer spell of 1st level or higher, you can choose the new spell from the cleric spell list or the sorcerer spell list. You must otherwise obey all the restrictions for selecting the spell, and it becomes a sorcerer spell for you.",
+				"In addition, choose an affinity for the source of your divine power: good, evil, law, chaos, or neutrality. You learn an additional spell based on that affinity, as shown below. It is a sorcerer spell for you, but it doesn't count against your number of sorcerer spells known. If you later replace this spell, you must replace it with a spell from the cleric spell list. Affinity\tSpell Good\tcure wounds Evil\tinflict wounds Law\tbless Chaos\tbane Neutrality\tprotection from evil and good Favored by the Gods XGE p50",
+				"Starting at 1st level, divine power guards your destiny. If you fail a saving throw or miss with an attack roll, you can roll 2d4 and add it to the total, possibly changing the outcome. Once you use this feature, you can't use it again until you finish a short or long rest. Draconic Sorcery PHB'24 p148",
+				"Breathe the Magic of Dragons",
+				"Your innate magic comes from the gift of a dragon. Perhaps an ancient dragon facing death bequeathed some of its magical power to you or your ancestor. You might have absorbed magic from a site infused with dragons' power. Or perhaps you handled a treasure taken from a dragon's hoard that was steeped in draconic power. Or you might have a dragon for an ancestor. Level 3: Draconic Resilience PHB'24 p148",
+				"The magic in your body manifests physical traits of your draconic gift. Your Hit Point maximum increases by 3, and it increases by 1 whenever you gain another Sorcerer level.",
+				"Parts of you are also covered by dragon-like scales. While you aren't wearing armor, your base Armor Class equals 10 plus your Dexterity and Charisma modifiers. Level 3: Draconic Spells PHB'24 p148",
+				"When you reach a Sorcerer level specified in the Draconic Spells table, you thereafter always have the listed spells prepared. Draconic SpellsSorcerer Level\tSpells 3rd\tAlter Self, Chromatic Orb, Command, Dragon's Breath 5th\tFear, Fly 7th\tArcane Eye, Charm Monster 9th\tLegend Lore, Summon Dragon"
+			]
+		},
+		{
+			"name": "Mirage",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Desert Soul",
+			"subclassSource": "TGS2",
+			"level": 6,
+			"source": "TGS2",
+			"page": 225,
+			"entries": [
+				"At 6th level, you learn the mirror image spell. If you already know this spell, you learn a different sorcerer spell of your choice. The spell doesn't count against your number of spells known. You can cast it by spending 2 sorcery points or by expending a spell slot. If you cast it with sorcery points, any creature within 10 feet of you that destroys one of the spell's illusions takes fire damage equal to half your sorcerer level, as the illusion bursts into a wave of scalding air and sand. Divine Soul: Empowered Healing XGE p50",
+				"Starting at 6th level, the divine energy coursing through you can empower healing spells. Whenever you or an ally within 5 feet of you rolls dice to determine the number of hit points a spell restores, you can spend 1 sorcery point to reroll any number of those dice once, provided you aren't incapacitated. You can use this feature only once per turn. Draconic Sorcery: Level 6: Elemental Affinity PHB'24 p148",
+				"Your draconic magic has an affinity with a damage type associated with dragons. Choose one of those types: Acid, Cold, Fire, Lightning, or Poison.",
+				"You have Resistance to that damage type, and when you cast a spell that deals damage of that type, you can add your Charisma modifier to one damage roll of that spell."
+			]
+		},
+		{
+			"name": "Desert Nomad",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Desert Soul",
+			"subclassSource": "TGS2",
+			"level": 14,
+			"source": "TGS2",
+			"page": 225,
+			"entries": [
+				"Beginning at 14th level, you have the ability to step into the heart of the twisters you create. Immediately after a creature is pushed by your Sandstorm feature, you can spend 2 sorcery points to teleport to the storm's space. You can also teleport in this way if you create the storm in a space that is unoccupied. When you teleport in this way, you and any equipment you are wearing or carrying are invisible until the end of your turn. Divine Soul: Otherworldly Wings XGE p50",
+				"Starting at 14th level, you can use a bonus action to manifest a pair of spectral wings from your back. While the wings are present, you have a flying speed of 30 feet. The wings last until you're incapacitated, you die, or you dismiss them as a bonus action.",
+				"The affinity you chose for your Divine Magic feature determines the appearance of the spectral wings: eagle wings for good or law, bat wings for evil or chaos, and dragonfly wings for neutrality. Draconic Sorcery: Level 14: Dragon Wings PHB'24 p148",
+				"As a Bonus Action, you can cause draconic wings to appear on your back. The wings last for 1 hour or until you dismiss them (no action required). For the duration, you have a Fly Speed of 60 feet.",
+				"Once you use this feature, you can't use it again until you finish a Long Rest unless you spend 3 Sorcery Points (no action required) to restore your use of it."
+			]
+		},
+		{
+			"name": "Sand Form",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Desert Soul",
+			"subclassSource": "TGS2",
+			"level": 18,
+			"source": "TGS2",
+			"page": 225,
+			"entries": [
+				"At 18th level, you can become as intangible as sand. You can spend 5 sorcery points as a bonus action to magically transform yourself into a sand-like form. In this form, you have the following benefits:",
+				"You can't be grappled.",
+				"You and any equipment you are wearing or carrying can move through a space as narrow as 1 inch without squeezing.",
+				"You can move through the space of any creature, regardless of its size, and difficult terrain doesn't cost you extra movement.",
+				"In addition, when an attacker that you can see hits you with an attack, you can use your reaction to turn to sand. Until the end of that turn, you have resistance to all damage, including against the triggering attack.",
+				"You remain in this form for 1 minute. It ends early if you are incapacitated, if you die, or if you dismiss it as a bonus action. Divine Soul: Unearthly Recovery XGE p50",
+				"At 18th level, you gain the ability to overcome grievous injuries. As a bonus action when you have fewer than half of your hit points remaining, you can regain a number of hit points equal to half your hit point maximum.",
+				"Once you use this feature, you can't use it again until you finish a long rest. Draconic Sorcery: Level 18: Dragon Companion PHB'24 p148",
+				"You can cast Summon Dragon without a Material component. You can also cast it once without a spell slot, and you regain the ability to cast it in this way when you finish a Long Rest.",
+				"Whenever you start casting the spell, you can modify it so that it doesn't require Concentration. If you do so, the spell's duration becomes 1 minute for that casting."
+			]
+		},
+		{
+			"name": "Haunted Spells",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Haunted",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 95,
+			"entries": [
+				"When you reach a sorcerer level specified in the Haunted Spells table, you thereafter always have the listed spells prepared. Haunted SpellsSorcerer Level\tSpells 3\tBane, Chill Touch, Invisibility, See Invisibility, Unseen Servant 5\tFly, Speak with Dead 7\tDeath Ward, Greater Invisibility 9\tLittle Death, Telekinesis"
+			]
+		},
+		{
+			"name": "Sixth Sense",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Haunted",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 95,
+			"entries": [
+				"When you roll Initiative, you can add your Charisma modifier to the roll."
+			]
+		},
+		{
+			"name": "Phantom Companion",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Haunted",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 95,
+			"entries": [
+				"You learn the Find Familiar spell and can cast it as a Magic action without expending a spell slot.",
+				"The familiar takes the form of a Specter, though it is an Undead instead of a Celestial, Fey, or Fiend. As a Magic action, you can command your phantom companion to gain the Invisible condition until it attacks or you cast a spell through it. While Invisible, it leaves no physical evidence of its passage and can be tracked only by magic. Any equipment or objects it is holding remains visible.",
+				"Additionally, when you take the Attack action, you can forgo one of your own attacks to allow your familiar to make its Life Drain attack with its Reaction. Lunar Sorcery DSotDQ p34",
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"On many worlds, the moon is a revered celestial body with magical properties. On Krynn, the gods of magic are associated with the world's three moons. On the world of Toril, the god Selûne uses the light of the moon to battle darkness. On Eberron, scholars of the Draconic Prophecy decipher ancient secrets from the waxing and waning of that world's twelve moons.",
+				"You or someone from your lineage has been exposed to the concentrated magic of the moon (or moons) of your world, imbuing you with lunar magic. Perhaps your ancestor was involved in a druidic ritual involving an eclipse, or maybe a mystical fragment of a moon crashed near you. However you came to have your magic, your connection to the moon is obvious when you cast sorcerer spells—perhaps making your pupils glow with the color of a moon from your world, causing spectral manifestations of lunar phases to orbit you, or some other effect. Lunar Embodiment DSotDQ p34",
+				"1st-Level Lunar Sorcery Feature",
+				"You learn additional spells when you reach certain levels in this class, as shown on the Lunar Spells table. Each of these spells counts as a sorcerer spell for you, but it doesn't count against the number of sorcerer spells you know. Lunar SpellsSorcerer Level\tFull Moon Spell\tNew Moon Spell\tCrescent Moon Spell 1st\tshield\tray of sickness\tcolor spray 3rd\tlesser restoration\tblindness/deafness\talter self 5th\tdispel magic\tvampiric touch\tphantom steed 7th\tdeath ward\tconfusion\thallucinatory terrain 9th\tRary's telepathic bond\thold monster\tmislead",
+				"Whenever you finish a long rest, you can choose what lunar phase manifests its power through your magic: Full Moon, New Moon, or Crescent Moon. While in the chosen phase, you can cast one 1st-level spell of the associated phase in the Lunar Spells table once without expending a spell slot. Once you cast a spell in this way, you can't do so again until you finish a long rest. Moon Fire DSotDQ p34",
+				"1st-Level Lunar Sorcery Feature",
+				"You can call down the radiant light of the moon on command. You learn the sacred flame spell, which doesn't count against the number of sorcerer cantrips you know. When you cast the spell, you can target one creature as normal or target two creatures within range that are within 5 feet of each other."
+			]
+		},
+		{
+			"name": "Strength of Spirit",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Haunted",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"source": "GH:PG'24",
+			"page": 95,
+			"entries": [
+				"Your bond with your phantom companion empowers it. You gain the following benefits:",
+				"Your familiar's Hit Point maximum increases by four times your Sorcerer level.",
+				"You can cast spells as if you were in the familiar's space.",
+				"When you use your action to cast a spell, you can use a Bonus Action to command your phantom companion to use its Life Drain attack with its Reaction."
+			]
+		},
+		{
+			"name": "Deathly Pallor",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Haunted",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"source": "GH:PG'24",
+			"page": 96,
+			"entries": [
+				"You have Resistance to Necrotic damage, and when you cast a Sorcerer spell that deals damage, it can deal your choice of Necrotic damage or its normal damage type. Lunar Sorcery: Lunar Boons DSotDQ p34",
+				"6th-Level Lunar Sorcery Feature",
+				"The current phase of your Lunar Embodiment can affect your Metamagic feature. Each Lunar Embodiment phase is associated with certain schools of magic, as shown here:",
+				"Full Moon. Abjuration and divination spells",
+				"New Moon. Enchantment and necromancy spells",
+				"Crescent Moon. Illusion and transmutation spells",
+				"Whenever you use Metamagic on a spell of a school of magic associated with your current Lunar Embodiment phase, you can reduce the sorcery points spent by 1 (minimum 0). You can reduce the sorcery points spent for your Metamagic a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest. Lunar Sorcery: Waxing and Waning DSotDQ p35",
+				"6th-Level Lunar Sorcery Feature",
+				"You gain greater control over the phases of your lunar magic. As a bonus action, you can spend 1 sorcery point to change your current Lunar Embodiment phase to a different one.",
+				"You can now cast one 1st-level spell from each lunar phase of the Lunar Spells table once without expending a spell slot, provided your current phase is the same as the lunar phase spell. Once you cast a lunar phase spell in this way, you can't do so again until you finish a long rest."
+			]
+		},
+		{
+			"name": "Phantom Possession",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Haunted",
+			"subclassSource": "GH:PG'24",
+			"level": 14,
+			"source": "GH:PG'24",
+			"page": 96,
+			"entries": [
+				"As a Magic action, you can direct your phantom companion to possess a creature of your choice within 5 feet of your phantom. The target makes a Charisma saving throw against your spell save DC. On a failed save, your phantom companion enters the target's body for 1 minute. On a successful save, the target resists the efforts to possess it, and your familiar can't possess it again for 24 hours.",
+				"Once the phantom companion possesses a creature's body, it controls that creature. The familiar's Hit Points, Hit Point Dice, Strength, Dexterity, Constitution, Speed, and senses are replaced by the creature's. The phantom companion otherwise keeps its game statistics.",
+				"While the target is possessed, you have a telepathic link with your phantom companion as long as the two of you are within 100 feet. You can use this telepathic link to issue commands to your phantom companion (no action required) unless you have the Incapacitated condition. Your phantom companion does its best to obey on its turn. If it completes an order and doesn't receive further direction from you, the phantom companion acts and moves as it likes, focusing on protecting itself.",
+				"You can command the target to take a Reaction but must take your own Reaction to do so.",
+				"Whenever the target takes damage, it repeats the save, ending the possession on itself on a success, and your phantom companion reappears in the closest unoccupied space.",
+				"Once you use this feature, you can't do so again until you finish a Short or Long Rest. Lunar Sorcery: Lunar Empowerment DSotDQ p35",
+				"14th-Level Lunar Sorcery Feature",
+				"The power of a lunar phase saturates your being. While you are in a Lunar Embodiment phase, you also gain the following benefit associated with that phase:",
+				"Full Moon. You can use a bonus action to shed bright light in a 10-foot radius and dim light for an additional 10 feet or to douse the light. In addition, you and creatures of your choice have advantage on Intelligence (Investigation) and Wisdom (Perception) checks while within the bright light you shed.",
+				"New Moon. You have advantage on Dexterity (Stealth) checks. In addition, while you are entirely in darkness, attack rolls have disadvantage against you.",
+				"Crescent Moon. You have resistance to necrotic and radiant damage."
+			]
+		},
+		{
+			"name": "Become Death",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Haunted",
+			"subclassSource": "GH:PG'24",
+			"level": 18,
+			"source": "GH:PG'24",
+			"page": 96,
+			"entries": [
+				"You can transmute your physical form into a spectral one when near death. When you are reduced to 0 Hit Points and not killed outright, you can drop to 1 Hit Point instead and gain Temporary Hit Points equal to half your Hit Point maximum. At the start of each of your turns, you lose 10 Temporary Hit Points and creatures of your choice within 30 feet of you take 10 Necrotic damage. While you have Temporary Hit Points granted by this feature, you have Resistance to all damage, a Fly Speed of 30 feet, can Hover, and you can move through occupied spaces as if they were Difficult Terrain. If you end your turn in such a space, you are shunted to the last unoccupied space you were in.",
+				"Once you use this feature, you can't do so again until you finish a Long Rest. Lunar Sorcery: Lunar Phenomenon DSotDQ p35",
+				"18th-Level Lunar Sorcery feature",
+				"As a bonus action, you can tap into a special power of your current Lunar Embodiment phase. Alternatively, as part of the bonus action you take to change your lunar phase using the Waxing and Waning feature, you can immediately use the power of the lunar phase you are entering:",
+				"Full Moon. You radiate moonlight for a moment. Each creature of your choice within 30 feet of you must succeed on a Constitution saving throw against your spell save DC or be blinded until the end of its next turn. In addition, one creature of your choice in that area regains 3d8 hit points.",
+				"New Moon. You momentarily emanate gloom. Each creature of your choice within 30 feet of you must succeed on a Dexterity saving throw against your spell save DC or take 3d10 necrotic damage and have its speed reduced to 0 until the end of its next turn. In addition, you become invisible until the end of your next turn, or until immediately after you make an attack roll or cast a spell.",
+				"Crescent Moon. You can magically teleport to an unoccupied space you can see within 60 feet of yourself. You can bring along one willing creature you can see within 5 feet of yourself. That creature teleports to an unoccupied space of your choice that you can see within 5 feet of your destination space. In addition, you and that creature gain resistance to all damage until the start of your next turn.",
+				"Once you use one of these bonus action benefits, you can't use that benefit again until you finish a long rest, unless you spend 5 sorcery points to use it again."
+			]
+		},
+		{
+			"name": "Nemesis Spells",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Nemesis",
+			"subclassSource": "FoEQ",
+			"level": 3,
+			"source": "FoEQ",
+			"page": 153,
+			"entries": [
+				"When you reach a Sorcerer level specified in the Nemesis Spells table, you thereafter always have the listed spells prepared. Nemesis SpellsSorcerer Level\tPrepared Spells 3rd\tCompelled Duel, Mirror Image, See Invisibility, Shield 5th\tCounterspell, Slow 7th\tFire Shield, Otiluke's Resilient Sphere 9th\tCircle of Power, Mislead"
+			]
+		},
+		{
+			"name": "Readied Magic",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Nemesis",
+			"subclassSource": "FoEQ",
+			"level": 3,
+			"source": "FoEQ",
+			"page": 154,
+			"entries": [
+				"You have learned to hold back your magical power, prepared to unleash it when the time is just right. If you use an Action to Ready a spell, you have Advantage on saving throws and ability checks until the start of your next turn. Additionally, if the trigger for your readied spell occurs, you can cast the readied spell without using your Reaction.",
+				"If the trigger does not resolve, if you choose not to act on the trigger, or if you lose Concentration on the spell, you gain a number of Sorcery Points equal to the spell's level at the start of your next turn. You still expend the spell slot as normal. Pyromancer (PSK) PSK p9",
+				"This subclass was published on February 15th, 2017.",
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"Your innate magic manifests in fire. You are your fire, and your fire is you. Heart of Fire PSK p9",
+				"At 1st level, whenever you start casting a spell of 1st level or higher that deals fire damage, fiery magic erupts from you. This eruption causes creatures of your choice that you can see within 10 feet of you to take fire damage equal to half your sorcerer level (minimum of 1)."
+			]
+		},
+		{
+			"name": "Spell Deflection",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Nemesis",
+			"subclassSource": "FoEQ",
+			"level": 6,
+			"source": "FoEQ",
+			"page": 154,
+			"entries": [
+				"When you take damage from a spell or other magical effect, you can use your Reaction to halve the spell's damage against you. Pyromancer (PSK): Fire in the Veins PSK p9",
+				"At 6th level, you gain resistance to fire damage. In addition, spells you cast ignore resistance to fire damage."
+			]
+		},
+		{
+			"name": "Always Ready",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Nemesis",
+			"subclassSource": "FoEQ",
+			"level": 14,
+			"source": "FoEQ",
+			"page": 154,
+			"entries": [
+				"You always have your next spell dancing on the tip of your tongue. You can use a Bonus Action to Ready a spell as if you had used your Action to do so. If you expend a spell slot when you ready a spell in this way, it does not count against the usual limit of only one spell slot expended to cast a spell per turn.",
+				"Once you use this feature, you can't use it again until you finish a Short or Long Rest unless you spend 4 Sorcery Points (no action required) to restore your use of it. Pyromancer (PSK): Pyromancer's Fury PSK p9",
+				"Starting at 14th level, when you are hit by a melee attack, you can use your reaction to deal fire damage to the attacker. The damage equals your sorcerer level, and ignores resistance to fire damage."
+			]
+		},
+		{
+			"name": "Mindset of Perfect Prediction",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Nemesis",
+			"subclassSource": "FoEQ",
+			"level": 18,
+			"source": "FoEQ",
+			"page": 154,
+			"entries": [
+				"You have learned to enter a focused state of mind. As an Action, you can activate your mindset of perfect prediction, gaining the benefits below. At the end of each of your turns, starting on the turn after you activated your mindset, you must make a Charisma saving throw (DC 8 plus your Charisma modifier and Proficiency Bonus). On a failed save, your mindset ends. If you are Concentrating on multiple spells when your mindset ends, you can choose one spell to maintain. The rest of the spells end as if your Concentration had been broken. Once you use this feature, you can't use it again until you finish a Long Rest.",
+				"Quickened Mind. When rolling Initiative, you may instead choose an Initiative count of 31.",
+				"Expansive Mind. You can concentrate on any number of spells simultaneously. If you are forced to make a saving throw to maintain Concentration while you are Concentrating on multiple spells, you make only a single Constitution saving throw. On a failed save, your Concentration breaks on all spells.",
+				"Predictive Mind. You have Counterspell prepared. You can cast it as a 6th-level spell without expending a spell slot. Pyromancer (PSK): Fiery Soul PSK p9",
+				"At 18th level, you gain immunity to fire damage. In addition, any spell or effect you create ignores resistance to fire damage and treats immunity to fire damage as resistance to fire damage."
+			]
+		},
+		{
+			"name": "Shadow Spells",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Shadow Sorcery",
+			"subclassSource": "RHW",
+			"level": 3,
+			"source": "RHW",
+			"entries": [
+				"When you reach a Sorcerer level specified in the Shadow Spells table, you thereafter always have the listed spells prepared. Shadow SpellsSorcerer Level\tSpells 3\tBane, Darkness, Inflict Wounds, Pass Without Trace 5\tHunger of Hadar, Nondetection 7\tGreater Invisibility, Phantasmal Killer 9\tContagion, Creation"
+			]
+		},
+		{
+			"name": "Power of Shadow",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Shadow Sorcery",
+			"subclassSource": "RHW",
+			"level": 3,
+			"source": "RHW",
+			"entries": [
+				"You gain the following benefits.",
+				"Eyes of the Dark. You have Darkvision with a range of 120 feet and Blindsight with a range of 10 feet. In addition, if a spell you cast creates an area of Darkness, you can see normally through that spell's Darkness.",
+				"Strength of the Grave. If you would drop to 0 Hit Points and not die outright, you can make a Charisma saving throw (DC 5 plus the damage taken). On a successful save, your Hit Points instead change to a number equal to your Charisma modifier plus your Sorcerer level. After you succeed on this save, you can't use this benefit again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Beasts of Ill Omen",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Shadow Sorcery",
+			"subclassSource": "RHW",
+			"level": 6,
+			"source": "RHW",
+			"entries": [
+				"You can call forth a howling creature of shadow to hound your foes. You can spend 3 Sorcery Points to cast Summon Beast as a Bonus Action without expending a spell slot, without preparing the spell, and without Material components. The summoned creature appears as a beast made of shadow, and enemies within 5 feet of the summoned creature have Disadvantage on saving throws against spells you cast.",
+				"Whenever you cast the spell, you can modify it so that it doesn't require Concentration. If you do so, the spell's duration becomes 1 minute for that casting, and the spell ends early if you cast the spell again."
+			]
+		},
+		{
+			"name": "Shadow Walk",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Shadow Sorcery",
+			"subclassSource": "RHW",
+			"level": 14,
+			"source": "RHW",
+			"entries": [
+				"While you are in Dim Light or Darkness, you can take a Bonus Action to teleport up to 120 feet to an unoccupied space you can see that is also in Dim Light or Darkness."
+			]
+		},
+		{
+			"name": "Umbral Form",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Shadow Sorcery",
+			"subclassSource": "RHW",
+			"level": 18,
+			"source": "RHW",
+			"entries": [
+				"When you use Innate Sorcery, you can adopt a shadowy form, gaining the benefits below while your Innate Sorcery is active or until you end the form (no action required). Once you use this feature, you can't use it again until you finish a Long Rest unless you spend 6 Sorcery Points (no action required) to restore your use of it.",
+				"Incorporeal Movement. You can move through creatures and objects as if they were Difficult Terrain, but you take 1d10 Force damage if you end your turn inside a creature or an object.",
+				"Shadow Resilience. You have Resistance to all damage except Force and Radiant damage."
+			]
+		},
+		{
+			"name": "Skinshifter Magic",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Skinshifter",
+			"subclassSource": "HGtMH",
+			"level": 1,
+			"source": "HGtMH",
+			"entries": [
+				"You learn additional spells when you reach certain levels in this class, as shown on the Skinshifter Spells table Each of these spells counts as a sorcerer spell for you, but it doesn't count against the number of sorcerer spells you know.",
+				"Whenever you gain a sorcerer level, you can replace one spell you gained from this feature with another spell of the same level The new spell must be a biomancy or transmutation spell from the sorcerer, warlock, or wizard spell lists. Skinshifter SpellsSorcerer Level\tSpells 1st\tchameleon skin, inflict wounds 3rd\tbarkskin, protection from poison 5th\tvampiric touch, zippit! 7th\tfreedom of movement, frogskin 9th\tfeverskin, greater restoration"
+			]
+		},
+		{
+			"name": "Skinshift",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Skinshifter",
+			"subclassSource": "HGtMH",
+			"level": 1,
+			"source": "HGtMH",
+			"entries": [
+				"Your spellcasting stimulates the latent changeability of your body. Immediately after you cast a sorcerer spell of 1st level or higher, roll a d20 If the result is equal to or lower than one-third of your sorcerer level (minimum 1), roll on the Skinshift Adaptations table to magically alter your body in a random way until the end of your next turn. Immediately after you roll on this table, you can spend 1 sorcery point (no action required) to extend the duration of the effect to 10 minutes. If an effect calls for a saving throw, the DC equals your sorcerer spell save DC.",
+				"Modify Shift. When you reach 6th level in this class, you can add a bonus to the result of the d20 you roll on the Skinshifter Adaptation table equal to up to half your sorcerer level For example, at 6th level, if you rolled a 19 on the d20 you could choose any result between 19 and 22. [–] Skinshift Adaptations HGtMH d20\tItem 1",
+				"Paper Skin. You have vulnerability to piercing and slashing damage. 2",
+				"Brittle Bones. You have vulnerability to bludgeoning and thunder damage. 3",
+				"Elemental Sensitivity. ou have vulnerability to acid, cold, fire, and lightning damage. 4",
+				"Left Footed. Your right foot becomes a left foot. You have a -1 penalty to your AC and your speed is reduced by 10 feet. 5",
+				"The Wobbles. Your inner ear is filled with fluid. You have disadvantage on Dexterity saving throws and on Perception checks that rely on hearing. 6",
+				"Sunlight Sensitivity. You have disadvantage on attack rolls and on Perception checks that rely on sight when you, the target of your attack, or whatever you are trying to perceive by sight is in direct sunlight. 7",
+				"Pins and Needles. You feel a stinging sensation in one of your limbs. You have disadvantage on attack rolls. 8",
+				"Shrink. You decrease one size category, as per the Reduce effect of the enlarge/reduce spell 9",
+				"Firefly. You can cast the light cantrip with yourself as the target 10",
+				"Malleable Visage. You change appearance, as per the effect in the alter self spell, to appear like a humanoid you've seen before (GM's choice). 11",
+				"Natural Weapon. You grow a natural weapon of your choice (e.g. claws, fangs, horns). Your unarmed strikes deal 1d8 bludgeoning, piercing, or slashing damage, as appropriate to the natural weapon you chose. 12",
+				"Amphibisprings. With enhanced muscles and a ratcheting mechanism in your tendons, your jumping distance is tripled. 13",
+				"Aqueous Adaptation. You can breathe underwater and gain a swimming speed equal to your walking speed. 14",
+				"Tentacle Arm. One of your limbs is replaced with an octopus-like tentacle. Your reach with this tentacle is 5 feet greater than normal, and it can hold weapons and items as normal. You have advantage on ability checks made to grapple with it. 15",
+				"Growth. You increase one size category, as per the Enlarge effect of the enlarge/reduce spell 16",
+				"Aerial Adaptation. You gain a flying speed equal to your walking speed. 17",
+				"Elemental Resistance. You gain resistance to an elemental damage type. Roll a d4 to determine which type: 1, acid; 2, cold; 3, fire; 4, lightning. 18",
+				"Rubber Skin*. You gain resistance to bludgeoning damage. 19",
+				"Crystal Skin*. You gain resistance to piercing damage. 20",
+				"Steel Skin*. You gain resistance to slashing damage. 21",
+				"Tumour Skin*. At the start of each of your turns, you gain temporary hit points equal to your Charisma modifier (minimum 1). 22",
+				"Stimulated Metabolism**. Your speed increases by 10 feet and, when you take the Attack action on your turn, you can attack twice instead of once. 23",
+				"Empowered Strikes. Your unarmed strikes are magical and have a bonus to attack and damage rolls equal to half your proficiency bonus, rounded down. 24",
+				"Shimmerskin*. Your skin shimmers in a pleasing array of colours, or changes to match your background. For the duration, you have advantage on Charisma checks. For the duration, you can use a bonus action to swap between this effect and the effects of the chameleon skin spell. 25",
+				"Secreted Toxin. Your unarmed strikes deal an additional 1d6 poison or acid damage on a hit (your choice when you gain this adaptation). In addition, a creature that is grappling you must succeed on a Constitution saving throw at the end of each of your turns or take this damage. 26",
+				"Scaleskin. While you're not wearing armour, you gain a +2 bonus to your AC. 27",
+				"Relentless Metabolism**. When you are reduced to 0 hit points but not killed outright, you can drop to 1 hit point instead, and you lose this adaptation. If you benefit from this adaptation more than once before you finish a long rest, you gain one level of exhaustion each time you benefit from it after the first. 28",
+				"Salamander Skin*. You have resistance to fire damage. As a bonus action while you are grappling or are grappled by a creature, you can make your skin fiery hot for a moment. Any creature touching you must make a Constitution saving throw, taking 3d6 fire damage on a failure or half as much damage on a success. 29",
+				"Fortified Metabolism**. You have advantage on Constitution checks and Constitution saving throws, as well as any checks or saves made to avoid the exhaustion condition. 30",
+				"Reflective Carapace*. When you are targeted by a magic missile spell or a spell that requires a ranged attack roll, roll a d6 On a 4 to 5, you are unaffected. On a 6, you are unaffected, and the effect is reflected back at the caster as though it originated from you, turning the caster into the target. *You can only benefit from one of these adaptations at a time. If you gain one of these adaptations while you already benefit from one, the older one is lost. **You can only benefit from one of these adaptations at a time. If you gain one of these adaptations while you already benefit from one, the older one is lost. Spellfire Sorcery FRHoF p24",
+				"Wield Raw Magic",
+				"Your innate power stems from the source of magic itself: the Weave. This connection manifests as a rare ability known as spellfire, and you surge with radiant bursts of this raw magic. Your talent with spellfire allows you to heal allies, sear enemies, and absorb powerful spells.",
+				"Wielders of spellfire tend to have a penchant for wandering. Many travel between cosmopolitan settlements, such as those along the Sword Coast, and wield their magic in service of the common good. Others realize their own strange powers by roaming equally strange lands, from the magic-blasted wastes of the desert of Anauroch to the god-touched wilds of the Old Empires. Wherever they go in the Realms, spellfire Sorcerers are courted by factions with interests in the arcane arts, such as the Harpers, Cult of the Dragon, and Red Wizards. Level 3: Spellfire Burst FRHoF p24",
+				"When you spend at least 1 Sorcery Point as part of the Magic action or a Bonus Action on your turn, you can unleash one of the following magical effects of your choice. You can do so only once per turn.",
+				"Bolstering Flames. You or one creature you can see within 30 feet of yourself gains Temporary Hit Points equal to 1d4 plus your Charisma modifier.",
+				"Radiant Fire. One creature you can see within 30 feet of yourself takes 1d4 Fire or Radiant damage (your choice). Level 3: Spellfire Spells FRHoF p24",
+				"When you reach a Sorcerer level specified in the Spellfire Spells table, you thereafter always have the listed spells prepared. Sorcerer Level\tSpells 3\tCure Wounds, Guiding Bolt, Lesser Restoration, Scorching Ray 5\tAura of Vitality, Dispel Magic 7\tFire Shield, Wall of Fire 9\tGreater Restoration, Flame Strike Storm Sorcery XGE p51",
+				"This subclass is from a different game edition. For a given subclass feature, you may gain that feature at a different level from the one specified in the subclass feature.",
+				"Your innate magic comes from the power of elemental air. Many with this power can trace their magic back to a near-death experience caused by the Great Rain, but perhaps you were born during a howling gale so powerful that folk still tell stories of it, or your lineage might include the influence of potent air creatures such as djinn. Whatever the case, the magic of the storm permeates your being.",
+				"Storm sorcerers are invaluable members of a ship's crew. Their magic allows them to exert control over wind and weather in their immediate area. Their abilities also prove useful in repelling attacks by sahuagin, pirates, and other waterborne threats. Wind Speaker XGE p51",
+				"The arcane magic you command is infused with elemental air. You can speak, read, and write Primordial. Knowing this language allows you to understand and be understood by those who speak its dialects: Aquan, Auran, Ignan, and Terran. Tempestuous Magic XGE p51",
+				"Starting at 1st level, you can use a bonus action on your turn to cause whirling gusts of elemental air to briefly surround you, immediately before or after you cast a spell of 1st level or higher. Doing so allows you to fly up to 10 feet without provoking opportunity attacks.",
+				"Subclass source: XGE, page 51. Also found in SCAG, page 137. Wild Magic Sorcery PHB'24 p149",
+				"Unleash Chaotic Magic",
+				"Your innate magic stems from the forces of chaos that underlie the order of creation. You or an ancestor might have endured exposure to raw magic, perhaps through a planar portal leading to Limbo or the Elemental Planes. Perhaps you were blessed by a fey being or marked by a demon. Or your magic could be a fluke with no apparent cause. Whatever its source, this magic churns within you, waiting for any outlet. Level 3: Wild Magic Surge PHB'24 p149",
+				"Your spellcasting can unleash surges of untamed magic. Once per turn, you can roll 1d20 immediately after you cast a Sorcerer spell with a spell slot. If you roll a 20, roll on the Wild Magic Surge table to create a magical effect.",
+				"If the magical effect is a spell, it is too wild to be affected by your Metamagic. Wild Magic Surge1d100\tEffect 01-04\tRoll on this table at the start of each of your turns for the next minute, ignoring this result on subsequent rolls. 05-08\tA creature that is Friendly toward you appears in a random unoccupied space within 60 feet of you. The creature is under the DM's control and disappears 1 minute later. Roll 1d4 to determine the creature: on a 1, a Modron Duodrone appears; on a 2, a Flumph appears; on a 3, a Modron Monodrone appears; on a 4, a Unicorn appears. See the Monster Manual for the creature's stat block. 09-12\tFor the next minute, you regain 5 Hit Points at the start of each of your turns. 13-16\tCreatures have Disadvantage on saving throws against the next spell you cast in the next minute that involves a saving throw. 17-20\tYou are subjected to an effect that lasts for 1 minute unless its description says otherwise. Roll 1d8 to determine the effect: on a 1, you're surrounded by faint, ethereal music only you and creatures within 5 feet of you can hear; on a 2, your size increases by one size category; on a 3, you grow a long beard made of feathers that remains until you sneeze, at which point the feathers explode from your face and vanish; on a 4, you must shout when you speak; on a 5, illusory butterflies flutter in the air within 10 feet of you; on a 6, an eye appears on your forehead, granting you Advantage on Wisdom (Perception) checks; on an 7, pink bubbles float out of your mouth whenever you speak; on an 8, your skin turns a vibrant shade of blue for 24 hours or until the effect is ended by a Remove Curse spell. 21-24\tFor the next minute, all your spells with a casting time of an action have a casting time of a Bonus Action. 25-28\tYou are transported to the Astral Plane until the end of your next turn. You then return to the space you previously occupied or the nearest unoccupied space if that space is occupied. 29-32\tThe next time you cast a spell that deals damage within the next minute, don't roll the spell's damage dice for the damage. Instead use the highest number possible for each damage die. 33-36\tYou have Resistance to all damage for the next minute. 37-40\tYou turn into a potted plant until the start of your next turn. While you're a plant, you have the Incapacitated condition and have Vulnerability to all damage. If you drop to 0 Hit Points, your pot breaks, and your form reverts. 41-44\tFor the next minute, you can teleport up to 20 feet as a Bonus Action on each of your turns. 45-48\tYou and up to three creatures you choose within 30 feet of you have the Invisible condition for 1 minute. This invisibility ends on a creature immediately after it makes an attack roll, deals damage, or casts a spell. 49-52\tA spectral shield hovers near you for the next minute, granting you a +2 bonus to AC and immunity to Magic Missile. 53-56\tYou can take one extra action on this turn. 57-60\tYou cast a random spell. If the spell normally requires Concentration, it doesn't require Concentration in this case; the spell lasts for its full duration. Roll 1d10 to determine the spell: on a 1, Confusion; on a 2, Fireball; on a 3, Fog Cloud; on a 4, Fly (cast on a random creature within 60 feet of you), on a 5, Grease; on a 6, Levitate (cast on yourself); on a 7, Magic Missile (cast as a level 5 spell); on an 8, Mirror Image; on a 9, Polymorph (cast on yourself), and if you fail the saving throw, you turn into a Goat (see appendix B); on a 10, See Invisibility. 61-64\tFor the next minute, any flammable, nonmagical object you touch that isn't being worn or carried by another creature bursts into flame, takes 1d4 Fire damage, and is burning. 65-68\tIf you die within the next hour, you immediately revive as if by the Reincarnate spell. 69-72\tYou have the Frightened condition until the end of your next turn. The DM determines the source of your fear. 73-76\tYou teleport up to 60 feet to an unoccupied space you can see. 77-80\tA random creature within 60 feet of you has the Poisoned condition for 1d4 hours. 81-84\tYou radiate Bright Light in a 30-foot radius for the next minute. Any creature that ends its turn within 5 feet of you has the Blinded condition until the end of its next turn. 85-88\tUp to three creatures of your choice that you can see within 30 feet of you take 1d10 Necrotic damage. You regain Hit Points equal to the sum of the Necrotic damage dealt. 89-92\tUp to three creatures of your choice that you can see within 30 feet of you take 4d10 Lightning damage. 93-96\tYou and all creatures within 30 feet of you have Vulnerability to Piercing damage for the next minute. 97-00\tRoll 1d6 On a 1, you regain 2d10 Hit Points; on a 2, one ally of your choice within 300 feet of you regains 2d10 Hit Points; on a 3, you regain your lowest-level expended spell slot; on a 4, one ally of your choice within 300 feet of you regains their lowest-level expended spell slot; on a 5, you regain all your expended Sorcery Points; on a 6, all the effects of row 17–20 affect you simultaneously. Level 3: Tides of Chaos PHB'24 p149",
+				"You can manipulate chaos itself to give yourself Advantage on one D20 Test before you roll the d20. Once you do so, you must cast a Sorcerer spell with a spell slot or finish a Long Rest before you can use this feature again.",
+				"If you do cast a Sorcerer spell with a spell slot before you finish a Long Rest, you automatically roll on the Wild Magic Surge table."
+			]
+		},
+		{
+			"name": "Selective Shift",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Skinshifter",
+			"subclassSource": "HGtMH",
+			"level": 6,
+			"source": "HGtMH",
+			"entries": [
+				"As a bonus action, you can spend 1 or more sorcery points to magically transform your body for the next 10 minutes For each sorcery point you spend, you gain one adaptation of your choice from the Skinshift Adaptations table, the effects of which last until the transformation ends The adaptation must have a value in the d20 column equal to or lower than 20 plus half your sorcerer level If you gain a random skinshift adaptation that replaces one you already had (for example, tumour skin replacing rubber skin), this new adaptation lasts for the duration of the transformation. Spellfire Sorcery: Level 6: Absorb Spells FRHoF p25",
+				"You always have Counterspell prepared.",
+				"Additionally, whenever a target fails the saving throw against a Counterspell you cast, you regain 1d4 Sorcery Points. Storm Sorcery: Heart of the Storm XGE p51",
+				"At 6th level, you gain resistance to lightning and thunder damage. In addition, whenever you start casting a spell of 1st level or higher that deals lightning or thunder damage, stormy magic erupts from you. This eruption causes creatures of your choice that you can see within 10 feet of you to take lightning or thunder damage (choose each time this ability activates) equal to half your sorcerer level. Storm Sorcery: Storm Guide XGE p51",
+				"At 6th level, you gain the ability to subtly control the weather around you.",
+				"If it is raining, you can use an action to cause the rain to stop falling in a 20-foot-radius sphere centered on you. You can end this effect as a bonus action.",
+				"If it is windy, you can use a bonus action each round to choose the direction that the wind blows in a 100-foot-radius sphere centered on you. The wind blows in that direction until the end of your next turn. This feature doesn't alter the speed of the wind. Wild Magic Sorcery: Level 6: Bend Luck PHB'24 p149",
+				"You have the ability to twist fate using your wild magic. Immediately after another creature you can see rolls the d20 for a D20 Test, you can take a Reaction and spend 1 Sorcery Point to roll 1d4 and apply the number rolled as a bonus or penalty (your choice) to the d20 roll."
+			]
+		},
+		{
+			"name": "Reactive Mutations",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Skinshifter",
+			"subclassSource": "HGtMH",
+			"level": 14,
+			"source": "HGtMH",
+			"entries": [
+				"Immediately after you take damage, you can use your reaction to spend 1 sorcery point and gain resistance to that damage type for 10 minutes or until you use this feature again If you take multiple types of damage simultaneously, you choose one of the damage types to gain resistance to.",
+				"Looking for inspiration to describe how a skinshifter's reactive mutations might physically manifest?",
+				"Try adapting the following examples!",
+				"Bludgeoning. Spongy growths bloom, cushioning the blows of impact weapons.",
+				"Piercing. Layer upon layer of pointy membranes overlap one another, dispersing the penetrating potential of piercing weapons.",
+				"Slashing. A hard coating of angled crystal deflects blades.",
+				"Acid. Secreted alkaline liquid neutralises acid near the skin.",
+				"Cold & Fire. An insulating gel prevents the transfer of heat.",
+				"Force. Pockets of antimagic dissipate incoming raw, magical energy.",
+				"Lightning. Channels of conductive metals in the skin ground the flow of electricity.",
+				"Necrotic. Pus-filled sacs of immunity-enhancing symbionts fortify the skinshifter against decay.",
+				"Radiant. The skinshifter takes on a brilliant sheen, reflecting radiation of all descriptions.",
+				"Thunder. A membrane expands out from the skinshifter's skin. A low-pressure void between the two membranes inhibits the propagation of sound waves.",
+				"Poison. Vesicles rapidly excrete toxins before they can do significant harm.",
+				"Psychic. A rush of bright purple hormones causes the skinshifter's psyche to relax, shedding the mental harm that might have been caused.",
+				"Spellfire Sorcery: Level 14: Honed Spellfire FRHoF p25",
+				"Your Spellfire Burst improves. You add your Sorcerer level to the Temporary Hit Points gained from Bolstering Flames, and the damage of Radiant Fire increases to 1d8. Storm Sorcery: Storm's Fury XGE p51",
+				"Starting at 14th level, when you are hit by a melee attack, you can use your reaction to deal lightning damage to the attacker. The damage equals your sorcerer level. The attacker must also make a Strength saving throw against your sorcerer spell save DC. On a failed save, the attacker is pushed in a straight line up to 20 feet away from you. Wild Magic Sorcery: Level 14: Controlled Chaos PHB'24 p149",
+				"You gain a modicum of control over the surges of your wild magic. Whenever you roll on the Wild Magic Surge table, you can roll twice and use either number."
+			]
+		},
+		{
+			"name": "Shapeshift",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Skinshifter",
+			"subclassSource": "HGtMH",
+			"level": 18,
+			"source": "HGtMH",
+			"entries": [
+				"You unleash your inner shapeshifter, allowing your body to react to all manner of environmental stimuli As bonus action, you can cause a metabolic cascade that transforms your body for 10 minutes granting you the following effects:",
+				"All grapple and restraining effects on you immediately end.",
+				"You gain six adaptations of your choice from the Skinshift Adaptations table. For these, you ignore the restrictions on which adaptations you can have simultaneously.",
+				"You can't use the Reactive Mutations skinshifter feature, and it ends if it is active.",
+				"Immediately after you take damage, you gain resistance to that damage type You can simultaneously sustain three damage resistances in this way; if you gain another resistance from this feature while at your limit, the oldest one is lost.",
+				"After you activate this feature, you can't do so again until you finish a long rest. Spellfire Sorcery: Level 18: Crown of Spellfire FRHoF p25",
+				"When you use Innate Sorcery, you can alter it and infuse yourself with the essence of spellfire, gaining the following benefits while this use of Innate Sorcery is active. Once you use this feature to alter Innate Sorcery, you can't use it again until you finish a Long Rest unless you spend 5 Sorcery Points (no action required) to restore your use of it.",
+				"Burning Life Force. Once per turn when you are hit by an attack roll, you can expend a number of Hit Point Dice, up to a maximum equal to your Charisma modifier (minimum of one). Roll the expended dice, and reduce the amount of damage from that attack equal to the total rolled.",
+				"Flight. You gain a Fly Speed of 60 feet and can hover.",
+				"Spell Avoidance. When you're subjected to a spell or magical effect that allows you to make a saving throw to take only half damage, you instead take no damage if you succeed on the saving throw and only half damage if you fail. You can't use this benefit if you have the Incapacitated condition. Storm Sorcery: Wind Soul XGE p51",
+				"At 18th level, you gain immunity to lightning and thunder damage.",
+				"You also gain a magical flying speed of 60 feet. As an action, you can reduce your flying speed to 30 feet for 1 hour and choose a number of creatures within 30 feet of you equal to 3 + your Charisma modifier. The chosen creatures gain a magical flying speed of 30 feet for 1 hour. Once you reduce your flying speed in this way, you can't do so again until you finish a short or long rest. Wild Magic Sorcery: Level 18: Tamed Surge PHB'24 p150",
+				"Immediately after you cast a Sorcerer spell with a spell slot, you can create an effect of your choice from the Wild Magic Surge table instead of rolling on that table. You can choose any effect in the table except for the final row, and if the chosen effect involves a roll, you must make it.",
+				"Once you use this feature, you can't do so again until you finish a Long Rest."
+			]
+		},
+		{
+			"name": "Bad Luck Charm",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Wretched Bloodline",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 96,
+			"entries": [
+				"You have the ability to cast a sliver of your curse onto another temporarily. As a Bonus Action, choose a creature you can see within 30 feet of yourself. The chosen creature has Disadvantage on the next D20 Test it makes before the start of your next turn.",
+				"Once you use this feature, you can't do so again until you finish a Short or Long Rest unless you spend 1 Sorcery Point (no action required) to restore your use of it."
+			]
+		},
+		{
+			"name": "Blood Ties",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Wretched Bloodline",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 97,
+			"entries": [
+				"Your senses easily attune to the supernatural forces that caused your inherited affliction. You always have the Detect Evil and Good spell prepared and can cast it without expending a spell slot.",
+				"In addition, choose one of the following types of creatures as the being that cursed your ancestor: Fey, Fiend, or Undead. On each of your turns while you maintain Concentration on Detect Evil and Good, including the turn when you cast it, creatures of the chosen type have Disadvantage on attack rolls against you, and you can't be possessed, Charmed, or Frightened by such creatures.",
+				"Once you cast the spell with this feature, you can't do so in this way again until you finish a Short or Long Rest."
+			]
+		},
+		{
+			"name": "Wretched Curse",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Wretched Bloodline",
+			"subclassSource": "GH:PG'24",
+			"level": 3,
+			"source": "GH:PG'24",
+			"page": 97,
+			"entries": [
+				"You suffer from a curse inherited from an ancestor who failed to uphold their end of a bargain with an otherworldly power. Choose one of the following curses that was passed down to you.",
+				"Hulking. Your ancestor was cursed with a hulking frame. You have Disadvantage on Dexterity (Stealth) checks to escape notice by moving quietly. In addition, your Hit Point maximum increases by 1, and it increases by 1 whenever you gain another Sorcerer level. Finally, you count as one size larger when determining your carrying capacity.",
+				"Nocturnal. Your ancestor was cursed to shun the light of day. You have Disadvantage on Wisdom (Perception) checks that rely on sight while you are in sunlight. In addition, you can see normally in Dim Light and Darkness—both magical and nonmagical—within 120 feet of yourself.",
+				"Plaguebearer. Your ancestor was cursed with physical symptoms of a plague. You have Disadvantage on Charisma (Persuasion) checks made to influence an Indifferent Humanoid within 5 feet of yourself. In addition, you are Immune to the Poisoned condition and have Resistance to Necrotic damage. Level 4: Ability Score Improvement PHB'24 p141",
+				"You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Sorcerer levels 8, 12, and 16. Level 5: Sorcerous Restoration PHB'24 p141",
+				"When you finish a Short Rest, you can regain expended Sorcery Points, but no more than a number equal to half your Sorcerer level (round down). Once you use this feature, you can't do so again until you finish a Long Rest. Level 6: Subclass Feature PHB'24 p141",
+				"You gain a feature from your Sorcerer subclass. Aberrant Sorcery: Level 6: Psionic Sorcery PHB'24 p146",
+				"When you cast any level 1+ spell from your Psionic Spells feature, you can cast it by expending a spell slot as normal or by spending a number of Sorcery Points equal to the spell's level. If you cast the spell using Sorcery Points, it requires no Verbal or Somatic components, and it requires no Material components unless they are consumed by the spell or have a cost specified in it. Aberrant Sorcery: Level 6: Psychic Defenses PHB'24 p146",
+				"You have Resistance to Psychic damage, and you have Advantage on saving throws to avoid or end the Charmed or Frightened condition."
+			]
+		},
+		{
+			"name": "Share the Burden",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Wretched Bloodline",
+			"subclassSource": "GH:PG'24",
+			"level": 6,
+			"source": "GH:PG'24",
+			"page": 97,
+			"entries": [
+				"You always have the Bestow Curse spell prepared. You can cast the spell by spending 3 Sorcery Points instead of a spell slot. When you cast the spell in this way, the spell doesn't require Concentration, and its range changes to 60 feet for that casting. Level 7: Sorcery Incarnate PHB'24 p141",
+				"If you have no uses of Innate Sorcery left, you can use it if you spend 2 Sorcery Points when you take the Bonus Action to activate it.",
+				"In addition, while your Innate Sorcery feature is active, you can use up to two of your Metamagic options on each spell you cast. Level 8: Ability Score Improvement PHB'24 p141",
+				"You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. Level 10: Metamagic PHB'24 p141",
+				"Because your magic flows from within you, you can alter your spells to suit your needs; you gain two Metamagic options of your choice from the \"Metamagic Options\" section later in this class's description.",
+				"You can use only one Metamagic option on a spell when you cast it, unless otherwise noted in one of those options.",
+				"Whenever you gain a Sorcerer level, you can replace one of your Metamagic options with one you don't know. Level 12: Ability Score Improvement PHB'24 p141",
+				"You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. Level 14: Subclass Feature PHB'24 p141",
+				"You gain a feature from your Sorcerer subclass. Aberrant Sorcery: Level 14: Revelation in Flesh PHB'24 p146",
+				"You can unleash the aberrant truth hidden within yourself. As a Bonus Action, you can spend 1 Sorcery Point or more to magically alter your body for 10 minutes. For each Sorcery Point you spend, you gain one of the following benefits of your choice, the effects of which last until the alteration ends.",
+				"Aquatic Adaptation. You gain a Swim Speed equal to twice your Speed, and you can breathe underwater. Gills grow from your neck or flare behind your ears, and your fingers become webbed or you grow wriggling cilia.",
+				"Glistening Flight. You gain a Fly Speed equal to your Speed, and you can hover. As you fly, your skin glistens with mucus or otherworldly light.",
+				"See the Invisible. You can see any Invisible creature within 60 feet of yourself that isn't behind Total Cover. Your eyes also turn black or become writhing sensory tendrils.",
+				"Wormlike Movement. Your body, along with any equipment you are wearing or carrying, becomes slimy and pliable. You can move through any space as narrow as 1 inch, and you can spend 5 feet of movement to escape from nonmagical restraints or the Grappled condition."
+			]
+		},
+		{
+			"name": "Terrifying Visage",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Wretched Bloodline",
+			"subclassSource": "GH:PG'24",
+			"level": 14,
+			"source": "GH:PG'24",
+			"page": 97,
+			"entries": [
+				"As a Bonus Action, you can adopt the terrifying visage of the being that cursed your ancestor for 10 minutes. During this time, you can take a Magic action to cause creatures of your choice you can see you within 30 feet of yourself to make a Wisdom saving throw. On a failed save, the target has the Frightened condition until the end of your next turn. In addition, while your Terrifying Visage feature is active, you gain the following benefit based on the creature type chosen with your Blood Ties feature.",
+				"Fey. As a Bonus Action, you teleport up to 30 feet to an unoccupied space you can see.",
+				"Fiend. You have Resistance to Cold and Fire damage.",
+				"Undead. When you take damage of any type other than Radiant, you can take a Reaction to reduce the damage by half your Sorcerer level.",
+				"Once you use Terrifying Visage, you can't use it again until you finish a Long Rest. Level 16: Ability Score Improvement PHB'24 p141",
+				"You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. Level 17: Metamagic PHB'24 p141",
+				"Because your magic flows from within you, you can alter your spells to suit your needs; you gain two Metamagic options of your choice from the \"Metamagic Options\" section later in this class's description.",
+				"You can use only one Metamagic option on a spell when you cast it, unless otherwise noted in one of those options.",
+				"Whenever you gain a Sorcerer level, you can replace one of your Metamagic options with one you don't know. Level 18: Subclass Feature PHB'24 p141",
+				"You gain a feature from your Sorcerer subclass. Aberrant Sorcery: Level 18: Warping Implosion PHB'24 p146",
+				"You can unleash a space-warping anomaly. As a Magic action, you teleport to an unoccupied space you can see within 120 feet of yourself. Immediately after you disappear, each creature within 30 feet of the space you left must make a Strength saving throw against your spell save DC. On a failed save, a creature takes 3d10 Force damage and is pulled straight toward the space you left, ending in an unoccupied space as close to your former space as possible. On a successful save, the creature takes half as much damage only.",
+				"Once you use this feature, you can't do so again until you finish a Long Rest unless you spend 5 Sorcery Points (no action required) to restore your use of it."
+			]
+		},
+		{
+			"name": "Vengeful Summons",
+			"className": "Sorcerer",
+			"classSource": "XPHB",
+			"subclassShortName": "Wretched Bloodline",
+			"subclassSource": "GH:PG'24",
+			"level": 18,
+			"source": "GH:PG'24",
+			"page": 97,
+			"entries": [
+				"Your magic has become powerful enough that you can call and command a servant of those who cursed you. Choose one of the following creatures based on the choice you made with your Blood Ties feature: Lamia or Troll (Fey only), Barbed Devil, Incubus, or Succubus (Fiend only), Ghost or Wraith (Undead only).",
+				"You can take a Magic action and spend 5 Sorcery Points to summon your chosen creature. The creature appears in an unoccupied space you can see within 60 feet. It disappears when it drops to 0 Hit Points, you use this feature to summon another creature, or after 10 minutes have passed.",
+				"The creature is an ally to you and your allies. In combat, the creature shares your Initiative count, but it takes its turn immediately after yours. It obeys your verbal commands (no action required by you). If you don't issue any, it takes the Dodge action and uses its movement to avoid danger. Level 19: Epic Boon PHB'24 p141",
+				"You gain an Epic Boon feat or another feat of your choice for which you qualify. Boon of Dimensional Travel is recommended. Level 20: Arcane Apotheosis PHB'24 p141",
+				"While your Innate Sorcery feature is active, you can use one Metamagic option on each of your turns without spending Sorcery Points on it."
 			]
 		}
 	]
