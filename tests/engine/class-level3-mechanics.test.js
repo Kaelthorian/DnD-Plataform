@@ -223,6 +223,12 @@ assert.ok(/function canLearnCantrip\(spellName\)[\s\S]*return spellMatchesSelect
 assert.ok(/function getAccessibleCantripOptions\(\)[\s\S]*spellMatchesSelection\(spell, 0\)[\s\S]*!autoCantrips\.has/.test(RENDERER), "renderer lists subclass-expanded cantrips and excludes auto cantrips");
 assert.ok(/function sorceryPointsResourceInfo\(\)[\s\S]*resource:\$\{name\}/.test(RENDERER), "renderer exposes a shared Sorcery Points resource pool");
 assert.ok(/name === "sorcery point" \|\| name === "sorcery points"/.test(RENDERER), "Sorcerer features consume the shared Sorcery Points pool");
+assert.ok(/"Sorcery Points"/.test(RENDERER), "attacks and spellcasting panel renders the Sorcery Points counter");
+assert.ok(/prepared-resource-counters/.test(RENDERER), "resource counters share a compact horizontal group");
+assert.ok(/spellSlotsForCharacter\(\)\.forEach\(\(maximum, index\) =>/.test(RENDERER), "attacks and spellcasting panel renders every available spell-slot level");
+assert.ok(/`L\$\{level\}`/.test(RENDERER), "spell slots use the same compact resource-counter format");
+assert.ok(/prepared-resource-orb/.test(RENDERER), "resource counters render as compact adjacent spheres");
+assert.ok(/orb\.textContent = `\$\{remaining\}\/\$\{maximum\}`/.test(RENDERER), "each resource sphere displays its remaining over maximum value");
 
 {
   const { file } = loadClass("rogue");

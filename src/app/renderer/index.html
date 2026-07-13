@@ -238,6 +238,7 @@
   <script src="../../engine/conditions/statuses.js"></script>
   <script src="../../engine/actions/action-advisor.js"></script>
   <script src="../../engine/resources/resource-state.js"></script>
+  <script src="../../engine/resources/sorcery-points.js"></script>
   <script src="../../engine/rests/long-rest.js"></script>
   <script src="../../engine/rests/short-rest.js"></script>
   <script src="./i18n.js"></script>
@@ -263,6 +264,17 @@
       getMagicInitiateUseInfo,
       spendMagicInitiateUse
     } = globalThis.dndResourceStateEngine;
+    const {
+      SPELL_SLOT_CREATION_RULES,
+      ensureSorceryPointData,
+      spendSorceryPoints,
+      gainSorceryPoints,
+      ensureTemporarySpellSlots,
+      convertSpellSlotToSorceryPoints,
+      createTemporarySpellSlot,
+      restoreSorceryPointsOnLongRest,
+      removeTemporarySpellSlots
+    } = globalThis.dndSorceryPointEngine;
     const {
       getStatusDefinitions,
       findStatusDefinition,
@@ -660,7 +672,7 @@
       { name: "Padded Armor", aliases: ["padded armor", "padded"], base: 11, dexCap: null }
     ];
 
-    function spellSlotsForCharacter() {
+    function baseSpellSlotsForCharacter() {
       const level = Math.min(20, Math.max(1, getCharacterLevel()));
       const selectedClassName = getSelectedClassName();
       const className = normalizeName(selectedClassName);
@@ -694,6 +706,32 @@
         return slots;
       }
       return [];
+    }
+
+    function sorcererLevelForCharacter() {
+      return normalizeName(getMainClassName() || getSelectedClassName()) === "sorcerer"
+        ? getCharacterLevel()
+        : 0;
+    }
+
+    function temporarySpellSlotsForCharacter() {
+      if (sorcererLevelForCharacter() < 2) {
+        if (sheetMeta) sheetMeta.temporarySpellSlots = {};
+        return {};
+      }
+      const normalized = ensureTemporarySpellSlots(sheetMeta?.temporarySpellSlots);
+      if (sheetMeta) sheetMeta.temporarySpellSlots = normalized;
+      return normalized;
+    }
+
+    function spellSlotsForCharacter() {
+      const slots = [...baseSpellSlotsForCharacter()];
+      const temporary = temporarySpellSlotsForCharacter();
+      Object.entries(temporary).forEach(([levelText, count]) => {
+        const level = Number.parseInt(levelText, 10);
+        if (level >= 1 && level <= 5) slots[level - 1] = (slots[level - 1] || 0) + count;
+      });
+      return slots;
     }
 
     function cantripsKnownForCharacter() {
@@ -1189,6 +1227,8 @@
     function applyLongRestRecovery(recovery) {
       if (!recovery) return;
       const currentHpField = getCurrentHitPointsField();
+      sheetMeta.temporarySpellSlots = removeTemporarySpellSlots(sheetMeta.temporarySpellSlots);
+      sheetMeta.sorceryPoints = restoreSorceryPointsOnLongRest(sheetMeta.sorceryPoints, sorcererLevelForCharacter());
       applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
       sheetMeta.featureUses = recovery.nextResourceState;
       resetLongRestFeaturePools();
@@ -1203,7 +1243,7 @@
 
     function restoreLongRestResources() {
       applyLongRestRecovery(computeLongRestRecovery({
-        slotTotals: spellSlotsForCharacter(),
+        slotTotals: baseSpellSlotsForCharacter(),
         remainingByLevel: spellSlotRemainingByLevel(),
         currentHitPoints: getCurrentHitPointsField()?.value || "",
         maxHitPoints: fieldValue("HPMax")
@@ -1269,7 +1309,7 @@
       const result = resolveLongRest({
         characterReady: isCharacterReady(),
         longRestActive: isLongRestActive(),
-        slotTotals: spellSlotsForCharacter(),
+        slotTotals: baseSpellSlotsForCharacter(),
         remainingByLevel: spellSlotRemainingByLevel(),
         currentHitPoints: getCurrentHitPointsField()?.value || "",
         maxHitPoints: fieldValue("HPMax")
@@ -3999,6 +4039,7 @@
 
     function isActivatableFeature(entry) {
       if (entry.type === "raceChoice" || entry.type === "raceChoiceControl") return false;
+      if ((entry.optionalFeature?.featureType || []).includes("MM")) return false;
       if (isLayOnHandsFeature(entry.feature || entry.optionalFeature)) return false;
       const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "";
       const description = String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "");
@@ -4127,11 +4168,16 @@
     }
 
     function castPreparedSpell(spell, options = {}) {
-      if (!spell || spell.kind !== "spell") return;
+      if (!spell || spell.kind !== "spell") return false;
+      const turnState = combatTurnState();
+      if (spell.level > 0 && !options.quickened && turnState.quickenedSpellUsed) {
+        showStatus(t("sorcery.quickenedBlocksLevelSpell"));
+        return false;
+      }
       const familiar = options.findFamiliar || summonedFamiliarForSpell(spell);
       if (isFindFamiliarSpell(spell) && !familiar) {
         openFindFamiliarPicker(spell);
-        return;
+        return false;
       }
       if (spell.level <= 0) {
         const statusResult = activateSpellStatuses(spell.sourceName || spell.name, spell.name);
@@ -4143,9 +4189,10 @@
         } else if (familiar) {
           showStatus(`${spell.name}: ${familiar.name} invocado`);
         } else {
-          showStatus(`${spell.name}: cantrip, no gasta spell slot`);
+          showStatus(options.quickened ? t("sorcery.quickenedCast", { spell: spell.name }) : `${spell.name}: cantrip, no gasta spell slot`);
         }
-        return;
+        recordSuccessfulSpellCast(spell, options);
+        return true;
       }
       const castLevel = Math.max(spell.level, spell.castLevel || spell.level);
       const sourceName = spell.sourceName || spell.name;
@@ -4156,23 +4203,39 @@
         scheduleSave();
         if (statusResult.activated) showStatus(`${spell.name}: status activo`);
         else if (familiar) showStatus(`${spell.name}: ${familiar.name} invocado`);
-        return;
+        recordSuccessfulSpellCast(spell, options);
+        return true;
       }
       if (!spendSpellSlot(castLevel)) {
         showStatus(`Sin slots nivel ${castLevel}`);
-        return;
+        return false;
       }
       const remaining = spellSlotRemaining(castLevel);
       const total = spellSlotTotal(castLevel);
       const statusResult = activateSpellStatuses(sourceName, spell.name);
       if (familiar) showFamiliarNote(familiar);
-      showStatus(familiar
+      showStatus(options.quickened
+        ? t("sorcery.quickenedCastWithSlot", { spell: spell.name, level: castLevel, remaining, total })
+        : familiar
         ? `${spell.name}: ${familiar.name} invocado. Slots nivel ${castLevel}: ${remaining}/${total}`
         : statusResult.activated
         ? `${spell.name}: status activo. Slots nivel ${castLevel}: ${remaining}/${total}`
         : `${spell.name} casteada a nivel ${castLevel}. Slots nivel ${castLevel}: ${remaining}/${total}`);
       updateDerivedStats();
       updatePreparedSpellsPanel();
+      scheduleSave();
+      recordSuccessfulSpellCast(spell, options);
+      return true;
+    }
+
+    function recordSuccessfulSpellCast(spell, options = {}) {
+      const state = combatTurnState();
+      if (spell?.level > 0) state.levelOnePlusSpellCast = true;
+      if (options.quickened) {
+        state.quickenedSpellUsed = true;
+        state.spent.bonus = (Number.parseInt(state.spent.bonus || 0, 10) || 0) + 1;
+      }
+      refreshTurnActionsPanel();
       scheduleSave();
     }
 
@@ -4853,6 +4916,95 @@
       return true;
     }
 
+    function hasSelectedMetamagic(name) {
+      const target = normalizeName(name || "");
+      return selectedOptionalFeatureNames("MM").some((optionName) => normalizeName(optionName) === target);
+    }
+
+    function quickenedSpellPreparedSelection() {
+      if (!hasSelectedMetamagic("Quickened Spell")) return null;
+      const points = currentSorceryPointData();
+      return {
+        kind: "quickened",
+        name: "Quickened Spell",
+        description: t("sorcery.quickenedDescription"),
+        attackLabel: t("sorcery.metamagic"),
+        damageType: "",
+        noAttackRoll: true,
+        level: -1,
+        poolRemaining: points.current,
+        poolMax: points.maximum
+      };
+    }
+
+    function quickenedSpellCastRow(spellEntry) {
+      return spellAttackSelections(spellEntry.name, spellEntry.level)[0] || null;
+    }
+
+    function quickenedSpellAvailability(spellEntry) {
+      const row = quickenedSpellCastRow(spellEntry);
+      if (!row) return { available: false, reason: t("sorcery.spellUnavailable") };
+      const state = combatTurnState();
+      if (state.levelOnePlusSpellCast) return { available: false, reason: t("sorcery.alreadyCastLevelSpell") };
+      const budget = turnActionBudget(collectCurrentTurnActions().actions);
+      if (budget.remaining.bonus <= 0) return { available: false, reason: t("turn.noBonusActions") };
+      if (currentSorceryPointData().current < 2) return { available: false, reason: t("sorcery.notEnough") };
+      if (row.level <= 0) return { available: true, reason: t("sorcery.cantripNoSlot") };
+      const sourceName = row.sourceName || row.name;
+      const castLevel = Math.max(row.level, row.castLevel || row.level);
+      const hasFreeUse = castLevel === row.level && (freeSpellUseInfo(sourceName)?.remaining || 0) > 0;
+      if (!hasFreeUse && spellSlotRemaining(castLevel) <= 0) return { available: false, reason: t("sorcery.noSlotLevel", { level: castLevel }) };
+      return { available: true, reason: hasFreeUse ? t("sorcery.freeUse") : t("sorcery.usesSlot", { level: castLevel }) };
+    }
+
+    function castQuickenedSpell(spellEntry) {
+      const availability = quickenedSpellAvailability(spellEntry);
+      if (!availability.available) {
+        showStatus(availability.reason);
+        return false;
+      }
+      const row = quickenedSpellCastRow(spellEntry);
+      if (!spendSheetSorceryPoints(2)) return false;
+      if (castPreparedSpell(row, { quickened: true })) return true;
+      gainSheetSorceryPoints(2, { quiet: true });
+      return false;
+    }
+
+    function buildQuickenedSpellPickerContent() {
+      const root = document.createElement("div");
+      root.className = "sorcery-point-manager";
+      const points = currentSorceryPointData();
+      appendText(root, "sorcery-point-note", t("sorcery.quickenedSummary", { current: points.current, maximum: points.maximum }));
+      const options = document.createElement("div");
+      options.className = "sorcery-point-options quickened-spell-options";
+      const eligibleSpells = castableSpellSelections()
+        .filter((spellEntry) => spellActionTypes(spellEntry.spell).includes(ACTION_TYPES.action));
+      eligibleSpells.forEach((spellEntry) => {
+        const availability = quickenedSpellAvailability(spellEntry);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sorcery-point-option";
+        button.disabled = !availability.available;
+        const title = document.createElement("span");
+        title.textContent = spellEntry.level > 0 ? `${spellEntry.name} (L${spellEntry.level})` : `${spellEntry.name} (${t("sorcery.cantrip")})`;
+        const detail = document.createElement("small");
+        detail.textContent = availability.reason;
+        button.append(title, detail);
+        button.addEventListener("click", () => {
+          if (castQuickenedSpell(spellEntry)) closeItemDrawer();
+          else openQuickenedSpellPicker();
+        });
+        options.appendChild(button);
+      });
+      if (!eligibleSpells.length) appendText(options, "sorcery-point-empty", t("sorcery.noActionSpells"));
+      root.appendChild(options);
+      return root;
+    }
+
+    function openQuickenedSpellPicker() {
+      showDrawer("Quickened Spell", t("sorcery.quickenedMeta"), buildQuickenedSpellPickerContent());
+    }
+
     function preparedAttackSelections() {
       const strengthModifier = getStrengthModifier();
       const unarmed = {
@@ -4887,7 +5039,8 @@
         ? []
         : [unarmed];
       const layOnHands = layOnHandsPreparedSelection();
-      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...(layOnHands ? [layOnHands] : []), ...featureActivationSelections(), ...featResourceSelections(), ...allPreparedSpells];
+      const quickenedSpell = quickenedSpellPreparedSelection();
+      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...(layOnHands ? [layOnHands] : []), ...(quickenedSpell ? [quickenedSpell] : []), ...featureActivationSelections(), ...featResourceSelections(), ...allPreparedSpells];
     }
 
     function preparedAttackDrawerMetaForItem(item) {
@@ -4896,6 +5049,10 @@
 
     function openPreparedAttackDetail(row) {
       if (!row) return;
+      if (row.kind === "quickened") {
+        openQuickenedSpellPicker();
+        return;
+      }
       if (row.kind === "spell") {
         showSpellDrawer(row.sourceName || row.name);
         return;
@@ -4919,6 +5076,58 @@
     function updatePreparedSpellsPanel() {
       if (!preparedSpellsPanel) return;
       preparedSpellsPanel.textContent = "";
+
+      const resourceCounters = document.createElement("div");
+      resourceCounters.className = "prepared-resource-counters";
+      preparedSpellsPanel.appendChild(resourceCounters);
+
+      const appendPreparedResourceCounter = (name, remaining, maximum, hint, title, onClick = null) => {
+        const resourceCounter = document.createElement("div");
+        resourceCounter.className = "prepared-resource-counter";
+        resourceCounter.title = title || `${name}: ${remaining}/${maximum}`;
+
+        const resourceName = document.createElement("div");
+        resourceName.className = "prepared-resource-name";
+        resourceName.textContent = name;
+
+        const orb = document.createElement(onClick ? "button" : "span");
+        orb.className = "prepared-resource-orb";
+        if (onClick) {
+          orb.type = "button";
+          orb.classList.add("interactive");
+          orb.addEventListener("click", onClick);
+        }
+        orb.textContent = `${remaining}/${maximum}`;
+        orb.setAttribute("aria-label", `${name}: ${remaining}/${maximum}`);
+        if (!onClick) orb.setAttribute("role", "img");
+
+        resourceCounter.append(resourceName, orb);
+        resourceCounters.appendChild(resourceCounter);
+      };
+
+      spellSlotsForCharacter().forEach((maximum, index) => {
+        const level = index + 1;
+        if (!maximum || maximum <= 0) return;
+        appendPreparedResourceCounter(
+          `L${level}`,
+          spellSlotRemaining(level),
+          maximum,
+          "slots",
+          `Spell Slots nivel ${level}: ${spellSlotRemaining(level)}/${maximum}`
+        );
+      });
+
+      const sorceryPoints = sorceryPointsResourceInfo();
+      if (sorceryPoints?.info) {
+        appendPreparedResourceCounter(
+          "SP",
+          sorceryPoints.info.remaining,
+          sorceryPoints.info.max,
+          "pool",
+          "Sorcery Points compartidos: se gastan con Metamagic, Flexible Casting y rasgos que los consumen.",
+          openSorceryPointManager
+        );
+      }
       const preparedAttacks = preparedAttackSelections();
       preparedAttacks.forEach((spell) => {
         const row = document.createElement("div");
@@ -5012,6 +5221,11 @@
           castButton.textContent = `${spell.poolRemaining}/${spell.poolMax}`;
           castButton.title = `${spell.name}: ${spell.poolRemaining}/${spell.poolMax} puntos restantes`;
           castButton.addEventListener("click", () => openPreparedAttackDetail(spell));
+        } else if (spell.kind === "quickened") {
+          castButton.textContent = t("sorcery.choose");
+          castButton.title = t("sorcery.quickenedChooseTitle", { current: spell.poolRemaining, maximum: spell.poolMax });
+          castButton.disabled = spell.poolRemaining < 2;
+          castButton.addEventListener("click", openQuickenedSpellPicker);
         } else if (spell.kind === "spell") {
           const sourceName = spell.sourceName || spell.name;
           const selectedCastLevel = spell.castLevel || spell.level;
@@ -5307,12 +5521,200 @@
       };
     }
 
+    function currentSorceryPointData() {
+      const sorcererLevel = sorcererLevelForCharacter();
+      const legacyKey = normalizeName("resource:Sorcery Points");
+      if ((!sheetMeta.sorceryPoints || typeof sheetMeta.sorceryPoints !== "object") && sorcererLevel >= 2) {
+        const legacySpent = Math.max(0, Number.parseInt(sheetMeta.featureUses?.[legacyKey] || 0, 10) || 0);
+        sheetMeta.sorceryPoints = { current: Math.max(0, sorcererLevel - legacySpent), maximum: sorcererLevel };
+        if (sheetMeta.featureUses && legacyKey in sheetMeta.featureUses) delete sheetMeta.featureUses[legacyKey];
+      }
+      sheetMeta.sorceryPoints = ensureSorceryPointData(sheetMeta.sorceryPoints, sorcererLevel);
+      return sheetMeta.sorceryPoints;
+    }
+
+    function refreshSorceryPointUi() {
+      updatePreparedSpellsPanel();
+      if (typeof refreshTurnActionsPanel === "function") refreshTurnActionsPanel();
+    }
+
+    function spendSheetSorceryPoints(amount, { quiet = false } = {}) {
+      const result = spendSorceryPoints(currentSorceryPointData(), amount, sorcererLevelForCharacter());
+      sheetMeta.sorceryPoints = result.data;
+      if (!result.success) {
+        if (!quiet) showStatus(t("sorcery.notEnough"));
+        refreshSorceryPointUi();
+        return false;
+      }
+      refreshSorceryPointUi();
+      scheduleSave();
+      return true;
+    }
+
+    function gainSheetSorceryPoints(amount, { quiet = false } = {}) {
+      const result = gainSorceryPoints(currentSorceryPointData(), amount, sorcererLevelForCharacter());
+      sheetMeta.sorceryPoints = result.data;
+      if (!result.success && !quiet) showStatus(t("sorcery.atMaximum"));
+      refreshSorceryPointUi();
+      if (result.success) scheduleSave();
+      return result;
+    }
+
+    function convertSheetSpellSlotToSorceryPoints(slotLevel) {
+      const result = convertSpellSlotToSorceryPoints({
+        data: currentSorceryPointData(),
+        sorcererLevel: sorcererLevelForCharacter(),
+        slotLevel,
+        remainingSlots: spellSlotRemaining(slotLevel)
+      });
+      sheetMeta.sorceryPoints = result.data;
+      if (!result.success) {
+        showStatus(result.reason === "at-maximum" || result.reason === "would-exceed-maximum" ? t("sorcery.notEnoughCapacity") : t("sorcery.slotUnavailable"));
+        refreshSorceryPointUi();
+        return result;
+      }
+      setFieldValue(SPELL_SLOT_REMAINING_KEYS.get(slotLevel), String(result.remainingSlots));
+      refreshSorceryPointUi();
+      scheduleSave();
+      showStatus(t("sorcery.converted", { level: slotLevel, gained: result.gained }));
+      return result;
+    }
+
+    function createSheetTemporarySpellSlot(slotLevel) {
+      const previousRemaining = spellSlotRemaining(slotLevel);
+      const result = createTemporarySpellSlot({
+        data: currentSorceryPointData(),
+        temporarySpellSlots: temporarySpellSlotsForCharacter(),
+        sorcererLevel: sorcererLevelForCharacter(),
+        slotLevel
+      });
+      sheetMeta.sorceryPoints = result.data;
+      sheetMeta.temporarySpellSlots = result.temporarySpellSlots;
+      if (!result.success) {
+        const key = result.reason === "sorcerer-level-too-low" ? "sorcery.levelTooLow" : result.reason === "insufficient-points" ? "sorcery.notEnough" : "sorcery.invalidSlot";
+        showStatus(t(key));
+        refreshSorceryPointUi();
+        return result;
+      }
+      setFieldValue(SPELL_SLOT_TOTAL_KEYS.get(slotLevel), String(spellSlotTotal(slotLevel)));
+      setFieldValue(SPELL_SLOT_REMAINING_KEYS.get(slotLevel), String(previousRemaining + 1));
+      refreshSorceryPointUi();
+      scheduleSave();
+      showStatus(t("sorcery.created", { level: slotLevel, cost: result.cost }));
+      return result;
+    }
+
     function sorceryPointsResourceInfo() {
-      if (normalizeName(getMainClassName() || getSelectedClassName()) !== "sorcerer" || getCharacterLevel() < 2) return null;
+      if (sorcererLevelForCharacter() < 2) return null;
       const name = "Sorcery Points";
-      const usesMax = Math.max(1, getCharacterLevel());
       const key = normalizeName(`resource:${name}`);
-      return { key, name, info: featureUseInfo({ key, name, usesMax }) };
+      const pointData = currentSorceryPointData();
+      return {
+        key,
+        name,
+        info: { key, max: pointData.maximum, remaining: pointData.current, spent: pointData.maximum - pointData.current }
+      };
+    }
+
+    globalThis.dndSorceryPoints = {
+      GetCurrentSP: () => currentSorceryPointData().current,
+      GetMaximumSP: () => currentSorceryPointData().maximum,
+      CanSpendSP: (amount) => {
+        const parsed = Number.parseInt(amount, 10);
+        return Number.isFinite(parsed) && parsed > 0 && currentSorceryPointData().current >= parsed;
+      },
+      SpendSP: (amount) => spendSheetSorceryPoints(amount),
+      GainSP: (amount) => gainSheetSorceryPoints(amount),
+      ConvertSpellSlotToSP: (slotLevel) => convertSheetSpellSlotToSorceryPoints(slotLevel),
+      CreateSpellSlot: (slotLevel) => createSheetTemporarySpellSlot(slotLevel),
+      RestoreSPOnLongRest: () => {
+        sheetMeta.sorceryPoints = restoreSorceryPointsOnLongRest(sheetMeta.sorceryPoints, sorcererLevelForCharacter());
+        refreshSorceryPointUi();
+        scheduleSave();
+        return sheetMeta.sorceryPoints;
+      },
+      RemoveTemporarySpellSlots: () => {
+        sheetMeta.temporarySpellSlots = removeTemporarySpellSlots(sheetMeta.temporarySpellSlots);
+        syncSpellSlotFields();
+        refreshSorceryPointUi();
+        scheduleSave();
+        return sheetMeta.temporarySpellSlots;
+      }
+    };
+
+    function buildSorceryPointManagerContent() {
+      const root = document.createElement("div");
+      root.className = "sorcery-point-manager";
+      const pointData = currentSorceryPointData();
+      const level = sorcererLevelForCharacter();
+
+      const summary = document.createElement("div");
+      summary.className = "sorcery-point-summary";
+      appendText(summary, "sorcery-point-summary-label", t("sorcery.points"));
+      appendText(summary, "sorcery-point-summary-value", `${pointData.current} / ${pointData.maximum}`);
+      root.appendChild(summary);
+
+      const convertSection = document.createElement("section");
+      convertSection.className = "item-section";
+      appendText(convertSection, "item-section-title", t("sorcery.convertSlot"));
+      const convertOptions = document.createElement("div");
+      convertOptions.className = "sorcery-point-options";
+      let availableSlots = 0;
+      for (let slotLevel = 1; slotLevel <= 9; slotLevel += 1) {
+        const remaining = spellSlotRemaining(slotLevel);
+        if (remaining <= 0) continue;
+        availableSlots += remaining;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sorcery-point-option";
+        button.disabled = pointData.current + slotLevel > pointData.maximum;
+        const title = document.createElement("span");
+        title.textContent = `${t("sorcery.slotLevel", { level: slotLevel })} (${remaining}/${spellSlotTotal(slotLevel)})`;
+        const detail = document.createElement("small");
+        detail.textContent = t("sorcery.gainPoints", { count: slotLevel });
+        button.append(title, detail);
+        button.addEventListener("click", () => {
+          convertSheetSpellSlotToSorceryPoints(slotLevel);
+          openSorceryPointManager();
+        });
+        convertOptions.appendChild(button);
+      }
+      if (!availableSlots) appendText(convertOptions, "sorcery-point-empty", t("sorcery.noSlots"));
+      convertSection.appendChild(convertOptions);
+      root.appendChild(convertSection);
+
+      const createSection = document.createElement("section");
+      createSection.className = "item-section";
+      appendText(createSection, "item-section-title", t("sorcery.createSlot"));
+      const createOptions = document.createElement("div");
+      createOptions.className = "sorcery-point-options";
+      Object.entries(SPELL_SLOT_CREATION_RULES).forEach(([slotLevelText, rule]) => {
+        const slotLevel = Number.parseInt(slotLevelText, 10);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sorcery-point-option";
+        button.disabled = level < rule.minimumSorcererLevel || pointData.current < rule.cost;
+        const title = document.createElement("span");
+        title.textContent = t("sorcery.slotLevel", { level: slotLevel });
+        const detail = document.createElement("small");
+        detail.textContent = t("sorcery.costAndLevel", { cost: rule.cost, level: rule.minimumSorcererLevel });
+        button.append(title, detail);
+        button.addEventListener("click", () => {
+          createSheetTemporarySpellSlot(slotLevel);
+          openSorceryPointManager();
+        });
+        createOptions.appendChild(button);
+      });
+      createSection.appendChild(createOptions);
+      root.appendChild(createSection);
+
+      appendText(root, "sorcery-point-note", t("sorcery.temporaryNote"));
+      return root;
+    }
+
+    function openSorceryPointManager() {
+      if (sorcererLevelForCharacter() < 2) return;
+      showDrawer(t("sorcery.points"), t("sorcery.fontOfMagic"), buildSorceryPointManagerContent());
     }
 
     function turnActionResourceInfoByNames(names = [], entries = turnActionEntriesForLookups()) {
@@ -5729,12 +6131,16 @@
         sheetMeta.combatTurn = {
           active: true,
           turn: 1,
-          spent: { action: 0, bonus: 0 }
+          spent: { action: 0, bonus: 0 },
+          levelOnePlusSpellCast: false,
+          quickenedSpellUsed: false
         };
       }
       if (!sheetMeta.combatTurn.spent || typeof sheetMeta.combatTurn.spent !== "object") {
         sheetMeta.combatTurn.spent = { action: 0, bonus: 0 };
       }
+      sheetMeta.combatTurn.levelOnePlusSpellCast = Boolean(sheetMeta.combatTurn.levelOnePlusSpellCast);
+      sheetMeta.combatTurn.quickenedSpellUsed = Boolean(sheetMeta.combatTurn.quickenedSpellUsed);
       return sheetMeta.combatTurn;
     }
 
@@ -5787,7 +6193,9 @@
         ...state,
         active: true,
         turn: (Number.parseInt(state.turn || 1, 10) || 1) + 1,
-        spent: { action: 0, bonus: 0 }
+        spent: { action: 0, bonus: 0 },
+        levelOnePlusSpellCast: false,
+        quickenedSpellUsed: false
       };
       refreshTurnActionsPanel();
       scheduleSave();
@@ -7221,6 +7629,8 @@
         if (element.type === "checkbox") element.checked = Boolean(value);
         else if (typeof value === "string" || typeof value === "number") element.value = value;
       });
+      sheetMeta.temporarySpellSlots = ensureTemporarySpellSlots(sheetMeta.temporarySpellSlots);
+      currentSorceryPointData();
       pendingCriticalHits.clear();
       ensureActiveStatusIds();
       renderStatusDock();

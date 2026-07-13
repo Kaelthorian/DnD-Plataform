@@ -3049,6 +3049,122 @@
       text-align: center;
     }
 
+    .prepared-resource-counters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+      min-height: 28px;
+      padding: 2px;
+      color: #3d2718;
+      font-weight: 700;
+    }
+
+    .prepared-resource-counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      flex: 0 0 auto;
+    }
+
+    .prepared-resource-name {
+      color: #765b40;
+      font-size: 8px;
+      line-height: 1;
+    }
+
+    .prepared-resource-orb {
+      width: 25px;
+      height: 25px;
+      flex: 0 0 25px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid #3d2718;
+      border-radius: 50%;
+      background: #3d2718;
+      color: #fff;
+      box-sizing: border-box;
+      font: 700 7px/1 "Segoe UI", Arial, sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .prepared-resource-orb.interactive {
+      padding: 0;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    .prepared-resource-orb.interactive:hover,
+    .prepared-resource-orb.interactive:focus-visible {
+      background: #76502e;
+      transform: scale(1.08);
+      outline: 1px solid #fff;
+      outline-offset: -3px;
+    }
+
+    .sorcery-point-manager {
+      display: grid;
+      gap: 16px;
+    }
+
+    .sorcery-point-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid #5c3a21;
+      border-radius: 8px;
+      background: #f7f0e7;
+    }
+
+    .sorcery-point-summary-label {
+      color: #5c3a21;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .sorcery-point-summary-value {
+      font: 800 22px/1 "Segoe UI", Arial, sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sorcery-point-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 7px;
+    }
+
+    .sorcery-point-option {
+      display: grid;
+      gap: 3px;
+      padding: 8px 10px;
+      border: 1px solid #5c3a21;
+      border-radius: 6px;
+      background: #5c3a21;
+      color: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .sorcery-point-option small {
+      color: inherit;
+      opacity: 0.8;
+    }
+
+    .sorcery-point-option:disabled {
+      border-color: #b9b1aa;
+      background: #e4e0dc;
+      color: #777;
+      cursor: not-allowed;
+    }
+
+    .sorcery-point-note,
+    .sorcery-point-empty {
+      color: #65584d;
+      font-size: 11px;
+    }
+
     .prepared-spell-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 20px 30px 38px 34px 34px;
