@@ -2665,9 +2665,54 @@ function restoreStoredNote(note) {
   };
 }
 
+function isHomebrewBoardNote(note) {
+  if (note?.kind === "item") return Boolean(note.entryCustom?.__homebrew || note.entryCustom);
+  if (note?.kind !== "monster") return false;
+  return Boolean(note.monsterCustom?.__homebrew || String(note.monsterCustom?.source || "").trim().toLowerCase() === "homebrew");
+}
+
+function shouldOfferBoardNoteSave(note) {
+  return isHomebrewBoardNote(note)
+    || (note?.kind === "monster" && normalizeMonsterTextNotes(note.monsterTextNotes).length > 0);
+}
+
+function savedBoardNoteSnapshot(note) {
+  return noteStorageSnapshot({
+    ...note,
+    parentNoteId: null,
+    tabNoteIds: [],
+    activeTabId: null,
+    minimized: false
+  });
+}
+
+function createSavedBoardNote(note) {
+  return {
+    id: `saved-note-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    savedAt: new Date().toISOString(),
+    title: noteDisplayName(note),
+    kind: note.kind,
+    snapshot: savedBoardNoteSnapshot(note)
+  };
+}
+
+function restoreSavedBoardNote(savedNote, index = 0) {
+  if (!savedNote?.snapshot || typeof savedNote !== "object") return null;
+  const restored = restoreStoredNote(savedNote.snapshot);
+  if (!restored || !shouldOfferBoardNoteSave(restored)) return null;
+  return {
+    id: String(savedNote.id || `saved-note-restored-${index}`),
+    savedAt: typeof savedNote.savedAt === "string" ? savedNote.savedAt : "",
+    title: String(savedNote.title || noteDisplayName(restored)).trim() || noteDisplayName(restored),
+    kind: restored.kind,
+    snapshot: savedBoardNoteSnapshot(restored)
+  };
+}
+
 function defaultBoardState() {
   return {
     notes: [],
+    savedNotes: [],
     view: { x: 0, y: 0, scale: 1 }
   };
 }
@@ -2680,6 +2725,9 @@ function loadDmBoardState() {
     const notes = Array.isArray(parsed.notes)
       ? parsed.notes.map(restoreStoredNote).filter(Boolean)
       : [];
+    const savedNotes = Array.isArray(parsed.savedNotes)
+      ? parsed.savedNotes.map(restoreSavedBoardNote).filter(Boolean)
+      : [];
     const view = parsed.view && typeof parsed.view === "object"
       ? {
         x: Number(parsed.view.x) || 0,
@@ -2687,14 +2735,14 @@ function loadDmBoardState() {
         scale: clamp(Number(parsed.view.scale) || 1, BOARD_MIN_ZOOM, BOARD_MAX_ZOOM)
       }
       : { x: 0, y: 0, scale: 1 };
-    return { notes, view };
+    return { notes, savedNotes, view };
   } catch (error) {
     console.error("Could not load DM board state", error);
     return defaultBoardState();
   }
 }
 
-function saveDmBoardState(notes, view) {
+function saveDmBoardState(notes, view, savedNotes = []) {
   if (typeof localStorage === "undefined") return;
   try {
     const persistentNotes = notes.filter((note) => !note.livePlayerId);
@@ -2708,7 +2756,10 @@ function saveDmBoardState(notes, view) {
         parentNoteId: persistentIds.has(note.parentNoteId) ? note.parentNoteId : null,
         tabNoteIds: (note.tabNoteIds || []).filter((id) => persistentIds.has(id)),
         activeTabId: persistentIds.has(note.activeTabId) ? note.activeTabId : null
-      }))
+      })),
+      savedNotes: (Array.isArray(savedNotes) ? savedNotes : [])
+        .map(restoreSavedBoardNote)
+        .filter(Boolean)
     }));
   } catch (error) {
     console.error("Could not save DM board state", error);
@@ -10083,6 +10134,86 @@ function HomebrewMonsterModal({
   );
 }
 
+function NoteCloseSaveModal({ pendingClose, onSave, onDiscard, onCancel }) {
+  if (!pendingClose) return null;
+  const notes = Array.isArray(pendingClose.notes) ? pendingClose.notes : [];
+  const plural = notes.length > 1;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10020] flex items-center justify-center bg-black/75 p-4" onPointerDown={onCancel}>
+      <section
+        className="w-full max-w-lg border border-amber-500/70 bg-neutral-950 text-neutral-100 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="save-note-before-close-title"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <header className="border-b border-neutral-800 px-5 py-4">
+          <h2 id="save-note-before-close-title" className="font-serif text-xl font-bold text-amber-500">Guardar nota antes de cerrar</h2>
+          <p className="mt-1 text-sm leading-relaxed text-neutral-300">
+            {plural
+              ? "Estas notas contienen contenido homebrew o notas adicionales. ¿Querés conservarlas para cargarlas después?"
+              : "Esta nota contiene contenido homebrew o notas adicionales. ¿Querés conservarla para cargarla después?"}
+          </p>
+        </header>
+        <div className="max-h-48 space-y-1 overflow-auto px-5 py-3 text-sm text-neutral-300">
+          {notes.map((note) => <div key={note.id}>• {noteDisplayName(note)}</div>)}
+        </div>
+        <footer className="flex flex-wrap justify-end gap-2 border-t border-neutral-800 px-5 py-4">
+          <button className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onCancel}>Cancelar</button>
+          <button className="h-9 border border-red-900 bg-red-950/50 px-3 text-sm font-bold text-red-200 hover:bg-red-900/50" type="button" onClick={onDiscard}>Cerrar sin guardar</button>
+          <button className="h-9 bg-amber-500 px-3 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={onSave}>Guardar y cerrar</button>
+        </footer>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
+function SavedBoardNotesModal({ isOpen, savedNotes, onLoad, onClose }) {
+  if (!isOpen) return null;
+  const notes = Array.isArray(savedNotes) ? savedNotes : [];
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10020] flex items-center justify-center bg-black/75 p-4" onPointerDown={onClose}>
+      <section
+        className="w-full max-w-2xl border border-amber-500/70 bg-neutral-950 text-neutral-100 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="saved-board-notes-title"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-neutral-800 px-5 py-4">
+          <div>
+            <h2 id="saved-board-notes-title" className="font-serif text-xl font-bold text-amber-500">Notas guardadas</h2>
+            <p className="mt-1 text-sm text-neutral-400">Cargá una copia de una nota conservada en el punto del tablero donde abriste el menú.</p>
+          </div>
+          <button className="h-8 w-8 border border-neutral-700 bg-neutral-900 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onClose}>X</button>
+        </header>
+        <div className="max-h-[60vh] overflow-auto p-4">
+          {!notes.length ? <p className="border border-dashed border-neutral-700 p-5 text-sm text-neutral-400">Todavía no hay notas guardadas.</p> : (
+            <div className="space-y-2">
+              {notes.map((note) => (
+                <article key={note.id} className="flex items-center justify-between gap-4 border border-neutral-800 bg-neutral-900/60 p-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-bold text-neutral-100">{note.title}</h3>
+                    <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">
+                      {note.kind === "monster" ? "Monstruo / NPC" : "Ítem"}
+                      {note.savedAt ? ` · ${new Date(note.savedAt).toLocaleString()}` : ""}
+                    </p>
+                  </div>
+                  <button className="h-9 shrink-0 bg-amber-500 px-3 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={() => onLoad(note.id)}>Cargar</button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function DetailList({ title, items }) {
   const list = Array.isArray(items) ? items : [];
   if (!list.length) return null;
@@ -10136,6 +10267,10 @@ function DmScreenApp() {
   const [obsidianPickerError, setObsidianPickerError] = useState("");
   const [obsidianSpawnPoint, setObsidianSpawnPoint] = useState(null);
   const [monsterNotes, setMonsterNotes] = useState([]);
+  const [savedBoardNotes, setSavedBoardNotes] = useState([]);
+  const [isSavedBoardNotesOpen, setIsSavedBoardNotesOpen] = useState(false);
+  const [savedBoardNotesSpawnPoint, setSavedBoardNotesSpawnPoint] = useState(null);
+  const [pendingNoteClose, setPendingNoteClose] = useState(null);
   const [isCharacterCodeModalOpen, setIsCharacterCodeModalOpen] = useState(false);
   const [characterCodeValue, setCharacterCodeValue] = useState("");
   const [characterCodeError, setCharacterCodeError] = useState("");
@@ -10191,10 +10326,11 @@ function DmScreenApp() {
   const boardViewRef = useRef(boardView);
   const handleBoardWheelRef = useRef(null);
   const monsterNotesRef = useRef(monsterNotes);
+  const savedBoardNotesRef = useRef(savedBoardNotes);
   const publishedVvtTargetKeyRef = useRef("");
   const publishedVvtTokenImageKeysRef = useRef(new Map());
   const librariesReadyRef = useRef(librariesReady);
-  const pendingBoardSaveRef = useRef({ notes: monsterNotes, view: boardView });
+  const pendingBoardSaveRef = useRef({ notes: monsterNotes, view: boardView, savedNotes: savedBoardNotes });
   const boardSaveTimerRef = useRef(null);
   const selectedMapTokensRef = useRef(selectedMapTokens);
   const focusedRootNoteIdRef = useRef(null);
@@ -10208,6 +10344,7 @@ function DmScreenApp() {
         if (cancelled) return;
         const persistedBoardState = loadDmBoardState();
         setMonsterNotes(persistedBoardState.notes);
+        setSavedBoardNotes(persistedBoardState.savedNotes);
         setBoardView(persistedBoardState.view);
         zRef.current = Math.max(20, ...persistedBoardState.notes.map((note) => Number(note.z) || 0));
         setSelectedMonster(bestiary[0] || null);
@@ -10342,6 +10479,10 @@ function DmScreenApp() {
     monsterNotesRef.current = monsterNotes;
   }, [monsterNotes]);
 
+  useEffect(() => {
+    savedBoardNotesRef.current = savedBoardNotes;
+  }, [savedBoardNotes]);
+
   const visibleNotes = useMemo(
     () => monsterNotes.filter((note) => !note.parentNoteId),
     [monsterNotes]
@@ -10365,7 +10506,7 @@ function DmScreenApp() {
       boardSaveTimerRef.current = null;
     }
     const pending = pendingBoardSaveRef.current;
-    saveDmBoardState(pending.notes, pending.view);
+    saveDmBoardState(pending.notes, pending.view, pending.savedNotes);
   }
 
   useEffect(() => {
@@ -10385,12 +10526,12 @@ function DmScreenApp() {
 
   useEffect(() => {
     if (!librariesReady) return undefined;
-    pendingBoardSaveRef.current = { notes: monsterNotes, view: boardView };
+    pendingBoardSaveRef.current = { notes: monsterNotes, view: boardView, savedNotes: savedBoardNotes };
     if (boardSaveTimerRef.current) window.clearTimeout(boardSaveTimerRef.current);
     boardSaveTimerRef.current = window.setTimeout(() => {
       boardSaveTimerRef.current = null;
       const pending = pendingBoardSaveRef.current;
-      saveDmBoardState(pending.notes, pending.view);
+      saveDmBoardState(pending.notes, pending.view, pending.savedNotes);
     }, DM_BOARD_SAVE_DEBOUNCE_MS);
     return () => {
       if (boardSaveTimerRef.current) {
@@ -10398,7 +10539,7 @@ function DmScreenApp() {
         boardSaveTimerRef.current = null;
       }
     };
-  }, [boardView, librariesReady, monsterNotes]);
+  }, [boardView, librariesReady, monsterNotes, savedBoardNotes]);
 
   useEffect(() => {
     const handleBeforeUnload = () => flushBoardStateSave();
@@ -11556,6 +11697,45 @@ function DmScreenApp() {
   function closeHomebrewMonsterModal() {
     setIsHomebrewMonsterModalOpen(false);
     setHomebrewMonsterSpawnPoint(null);
+  }
+
+  function openSavedBoardNotes() {
+    if (!contextMenu) return;
+    setSavedBoardNotesSpawnPoint({ x: contextMenu.boardX, y: contextMenu.boardY });
+    setIsSavedBoardNotesOpen(true);
+    setContextMenu(null);
+  }
+
+  function closeSavedBoardNotes() {
+    setIsSavedBoardNotesOpen(false);
+    setSavedBoardNotesSpawnPoint(null);
+  }
+
+  function loadSavedBoardNote(savedNoteId) {
+    const savedNote = savedBoardNotesRef.current.find((entry) => entry.id === savedNoteId);
+    const restored = savedNote ? restoreStoredNote(savedNote.snapshot) : null;
+    if (!restored) return;
+    addBoardNote({
+      kind: restored.kind,
+      monster: restored.monster,
+      monsterCustom: restored.monsterCustom,
+      monsterTextNotes: restored.monsterTextNotes,
+      monsterActiveTabId: restored.monsterActiveTabId,
+      character: restored.character,
+      entry: restored.entry,
+      entryCustom: restored.entryCustom,
+      textTitle: restored.textTitle,
+      textContent: restored.textContent,
+      textImages: restored.textImages,
+      titleOverride: restored.titleOverride,
+      width: restored.width,
+      height: restored.height,
+      tabFrameWidth: restored.tabFrameWidth,
+      tabFrameHeight: restored.tabFrameHeight,
+      hpCurrent: restored.hpCurrent,
+      hpMax: restored.hpMax
+    }, savedBoardNotesSpawnPoint);
+    closeSavedBoardNotes();
   }
 
   function addHomebrewNote() {
@@ -13752,6 +13932,51 @@ function DmScreenApp() {
     });
   }
 
+  function noteIdsForClose(noteId, closeGroup) {
+    const notes = monsterNotesRef.current;
+    const rootId = resolveRootNoteId(noteId, notes);
+    if (!rootId) return [];
+    const root = notes.find((note) => note.id === rootId);
+    if (!root) return [];
+    return closeGroup ? noteTabIds(root) : [noteId];
+  }
+
+  function completeNoteClose({ noteId, closeGroup }) {
+    if (closeGroup) closeNote(noteId);
+    else closeSingleTab(noteId);
+  }
+
+  function requestNoteClose(noteId, closeGroup) {
+    const notes = monsterNotesRef.current;
+    const idsToClose = noteIdsForClose(noteId, closeGroup);
+    if (!idsToClose.length) return;
+    const noteIdSet = new Set(idsToClose);
+    const closingNotes = notes.filter((note) => noteIdSet.has(note.id));
+    if (closingNotes.some(mapNoteHasTokens)) return;
+    const notesToSave = closingNotes.filter(shouldOfferBoardNoteSave);
+    if (!notesToSave.length) {
+      completeNoteClose({ noteId, closeGroup });
+      return;
+    }
+    setPendingNoteClose({ noteId, closeGroup, notes: notesToSave });
+  }
+
+  function savePendingNotesAndClose() {
+    if (!pendingNoteClose) return;
+    const savedNotes = pendingNoteClose.notes.map(createSavedBoardNote);
+    setSavedBoardNotes((currentNotes) => [...currentNotes, ...savedNotes]);
+    const closeRequest = pendingNoteClose;
+    setPendingNoteClose(null);
+    completeNoteClose(closeRequest);
+  }
+
+  function discardPendingNotesAndClose() {
+    if (!pendingNoteClose) return;
+    const closeRequest = pendingNoteClose;
+    setPendingNoteClose(null);
+    completeNoteClose(closeRequest);
+  }
+
   function handleNoteClose(noteId, event) {
     const resolvedNoteId = isModifierEvent(noteId) ? null : noteId;
     const resolvedEvent = isModifierEvent(noteId) ? noteId : event;
@@ -13759,11 +13984,7 @@ function DmScreenApp() {
     if (!resolvedNoteId) return;
     resolvedEvent?.preventDefault?.();
     resolvedEvent?.stopPropagation?.();
-    if (shiftPressed) {
-      closeNote(resolvedNoteId);
-      return;
-    }
-    closeSingleTab(resolvedNoteId);
+    requestNoteClose(resolvedNoteId, shiftPressed);
   }
 
   function focusNote(noteId) {
@@ -15071,6 +15292,14 @@ function DmScreenApp() {
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
             type="button"
+            onClick={openSavedBoardNotes}
+          >
+            <span>Cargar</span>
+            <span className="text-neutral-500">↗</span>
+          </button>
+          <button
+            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+            type="button"
             onClick={openContextTextNote}
           >
             <span>Add Text Note</span>
@@ -15142,6 +15371,18 @@ function DmScreenApp() {
         onSpellChange={setHomebrewSpellDraft}
         onClose={closeHomebrewMonsterModal}
         onSubmit={addHomebrewNote}
+      />
+      <NoteCloseSaveModal
+        pendingClose={pendingNoteClose}
+        onSave={savePendingNotesAndClose}
+        onDiscard={discardPendingNotesAndClose}
+        onCancel={() => setPendingNoteClose(null)}
+      />
+      <SavedBoardNotesModal
+        isOpen={isSavedBoardNotesOpen}
+        savedNotes={savedBoardNotes}
+        onLoad={loadSavedBoardNote}
+        onClose={closeSavedBoardNotes}
       />
 
       <MonsterPicker
