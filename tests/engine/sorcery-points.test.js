@@ -72,6 +72,7 @@ assert.match(rendererHtml, /engine\/resources\/sorcery-points\.js/, "the sheet m
 assert.match(rendererHtml, /slotTotals:\s*baseSpellSlotsForCharacter\(\)/, "Long Rest must restore base slots, not temporary slots");
 assert.match(rendererHtml, /sheetMeta\.temporarySpellSlots\s*=\s*removeTemporarySpellSlots/, "Long Rest must remove temporary slots");
 assert.match(rendererHtml, /function openSorceryPointManager\(/, "the SP orb must expose conversion and creation controls");
+assert.match(rendererHtml, /normalizeName\(title\) === "font of magic"\) return false/, "Font of Magic must stay represented by the SP orb, not an attack row");
 assert.match(rendererHtml, /function openQuickenedSpellPicker\(/, "Quickened Spell must expose a prepared spell picker");
 assert.match(rendererHtml, /spendSheetSorceryPoints\(2\)/, "Quickened Spell must spend 2 SP through the central manager");
 

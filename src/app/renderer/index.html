@@ -4042,6 +4042,7 @@
       if ((entry.optionalFeature?.featureType || []).includes("MM")) return false;
       if (isLayOnHandsFeature(entry.feature || entry.optionalFeature)) return false;
       const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "";
+      if (normalizeName(title) === "font of magic") return false;
       const description = String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "");
       const text = `${title}\n${description}`;
       if (entry.feature?.activation === "triggered" || entry.optionalFeature?.activation === "triggered") return true;
