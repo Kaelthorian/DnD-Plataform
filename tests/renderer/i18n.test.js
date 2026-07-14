@@ -30,3 +30,8 @@ assert.strictEqual(i18n.translateDynamicText("Personaje"), "Personaje");
 i18n.setLanguage("en");
 assert.strictEqual(i18n.translateDynamicText("Personaje"), "Character");
 assert.strictEqual(i18n.translateDynamicText("unknown.dynamic.key", "Value {count}", { count: 3 }), "Value 3");
+assert.strictEqual(i18n.t("live.handRaisedPosition", { position: 2 }), "Your hand is raised - position 2.");
+
+i18n.setLanguage("es");
+assert.strictEqual(i18n.t("live.handRaisedPosition", { position: 2 }), "Tu mano está levantada - posición 2.");
+assert.strictEqual(i18n.t("live.handLoweredByDm"), "El DM bajó tu mano.");

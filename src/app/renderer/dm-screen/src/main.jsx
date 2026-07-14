@@ -139,6 +139,7 @@ const MAP_FOG_BRUSH_MIN_SIZE = 8;
 const MAP_FOG_BRUSH_MAX_SIZE = 360;
 const MAP_FOG_BRUSH_KEY_STEP = 10;
 const VTT_PING_TTL_MS = 5000;
+const VTT_TOKEN_DRAG_PUBLISH_INTERVAL_MS = 50;
 const MAP_LOCAL_MIN_ZOOM = 1;
 const MAP_LOCAL_MAX_ZOOM = 4;
 const DEFAULT_MAP_GRID = {
@@ -2138,6 +2139,17 @@ function mapPageHasTokens(page) {
 
 function mapNoteHasTokens(note) {
   return note?.kind === "map" && mapPagesForNote(note).some(mapPageHasTokens);
+}
+
+function sharedVttTargetKey(note, page) {
+  if (!note?.id || !page?.id || !page?.mapImage) return "";
+  return [
+    note.id,
+    page.id,
+    page.mapImage.assetId || page.mapImage.id || "inline",
+    page.mapImage.updatedAt || "",
+    page.mapImage.size || 0
+  ].join("|");
 }
 
 function linkedMapTokenExistsInCollection(note, notes) {
@@ -10633,6 +10645,14 @@ function DmScreenApp() {
   const savedBoardNotesRef = useRef(savedBoardNotes);
   const publishedVttTargetKeyRef = useRef("");
   const publishedVttTokenImageKeysRef = useRef(new Map());
+  const sharedVttTargetRef = useRef(null);
+  const mapTokenDragPublishRef = useRef({
+    timerId: null,
+    lastPublishedAt: 0,
+    pending: null,
+    publishing: false,
+    disposed: false
+  });
   const librariesReadyRef = useRef(librariesReady);
   const pendingBoardSaveRef = useRef({ notes: monsterNotes, view: boardView, savedNotes: savedBoardNotes });
   const boardSaveTimerRef = useRef(null);
@@ -10807,6 +10827,7 @@ function DmScreenApp() {
     const page = explicitPage || activeMapPageForNote(note) || pages[0] || null;
     return note && page ? { note, page } : null;
   }, [monsterNotes, sharedVttMap]);
+  sharedVttTargetRef.current = sharedVttTarget;
   const selectedRootNoteIdSet = useMemo(() => new Set(selectedRootNoteIds), [selectedRootNoteIds]);
 
   function flushBoardStateSave() {
@@ -10873,13 +10894,7 @@ function DmScreenApp() {
           return;
         }
         const { note, page } = sharedVttTarget;
-        const targetKey = [
-          note.id,
-          page.id,
-          page.mapImage.assetId || page.mapImage.id || "inline",
-          page.mapImage.updatedAt || "",
-          page.mapImage.size || 0
-        ].join("|");
+        const targetKey = sharedVttTargetKey(note, page);
         const publishFullState = publishedVttTargetKeyRef.current !== targetKey || !liveSheet.publishVttPatch;
         const previousTokenImageKeys = publishedVttTokenImageKeysRef.current;
         const nextTokenImageKeys = new Map((page.mapTokens || []).map((token) => [token.id, mapTokenEmbeddedImageKey(token)]));
@@ -10927,6 +10942,17 @@ function DmScreenApp() {
       window.clearTimeout(timer);
     };
   }, [sharedVttTarget?.note?.id, sharedVttTarget?.note?.titleOverride, sharedVttTarget?.page]);
+
+  useEffect(() => {
+    const publisher = mapTokenDragPublishRef.current;
+    publisher.disposed = false;
+    return () => {
+      publisher.disposed = true;
+      publisher.pending = null;
+      if (publisher.timerId) window.clearTimeout(publisher.timerId);
+      publisher.timerId = null;
+    };
+  }, []);
 
   useEffect(() => {
     saveLivePlayersPanelCollapsed(livePlayersCollapsed);
@@ -12969,6 +12995,70 @@ function DmScreenApp() {
     });
     drag.previewPositions = previewPositions;
     drag.previewMarkerPositions = previewMarkerPositions;
+    queueMapTokenDragPreviewPublish(drag);
+  }
+
+  async function publishPendingMapTokenDragPreview() {
+    const publisher = mapTokenDragPublishRef.current;
+    if (publisher.disposed || publisher.publishing || !publisher.pending) return;
+    const pending = publisher.pending;
+    publisher.pending = null;
+    publisher.publishing = true;
+    publisher.lastPublishedAt = Date.now();
+    try {
+      const liveSheet = window.dndSheet?.liveSheet;
+      const sharedTarget = sharedVttTargetRef.current;
+      if (!liveSheet?.publishVttPatch
+        || sharedTarget?.note?.id !== pending.mapNoteId
+        || sharedTarget?.page?.id !== pending.pageId) return;
+      const mapNote = monsterNotesRef.current.find((note) => note.id === pending.mapNoteId);
+      const page = mapPagesForNote(mapNote).find((entry) => entry.id === pending.pageId);
+      const targetKey = sharedVttTargetKey(mapNote, page);
+      if (!targetKey || publishedVttTargetKeyRef.current !== targetKey) return;
+      const previewPage = {
+        ...page,
+        mapTokens: (page.mapTokens || []).map((token) => (
+          pending.tokenPositions[token.id] ? { ...token, ...pending.tokenPositions[token.id] } : token
+        )),
+        mapMarkers: (page.mapMarkers || []).map((marker) => (
+          pending.markerPositions[marker.id] ? { ...marker, ...pending.markerPositions[marker.id] } : marker
+        ))
+      };
+      const sourceViewport = mapShareViewportFromDom(mapNote, previewPage);
+      const tokens = await mapTokensShareSnapshot(previewPage.mapTokens, sourceViewport, {
+        includeImage: () => false
+      });
+      if (publisher.disposed) return;
+      await liveSheet.publishVttPatch({
+        tokens,
+        markers: mapMarkersShareSnapshot(previewPage.mapMarkers, sourceViewport),
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Could not publish the live VTT token drag preview", error);
+    } finally {
+      publisher.publishing = false;
+      if (publisher.pending && !publisher.disposed) queueMapTokenDragPreviewPublish();
+    }
+  }
+
+  function queueMapTokenDragPreviewPublish(drag = null) {
+    const publisher = mapTokenDragPublishRef.current;
+    if (drag) {
+      publisher.pending = {
+        mapNoteId: drag.mapNoteId,
+        pageId: drag.pageId,
+        tokenPositions: { ...(drag.previewPositions || {}) },
+        markerPositions: { ...(drag.previewMarkerPositions || {}) }
+      };
+    }
+    if (publisher.disposed || !publisher.pending || publisher.timerId || publisher.publishing) return;
+    const elapsed = Date.now() - publisher.lastPublishedAt;
+    const delay = Math.max(0, VTT_TOKEN_DRAG_PUBLISH_INTERVAL_MS - elapsed);
+    publisher.timerId = window.setTimeout(() => {
+      publisher.timerId = null;
+      void publishPendingMapTokenDragPreview();
+    }, delay);
   }
 
   function commitMapTokenDrag(drag) {

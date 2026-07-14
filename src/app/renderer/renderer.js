@@ -142,6 +142,8 @@
     let liveVttViewKey = "";
     let liveVttPointer = null;
     let liveVttHandRaised = false;
+    let liveVttHandStateReason = "sync";
+    let liveVttHandQueue = [];
     let liveDmAudioPlayers = [];
     const liveDmAudioPlayersById = new Map();
     const liveVttTokenImageCache = new Map();
@@ -326,6 +328,84 @@
           background: #fbbf24;
           color: #111827;
           box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.24);
+        }
+        .live-vtt-hand-panel {
+          display: grid;
+          gap: 7px;
+          border-bottom: 1px solid rgba(75, 85, 99, 0.9);
+          padding: 8px 12px;
+          background: rgba(15, 23, 42, 0.98);
+        }
+        .live-vtt-hand-summary {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .live-vtt-hand-queue-title {
+          color: #fbbf24;
+          font: 900 11px/1 system-ui, sans-serif;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .live-vtt-hand-status {
+          color: #9ca3af;
+          font: 700 11px/1.2 system-ui, sans-serif;
+          text-align: right;
+        }
+        .live-vtt-hand-status[data-raised="true"] {
+          color: #fde68a;
+        }
+        .live-vtt-hand-queue {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 5px;
+          max-height: 102px;
+          overflow: auto;
+        }
+        .live-vtt-hand-entry {
+          display: grid;
+          grid-template-columns: 24px minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 6px;
+          border: 1px solid #374151;
+          background: #020617;
+          padding: 4px 6px;
+          color: #e5e7eb;
+          font: 700 11px/1.2 system-ui, sans-serif;
+        }
+        .live-vtt-hand-entry[data-own="true"] {
+          border-color: #f59e0b;
+          background: rgba(120, 53, 15, 0.26);
+        }
+        .live-vtt-hand-position {
+          display: flex;
+          width: 24px;
+          height: 24px;
+          align-items: center;
+          justify-content: center;
+          background: #f59e0b;
+          color: #111827;
+          font-weight: 900;
+        }
+        .live-vtt-hand-player {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .live-vtt-hand-you {
+          color: #fbbf24;
+          font-size: 9px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .live-vtt-hand-empty {
+          color: #6b7280;
+          font: 600 11px/1.2 system-ui, sans-serif;
+        }
+        .live-vtt-window.is-minimized .live-vtt-hand-queue {
+          grid-template-columns: 1fr;
+          max-height: 68px;
         }
         .live-vtt-body {
           position: relative;
@@ -580,10 +660,17 @@
         <header class="live-vtt-header">
           <div class="live-vtt-title"></div>
           <div class="live-vtt-window-actions">
-            <button class="live-vtt-hand" type="button" aria-label="Levantar la mano" aria-pressed="false">Levantar</button>
+            <button class="live-vtt-hand" type="button" aria-pressed="false"></button>
             <button class="live-vtt-minimize" type="button" aria-label="Minimizar VTT">-</button>
           </div>
         </header>
+        <section class="live-vtt-hand-panel" aria-live="polite">
+          <div class="live-vtt-hand-summary">
+            <span class="live-vtt-hand-queue-title"></span>
+            <span class="live-vtt-hand-status"></span>
+          </div>
+          <div class="live-vtt-hand-queue"></div>
+        </section>
         <div class="live-vtt-body">
           <div class="live-vtt-empty">Esperando mapa VTT del DM.</div>
           <img class="live-vtt-map" alt="Mapa VTT" draggable="false" hidden>
@@ -599,6 +686,9 @@
         root,
         title: root.querySelector(".live-vtt-title"),
         hand: root.querySelector(".live-vtt-hand"),
+        handQueueTitle: root.querySelector(".live-vtt-hand-queue-title"),
+        handStatus: root.querySelector(".live-vtt-hand-status"),
+        handQueue: root.querySelector(".live-vtt-hand-queue"),
         minimize: root.querySelector(".live-vtt-minimize"),
         body: root.querySelector(".live-vtt-body"),
         empty: root.querySelector(".live-vtt-empty"),
@@ -1258,13 +1348,77 @@
       });
     }
 
-    function setLiveVttHandRaised(raised) {
+    function normalizeLiveVttHandQueue(entries) {
+      return (Array.isArray(entries) ? entries : [])
+        .filter((entry) => entry?.playerId)
+        .slice(0, 40)
+        .map((entry, index) => ({
+          playerId: String(entry.playerId),
+          playerName: String(entry.playerName || "Player").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 120) || "Player",
+          raisedAt: String(entry.raisedAt || ""),
+          position: Math.max(1, Number(entry.position) || index + 1)
+        }))
+        .sort((left, right) => (left.position - right.position) || left.raisedAt.localeCompare(right.raisedAt));
+    }
+
+    function renderLiveVttHandQueue(entries = liveVttHandQueue) {
+      liveVttHandQueue = normalizeLiveVttHandQueue(entries);
+      const elements = liveVttElements;
+      if (!elements?.handQueue) return;
+      const ownPlayerId = liveSheetPlayerId();
+      const ownHand = liveVttHandQueue.find((hand) => hand.playerId === ownPlayerId);
+      elements.handQueueTitle.textContent = t("live.handQueueTitle");
+      elements.handStatus.dataset.raised = liveVttHandRaised ? "true" : "false";
+      if (liveVttHandRaised) {
+        elements.handStatus.textContent = ownHand
+          ? t("live.handRaisedPosition", { position: ownHand.position })
+          : t("live.handRaisedWaiting");
+      } else if (liveVttHandStateReason === "dm") {
+        elements.handStatus.textContent = t("live.handLoweredByDm");
+      } else if (liveVttHandStateReason === "self") {
+        elements.handStatus.textContent = t("live.handLoweredSelf");
+      } else {
+        elements.handStatus.textContent = t("live.handNotRaised");
+      }
+
+      const rows = liveVttHandQueue.map((hand) => {
+        const isOwnHand = hand.playerId === ownPlayerId;
+        const row = document.createElement("div");
+        row.className = "live-vtt-hand-entry";
+        row.dataset.own = isOwnHand ? "true" : "false";
+
+        const position = document.createElement("span");
+        position.className = "live-vtt-hand-position";
+        position.textContent = String(hand.position);
+
+        const playerName = document.createElement("span");
+        playerName.className = "live-vtt-hand-player";
+        playerName.textContent = hand.playerName;
+
+        const ownLabel = document.createElement("span");
+        ownLabel.className = "live-vtt-hand-you";
+        ownLabel.textContent = isOwnHand ? t("live.handYou") : "";
+        row.append(position, playerName, ownLabel);
+        return row;
+      });
+      if (!rows.length) {
+        const empty = document.createElement("div");
+        empty.className = "live-vtt-hand-empty";
+        empty.textContent = t("live.handQueueEmpty");
+        rows.push(empty);
+      }
+      elements.handQueue.replaceChildren(...rows);
+    }
+
+    function setLiveVttHandRaised(raised, reason = "") {
       liveVttHandRaised = Boolean(raised);
+      if (reason) liveVttHandStateReason = reason;
       const handButton = liveVttElements?.hand;
       if (!handButton) return;
       handButton.setAttribute("aria-pressed", liveVttHandRaised ? "true" : "false");
-      handButton.textContent = liveVttHandRaised ? "Bajar mano" : "Levantar";
-      handButton.setAttribute("aria-label", liveVttHandRaised ? "Bajar la mano" : "Levantar la mano");
+      handButton.textContent = t(liveVttHandRaised ? "live.handLower" : "live.handRaise");
+      handButton.setAttribute("aria-label", t(liveVttHandRaised ? "live.handLowerAria" : "live.handRaiseAria"));
+      renderLiveVttHandQueue();
     }
 
     function toggleLiveVttHand(event) {
@@ -1272,10 +1426,10 @@
       event?.stopPropagation?.();
       const nextRaised = !liveVttHandRaised;
       if (!sendLiveSheetMessage({ type: "player:hand", raised: nextRaised })) {
-        showStatus("No estas conectado al DM.");
+        showStatus(t("live.notConnectedToDm"));
         return;
       }
-      setLiveVttHandRaised(nextRaised);
+      setLiveVttHandRaised(nextRaised, "self");
     }
 
     function handleLiveVttPointerDown(event) {
@@ -1482,7 +1636,8 @@
         }
       }
       liveSheetClientSocket = null;
-      setLiveVttHandRaised(false);
+      renderLiveVttHandQueue([]);
+      setLiveVttHandRaised(false, "sync");
       renderLiveVttState({ active: false });
       setLiveSheetClientStatus("live.disconnected", "neutral");
       showStatus(t("live.disconnectedStatus"));
@@ -1561,7 +1716,11 @@
             controlLiveDmAudio(payload.control);
           }
           if (payload?.type === "dm:hand:state") {
-            setLiveVttHandRaised(Boolean(payload.raised));
+            if (Array.isArray(payload.raisedHands)) renderLiveVttHandQueue(payload.raisedHands);
+            setLiveVttHandRaised(Boolean(payload.raised), payload.reason || "sync");
+          }
+          if (payload?.type === "dm:hand:queue") {
+            renderLiveVttHandQueue(payload.raisedHands);
           }
           if (payload?.type === "player:roll") {
             window.showLiveSheetRoll?.(payload.roll);
@@ -1569,7 +1728,8 @@
         });
         socket.addEventListener("close", () => {
           if (liveSheetClientSocket === socket) liveSheetClientSocket = null;
-          setLiveVttHandRaised(false);
+          renderLiveVttHandQueue([]);
+          setLiveVttHandRaised(false, "sync");
           renderLiveVttState({ active: false });
           setLiveSheetClientStatus(liveSheetClientManualDisconnect ? "live.disconnected" : "live.disconnectedFromDm", liveSheetClientManualDisconnect ? "neutral" : "error");
         });
@@ -1598,6 +1758,7 @@
       if (liveSheetClientStatus) {
         setLiveSheetClientStatus(liveSheetClientStatus.dataset.statusKey || liveSheetClientStatus.textContent || "Disconnected", liveSheetClientStatus.dataset.tone || "neutral");
       }
+      setLiveVttHandRaised(liveVttHandRaised, liveVttHandStateReason);
       if (typeof updateCharacterReadyButton === "function") updateCharacterReadyButton();
       if (typeof renderAlertsPanel === "function") renderAlertsPanel();
       if (typeof updateEquipmentPanel === "function") updateEquipmentPanel();

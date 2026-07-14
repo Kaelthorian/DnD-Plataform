@@ -421,35 +421,94 @@ async function testRaisedHandQueue() {
     assert.strictEqual(aliceWelcome.type, "server:welcome");
     assert.strictEqual(aliceHandState.type, "dm:hand:state");
     assert.strictEqual(aliceHandState.raised, false);
+    assert.strictEqual(aliceHandState.reason, "sync");
+    assert.deepStrictEqual(aliceHandState.raisedHands, []);
     assert.strictEqual(bobWelcome.type, "server:welcome");
     assert.strictEqual(bobHandState.type, "dm:hand:state");
     assert.strictEqual(bobHandState.raised, false);
+    assert.strictEqual(bobHandState.reason, "sync");
+    assert.deepStrictEqual(bobHandState.raisedHands, []);
 
     const aliceQueuePromise = new Promise((resolve) => server.once("player-hand-queue", resolve));
+    const aliceRaisedMessagesPromise = nextMessages(alice, 2);
+    const bobSeesAlicePromise = nextMessage(bob);
     sendAs(alice, "alice", "Alice", { type: "player:hand", raised: true });
-    const aliceAck = await nextMessage(alice);
-    const aliceQueue = await aliceQueuePromise;
+    const [aliceRaisedMessages, bobSeesAlice, aliceQueue] = await Promise.all([
+      aliceRaisedMessagesPromise,
+      bobSeesAlicePromise,
+      aliceQueuePromise
+    ]);
+    const [aliceQueueMessage, aliceAck] = aliceRaisedMessages;
+    assert.strictEqual(aliceQueueMessage.type, "dm:hand:queue");
+    assert.deepStrictEqual(aliceQueueMessage.raisedHands.map((hand) => hand.playerName), ["Alice"]);
+    assert.strictEqual(bobSeesAlice.type, "dm:hand:queue");
+    assert.deepStrictEqual(bobSeesAlice.raisedHands.map((hand) => hand.playerName), ["Alice"]);
     assert.strictEqual(aliceAck.type, "dm:hand:state");
     assert.strictEqual(aliceAck.raised, true);
+    assert.strictEqual(aliceAck.reason, "self");
+    assert.strictEqual(aliceAck.raisedHands[0].position, 1);
     assert.deepStrictEqual(aliceQueue.map((hand) => hand.playerName), ["Alice"]);
 
     const bobQueuePromise = new Promise((resolve) => server.once("player-hand-queue", resolve));
+    const bobRaisedMessagesPromise = nextMessages(bob, 2);
+    const aliceSeesBobPromise = nextMessage(alice);
     sendAs(bob, "bob", "Bob", { type: "player:hand", raised: true });
-    const bobAck = await nextMessage(bob);
-    const bobQueue = await bobQueuePromise;
+    const [bobRaisedMessages, aliceSeesBob, bobQueue] = await Promise.all([
+      bobRaisedMessagesPromise,
+      aliceSeesBobPromise,
+      bobQueuePromise
+    ]);
+    const [bobQueueMessage, bobAck] = bobRaisedMessages;
+    assert.strictEqual(bobQueueMessage.type, "dm:hand:queue");
+    assert.deepStrictEqual(bobQueueMessage.raisedHands.map((hand) => hand.position), [1, 2]);
+    assert.strictEqual(aliceSeesBob.type, "dm:hand:queue");
+    assert.deepStrictEqual(aliceSeesBob.raisedHands.map((hand) => hand.playerName), ["Alice", "Bob"]);
     assert.strictEqual(bobAck.type, "dm:hand:state");
     assert.strictEqual(bobAck.raised, true);
+    assert.strictEqual(bobAck.reason, "self");
+    assert.strictEqual(bobAck.raisedHands.find((hand) => hand.playerId === "bob").position, 2);
     assert.deepStrictEqual(bobQueue.map((hand) => hand.playerName), ["Alice", "Bob"]);
     assert.deepStrictEqual(server.getRaisedHands().map((hand) => hand.position), [1, 2]);
 
     const lowerQueuePromise = new Promise((resolve) => server.once("player-hand-queue", resolve));
-    const aliceLoweredPromise = nextMessage(alice);
+    const aliceLoweredMessagesPromise = nextMessages(alice, 2);
+    const bobSeesAliceLoweredPromise = nextMessage(bob);
     const result = server.lowerPlayerHand("alice");
-    const [lowerQueue, aliceLowered] = await Promise.all([lowerQueuePromise, aliceLoweredPromise]);
+    const [lowerQueue, aliceLoweredMessages, bobSeesAliceLowered] = await Promise.all([
+      lowerQueuePromise,
+      aliceLoweredMessagesPromise,
+      bobSeesAliceLoweredPromise
+    ]);
+    const [aliceLowered, aliceLoweredQueueMessage] = aliceLoweredMessages;
     assert.strictEqual(result.ok, true);
     assert.strictEqual(aliceLowered.type, "dm:hand:state");
     assert.strictEqual(aliceLowered.raised, false);
+    assert.strictEqual(aliceLowered.reason, "dm");
+    assert.deepStrictEqual(aliceLowered.raisedHands.map((hand) => hand.playerName), ["Bob"]);
+    assert.strictEqual(aliceLoweredQueueMessage.type, "dm:hand:queue");
+    assert.strictEqual(bobSeesAliceLowered.type, "dm:hand:queue");
+    assert.deepStrictEqual(bobSeesAliceLowered.raisedHands.map((hand) => hand.position), [1]);
     assert.deepStrictEqual(lowerQueue.map((hand) => hand.playerName), ["Bob"]);
+
+    const bobSelfLowerQueuePromise = new Promise((resolve) => server.once("player-hand-queue", resolve));
+    const bobSelfLowerMessagesPromise = nextMessages(bob, 2);
+    const aliceSeesBobLoweredPromise = nextMessage(alice);
+    sendAs(bob, "bob", "Bob", { type: "player:hand", raised: false });
+    const [bobSelfLowerQueue, bobSelfLowerMessages, aliceSeesBobLowered] = await Promise.all([
+      bobSelfLowerQueuePromise,
+      bobSelfLowerMessagesPromise,
+      aliceSeesBobLoweredPromise
+    ]);
+    const [bobEmptyQueueMessage, bobSelfLowered] = bobSelfLowerMessages;
+    assert.strictEqual(bobEmptyQueueMessage.type, "dm:hand:queue");
+    assert.deepStrictEqual(bobEmptyQueueMessage.raisedHands, []);
+    assert.strictEqual(bobSelfLowered.type, "dm:hand:state");
+    assert.strictEqual(bobSelfLowered.raised, false);
+    assert.strictEqual(bobSelfLowered.reason, "self");
+    assert.deepStrictEqual(bobSelfLowered.raisedHands, []);
+    assert.strictEqual(aliceSeesBobLowered.type, "dm:hand:queue");
+    assert.deepStrictEqual(aliceSeesBobLowered.raisedHands, []);
+    assert.deepStrictEqual(bobSelfLowerQueue, []);
 
     alice.close();
     bob.close();

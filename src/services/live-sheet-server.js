@@ -507,7 +507,13 @@ class LiveSheetServer extends EventEmitter {
   }
 
   emitHandQueue() {
-    this.emit("player-hand-queue", this.getRaisedHands());
+    const raisedHands = this.getRaisedHands();
+    this.emit("player-hand-queue", raisedHands);
+    this.broadcastToPlayers({
+      version: 1,
+      type: "dm:hand:queue",
+      raisedHands
+    });
   }
 
   setPlayerHand(playerId, playerName, raised) {
@@ -542,7 +548,9 @@ class LiveSheetServer extends EventEmitter {
       sendJson(player.ws, {
         version: 1,
         type: "dm:hand:state",
-        raised: false
+        raised: false,
+        reason: "dm",
+        raisedHands: this.getRaisedHands()
       });
     }
     if (removed) this.emitHandQueue();
@@ -877,7 +885,9 @@ class LiveSheetServer extends EventEmitter {
         sendJson(socket, {
           version: 1,
           type: "dm:hand:state",
-          raised: this.raisedHands.has(validated.playerId)
+          raised: this.raisedHands.has(validated.playerId),
+          reason: "sync",
+          raisedHands: this.getRaisedHands()
         });
       }
       if (
@@ -932,11 +942,13 @@ class LiveSheetServer extends EventEmitter {
         this.emit("vtt-ping", ping);
       }
       if (validated.messageType === "player:hand") {
-        this.setPlayerHand(validated.playerId, validated.playerName, validated.handRaised);
+        const handResult = this.setPlayerHand(validated.playerId, validated.playerName, validated.handRaised);
         sendJson(socket, {
           version: 1,
           type: "dm:hand:state",
-          raised: validated.handRaised
+          raised: validated.handRaised,
+          reason: "self",
+          raisedHands: handResult.raisedHands
         });
       }
       this.emitStatus();
