@@ -5,7 +5,9 @@ const path = require("path");
 const source = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/dm-screen/src/main.jsx"), "utf8");
 
 assert.match(source, /function shouldOfferBoardNoteSave\(note\)/);
-assert.match(source, /note\?\.kind === "monster" && normalizeMonsterTextNotes\(note\.monsterTextNotes\)\.length > 0/);
+assert.match(source, /function monsterNoteHasPersistentEdits\(note\)/);
+assert.match(source, /note\.monsterCustom \|\| String\(note\.titleOverride \|\| ""\)\.trim\(\)/);
+assert.match(source, /normalizeMonsterTextNotes\(note\.monsterTextNotes\)\.length > 0/);
 assert.match(source, /function createSavedBoardNote\(note\)/);
 assert.match(source, /function restoreSavedBoardNote\(savedNote, index = 0\)/);
 assert.match(source, /savedNotes: \[\]/);

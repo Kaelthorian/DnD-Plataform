@@ -2671,9 +2671,21 @@ function isHomebrewBoardNote(note) {
   return Boolean(note.monsterCustom?.__homebrew || String(note.monsterCustom?.source || "").trim().toLowerCase() === "homebrew");
 }
 
+function monsterNoteHasPersistentEdits(note) {
+  if (note?.kind !== "monster") return false;
+  if (note.monsterCustom || String(note.titleOverride || "").trim()) return true;
+  const defaultHp = note.monster?.hp?.average ?? "";
+  return [note.hpCurrent, note.hpMax].some((value) => (
+    value !== "" && value !== null && value !== undefined && String(value) !== String(defaultHp)
+  ));
+}
+
 function shouldOfferBoardNoteSave(note) {
   return isHomebrewBoardNote(note)
-    || (note?.kind === "monster" && normalizeMonsterTextNotes(note.monsterTextNotes).length > 0);
+    || (note?.kind === "monster" && (
+      monsterNoteHasPersistentEdits(note)
+      || normalizeMonsterTextNotes(note.monsterTextNotes).length > 0
+    ));
 }
 
 function savedBoardNoteSnapshot(note) {
