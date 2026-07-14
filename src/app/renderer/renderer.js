@@ -29,7 +29,6 @@
     const appSettingsMenu = document.getElementById("appSettingsMenu");
     const appSettingsLauncher = document.getElementById("appSettingsLauncher");
     const appSettingsPanel = document.getElementById("appSettingsPanel");
-    const diceAnimationToggle = document.getElementById("diceAnimationToggle");
     const playerLanguageButtons = [...document.querySelectorAll("[data-player-language]")];
     const dmScreenButton = document.getElementById("dmScreenButton");
     const liveSheetClientButton = document.getElementById("liveSheetClientButton");
@@ -124,10 +123,6 @@
     let platformBackgroundImageUrl = "./assets/BackgroundSheet.png";
     const collapsibleSectionState = {};
     let fieldLookupCache = null;
-    const UI_SETTINGS_KEY = "dnd-character-sheet-ui-settings-v1";
-    const uiSettings = {
-      diceRollAnimations: false
-    };
     const LIVE_SHEET_CLIENT_SETTINGS_KEY = "dnd-character-sheet-live-client-v1";
     const LIVE_SHEET_PLAYER_ID_KEY = "dnd-character-sheet-live-player-id-v1";
     let liveSheetClientSocket = null;
@@ -150,27 +145,6 @@
     const LIVE_VTT_PING_TTL_MS = 5000;
     const LIVE_VTT_MIN_ZOOM = 1;
     const LIVE_VTT_MAX_ZOOM = 4;
-
-    function loadUiSettings() {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(UI_SETTINGS_KEY) || "{}");
-        uiSettings.diceRollAnimations = Boolean(parsed?.diceRollAnimations);
-      } catch (_error) {
-        uiSettings.diceRollAnimations = false;
-      }
-      window.dndUiSettings = uiSettings;
-    }
-
-    function saveUiSettings() {
-      localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(uiSettings));
-      window.dndUiSettings = uiSettings;
-    }
-
-    function isDiceRollAnimationEnabled() {
-      return Boolean(uiSettings.diceRollAnimations);
-    }
-
-    window.isDiceRollAnimationEnabled = isDiceRollAnimationEnabled;
 
     async function openDmScreen() {
       setAppSettingsMenuOpen(false);
@@ -1744,7 +1718,6 @@
     }
 
     function syncSettingsControls() {
-      if (diceAnimationToggle) diceAnimationToggle.checked = Boolean(uiSettings.diceRollAnimations);
       playerLanguageButtons.forEach((button) => {
         const active = button.dataset.playerLanguage === playerI18n.getLanguage();
         button.classList.toggle("active", active);
@@ -1767,8 +1740,6 @@
     }
 
     window.addEventListener("dnd:i18n:languagechange", refreshTranslatedUi);
-
-    loadUiSettings();
 
     function invalidateFieldLookupCache() {
       fieldLookupCache = null;
@@ -2563,12 +2534,6 @@
         setTopControlsMenuOpen(false);
         setAppSettingsMenuOpen(!isAppSettingsMenuOpen());
       });
-      diceAnimationToggle?.addEventListener("change", (event) => {
-        uiSettings.diceRollAnimations = Boolean(event.target.checked);
-        saveUiSettings();
-        if (!uiSettings.diceRollAnimations) window.stopDiceRoll3d?.();
-        showStatus(uiSettings.diceRollAnimations ? "3D dice enabled" : "3D dice disabled");
-      });
       playerLanguageButtons.forEach((button) => {
         button.addEventListener("click", () => {
           playerI18n.setLanguage(button.dataset.playerLanguage || "en");
@@ -2599,7 +2564,7 @@
         setTopControlsMenuOpen(false);
         switchSaveSlot(event.target.value).catch(console.error);
       });
-      [clearFieldsButton, longRestButton, shortRestButton, characterReadyButton, turnActionsButton]
+      [clearFieldsButton, characterReadyButton, turnActionsButton]
         .filter(Boolean)
         .forEach((button) => button.addEventListener("click", () => setTopControlsMenuOpen(false)));
       longRestButton?.addEventListener("click", longRestSpellResources);

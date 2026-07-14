@@ -27,11 +27,27 @@
         <select class="save-slot-select" id="saveSlotSelect"></select>
       </div>
       <button class="clear-fields-button" id="clearFieldsButton" type="button" data-i18n="top.clearFields">Clear fields</button>
-      <button class="long-rest-button" id="longRestButton" type="button" data-i18n="top.longRest">Long rest</button>
-      <button class="long-rest-button short-rest-button" id="shortRestButton" type="button" data-i18n="top.shortRest">Short rest</button>
       <button class="character-ready-button" id="characterReadyButton" type="button" data-i18n="top.characterReady.unlocked">🔓 Character Ready</button>
-      <button class="turn-actions-button" id="turnActionsButton" type="button" data-i18n="top.startCombat">Start combat</button>
     </div>
+  </div>
+  <div class="rest-controls" aria-label="Rest controls" data-i18n-aria-label="top.restControls">
+    <button class="long-rest-button" id="longRestButton" type="button" aria-label="Start long rest" title="Start long rest" data-i18n-aria-label="top.longRest.start" data-i18n-title="top.longRest.start">
+      <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M7.5 3.5h9a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18V6a2.5 2.5 0 0 1 2.5-2.5Z" />
+        <path d="M5 8h14M8 5.8h3" />
+      </svg>
+    </button>
+    <button class="turn-actions-button" id="turnActionsButton" type="button" aria-label="Start combat" title="Start combat" data-i18n-aria-label="top.startCombat" data-i18n-title="top.startCombat">
+      <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="m5 4 6 6m-4.5-1.5 2-2m-5 5 2-2M19 4l-6 6m4.5-1.5-2-2m5 5-2-2M8 13l8 8M16 13 8 21" />
+      </svg>
+    </button>
+    <button class="long-rest-button short-rest-button" id="shortRestButton" type="button" aria-label="Start short rest" title="Start short rest" data-i18n-aria-label="top.shortRest.start" data-i18n-title="top.shortRest.start">
+      <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 3.5c1.9 2.2 3.8 4.4 3.8 7.1A3.8 3.8 0 1 1 8.2 10.6C8.2 8.4 9.7 6.2 12 3.5Z" />
+        <path d="m5 18.5 14 2M19 18.5 5 20.5" />
+      </svg>
+    </button>
   </div>
   <div class="app-settings-menu" id="appSettingsMenu">
     <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Open settings" aria-expanded="false" aria-controls="appSettingsPanel" data-i18n-aria-label="settings.open">&#9881;</button>
@@ -49,14 +65,6 @@
       <button class="app-settings-action-button" id="generateSheetCodeButton" type="button" data-i18n="settings.generateCode">Generate code</button>
       <button class="app-settings-action-button" id="importCharacterButton" type="button" data-i18n="settings.importCharacter">Import character</button>
       <button class="app-settings-action-button" id="checkUpdatesButton" type="button" data-i18n="settings.checkUpdates">Check for updates</button>
-      <label class="app-settings-toggle-row" for="diceAnimationToggle">
-        <span>
-          <span class="app-settings-toggle-title" data-i18n="settings.dice3d">3D dice</span>
-          <span class="app-settings-toggle-description" data-i18n="settings.dice3dDescription">Show animated dice on screen</span>
-        </span>
-        <input class="app-settings-toggle-input" id="diceAnimationToggle" type="checkbox">
-        <span class="app-settings-toggle" aria-hidden="true"></span>
-      </label>
     </div>
   </div>
   <div class="live-sheet-client-backdrop" id="liveSheetClientBackdrop" aria-hidden="true" hidden>
@@ -243,7 +251,6 @@
   <script src="../../engine/rests/short-rest.js"></script>
   <script src="./i18n.js"></script>
   <script src="./renderer.js"></script>
-  <script src="./dice-roller.js"></script>
   <script>
     "use strict";
 
@@ -1309,11 +1316,16 @@
       const result = resolveLongRest({
         characterReady: isCharacterReady(),
         longRestActive: isLongRestActive(),
+        shortRestActive: isShortRestActive(),
         slotTotals: baseSpellSlotsForCharacter(),
         remainingByLevel: spellSlotRemainingByLevel(),
         currentHitPoints: getCurrentHitPointsField()?.value || "",
         maxHitPoints: fieldValue("HPMax")
       });
+      if (result.mode === "blocked") {
+        showStatus(t("rest.longBlockedByShort"));
+        return;
+      }
       if (result.mode === "instant") {
         applyLongRestRecovery(result.recovery);
         sheetMeta.shortRestActive = false;
@@ -1341,12 +1353,17 @@
       const result = resolveShortRest({
         characterReady: isCharacterReady(),
         shortRestActive: isShortRestActive(),
+        longRestActive: isLongRestActive(),
         slotTotals: spellSlotsForCharacter(),
         remainingByLevel: spellSlotRemainingByLevel(),
         resourceState: featureUseState(),
         recoverResourceKeys: shortRestRecoverableResourceKeys(),
         restoreSpellSlots: isWarlockCharacter()
       });
+      if (result.mode === "blocked") {
+        showStatus(t("rest.shortBlockedByLong"));
+        return;
+      }
       if (result.mode === "instant") {
         applyShortRestRecovery(result.recovery);
         sheetMeta.longRestActive = false;
@@ -4488,18 +4505,6 @@
       };
     }
 
-    function d20RollVisualEntries(roll) {
-      return (Array.isArray(roll?.rolls) ? roll.rolls : []).map((value) => ({ sides: 20, value }));
-    }
-
-    function diceTermVisualEntries(terms = []) {
-      return (Array.isArray(terms) ? terms : []).flatMap((term) => (
-        Array.isArray(term?.rolls)
-          ? term.rolls.map((value) => ({ sides: term.sides, value }))
-          : []
-      ));
-    }
-
     const FREE_DICE_OPTIONS = [
       { key: "2", label: "d2", expression: "d2", order: 2 },
       { key: "3", label: "d3", expression: "d3", order: 3 },
@@ -4705,7 +4710,7 @@
         ...diceTerms.map((term) => t("dice.rolls", { expression: term.expression, rolls: term.rolls.join(" + "), subtotal: term.subtotal })),
         t("dice.total", { total: roll.total })
       ]);
-      showDiceTray(t("dice.freeRoll", { label }), String(roll.total), detail, diceTermVisualEntries(diceTerms));
+      showDiceTray(t("dice.freeRoll", { label }), String(roll.total), detail);
     }
 
     function isFreeDiceMenuOpen() {
@@ -4796,7 +4801,7 @@
       }, 14200);
     }
 
-    function showDiceTray(title, result, detail, diceVisuals = [], options = {}) {
+    function showDiceTray(title, result, detail, options = {}) {
       const sourceName = options.sourceName || (options.sendLive === false ? "" : liveRollDisplayName());
       const translatedTitle = translateDynamicText(title, title);
       const translatedDetail = translateDynamicText(detail, detail);
@@ -4808,7 +4813,6 @@
       diceTray.classList.add("visible");
       if (options.record !== false) recordDiceRollLog(displayTitle, result, translatedDetail);
       if (options.sendLive !== false) window.sendLiveSheetRollEvent?.(translatedTitle, result, translatedDetail);
-      if (window.isDiceRollAnimationEnabled?.() && typeof animateDiceRoll3d === "function") animateDiceRoll3d(diceVisuals);
       clearTimeout(diceTimer);
       diceTimer = setTimeout(() => {
         if (!diceTrayListElement()?.children.length) diceTray.classList.remove("visible");
@@ -4821,7 +4825,6 @@
         roll.title || "Tirada",
         roll.result || "",
         roll.detail || "",
-        [],
         { sendLive: false, sourceName: roll.playerName || "Jugador" }
       );
     };
@@ -4845,7 +4848,7 @@
       const pendingChanged = markPendingCriticalHit(attackName, isCriticalHit);
       if (pendingChanged) updatePreparedSpellsPanel();
       if (isCriticalHit) showStatus(t("dice.criticalReady", { name: attackName }));
-      showDiceTray(`${attackName}: ataque`, String(summary.total), summary.detail, d20RollVisualEntries(roll));
+      showDiceTray(`${attackName}: ataque`, String(summary.total), summary.detail);
     }
 
     function rollD20Check(label, modifier, event = null) {
@@ -4857,7 +4860,7 @@
         bonusDice: statusContext.bonusDice,
         notes: [clickRollModeNote(event), ...statusContext.notes]
       });
-      showDiceTray(label, String(summary.total), summary.detail, d20RollVisualEntries(roll));
+      showDiceTray(label, String(summary.total), summary.detail);
     }
 
     function rollDamage(attackOrRow, expression, damageType) {
@@ -4904,7 +4907,7 @@
         ...bonusTerms.map((term) => `Bonus fijo: ${formatModifier(term.value)}`),
         `Total: ${diceTotal}${bonusTotal ? ` ${formatModifier(bonusTotal)}` : ""} = ${roll.total}`,
         resolvedDamageType ? `Tipo: ${resolvedDamageType}` : ""
-      ]), diceTermVisualEntries(diceTerms));
+      ]));
     }
 
     function isSpellReadyForAttackPanel(field) {
@@ -8057,11 +8060,15 @@
       if (clearFieldsButton) clearFieldsButton.disabled = isCharacterReady();
       longRestButton?.classList.toggle("active", isLongRestActive());
       if (longRestButton) {
-        longRestButton.textContent = isLongRestActive() ? "Terminar long rest" : "Iniciar long rest";
+        const label = t(isLongRestActive() ? "top.longRest.finish" : "top.longRest.start");
+        longRestButton.setAttribute("aria-label", label);
+        longRestButton.setAttribute("title", label);
       }
       shortRestButton?.classList.toggle("active", isShortRestActive());
       if (shortRestButton) {
-        shortRestButton.textContent = isShortRestActive() ? "Terminar short rest" : "Iniciar short rest";
+        const label = t(isShortRestActive() ? "top.shortRest.finish" : "top.shortRest.start");
+        shortRestButton.setAttribute("aria-label", label);
+        shortRestButton.setAttribute("title", label);
       }
       sheetFieldElements().forEach((field) => {
         const locked = isCharacterReady() && !fieldCanChangeWhenReady(field);

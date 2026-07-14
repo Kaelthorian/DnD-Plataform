@@ -60,12 +60,21 @@
   function resolveShortRest({
     characterReady,
     shortRestActive,
+    longRestActive,
     slotTotals = [],
     remainingByLevel = {},
     resourceState = {},
     recoverResourceKeys = [],
     restoreSpellSlots = false
   } = {}) {
+    if (longRestActive) {
+      return {
+        nextShortRestActive: Boolean(shortRestActive),
+        shouldRestoreResources: false,
+        mode: "blocked",
+        recovery: null
+      };
+    }
     const transition = getShortRestTransition({ characterReady, shortRestActive });
     const mode = !characterReady
       ? "instant"

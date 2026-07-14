@@ -21,6 +21,14 @@
     :root {
       --sheet-background-image: none;
       --platform-background-image: url("./assets/BackgroundSheet.png");
+      --dm-surface: #171717;
+      --dm-surface-hover: #262626;
+      --dm-border: #525252;
+      --dm-text: #e5e5e5;
+      --dm-muted: #a3a3a3;
+      --dm-amber: #f59e0b;
+      --dm-amber-hover: #fbbf24;
+      --dm-focus: rgba(251, 191, 36, 0.4);
     }
 
     .app {
@@ -2267,19 +2275,22 @@
       align-items: center;
       justify-content: center;
       padding: 0 12px;
-      border: 0;
-      border-radius: 4px;
-      background: #111;
-      color: #fff;
-      font-weight: 700;
+      border: 1px solid var(--dm-amber);
+      border-radius: 2px;
+      background: var(--dm-amber);
+      color: #171717;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       text-decoration: none;
       cursor: pointer;
     }
 
     .download-release-button:hover,
     .download-release-button:focus {
-      background: #8b1e24;
-      outline: none;
+      background: var(--dm-amber-hover);
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 2px;
     }
 
     .download-release-button:disabled {
@@ -2289,7 +2300,7 @@
 
     .download-release-button:disabled:hover,
     .download-release-button:disabled:focus {
-      background: #111;
+      background: var(--dm-amber);
     }
 
     .top-controls-menu {
@@ -2310,19 +2321,21 @@
       place-items: center;
       gap: 4px;
       padding: 0;
-      border: 1px solid rgba(0, 0, 0, 0.28);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.94);
-      color: #111;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: var(--dm-surface);
+      color: var(--dm-amber);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
       cursor: pointer;
     }
 
     .top-controls-launcher:hover,
     .top-controls-launcher:focus {
-      background: #111;
-      color: #fff;
-      outline: none;
+      border-color: var(--dm-amber);
+      background: var(--dm-surface-hover);
+      color: var(--dm-amber-hover);
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 2px;
     }
 
     .top-controls-launcher-line {
@@ -2342,10 +2355,10 @@
       flex-direction: column;
       gap: 8px;
       padding: 10px;
-      border: 1px solid rgba(0, 0, 0, 0.24);
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.96);
-      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.22);
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: var(--dm-surface);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
     }
 
     .top-controls-panel[hidden] {
@@ -2353,8 +2366,9 @@
     }
 
     .top-controls-menu.open .top-controls-launcher {
-      background: #111;
-      color: #fff;
+      border-color: var(--dm-amber);
+      background: var(--dm-surface-hover);
+      color: var(--dm-amber);
     }
 
     .app-settings-menu {
@@ -2370,11 +2384,11 @@
       display: grid;
       place-items: center;
       padding: 0;
-      border: 1px solid rgba(0, 0, 0, 0.28);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.94);
-      color: #111;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: var(--dm-surface);
+      color: var(--dm-amber);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
       font: 700 22px/1 "Segoe UI", Arial, sans-serif;
       cursor: pointer;
     }
@@ -2382,9 +2396,11 @@
     .app-settings-launcher:hover,
     .app-settings-launcher:focus,
     .app-settings-menu.open .app-settings-launcher {
-      background: #111;
-      color: #fff;
-      outline: none;
+      border-color: var(--dm-amber);
+      background: var(--dm-surface-hover);
+      color: var(--dm-amber-hover);
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 2px;
     }
 
     .app-settings-panel {
@@ -2395,11 +2411,11 @@
       display: grid;
       gap: 10px;
       padding: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.24);
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.97);
-      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.22);
-      color: #111;
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: var(--dm-surface);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
+      color: var(--dm-text);
       font: 12px/1.25 "Segoe UI", Arial, sans-serif;
     }
 
@@ -2408,7 +2424,7 @@
     }
 
     .app-settings-title {
-      color: rgba(17, 17, 17, 0.72);
+      color: var(--dm-amber);
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0;
@@ -2419,10 +2435,10 @@
       width: 100%;
       min-height: 36px;
       padding: 8px 10px;
-      border: 1px solid rgba(17, 17, 17, 0.18);
-      border-radius: 8px;
-      background: #111;
-      color: #fff;
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: #0a0a0a;
+      color: var(--dm-text);
       font: 800 12px/1.2 "Segoe UI", Arial, sans-serif;
       text-align: left;
       cursor: pointer;
@@ -2430,8 +2446,11 @@
 
     .app-settings-action-button:hover,
     .app-settings-action-button:focus {
-      background: #2c2c2c;
-      outline: none;
+      border-color: var(--dm-amber);
+      background: var(--dm-surface-hover);
+      color: var(--dm-amber);
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 1px;
     }
 
     .app-settings-language {
@@ -2452,88 +2471,26 @@
     .app-settings-language-button {
       min-height: 32px;
       padding: 7px 8px;
-      border: 1px solid rgba(17, 17, 17, 0.2);
-      border-radius: 8px;
-      background: #f7f7f7;
-      color: #111;
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: #0a0a0a;
+      color: var(--dm-text);
       font: 800 12px/1.2 "Segoe UI", Arial, sans-serif;
       cursor: pointer;
     }
 
     .app-settings-language-button.active,
     .app-settings-language-button[aria-pressed="true"] {
-      border-color: #111;
-      background: #111;
-      color: #fff;
+      border-color: var(--dm-amber);
+      background: var(--dm-amber);
+      color: #171717;
     }
 
     .app-settings-language-button:hover,
     .app-settings-language-button:focus {
-      outline: 2px solid rgba(17, 17, 17, 0.3);
-      outline-offset: 2px;
-    }
-
-    .app-settings-toggle-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
-      align-items: center;
-      cursor: pointer;
-    }
-
-    .app-settings-toggle-title {
-      display: block;
-      font-weight: 800;
-    }
-
-    .app-settings-toggle-description {
-      display: block;
-      margin-top: 2px;
-      color: rgba(17, 17, 17, 0.64);
-      font-size: 11px;
-    }
-
-    .app-settings-toggle-input {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .app-settings-toggle {
-      position: relative;
-      width: 42px;
-      height: 24px;
-      border: 1px solid rgba(0, 0, 0, 0.25);
-      border-radius: 999px;
-      background: #d8d8d8;
-      transition: background 160ms ease, border-color 160ms ease;
-    }
-
-    .app-settings-toggle::after {
-      content: "";
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      background: #fff;
-      box-shadow: 0 2px 7px rgba(0, 0, 0, 0.25);
-      transition: transform 160ms ease;
-    }
-
-    .app-settings-toggle-input:checked + .app-settings-toggle {
-      border-color: #1f7a43;
-      background: #2f8f5b;
-    }
-
-    .app-settings-toggle-input:checked + .app-settings-toggle::after {
-      transform: translateX(18px);
-    }
-
-    .app-settings-toggle-row:focus-within .app-settings-toggle {
-      outline: 2px solid rgba(17, 17, 17, 0.36);
-      outline-offset: 2px;
+      border-color: var(--dm-amber);
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 1px;
     }
 
     .character-import-backdrop {
@@ -2857,7 +2814,6 @@
 
     .top-controls-panel > .save-slot-control,
     .top-controls-panel > .clear-fields-button,
-    .top-controls-panel > .long-rest-button,
     .top-controls-panel > .character-ready-button,
     .top-controls-panel > .turn-actions-button {
       position: static;
@@ -2879,7 +2835,6 @@
     }
 
     .top-controls-panel > .clear-fields-button,
-    .top-controls-panel > .long-rest-button,
     .top-controls-panel > .character-ready-button,
     .top-controls-panel > .turn-actions-button {
       display: inline-flex;
@@ -2907,121 +2862,119 @@
     }
 
     .save-slot-label {
-      color: rgba(17, 17, 17, 0.72);
+      color: var(--dm-amber);
       text-transform: uppercase;
     }
 
     .save-slot-select {
       width: 100%;
       min-width: 0;
-      border: 1px solid rgba(0, 0, 0, 0.28);
-      border-radius: 4px;
-      background: #fff;
-      color: #111;
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: #0a0a0a;
+      color: var(--dm-text);
       font: 700 12px/1.25 "Segoe UI", Arial, sans-serif;
     }
 
-    .clear-fields-button {
-      position: fixed;
-      top: 70px;
-      left: 12px;
-      z-index: 40;
+    .clear-fields-button,
+    .character-ready-button,
+    .turn-actions-button,
+    .long-rest-button {
       min-height: 34px;
       padding: 0 12px;
-      border: 1px solid rgba(0, 0, 0, 0.28);
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.94);
-      color: #111;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
-      font: 700 12px/1.25 "Segoe UI", Arial, sans-serif;
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: #0a0a0a;
+      color: var(--dm-text);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+      font: 800 12px/1.25 "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       cursor: pointer;
     }
 
     .clear-fields-button:hover,
     .clear-fields-button:focus {
-      background: #8b1e24;
-      color: #fff;
-      outline: none;
+      border-color: #ef4444;
+      background: #450a0a;
+      color: #fecaca;
+      outline: 2px solid rgba(239, 68, 68, 0.3);
+      outline-offset: 1px;
     }
 
-    .long-rest-button {
+    .rest-controls {
       position: fixed;
-      top: 112px;
-      left: 12px;
+      top: 12px;
+      left: 50%;
       z-index: 40;
-      min-height: 34px;
-      padding: 0 12px;
-      border: 1px solid rgba(0, 0, 0, 0.28);
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.94);
-      color: #111;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
-      font: 700 12px/1.25 "Segoe UI", Arial, sans-serif;
-      cursor: pointer;
+      display: flex;
+      max-width: calc(100vw - 120px);
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: var(--dm-surface);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.34);
+      transform: translateX(-50%);
     }
 
-    .short-rest-button {
-      top: 154px;
+    .rest-controls .long-rest-button,
+    .rest-controls .turn-actions-button {
+      display: inline-grid;
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      min-height: 34px;
+      place-items: center;
+      padding: 0;
+    }
+
+    .rest-control-icon {
+      width: 17px;
+      height: 17px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
     }
 
     .long-rest-button:hover,
     .long-rest-button:focus {
-      background: #111;
-      color: #fff;
-      outline: none;
+      border-color: var(--dm-amber);
+      background: var(--dm-surface-hover);
+      color: var(--dm-amber);
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 1px;
     }
 
-    .character-ready-button {
-      position: fixed;
-      top: 196px;
-      left: 12px;
-      z-index: 40;
-      min-height: 34px;
-      padding: 0 12px;
-      border: 1px solid rgba(0, 0, 0, 0.28);
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.94);
-      color: #111;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
-      font: 700 12px/1.25 "Segoe UI", Arial, sans-serif;
-      cursor: pointer;
-    }
-
-    .turn-actions-button {
-      position: fixed;
-      top: 238px;
-      left: 12px;
-      z-index: 40;
-      min-height: 34px;
-      padding: 0 12px;
-      border: 1px solid rgba(0, 0, 0, 0.28);
-      border-radius: 6px;
-      background: #111;
-      color: #fff;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
-      font: 700 12px/1.25 "Segoe UI", Arial, sans-serif;
-      cursor: pointer;
-    }
-
+    .character-ready-button:hover,
+    .character-ready-button:focus,
     .turn-actions-button:hover,
     .turn-actions-button:focus {
-      background: #8b1e24;
-      outline: none;
+      border-color: var(--dm-amber);
+      background: var(--dm-surface-hover);
+      color: var(--dm-amber);
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 1px;
     }
 
     .character-ready-button.active {
-      background: #111;
-      color: #fff;
+      border-color: var(--dm-amber);
+      background: var(--dm-amber);
+      color: #171717;
     }
 
     .long-rest-button.active {
-      background: #2d5a2d;
-      color: #fff;
+      border-color: #6ee7b7;
+      background: #065f46;
+      color: #d1fae5;
     }
 
     .short-rest-button.active {
-      background: #7a4f16;
-      color: #fff;
+      border-color: #7dd3fc;
+      background: #075985;
+      color: #e0f2fe;
     }
 
     .field.locked-field {
@@ -3912,29 +3865,9 @@
         width: min(220px, calc(100vw - 16px));
       }
 
-      .clear-fields-button {
-        top: 114px;
-        left: 8px;
-      }
-
-      .long-rest-button {
-        top: 156px;
-        left: 8px;
-      }
-
-      .short-rest-button {
-        top: 198px;
-        left: 8px;
-      }
-
-      .character-ready-button {
-        top: 240px;
-        left: 8px;
-      }
-
-      .turn-actions-button {
-        top: 282px;
-        left: 8px;
+      .rest-controls {
+        top: 58px;
+        max-width: calc(100vw - 16px);
       }
 
       .alerts-panel {

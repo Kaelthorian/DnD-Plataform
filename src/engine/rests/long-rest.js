@@ -82,11 +82,20 @@
   function resolveLongRest({
     characterReady,
     longRestActive,
+    shortRestActive,
     slotTotals = [],
     remainingByLevel = {},
     currentHitPoints = "",
     maxHitPoints = ""
   } = {}) {
+    if (shortRestActive) {
+      return {
+        nextLongRestActive: Boolean(longRestActive),
+        shouldRestoreResources: false,
+        mode: "blocked",
+        recovery: null
+      };
+    }
     const transition = getLongRestTransition({ characterReady, longRestActive });
     const mode = !characterReady
       ? "instant"

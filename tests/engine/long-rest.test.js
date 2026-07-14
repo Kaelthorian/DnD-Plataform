@@ -6,6 +6,7 @@ const {
   getLongRestTransition,
   resolveLongRest
 } = require("../../src/engine/rests/long-rest");
+const { resolveShortRest } = require("../../src/engine/rests/short-rest");
 
 assert.deepStrictEqual(computeSpellSlotFieldUpdates({
   slotTotals: [4, 3],
@@ -59,6 +60,28 @@ assert.deepStrictEqual(resolveLongRest({
   nextLongRestActive: true,
   shouldRestoreResources: false,
   mode: "start",
+  recovery: null
+});
+
+assert.deepStrictEqual(resolveLongRest({
+  characterReady: true,
+  longRestActive: false,
+  shortRestActive: true
+}), {
+  nextLongRestActive: false,
+  shouldRestoreResources: false,
+  mode: "blocked",
+  recovery: null
+});
+
+assert.deepStrictEqual(resolveShortRest({
+  characterReady: true,
+  shortRestActive: false,
+  longRestActive: true
+}), {
+  nextShortRestActive: false,
+  shouldRestoreResources: false,
+  mode: "blocked",
   recovery: null
 });
 

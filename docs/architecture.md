@@ -29,7 +29,7 @@ flowchart LR
 
 ### Character Sheet
 
-`src/app/renderer/index.html` es el shell y contiene la mayor parte de la lógica de dominio, DOM y estado. `renderer.js` carga datos/PDF, inicializa UI y gestiona el cliente Live Sheet; `i18n.js` contiene diccionarios EN/ES; `dice-roller.js` dibuja dados 3D. Algunos cálculos aislados se cargan como módulos UMD desde `src/engine`.
+`src/app/renderer/index.html` es el shell y contiene la mayor parte de la lógica de dominio, DOM y estado. `renderer.js` carga datos/PDF, inicializa UI y gestiona el cliente Live Sheet; `i18n.js` contiene diccionarios EN/ES. Algunos cálculos aislados se cargan como módulos UMD desde `src/engine`.
 
 ### DM Screen
 

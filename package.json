@@ -61,8 +61,7 @@
       "vendor/5etools-src-main/data/languages.json",
       "package.json",
       "node_modules/pdfjs-dist/**",
-      "node_modules/ws/**",
-      "node_modules/three/**"
+      "node_modules/ws/**"
     ],
     "win": {
       "artifactName": "DnD-Character-Sheet-Setup-${version}.${ext}",
@@ -92,7 +91,6 @@
     "pdfjs-dist": "^6.0.227",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "three": "^0.184.0",
     "ws": "^8.21.0"
   }
 }
