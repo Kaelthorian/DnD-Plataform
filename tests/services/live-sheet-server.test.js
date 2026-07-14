@@ -254,6 +254,39 @@ async function testVttStateBroadcastAndWelcomeReplay() {
         x: 10,
         y: 10
       }],
+      combat: {
+        active: true,
+        activeId: "combat-goblin",
+        round: 2,
+        participants: [{
+          id: "combat-goblin",
+          name: "Goblin",
+          monster: { name: "Goblin", source: "MM" },
+          image: { name: "Goblin.png", type: "image/png", dataUrl: tinyPng },
+          initiative: 18,
+          hpCurrent: 7,
+          hpMax: 7
+        }, {
+          id: "combat-masked",
+          name: "Goblin Boss",
+          monster: { name: "Goblin Boss", source: "MM" },
+          image: { name: "Goblin Boss.png", type: "image/png", dataUrl: tinyPng },
+          nameHidden: true,
+          initiative: 15
+        }, {
+          id: "combat-secret",
+          name: "Owlbear",
+          monster: { name: "Owlbear", source: "MM" },
+          image: { name: "Owlbear.png", type: "image/png", dataUrl: tinyPng },
+          identityHidden: true,
+          initiative: 10
+        }, {
+          id: "combat-hidden",
+          name: "Hidden Imp",
+          hidden: true,
+          initiative: 20
+        }]
+      },
       markers: [{
         id: "door-1",
         label: "Secret Door",
@@ -288,6 +321,16 @@ async function testVttStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(broadcast.state.tokens[2].imageRequest, null);
     assert.strictEqual(broadcast.state.tokens[2].hpCurrent, "");
     assert.strictEqual(broadcast.state.tokens[2].ac, "");
+    assert.strictEqual(broadcast.state.combat.active, true);
+    assert.strictEqual(broadcast.state.combat.activeId, "combat-goblin");
+    assert.strictEqual(broadcast.state.combat.round, 2);
+    assert.strictEqual(broadcast.state.combat.participants.length, 3);
+    assert.strictEqual(broadcast.state.combat.participants[0].initiative, "18");
+    assert.strictEqual(broadcast.state.combat.participants[1].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.combat.participants[1].image.dataUrl, tinyPng);
+    assert.strictEqual(broadcast.state.combat.participants[2].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.combat.participants[2].initiative, "");
+    assert.strictEqual(broadcast.state.combat.participants[2].image.dataUrl, "");
     assert.strictEqual(broadcast.state.markers.length, 1);
     assert.strictEqual(broadcast.state.markers[0].label, "Secret Door");
     assert.deepStrictEqual(broadcast.state.sourceViewport, { width: 760, height: 432 });
@@ -305,6 +348,27 @@ async function testVttStateBroadcastAndWelcomeReplay() {
         hpCurrent: 5,
         hpMax: 7
       }],
+      combat: {
+        active: true,
+        activeId: "combat-masked",
+        round: 2,
+        participants: [{
+          id: "combat-goblin",
+          name: "Goblin",
+          monster: { name: "Goblin", source: "MM" },
+          imageUnchanged: true,
+          initiative: 18,
+          hpCurrent: 5,
+          hpMax: 7
+        }, {
+          id: "combat-masked",
+          name: "Goblin Boss",
+          monster: { name: "Goblin Boss", source: "MM" },
+          imageUnchanged: true,
+          nameHidden: true,
+          initiative: 15
+        }]
+      },
       sourceViewport: { width: 760, height: 432 }
     });
     assert.strictEqual(patchResult.ok, true);
@@ -313,8 +377,11 @@ async function testVttStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(patch.patch.image, undefined);
     assert.strictEqual(patch.patch.tokens[0].imageUnchanged, true);
     assert.strictEqual(patch.patch.tokens[0].x, 180);
+    assert.strictEqual(patch.patch.combat.activeId, "combat-masked");
+    assert.strictEqual(patch.patch.combat.participants[0].imageUnchanged, true);
     assert.strictEqual(server.vttState.image.dataUrl, tinyPng);
     assert.strictEqual(server.vttState.tokens[0].image.dataUrl, tinyPng);
+    assert.strictEqual(server.vttState.combat.participants[0].image.dataUrl, tinyPng);
 
     const secondSocket = await openSocket(port);
     const replayMessagesPromise = nextMessages(secondSocket, 3);
@@ -325,6 +392,8 @@ async function testVttStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(replay.state.title, "Dungeon");
     assert.strictEqual(replay.state.tokens[0].x, 180);
     assert.strictEqual(replay.state.tokens[0].image.dataUrl, tinyPng);
+    assert.strictEqual(replay.state.combat.activeId, "combat-masked");
+    assert.strictEqual(replay.state.combat.participants[0].image.dataUrl, tinyPng);
     assert.strictEqual(replay.state.image.dataUrl, tinyPng);
     assert.strictEqual(secondHandState.type, "dm:hand:state");
     assert.strictEqual(secondHandState.raised, false);

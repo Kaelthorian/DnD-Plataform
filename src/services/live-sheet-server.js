@@ -254,6 +254,21 @@ function sanitizeVttToken(token) {
   };
 }
 
+function sanitizeVttCombat(combat) {
+  const source = isPlainObject(combat) ? combat : {};
+  const participants = Array.isArray(source.participants)
+    ? source.participants.slice(0, MAX_VTT_TOKENS).map(sanitizeVttToken).filter(Boolean)
+    : [];
+  const participantIds = new Set(participants.map((participant) => participant.id));
+  const activeId = sanitizeText(source.activeId || source.activeTokenId, 120);
+  return {
+    active: source.active !== false && participants.length > 0,
+    activeId: participantIds.has(activeId) ? activeId : "",
+    round: Math.max(1, Math.min(9999, Math.floor(clampNumber(source.round, 1, 9999, 1)))),
+    participants
+  };
+}
+
 function sanitizeVttMarker(marker, index = 0) {
   if (!isPlainObject(marker)) return null;
   if (marker.hidden || marker.playerHidden) return null;
@@ -349,6 +364,7 @@ function sanitizeVttState(payload) {
     tokens: Array.isArray(payload.tokens)
       ? payload.tokens.slice(0, MAX_VTT_TOKENS).map(sanitizeVttToken).filter(Boolean)
       : [],
+    combat: sanitizeVttCombat(payload.combat),
     markers: Array.isArray(payload.markers)
       ? payload.markers.slice(0, MAX_VTT_MARKERS).map(sanitizeVttMarker).filter(Boolean)
       : [],
@@ -375,6 +391,7 @@ function sanitizeVttPatch(payload) {
       ? payload.tokens.slice(0, MAX_VTT_TOKENS).map(sanitizeVttToken).filter(Boolean)
       : [];
   }
+  if (Object.prototype.hasOwnProperty.call(payload, "combat")) patch.combat = sanitizeVttCombat(payload.combat);
   if (Object.prototype.hasOwnProperty.call(payload, "markers")) {
     patch.markers = Array.isArray(payload.markers)
       ? payload.markers.slice(0, MAX_VTT_MARKERS).map(sanitizeVttMarker).filter(Boolean)
@@ -742,6 +759,17 @@ class LiveSheetServer extends EventEmitter {
         if (!token.imageUnchanged || token.image?.dataUrl || !previous?.image?.dataUrl) return token;
         return { ...token, image: previous.image };
       });
+    }
+    if (Array.isArray(patch.combat?.participants)) {
+      const previousParticipants = new Map((this.vttState.combat?.participants || []).map((participant) => [participant.id, participant]));
+      canonicalPatch.combat = {
+        ...patch.combat,
+        participants: patch.combat.participants.map((participant) => {
+          const previous = previousParticipants.get(participant.id);
+          if (!participant.imageUnchanged || participant.image?.dataUrl || !previous?.image?.dataUrl) return participant;
+          return { ...participant, image: previous.image };
+        })
+      };
     }
     this.vttState = {
       ...this.vttState,

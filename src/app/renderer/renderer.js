@@ -250,6 +250,7 @@
           display: none;
         }
         .live-vtt-map[hidden],
+        .live-vtt-combat[hidden],
         .live-vtt-grid[hidden],
         .live-vtt-tokens[hidden],
         .live-vtt-markers[hidden],
@@ -380,6 +381,114 @@
         .live-vtt-window.is-minimized .live-vtt-hand-queue {
           grid-template-columns: 1fr;
           max-height: 68px;
+        }
+        .live-vtt-combat {
+          position: absolute;
+          left: 50%;
+          top: 10px;
+          z-index: 8;
+          width: min(880px, calc(100% - 32px));
+          height: 104px;
+          transform: translateX(-50%);
+          overflow: hidden;
+          pointer-events: none;
+          filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.72));
+        }
+        .live-vtt-combat-track {
+          display: flex;
+          align-items: flex-start;
+          gap: 4px;
+          min-width: max-content;
+          padding: 3px;
+        }
+        .live-vtt-combat-card {
+          position: relative;
+          flex: 0 0 66px;
+          width: 66px;
+          height: 82px;
+          overflow: hidden;
+          border: 3px solid #111827;
+          border-radius: 2px;
+          background: #111827;
+          color: #f8fafc;
+          box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.55);
+          transition: width 180ms ease, height 180ms ease, transform 180ms ease;
+        }
+        .live-vtt-combat-card[data-active="true"] {
+          flex-basis: 78px;
+          width: 78px;
+          height: 98px;
+          border-color: #fbbf24;
+          box-shadow: 0 0 0 2px #111827, 0 0 16px rgba(251, 191, 36, 0.72);
+        }
+        .live-vtt-combat-portrait {
+          position: relative;
+          display: flex;
+          width: 100%;
+          height: calc(100% - 16px);
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          background: radial-gradient(circle at 40% 25%, #334155, #020617 72%);
+          font: 900 17px/1 system-ui, sans-serif;
+        }
+        .live-vtt-combat-card[data-kind="character"] .live-vtt-combat-portrait {
+          background: radial-gradient(circle at 40% 25%, #0369a1, #082f49 72%);
+        }
+        .live-vtt-combat-card .live-vtt-token-image {
+          border-radius: 0;
+        }
+        .live-vtt-combat-card .live-vtt-token-initials {
+          position: relative;
+          z-index: 1;
+        }
+        .live-vtt-combat-name {
+          position: absolute;
+          inset: auto 2px 17px;
+          z-index: 2;
+          overflow: hidden;
+          padding: 2px 3px;
+          background: rgba(2, 6, 23, 0.84);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font: 800 9px/1.1 system-ui, sans-serif;
+          text-align: center;
+        }
+        .live-vtt-combat-initiative {
+          position: absolute;
+          left: 2px;
+          top: 2px;
+          z-index: 3;
+          min-width: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.72);
+          border-radius: 999px;
+          background: rgba(2, 6, 23, 0.9);
+          padding: 2px 4px;
+          color: #fef3c7;
+          font: 900 9px/1 system-ui, sans-serif;
+          text-align: center;
+        }
+        .live-vtt-combat-health {
+          position: absolute;
+          inset: auto 2px 2px;
+          height: 10px;
+          overflow: hidden;
+          border: 1px solid #020617;
+          background: #7f1d1d;
+        }
+        .live-vtt-combat-health-fill {
+          display: block;
+          height: 100%;
+          background: linear-gradient(90deg, #0284c7, #38bdf8);
+        }
+        .live-vtt-round-divider {
+          flex: 0 0 10px;
+          width: 10px;
+          height: 82px;
+          margin: 0 4px;
+          border: 2px solid #111827;
+          background: repeating-linear-gradient(135deg, #9ca3af 0 6px, #4b5563 6px 12px);
+          box-shadow: 0 0 0 1px rgba(229, 231, 235, 0.52);
         }
         .live-vtt-body {
           position: relative;
@@ -647,6 +756,7 @@
         </section>
         <div class="live-vtt-body">
           <div class="live-vtt-empty">Esperando mapa VTT del DM.</div>
+          <div class="live-vtt-combat" aria-live="polite" hidden><div class="live-vtt-combat-track"></div></div>
           <img class="live-vtt-map" alt="Mapa VTT" draggable="false" hidden>
           <div class="live-vtt-grid" hidden></div>
           <div class="live-vtt-tokens" hidden></div>
@@ -666,6 +776,8 @@
         minimize: root.querySelector(".live-vtt-minimize"),
         body: root.querySelector(".live-vtt-body"),
         empty: root.querySelector(".live-vtt-empty"),
+        combat: root.querySelector(".live-vtt-combat"),
+        combatTrack: root.querySelector(".live-vtt-combat-track"),
         image: root.querySelector(".live-vtt-map"),
         grid: root.querySelector(".live-vtt-grid"),
         tokens: root.querySelector(".live-vtt-tokens"),
@@ -1054,6 +1166,76 @@
         return node;
       });
       element.replaceChildren(...nodes);
+    }
+
+    function renderLiveVttCombat(combat) {
+      const elements = liveVttElements;
+      if (!elements?.combat || !elements.combatTrack) return;
+      const participants = Array.isArray(combat?.participants)
+        ? combat.participants.filter((participant) => !participant?.hidden && !participant?.playerHidden)
+        : [];
+      if (!combat?.active || !participants.length) {
+        elements.combat.hidden = true;
+        elements.combatTrack.replaceChildren();
+        return;
+      }
+
+      const activeIndex = participants.findIndex((participant) => participant.id === combat.activeId);
+      const currentRound = participants.slice(activeIndex >= 0 ? activeIndex : 0);
+      const round = Math.max(1, Number(combat.round) || 1);
+
+      function participantCard(participant, isActive = false) {
+        const card = document.createElement("div");
+        card.className = "live-vtt-combat-card";
+        card.dataset.active = String(isActive);
+        card.dataset.kind = participant.kind === "character" ? "character" : "monster";
+        card.title = isActive
+          ? t("live.combatActiveTurn", { name: participant.name || "Token", round })
+          : [participant.name || "Token", participant.initiative !== "" ? t("live.combatInitiative", { initiative: participant.initiative }) : ""].filter(Boolean).join(" | ");
+
+        const portrait = document.createElement("div");
+        portrait.className = "live-vtt-combat-portrait";
+        const initials = document.createElement("span");
+        initials.className = "live-vtt-token-initials";
+        initials.textContent = liveVttInitials(participant.name);
+        portrait.appendChild(initials);
+        resolveLiveVttTokenImage(participant, portrait);
+        card.appendChild(portrait);
+
+        const name = document.createElement("span");
+        name.className = "live-vtt-combat-name";
+        name.textContent = participant.name || "Token";
+        card.appendChild(name);
+
+        if (participant.initiative !== "") {
+          const initiative = document.createElement("span");
+          initiative.className = "live-vtt-combat-initiative";
+          initiative.textContent = String(participant.initiative);
+          card.appendChild(initiative);
+        }
+
+        const hpRatio = liveVttHpRatio(participant);
+        if (hpRatio !== null) {
+          const health = document.createElement("span");
+          health.className = "live-vtt-combat-health";
+          const fill = document.createElement("span");
+          fill.className = "live-vtt-combat-health-fill";
+          fill.style.width = `${Math.round(Math.max(0, Math.min(1, hpRatio)) * 100)}%`;
+          health.appendChild(fill);
+          card.appendChild(health);
+        }
+        return card;
+      }
+
+      const nodes = currentRound.map((participant, index) => participantCard(participant, activeIndex >= 0 && index === 0));
+      const divider = document.createElement("div");
+      divider.className = "live-vtt-round-divider";
+      divider.title = t("live.combatRoundEnd", { round });
+      divider.setAttribute("aria-label", t("live.combatRoundEnd", { round }));
+      nodes.push(divider, ...participants.map((participant) => participantCard(participant, false)));
+      elements.combatTrack.replaceChildren(...nodes);
+      elements.combat.setAttribute("aria-label", t("live.combatRound", { round }));
+      elements.combat.hidden = false;
     }
 
     function renderLiveVttMarkers(element, markers, sourceViewport, layout = null) {
@@ -1478,6 +1660,7 @@
         elements.tokens.replaceChildren();
         elements.markers.replaceChildren();
         elements.pings.replaceChildren();
+        renderLiveVttCombat(null);
         liveVttPings = [];
         return;
       }
@@ -1497,6 +1680,7 @@
       renderLiveVttGrid(elements.grid, state.grid);
       renderLiveVttFog(elements.fog, state.fogOfWar);
       renderLiveVttTokens(elements.tokens, state.tokens, state.sourceViewport);
+      renderLiveVttCombat(state.combat);
       renderLiveVttMarkers(elements.markers, state.markers, state.sourceViewport);
       elements.root.hidden = false;
       requestAnimationFrame(updateLiveVttLayout);
@@ -1512,6 +1696,17 @@
           if (!token.imageUnchanged || token.image?.dataUrl || !previous?.image?.dataUrl) return token;
           return { ...token, image: previous.image };
         });
+      }
+      if (Array.isArray(patch.combat?.participants)) {
+        const previousParticipants = new Map((liveVttState.combat?.participants || []).map((participant) => [participant.id, participant]));
+        nextPatch.combat = {
+          ...patch.combat,
+          participants: patch.combat.participants.map((participant) => {
+            const previous = previousParticipants.get(participant.id);
+            if (!participant.imageUnchanged || participant.image?.dataUrl || !previous?.image?.dataUrl) return participant;
+            return { ...participant, image: previous.image };
+          })
+        };
       }
       renderLiveVttState({
         ...liveVttState,

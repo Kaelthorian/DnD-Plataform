@@ -1894,6 +1894,89 @@ function mapTokenGroupsSnapshot(groups) {
   return normalizeMapTokenGroups(groups);
 }
 
+function normalizeMapCombatState(state) {
+  const source = isPlainObject(state) ? state : {};
+  return {
+    activeTokenKey: String(source.activeTokenKey || source.activeId || ""),
+    round: Math.max(1, Math.floor(Number(source.round) || 1))
+  };
+}
+
+function mapCombatTokenKey(pageId, tokenId) {
+  return `${encodeURIComponent(String(pageId || ""))}:${encodeURIComponent(String(tokenId || ""))}`;
+}
+
+function compareMapCombatEntries(left, right) {
+  const leftInitiative = Number(left?.token?.initiative);
+  const rightInitiative = Number(right?.token?.initiative);
+  if (Number.isFinite(leftInitiative) && Number.isFinite(rightInitiative) && leftInitiative !== rightInitiative) {
+    return rightInitiative - leftInitiative;
+  }
+  const nameComparison = String(left?.token?.name || "").localeCompare(String(right?.token?.name || ""));
+  return nameComparison || String(left?.key || "").localeCompare(String(right?.key || ""));
+}
+
+function mapCombatEntries(note, targetPage) {
+  if (note?.kind !== "map" || !targetPage?.id) return [];
+  const pages = mapPagesForNote(note);
+  const page = pages.find((entry) => entry.id === targetPage.id) || targetPage;
+  const localGroups = mapTokenGroupsSnapshot(page.mapTokenGroups).map((group) => ({
+    ...group,
+    sourcePageId: page.id
+  }));
+  const localGroupIds = new Set(localGroups.map((group) => group.id));
+  const globalGroups = pages.flatMap((candidatePage) => (
+    mapTokenGroupsSnapshot(candidatePage.mapTokenGroups)
+      .filter((group) => group.global && !localGroupIds.has(group.id))
+      .map((group) => ({ ...group, sourcePageId: candidatePage.id }))
+  ));
+  const visibleGroups = [...localGroups, ...globalGroups];
+  const combatGroupIds = new Set(visibleGroups.filter((group) => group.inCombat).map((group) => group.id));
+  const globalCombatGroupIds = new Set(visibleGroups.filter((group) => group.inCombat && group.global).map((group) => group.id));
+  if (!combatGroupIds.size) return [];
+
+  return pages.flatMap((candidatePage) => (candidatePage.mapTokens || [])
+    .filter((token) => {
+      if (!token?.groupId) return false;
+      if (candidatePage.id === page.id) return combatGroupIds.has(token.groupId);
+      return globalCombatGroupIds.has(token.groupId);
+    })
+    .map((token) => ({
+      key: mapCombatTokenKey(candidatePage.id, token.id),
+      pageId: candidatePage.id,
+      token
+    })))
+    .sort(compareMapCombatEntries);
+}
+
+function mapCombatTimeline(note, page) {
+  const entries = mapCombatEntries(note, page);
+  const storedState = normalizeMapCombatState(page?.combatState);
+  const activeTokenKey = entries.some((entry) => entry.key === storedState.activeTokenKey)
+    ? storedState.activeTokenKey
+    : (entries[0]?.key || "");
+  return {
+    active: entries.length > 0,
+    activeTokenKey,
+    round: storedState.round,
+    entries
+  };
+}
+
+async function mapCombatShareSnapshot(note, page, { includeImage = () => true } = {}) {
+  const timeline = mapCombatTimeline(note, page);
+  const participants = (await Promise.all(timeline.entries.map(async (entry) => {
+    const snapshot = await mapTokenShareSnapshot({ ...entry.token, id: entry.key }, { includeImage: includeImage(entry) });
+    return snapshot ? { ...snapshot, id: entry.key } : null;
+  }))).filter(Boolean);
+  return {
+    active: timeline.active,
+    activeId: participants.some((participant) => participant.id === timeline.activeTokenKey) ? timeline.activeTokenKey : "",
+    round: timeline.round,
+    participants
+  };
+}
+
 function serializeMapTokenDragPayload(payload = {}) {
   return [
     "dm-map-token",
@@ -2112,6 +2195,7 @@ function normalizeMapPage(page, fallbackId = "map-page-default", index = 0) {
     mapMarkers: Array.isArray(source.mapMarkers) ? source.mapMarkers.map((marker, markerIndex) => normalizeMapMarker(marker, markerIndex)).filter(Boolean) : [],
     mapGrid: normalizeMapGrid(source.mapGrid),
     fogOfWar: normalizeMapFog(source.fogOfWar),
+    combatState: normalizeMapCombatState(source.combatState),
     frameWidth: Number(source.frameWidth) || null,
     frameHeight: Number(source.frameHeight) || null
   };
@@ -2218,6 +2302,7 @@ function mapPageStorageSnapshot(page) {
     mapMarkers: mapMarkersSnapshot(normalized.mapMarkers),
     mapGrid: mapGridSnapshot(normalized.mapGrid),
     fogOfWar: mapFogSnapshot(normalized.fogOfWar),
+    combatState: normalizeMapCombatState(normalized.combatState),
     frameWidth: normalized.frameWidth || null,
     frameHeight: normalized.frameHeight || null
   };
@@ -5866,7 +5951,9 @@ function MapTokenTracker({
   onTokenGroupRemove,
   onTokenGroupChange,
   onTokenGroupGlobalChange,
-  onTokenGroupCombatChange
+  onTokenGroupCombatChange,
+  combatTimeline = null,
+  onAdvanceCombatTurn
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isAddingGroup, setIsAddingGroup] = useState(false);
@@ -5895,6 +5982,7 @@ function MapTokenTracker({
         ...(ungroupedTokens.length ? [{ id: "", name: "Sin grupo", tokens: ungroupedTokens, ungrouped: true }] : [])
       ]
     : [{ id: "", name: "Tokens", tokens: visibleTokens, ungrouped: true }];
+  const activeCombatEntry = combatTimeline?.entries?.find((entry) => entry.key === combatTimeline.activeTokenKey) || combatTimeline?.entries?.[0] || null;
   if (!visibleTokens.length) return null;
 
   function addGroup() {
@@ -6095,6 +6183,25 @@ function MapTokenTracker({
             </button>
           </div>
         </div>
+        {combatTimeline?.active ? (
+          <div className="flex items-center gap-2 border-b border-red-900/70 bg-red-950/35 px-3 py-2">
+            {activeCombatEntry?.token ? <MapTokenImage token={activeCombatEntry.token} className="h-9 w-9 border-red-300" /> : null}
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-black uppercase tracking-[0.14em] text-red-300">Ronda {combatTimeline.round}</div>
+              <div className="truncate text-xs font-black text-neutral-100" title={activeCombatEntry?.token?.name || ""}>
+                Turno: {activeCombatEntry?.token?.name || "--"}
+              </div>
+            </div>
+            <button
+              className="h-8 shrink-0 border border-red-400/80 bg-red-900 px-3 text-[10px] font-black uppercase tracking-wide text-red-50 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-400/70"
+              type="button"
+              title="Pasar al siguiente turno"
+              onClick={() => onAdvanceCombatTurn?.()}
+            >
+              Siguiente &gt;
+            </button>
+          </div>
+        ) : null}
         {isAddingGroup ? (
           <div
             className="flex items-center gap-1 border-b border-neutral-800 bg-neutral-900/70 px-3 py-2"
@@ -6385,6 +6492,7 @@ function MapNote({
   onMapTokenGroupChange,
   onMapTokenGroupGlobalChange,
   onMapTokenGroupCombatChange,
+  onMapCombatTurnAdvance,
   onMapTrackerTokenDrop,
   selectedMapTokenIds = [],
   onMapTokenSelectionChange,
@@ -6469,6 +6577,7 @@ function MapNote({
           isCrossPageToken: true
         })))
   ];
+  const combatTimeline = mapCombatTimeline(note, activePage);
   const markers = Array.isArray(activePage.mapMarkers) ? activePage.mapMarkers : [];
   const grid = normalizeMapGrid(activePage.mapGrid);
   const fog = normalizeMapFog(activePage.fogOfWar);
@@ -7724,6 +7833,8 @@ function MapNote({
             onTokenGroupChange={(tokenId, groupId, sourcePageId) => onMapTokenGroupChange?.(noteActionId, sourcePageId || activePage.id, tokenId, groupId)}
             onTokenGroupGlobalChange={(groupId, global, sourcePageId) => onMapTokenGroupGlobalChange?.(noteActionId, sourcePageId || activePage.id, groupId, global)}
             onTokenGroupCombatChange={(groupId, inCombat, sourcePageId) => onMapTokenGroupCombatChange?.(noteActionId, sourcePageId || activePage.id, groupId, inCombat)}
+            combatTimeline={combatTimeline}
+            onAdvanceCombatTurn={() => onMapCombatTurnAdvance?.(noteActionId, activePage.id)}
             onTokenContextMenu={(event, tokenId, sourcePageId) => onMapTokenContextMenu?.(event, noteActionId, sourcePageId || activePage.id, tokenId)}
             onRollInitiativeTokens={(tokenIds) => onMapTokensRollInitiative?.(noteActionId, activePage.id, tokenIds)}
           />
@@ -10645,6 +10756,7 @@ function DmScreenApp() {
   const savedBoardNotesRef = useRef(savedBoardNotes);
   const publishedVttTargetKeyRef = useRef("");
   const publishedVttTokenImageKeysRef = useRef(new Map());
+  const publishedVttCombatImageKeysRef = useRef(new Map());
   const sharedVttTargetRef = useRef(null);
   const mapTokenDragPublishRef = useRef({
     timerId: null,
@@ -10891,6 +11003,7 @@ function DmScreenApp() {
           if (publishedVttTargetKeyRef.current) await liveSheet.publishVttState({ active: false });
           publishedVttTargetKeyRef.current = "";
           publishedVttTokenImageKeysRef.current = new Map();
+          publishedVttCombatImageKeysRef.current = new Map();
           return;
         }
         const { note, page } = sharedVttTarget;
@@ -10898,9 +11011,15 @@ function DmScreenApp() {
         const publishFullState = publishedVttTargetKeyRef.current !== targetKey || !liveSheet.publishVttPatch;
         const previousTokenImageKeys = publishedVttTokenImageKeysRef.current;
         const nextTokenImageKeys = new Map((page.mapTokens || []).map((token) => [token.id, mapTokenEmbeddedImageKey(token)]));
+        const combatEntries = mapCombatEntries(note, page);
+        const previousCombatImageKeys = publishedVttCombatImageKeysRef.current;
+        const nextCombatImageKeys = new Map(combatEntries.map((entry) => [entry.key, mapTokenEmbeddedImageKey(entry.token)]));
         const sourceViewport = mapShareViewportFromDom(note, page);
         const tokens = await mapTokensShareSnapshot(page.mapTokens, sourceViewport, {
           includeImage: (token) => publishFullState || previousTokenImageKeys.get(token.id) !== nextTokenImageKeys.get(token.id)
+        });
+        const combat = await mapCombatShareSnapshot(note, page, {
+          includeImage: (entry) => publishFullState || previousCombatImageKeys.get(entry.key) !== nextCombatImageKeys.get(entry.key)
         });
         if (cancelled) return;
         const statePatch = {
@@ -10909,6 +11028,7 @@ function DmScreenApp() {
           fogOfWar: mapFogSnapshot(page.fogOfWar),
           grid: mapGridShareSnapshot(page.mapGrid, sourceViewport),
           tokens,
+          combat,
           markers: mapMarkersShareSnapshot(page.mapMarkers, sourceViewport),
           sourceViewport: {
             width: Math.max(1, Number(sourceViewport.width) || NOTE_DEFAULT_WIDTH),
@@ -10932,6 +11052,7 @@ function DmScreenApp() {
         if (!cancelled && result?.ok) {
           publishedVttTargetKeyRef.current = targetKey;
           publishedVttTokenImageKeysRef.current = nextTokenImageKeys;
+          publishedVttCombatImageKeysRef.current = nextCombatImageKeys;
         }
       } catch (error) {
         console.error(error);
@@ -13248,14 +13369,53 @@ function DmScreenApp() {
 
   function setMapTokenGroupCombat(noteId, pageId, groupId, inCombat) {
     if (!groupId) return;
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === noteId ? updateMapNotePage(note, pageId, (page) => ({
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== noteId || note.kind !== "map") return note;
+      const beforePages = mapPagesForNote(note);
+      const beforeCounts = new Map(beforePages.map((page) => [page.id, mapCombatEntries(note, page).length]));
+      const updatedNote = updateMapNotePage(note, pageId, (page) => ({
         ...page,
         mapTokenGroups: mapTokenGroupsSnapshot(page.mapTokenGroups).map((group) => (
           group.id === groupId ? { ...group, inCombat: Boolean(inCombat) } : group
         ))
-      })) : note
-    )));
+      }));
+      const updatedPages = mapPagesForNote(updatedNote).map((page) => {
+        const timeline = mapCombatTimeline(updatedNote, page);
+        const wasEmpty = !beforeCounts.get(page.id);
+        if (!timeline.entries.length) return { ...page, combatState: normalizeMapCombatState(null) };
+        if (wasEmpty) {
+          return {
+            ...page,
+            combatState: {
+              activeTokenKey: timeline.entries[0].key,
+              round: 1
+            }
+          };
+        }
+        return page;
+      });
+      return syncMapNoteActivePage(updatedNote, updatedPages, updatedNote.activeMapPageId);
+    }));
+  }
+
+  function advanceMapCombatTurn(noteId, pageId) {
+    if (!noteId || !pageId) return;
+    setMonsterNotes((notes) => notes.map((note) => {
+      if (note.id !== noteId || note.kind !== "map") return note;
+      const page = mapPagesForNote(note).find((entry) => entry.id === pageId);
+      const timeline = mapCombatTimeline(note, page);
+      if (!page || !timeline.entries.length) return note;
+      const activeIndex = Math.max(0, timeline.entries.findIndex((entry) => entry.key === timeline.activeTokenKey));
+      const nextIndex = (activeIndex + 1) % timeline.entries.length;
+      const nextRound = nextIndex === 0 ? timeline.round + 1 : timeline.round;
+      return updateMapNotePage(note, pageId, (targetPage) => ({
+        ...targetPage,
+        combatState: {
+          activeTokenKey: timeline.entries[nextIndex].key,
+          round: nextRound
+        }
+      }));
+    }));
   }
 
   function removeMapTokenGroup(noteId, pageId, groupId) {
@@ -15447,6 +15607,7 @@ function DmScreenApp() {
               onMapTokenGroupChange={changeMapTokenGroup}
               onMapTokenGroupGlobalChange={setMapTokenGroupGlobal}
               onMapTokenGroupCombatChange={setMapTokenGroupCombat}
+              onMapCombatTurnAdvance={advanceMapCombatTurn}
               onMapTrackerTokenDrop={dropMapTrackerToken}
               selectedMapTokenIds={selectedMapTokens.mapNoteId === activeNote.id && selectedMapTokens.pageId === activeMapPageForNote(activeNote)?.id ? selectedMapTokens.tokenIds : []}
               onMapTokenSelectionChange={setMapTokenSelection}
