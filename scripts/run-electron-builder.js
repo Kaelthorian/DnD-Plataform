@@ -101,6 +101,36 @@ function configurePublishEnv(env) {
   return false;
 }
 
+function hasWindowsSigningConfiguration(env) {
+  const packageJson = readPackageJson();
+  const winOptions = packageJson.build?.win || {};
+  const packageSigningOptions = [
+    "certificateFile",
+    "certificateSha1",
+    "certificateSubjectName"
+  ];
+  const environmentSigningOptions = [
+    "CSC_LINK",
+    "CSC_NAME",
+    "WIN_CSC_LINK",
+    "WIN_CSC_NAME"
+  ];
+
+  return packageSigningOptions.some((key) => winOptions[key])
+    || environmentSigningOptions.some((key) => env[key]);
+}
+
+function configureWindowsExecutableEditing(env) {
+  const buildsForWindows = args.some((arg) => arg === "--win" || arg === "--windows" || arg.startsWith("--win="));
+  if (!buildsForWindows || hasWindowsSigningConfiguration(env)) return;
+
+  const hasOverride = args.some((arg) => arg.startsWith("--config.win.signAndEditExecutable="));
+  if (hasOverride) return;
+
+  args.push("--config.win.signAndEditExecutable=false");
+  console.warn("No Windows signing certificate configured; skipping executable signing/resource editing.");
+}
+
 function githubRequest({ method, path: requestPath, token, body }) {
   const payload = body ? JSON.stringify(body) : null;
 
@@ -198,6 +228,8 @@ delete env.ELECTRON_RUN_AS_NODE;
 if (!configurePublishEnv(env)) {
   process.exit(1);
 }
+
+configureWindowsExecutableEditing(env);
 
 if (shouldEnsureDmScreenBuild) {
   console.log("Ensuring DM Screen build...");
