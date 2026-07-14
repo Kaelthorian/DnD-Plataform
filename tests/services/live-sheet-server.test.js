@@ -194,7 +194,7 @@ function nextMessages(socket, count) {
   });
 }
 
-async function testVvtStateBroadcastAndWelcomeReplay() {
+async function testVttStateBroadcastAndWelcomeReplay() {
   await withServer({ tokenEnabled: false }, async (server, port) => {
     const socket = await openSocket(port);
     send(socket, { type: "player:hello" });
@@ -205,7 +205,7 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
 
     const broadcastPromise = nextMessage(socket);
     const tinyPng = "data:image/png;base64,iVBORw0KGgo=";
-    const result = server.setVvtState({
+    const result = server.setVttState({
       active: true,
       title: "Dungeon",
       image: { name: "map.png", type: "image/png", dataUrl: tinyPng },
@@ -271,7 +271,7 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
     });
     assert.strictEqual(result.ok, true);
     const broadcast = await broadcastPromise;
-    assert.strictEqual(broadcast.type, "dm:vvt:state");
+    assert.strictEqual(broadcast.type, "dm:vtt:state");
     assert.strictEqual(broadcast.state.active, true);
     assert.strictEqual(broadcast.state.fogOfWar.revealed.length, 1);
     assert.strictEqual(broadcast.state.tokens.length, 3);
@@ -293,7 +293,7 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
     assert.deepStrictEqual(broadcast.state.sourceViewport, { width: 760, height: 432 });
 
     const patchPromise = nextMessage(socket);
-    const patchResult = server.patchVvtState({
+    const patchResult = server.patchVttState({
       tokens: [{
         id: "goblin-1",
         name: "Goblin",
@@ -309,19 +309,19 @@ async function testVvtStateBroadcastAndWelcomeReplay() {
     });
     assert.strictEqual(patchResult.ok, true);
     const patch = await patchPromise;
-    assert.strictEqual(patch.type, "dm:vvt:patch");
+    assert.strictEqual(patch.type, "dm:vtt:patch");
     assert.strictEqual(patch.patch.image, undefined);
     assert.strictEqual(patch.patch.tokens[0].imageUnchanged, true);
     assert.strictEqual(patch.patch.tokens[0].x, 180);
-    assert.strictEqual(server.vvtState.image.dataUrl, tinyPng);
-    assert.strictEqual(server.vvtState.tokens[0].image.dataUrl, tinyPng);
+    assert.strictEqual(server.vttState.image.dataUrl, tinyPng);
+    assert.strictEqual(server.vttState.tokens[0].image.dataUrl, tinyPng);
 
     const secondSocket = await openSocket(port);
     const replayMessagesPromise = nextMessages(secondSocket, 3);
     send(secondSocket, { type: "player:hello" });
     const [secondWelcome, replay, secondHandState] = await replayMessagesPromise;
     assert.strictEqual(secondWelcome.type, "server:welcome");
-    assert.strictEqual(replay.type, "dm:vvt:state");
+    assert.strictEqual(replay.type, "dm:vtt:state");
     assert.strictEqual(replay.state.title, "Dungeon");
     assert.strictEqual(replay.state.tokens[0].x, 180);
     assert.strictEqual(replay.state.tokens[0].image.dataUrl, tinyPng);
@@ -461,7 +461,7 @@ async function testRaisedHandQueue() {
   await testStartStopAndSelfTest();
   await testTokenRejection();
   await testTokenAcceptanceAndProtocol();
-  await testVvtStateBroadcastAndWelcomeReplay();
+  await testVttStateBroadcastAndWelcomeReplay();
   await testRollBroadcastToOtherPlayers();
   await testDmAudioBroadcast();
   await testRaisedHandQueue();

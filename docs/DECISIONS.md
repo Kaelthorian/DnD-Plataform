@@ -24,7 +24,7 @@ Alternativa rechazada: reset/regeneración silenciosa de datos.
 ## 4. Live Sheet es una sesión local efímera
 
 Contexto: la función conecta jugadores con DM por LAN/Tailscale sin backend.  
-Decisión: main posee el servidor, valida mensajes y mantiene jugadores/VVT en memoria; no escribe datos remotos en saves.  
+Decisión: main posee el servidor, valida mensajes y mantiene jugadores/VTT en memoria; no escribe datos remotos en saves.
 Consecuencia: reiniciar pierde la sesión y `ws://` no debe exponerse a Internet pública; usar token.  
 Alternativa rechazada: relay cloud, cuentas o persistencia automática sin un diseño explícito.
 

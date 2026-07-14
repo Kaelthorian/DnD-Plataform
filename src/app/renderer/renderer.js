@@ -133,21 +133,21 @@
     let liveSheetClientSocket = null;
     let liveSheetClientSendTimer = null;
     let liveSheetClientManualDisconnect = false;
-    let liveVvtState = null;
-    let liveVvtImageDataUrl = "";
-    let liveVvtElements = null;
-    let liveVvtPings = [];
-    let liveVvtBaseLayout = null;
-    let liveVvtView = { scale: 1, x: 0, y: 0 };
-    let liveVvtViewKey = "";
-    let liveVvtPointer = null;
-    let liveVvtHandRaised = false;
+    let liveVttState = null;
+    let liveVttImageDataUrl = "";
+    let liveVttElements = null;
+    let liveVttPings = [];
+    let liveVttBaseLayout = null;
+    let liveVttView = { scale: 1, x: 0, y: 0 };
+    let liveVttViewKey = "";
+    let liveVttPointer = null;
+    let liveVttHandRaised = false;
     let liveDmAudioPlayers = [];
     const liveDmAudioPlayersById = new Map();
-    const liveVvtTokenImageCache = new Map();
-    const LIVE_VVT_PING_TTL_MS = 5000;
-    const LIVE_VVT_MIN_ZOOM = 1;
-    const LIVE_VVT_MAX_ZOOM = 4;
+    const liveVttTokenImageCache = new Map();
+    const LIVE_VTT_PING_TTL_MS = 5000;
+    const LIVE_VTT_MIN_ZOOM = 1;
+    const LIVE_VTT_MAX_ZOOM = 4;
 
     function loadUiSettings() {
       try {
@@ -247,11 +247,11 @@
       return publicData;
     }
 
-    function ensureLiveVvtWindow() {
-      if (liveVvtElements) return liveVvtElements;
+    function ensureLiveVttWindow() {
+      if (liveVttElements) return liveVttElements;
       const style = document.createElement("style");
       style.textContent = `
-        .live-vvt-window {
+        .live-vtt-window {
           position: fixed;
           inset: 4vh 4vw;
           z-index: 9998;
@@ -264,24 +264,24 @@
           color: #e5e7eb;
           box-shadow: 0 22px 70px rgba(0, 0, 0, 0.72);
         }
-        .live-vvt-window[hidden] { display: none; }
-        .live-vvt-window.is-minimized {
+        .live-vtt-window[hidden] { display: none; }
+        .live-vtt-window.is-minimized {
           inset: auto 4vw 4vh auto;
           width: min(360px, 92vw);
           min-height: 0;
         }
-        .live-vvt-window.is-minimized .live-vvt-body {
+        .live-vtt-window.is-minimized .live-vtt-body {
           display: none;
         }
-        .live-vvt-map[hidden],
-        .live-vvt-grid[hidden],
-        .live-vvt-tokens[hidden],
-        .live-vvt-markers[hidden],
-        .live-vvt-fog[hidden],
-        .live-vvt-empty[hidden] {
+        .live-vtt-map[hidden],
+        .live-vtt-grid[hidden],
+        .live-vtt-tokens[hidden],
+        .live-vtt-markers[hidden],
+        .live-vtt-fog[hidden],
+        .live-vtt-empty[hidden] {
           display: none;
         }
-        .live-vvt-header {
+        .live-vtt-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -290,7 +290,7 @@
           padding: 10px 12px;
           background: #111827;
         }
-        .live-vvt-title {
+        .live-vtt-title {
           min-width: 0;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -299,12 +299,12 @@
           text-transform: uppercase;
           color: #fbbf24;
         }
-        .live-vvt-window-actions {
+        .live-vtt-window-actions {
           display: flex;
           align-items: center;
           gap: 6px;
         }
-        .live-vvt-minimize {
+        .live-vtt-minimize {
           width: 28px;
           height: 28px;
           border: 1px solid #4b5563;
@@ -312,7 +312,7 @@
           color: #f9fafb;
           font-weight: 700;
         }
-        .live-vvt-hand {
+        .live-vtt-hand {
           height: 28px;
           min-width: 96px;
           border: 1px solid #4b5563;
@@ -321,37 +321,37 @@
           font: 900 11px/1 system-ui, sans-serif;
           text-transform: uppercase;
         }
-        .live-vvt-hand[aria-pressed="true"] {
+        .live-vtt-hand[aria-pressed="true"] {
           border-color: #fbbf24;
           background: #fbbf24;
           color: #111827;
           box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.24);
         }
-        .live-vvt-body {
+        .live-vtt-body {
           position: relative;
           flex: 1;
           overflow: hidden;
           background: #020617;
         }
-        .live-vvt-map {
+        .live-vtt-map {
           position: absolute;
           object-fit: contain;
           display: block;
         }
-        .live-vvt-fog {
+        .live-vtt-fog {
           position: absolute;
           pointer-events: none;
           z-index: 4;
         }
-        .live-vvt-pings {
+        .live-vtt-pings {
           position: absolute;
           pointer-events: none;
           z-index: 5;
         }
-        .live-vvt-pings[hidden] {
+        .live-vtt-pings[hidden] {
           display: none;
         }
-        .live-vvt-ping {
+        .live-vtt-ping {
           position: absolute;
           width: 54px;
           height: 54px;
@@ -359,10 +359,10 @@
           border: 3px solid #38bdf8;
           border-radius: 999px;
           box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.2), 0 0 28px rgba(56, 189, 248, 0.74);
-          animation: live-vvt-ping-fade 5s ease-out forwards;
+          animation: live-vtt-ping-fade 5s ease-out forwards;
         }
-        .live-vvt-ping::before,
-        .live-vvt-ping::after {
+        .live-vtt-ping::before,
+        .live-vtt-ping::after {
           content: "";
           position: absolute;
           inset: 50% auto auto 50%;
@@ -373,10 +373,10 @@
           background: #e0f2fe;
           box-shadow: 0 0 10px rgba(14, 165, 233, 0.9);
         }
-        .live-vvt-ping::after {
+        .live-vtt-ping::after {
           transform: translate(-50%, -50%) rotate(90deg);
         }
-        .live-vvt-ping-label {
+        .live-vtt-ping-label {
           position: absolute;
           left: 50%;
           top: calc(100% + 4px);
@@ -391,28 +391,28 @@
           color: #e0f2fe;
           font: 800 11px/1.1 system-ui, sans-serif;
         }
-        @keyframes live-vvt-ping-fade {
+        @keyframes live-vtt-ping-fade {
           0% { opacity: 0; transform: translate(-50%, -50%) scale(0.72); }
           8% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
           72% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
           100% { opacity: 0; transform: translate(-50%, -50%) scale(1.22); }
         }
-        .live-vvt-grid {
+        .live-vtt-grid {
           position: absolute;
           pointer-events: none;
           z-index: 2;
         }
-        .live-vvt-tokens {
+        .live-vtt-tokens {
           position: absolute;
           pointer-events: none;
           z-index: 3;
         }
-        .live-vvt-markers {
+        .live-vtt-markers {
           position: absolute;
           pointer-events: none;
           z-index: 5;
         }
-        .live-vvt-marker {
+        .live-vtt-marker {
           position: absolute;
           display: flex;
           flex-direction: column;
@@ -422,25 +422,25 @@
           font: 800 10px/1.1 system-ui, sans-serif;
           text-transform: uppercase;
         }
-        .live-vvt-marker[data-marker-type="shape"] {
+        .live-vtt-marker[data-marker-type="shape"] {
           display: block;
           transform: none;
           color: #f8fafc;
         }
-        .live-vvt-marker-shape {
+        .live-vtt-marker-shape {
           position: absolute;
           inset: 0;
-          border: 2px solid var(--live-vvt-marker-border, rgba(245, 158, 11, 0.88));
-          background: var(--live-vvt-marker-fill, rgba(245, 158, 11, 0.32));
+          border: 2px solid var(--live-vtt-marker-border, rgba(245, 158, 11, 0.88));
+          background: var(--live-vtt-marker-fill, rgba(245, 158, 11, 0.32));
           box-shadow: 0 0 18px rgba(0, 0, 0, 0.45);
         }
-        .live-vvt-marker-shape[data-form-type="cone"] {
+        .live-vtt-marker-shape[data-form-type="cone"] {
           clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
         }
-        .live-vvt-marker-shape[data-form-type="circle"] {
+        .live-vtt-marker-shape[data-form-type="circle"] {
           border-radius: 999px;
         }
-        .live-vvt-marker-pattern {
+        .live-vtt-marker-pattern {
           position: absolute;
           inset: 0;
           pointer-events: none;
@@ -448,7 +448,7 @@
           mix-blend-mode: screen;
           background-repeat: repeat;
         }
-        .live-vvt-marker-pin {
+        .live-vtt-marker-pin {
           display: flex;
           width: 28px;
           height: 28px;
@@ -462,21 +462,21 @@
           box-shadow: 0 3px 10px rgba(0, 0, 0, 0.7);
           font: 900 11px/1 system-ui, sans-serif;
         }
-        .live-vvt-marker-pin span {
+        .live-vtt-marker-pin span {
           transform: rotate(45deg);
         }
-        .live-vvt-marker-pin-icon {
+        .live-vtt-marker-pin-icon {
           display: flex;
           width: 58%;
           height: 58%;
           align-items: center;
           justify-content: center;
         }
-        .live-vvt-marker-pin-icon svg {
+        .live-vtt-marker-pin-icon svg {
           width: 100%;
           height: 100%;
         }
-        .live-vvt-marker-label {
+        .live-vtt-marker-label {
           max-width: 128px;
           margin-top: 4px;
           overflow: hidden;
@@ -486,7 +486,7 @@
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-        .live-vvt-token {
+        .live-vtt-token {
           position: absolute;
           transform-origin: 0 0;
           display: flex;
@@ -499,14 +499,14 @@
           box-shadow: 0 5px 14px rgba(0, 0, 0, 0.72);
           font: 800 12px/1 system-ui, sans-serif;
         }
-        .live-vvt-token[data-kind="character"] {
+        .live-vtt-token[data-kind="character"] {
           border-color: #7dd3fc;
           background: radial-gradient(circle at 35% 25%, rgba(255,255,255,0.28), transparent 30%), #075985;
         }
-        .live-vvt-token[data-has-image="true"] .live-vvt-token-initials {
+        .live-vtt-token[data-has-image="true"] .live-vtt-token-initials {
           display: none;
         }
-        .live-vvt-token-image {
+        .live-vtt-token-image {
           position: absolute;
           inset: 0;
           width: 100%;
@@ -514,12 +514,12 @@
           border-radius: inherit;
           object-fit: cover;
         }
-        .live-vvt-token-initials {
+        .live-vtt-token-initials {
           position: relative;
           z-index: 1;
           text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
         }
-        .live-vvt-token-label {
+        .live-vtt-token-label {
           position: absolute;
           left: 50%;
           top: calc(100% + 3px);
@@ -534,7 +534,7 @@
           color: #f9fafb;
           font: 700 10px/1.1 system-ui, sans-serif;
         }
-        .live-vvt-token-health {
+        .live-vtt-token-health {
           position: absolute;
           left: 50%;
           top: calc(100% + 18px);
@@ -546,20 +546,20 @@
           gap: 2px;
           pointer-events: none;
         }
-        .live-vvt-token-health-segment {
+        .live-vtt-token-health-segment {
           border: 1px solid rgba(15, 23, 42, 0.95);
           background: #111827;
         }
-        .live-vvt-token-health-segment[data-filled="true"] {
+        .live-vtt-token-health-segment[data-filled="true"] {
           background: #22c55e;
         }
-        .live-vvt-token-health[data-state="wounded"] .live-vvt-token-health-segment[data-filled="true"] {
+        .live-vtt-token-health[data-state="wounded"] .live-vtt-token-health-segment[data-filled="true"] {
           background: #f59e0b;
         }
-        .live-vvt-token-health[data-state="critical"] .live-vvt-token-health-segment[data-filled="true"] {
+        .live-vtt-token-health[data-state="critical"] .live-vtt-token-health-segment[data-filled="true"] {
           background: #dc2626;
         }
-        .live-vvt-empty {
+        .live-vtt-empty {
           display: flex;
           height: 100%;
           align-items: center;
@@ -573,63 +573,63 @@
       document.head.appendChild(style);
 
       const root = document.createElement("section");
-      root.className = "live-vvt-window";
+      root.className = "live-vtt-window";
       root.hidden = true;
-      root.setAttribute("aria-label", "VVT map");
+      root.setAttribute("aria-label", "VTT map");
       root.innerHTML = `
-        <header class="live-vvt-header">
-          <div class="live-vvt-title"></div>
-          <div class="live-vvt-window-actions">
-            <button class="live-vvt-hand" type="button" aria-label="Levantar la mano" aria-pressed="false">Levantar</button>
-            <button class="live-vvt-minimize" type="button" aria-label="Minimizar VVT">-</button>
+        <header class="live-vtt-header">
+          <div class="live-vtt-title"></div>
+          <div class="live-vtt-window-actions">
+            <button class="live-vtt-hand" type="button" aria-label="Levantar la mano" aria-pressed="false">Levantar</button>
+            <button class="live-vtt-minimize" type="button" aria-label="Minimizar VTT">-</button>
           </div>
         </header>
-        <div class="live-vvt-body">
-          <div class="live-vvt-empty">Esperando mapa VVT del DM.</div>
-          <img class="live-vvt-map" alt="Mapa VVT" draggable="false" hidden>
-          <div class="live-vvt-grid" hidden></div>
-          <div class="live-vvt-tokens" hidden></div>
-          <div class="live-vvt-markers" hidden></div>
-          <canvas class="live-vvt-fog" hidden></canvas>
-          <div class="live-vvt-pings" hidden></div>
+        <div class="live-vtt-body">
+          <div class="live-vtt-empty">Esperando mapa VTT del DM.</div>
+          <img class="live-vtt-map" alt="Mapa VTT" draggable="false" hidden>
+          <div class="live-vtt-grid" hidden></div>
+          <div class="live-vtt-tokens" hidden></div>
+          <div class="live-vtt-markers" hidden></div>
+          <canvas class="live-vtt-fog" hidden></canvas>
+          <div class="live-vtt-pings" hidden></div>
         </div>
       `;
       document.body.appendChild(root);
       const elements = {
         root,
-        title: root.querySelector(".live-vvt-title"),
-        hand: root.querySelector(".live-vvt-hand"),
-        minimize: root.querySelector(".live-vvt-minimize"),
-        body: root.querySelector(".live-vvt-body"),
-        empty: root.querySelector(".live-vvt-empty"),
-        image: root.querySelector(".live-vvt-map"),
-        grid: root.querySelector(".live-vvt-grid"),
-        tokens: root.querySelector(".live-vvt-tokens"),
-        markers: root.querySelector(".live-vvt-markers"),
-        fog: root.querySelector(".live-vvt-fog"),
-        pings: root.querySelector(".live-vvt-pings")
+        title: root.querySelector(".live-vtt-title"),
+        hand: root.querySelector(".live-vtt-hand"),
+        minimize: root.querySelector(".live-vtt-minimize"),
+        body: root.querySelector(".live-vtt-body"),
+        empty: root.querySelector(".live-vtt-empty"),
+        image: root.querySelector(".live-vtt-map"),
+        grid: root.querySelector(".live-vtt-grid"),
+        tokens: root.querySelector(".live-vtt-tokens"),
+        markers: root.querySelector(".live-vtt-markers"),
+        fog: root.querySelector(".live-vtt-fog"),
+        pings: root.querySelector(".live-vtt-pings")
       };
       elements.minimize.addEventListener("click", () => {
         const minimized = !root.classList.contains("is-minimized");
         root.classList.toggle("is-minimized", minimized);
         elements.minimize.textContent = minimized ? "+" : "-";
-        elements.minimize.setAttribute("aria-label", minimized ? "Restaurar VVT" : "Minimizar VVT");
-        if (!minimized) requestAnimationFrame(updateLiveVvtLayout);
+        elements.minimize.setAttribute("aria-label", minimized ? "Restaurar VTT" : "Minimizar VTT");
+        if (!minimized) requestAnimationFrame(updateLiveVttLayout);
       });
-      elements.hand.addEventListener("click", toggleLiveVvtHand);
-      elements.body.addEventListener("pointerdown", handleLiveVvtPointerDown);
-      elements.body.addEventListener("pointermove", handleLiveVvtPointerMove);
-      elements.body.addEventListener("pointerup", handleLiveVvtPointerUp);
-      elements.body.addEventListener("pointercancel", handleLiveVvtPointerUp);
-      elements.body.addEventListener("wheel", handleLiveVvtWheel, { passive: false });
-      elements.image.addEventListener("load", updateLiveVvtLayout);
-      window.addEventListener("resize", updateLiveVvtLayout);
-      liveVvtElements = elements;
-      setLiveVvtHandRaised(liveVvtHandRaised);
+      elements.hand.addEventListener("click", toggleLiveVttHand);
+      elements.body.addEventListener("pointerdown", handleLiveVttPointerDown);
+      elements.body.addEventListener("pointermove", handleLiveVttPointerMove);
+      elements.body.addEventListener("pointerup", handleLiveVttPointerUp);
+      elements.body.addEventListener("pointercancel", handleLiveVttPointerUp);
+      elements.body.addEventListener("wheel", handleLiveVttWheel, { passive: false });
+      elements.image.addEventListener("load", updateLiveVttLayout);
+      window.addEventListener("resize", updateLiveVttLayout);
+      liveVttElements = elements;
+      setLiveVttHandRaised(liveVttHandRaised);
       return elements;
     }
 
-    function liveVvtContainedRect(containerWidth, containerHeight, naturalWidth, naturalHeight) {
+    function liveVttContainedRect(containerWidth, containerHeight, naturalWidth, naturalHeight) {
       const safeContainerWidth = Math.max(1, Number(containerWidth) || 1);
       const safeContainerHeight = Math.max(1, Number(containerHeight) || 1);
       const safeNaturalWidth = Math.max(1, Number(naturalWidth) || safeContainerWidth);
@@ -645,22 +645,22 @@
       };
     }
 
-    function liveVvtClamp(value, min, max) {
+    function liveVttClamp(value, min, max) {
       return Math.min(max, Math.max(min, Number(value) || 0));
     }
 
-    function liveVvtClampView(view, baseLayout = liveVvtBaseLayout) {
-      const elements = liveVvtElements;
+    function liveVttClampView(view, baseLayout = liveVttBaseLayout) {
+      const elements = liveVttElements;
       if (!elements || !baseLayout) return { scale: 1, x: 0, y: 0 };
       const rect = elements.body.getBoundingClientRect();
-      const scale = liveVvtClamp(view.scale || 1, LIVE_VVT_MIN_ZOOM, LIVE_VVT_MAX_ZOOM);
+      const scale = liveVttClamp(view.scale || 1, LIVE_VTT_MIN_ZOOM, LIVE_VTT_MAX_ZOOM);
       const width = baseLayout.width * scale;
       const height = baseLayout.height * scale;
 
       function clampAxis(offset, baseStart, scaledSize, containerSize) {
         const currentStart = baseStart + (Number(offset) || 0);
         if (scaledSize <= containerSize) return (containerSize - scaledSize) / 2 - baseStart;
-        return liveVvtClamp(currentStart, containerSize - scaledSize, 0) - baseStart;
+        return liveVttClamp(currentStart, containerSize - scaledSize, 0) - baseStart;
       }
 
       return {
@@ -670,10 +670,10 @@
       };
     }
 
-    function liveVvtZoomedLayout(baseLayout = liveVvtBaseLayout) {
+    function liveVttZoomedLayout(baseLayout = liveVttBaseLayout) {
       if (!baseLayout) return null;
-      const view = liveVvtClampView(liveVvtView, baseLayout);
-      liveVvtView = view;
+      const view = liveVttClampView(liveVttView, baseLayout);
+      liveVttView = view;
       return {
         left: baseLayout.left + view.x,
         top: baseLayout.top + view.y,
@@ -682,12 +682,12 @@
       };
     }
 
-    function updateLiveVvtLayout() {
-      const elements = liveVvtElements;
+    function updateLiveVttLayout() {
+      const elements = liveVttElements;
       if (!elements || elements.root.hidden || elements.root.classList.contains("is-minimized") || elements.image.hidden) return;
       const rect = elements.body.getBoundingClientRect();
-      liveVvtBaseLayout = liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
-      const layout = liveVvtZoomedLayout(liveVvtBaseLayout);
+      liveVttBaseLayout = liveVttContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight);
+      const layout = liveVttZoomedLayout(liveVttBaseLayout);
       elements.image.style.left = `${layout.left}px`;
       elements.image.style.top = `${layout.top}px`;
       elements.image.style.width = `${layout.width}px`;
@@ -712,36 +712,36 @@
       elements.pings.style.top = `${layout.top}px`;
       elements.pings.style.width = `${layout.width}px`;
       elements.pings.style.height = `${layout.height}px`;
-      renderLiveVvtTokens(elements.tokens, liveVvtState?.tokens, liveVvtState?.sourceViewport, layout);
-      renderLiveVvtMarkers(elements.markers, liveVvtState?.markers, liveVvtState?.sourceViewport, layout);
-      renderLiveVvtFog(elements.fog, liveVvtState?.fogOfWar, layout);
-      renderLiveVvtPings(elements.pings, layout);
+      renderLiveVttTokens(elements.tokens, liveVttState?.tokens, liveVttState?.sourceViewport, layout);
+      renderLiveVttMarkers(elements.markers, liveVttState?.markers, liveVttState?.sourceViewport, layout);
+      renderLiveVttFog(elements.fog, liveVttState?.fogOfWar, layout);
+      renderLiveVttPings(elements.pings, layout);
     }
 
-    function handleLiveVvtWheel(event) {
-      if (!liveVvtState?.active || !liveVvtElements || liveVvtElements.image.hidden || !liveVvtBaseLayout) return;
-      const elements = liveVvtElements;
+    function handleLiveVttWheel(event) {
+      if (!liveVttState?.active || !liveVttElements || liveVttElements.image.hidden || !liveVttBaseLayout) return;
+      const elements = liveVttElements;
       const rect = elements.body.getBoundingClientRect();
-      const layout = liveVvtZoomedLayout(liveVvtBaseLayout);
+      const layout = liveVttZoomedLayout(liveVttBaseLayout);
       const localX = event.clientX - rect.left;
       const localY = event.clientY - rect.top;
       if (localX < layout.left || localY < layout.top || localX > layout.left + layout.width || localY > layout.top + layout.height) return;
       event.preventDefault();
       event.stopPropagation();
-      const oldScale = liveVvtView.scale || 1;
-      const nextScale = liveVvtClamp(oldScale * (event.deltaY < 0 ? 1.12 : 1 / 1.12), LIVE_VVT_MIN_ZOOM, LIVE_VVT_MAX_ZOOM);
+      const oldScale = liveVttView.scale || 1;
+      const nextScale = liveVttClamp(oldScale * (event.deltaY < 0 ? 1.12 : 1 / 1.12), LIVE_VTT_MIN_ZOOM, LIVE_VTT_MAX_ZOOM);
       if (Math.abs(nextScale - oldScale) < 0.001) return;
-      const nx = liveVvtClamp((localX - layout.left) / layout.width, 0, 1);
-      const ny = liveVvtClamp((localY - layout.top) / layout.height, 0, 1);
-      liveVvtView = liveVvtClampView({
+      const nx = liveVttClamp((localX - layout.left) / layout.width, 0, 1);
+      const ny = liveVttClamp((localY - layout.top) / layout.height, 0, 1);
+      liveVttView = liveVttClampView({
         scale: nextScale,
-        x: localX - liveVvtBaseLayout.left - nx * liveVvtBaseLayout.width * nextScale,
-        y: localY - liveVvtBaseLayout.top - ny * liveVvtBaseLayout.height * nextScale
-      }, liveVvtBaseLayout);
-      updateLiveVvtLayout();
+        x: localX - liveVttBaseLayout.left - nx * liveVttBaseLayout.width * nextScale,
+        y: localY - liveVttBaseLayout.top - ny * liveVttBaseLayout.height * nextScale
+      }, liveVttBaseLayout);
+      updateLiveVttLayout();
     }
 
-    function renderLiveVvtGrid(element, grid) {
+    function renderLiveVttGrid(element, grid) {
       if (!grid?.enabled) {
         element.hidden = true;
         element.removeAttribute("style");
@@ -753,21 +753,21 @@
       element.style.backgroundPosition = `${Number(grid.offsetX) || 0}px ${Number(grid.offsetY) || 0}px`;
     }
 
-    function liveVvtInitials(name) {
+    function liveVttInitials(name) {
       const parts = String(name || "Token").trim().split(/\s+/).filter(Boolean);
       if (!parts.length) return "T";
       if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
       return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
     }
 
-    function liveVvtHpRatio(token) {
+    function liveVttHpRatio(token) {
       const current = Number.parseFloat(String(token?.hpCurrent ?? "").replace(",", "."));
       const max = Number.parseFloat(String(token?.hpMax ?? "").replace(",", "."));
       if (!Number.isFinite(current) || !Number.isFinite(max) || max <= 0) return null;
       return Math.max(0, Math.min(1, current / max));
     }
 
-    function normalizeLiveVvtMarkerColor(color) {
+    function normalizeLiveVttMarkerColor(color) {
       const text = String(color || "").trim().toLowerCase();
       const named = {
         amber: "#f59e0b",
@@ -796,20 +796,20 @@
       return /^#[0-9a-f]{6}$/i.test(text) ? text : "#f59e0b";
     }
 
-    function liveVvtMarkerColorRgba(color, alpha = 0.35) {
-      const hex = normalizeLiveVvtMarkerColor(color).replace("#", "");
+    function liveVttMarkerColorRgba(color, alpha = 0.35) {
+      const hex = normalizeLiveVttMarkerColor(color).replace("#", "");
       const red = Number.parseInt(hex.slice(0, 2), 16);
       const green = Number.parseInt(hex.slice(2, 4), 16);
       const blue = Number.parseInt(hex.slice(4, 6), 16);
       return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
     }
 
-    function normalizeLiveVvtMarkerOpacity(value) {
+    function normalizeLiveVttMarkerOpacity(value) {
       const numeric = Number(value);
       return Number.isFinite(numeric) ? Math.max(0.08, Math.min(0.85, numeric)) : 0.32;
     }
 
-    const LIVE_VVT_MARKER_PATTERN_GLYPHS = {
+    const LIVE_VTT_MARKER_PATTERN_GLYPHS = {
       acid: "\\u2623",
       blinded: "\\u25D0",
       charmed: "\\u2665",
@@ -838,33 +838,33 @@
       unconscious: "Z"
     };
 
-    function normalizeLiveVvtMarkerPattern(pattern) {
+    function normalizeLiveVttMarkerPattern(pattern) {
       const value = String(pattern || "").trim().toLowerCase();
-      return Object.prototype.hasOwnProperty.call(LIVE_VVT_MARKER_PATTERN_GLYPHS, value) ? value : "none";
+      return Object.prototype.hasOwnProperty.call(LIVE_VTT_MARKER_PATTERN_GLYPHS, value) ? value : "none";
     }
 
-    function decodeLiveVvtMarkerPatternGlyph(glyph) {
+    function decodeLiveVttMarkerPatternGlyph(glyph) {
       return String(glyph || "").replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)));
     }
 
-    function liveVvtMarkerPatternBackground(pattern, color) {
-      const value = normalizeLiveVvtMarkerPattern(pattern);
+    function liveVttMarkerPatternBackground(pattern, color) {
+      const value = normalizeLiveVttMarkerPattern(pattern);
       if (value === "none") return "none";
-      const glyph = decodeLiveVvtMarkerPatternGlyph(LIVE_VVT_MARKER_PATTERN_GLYPHS[value]);
+      const glyph = decodeLiveVttMarkerPatternGlyph(LIVE_VTT_MARKER_PATTERN_GLYPHS[value]);
       if (!glyph) return "none";
-      const stroke = normalizeLiveVvtMarkerColor(color);
+      const stroke = normalizeLiveVttMarkerColor(color);
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34"><text x="17" y="23" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="${stroke}" fill-opacity="0.72">${glyph}</text></svg>`;
       return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
     }
 
-    const LIVE_VVT_MARKER_ICON_VALUES = new Set(["marker", "shop", "tavern", "inn", "swords", "shield", "castle", "temple", "camp", "cave", "treasure", "danger", "quest", "portal"]);
+    const LIVE_VTT_MARKER_ICON_VALUES = new Set(["marker", "shop", "tavern", "inn", "swords", "shield", "castle", "temple", "camp", "cave", "treasure", "danger", "quest", "portal"]);
 
-    function normalizeLiveVvtMarkerIcon(icon) {
+    function normalizeLiveVttMarkerIcon(icon) {
       const value = String(icon || "").trim().toLowerCase();
-      return LIVE_VVT_MARKER_ICON_VALUES.has(value) ? value : "marker";
+      return LIVE_VTT_MARKER_ICON_VALUES.has(value) ? value : "marker";
     }
 
-    function liveVvtMarkerIconSvg(icon) {
+    function liveVttMarkerIconSvg(icon) {
       const stroke = 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
       const paths = {
         shop: `<path ${stroke} d="M4 10h16"/><path ${stroke} d="M5 10l1-5h12l1 5"/><path ${stroke} d="M6 10v9h12v-9"/><path ${stroke} d="M9 19v-5h6v5"/><path ${stroke} d="M7 10v2a2 2 0 0 0 4 0v-2"/><path ${stroke} d="M13 10v2a2 2 0 0 0 4 0v-2"/>`,
@@ -882,27 +882,27 @@
         portal: `<ellipse ${stroke} cx="12" cy="12" rx="7" ry="9"/><path ${stroke} d="M9 7c4 1 6 4 5 9"/><path ${stroke} d="M15 7c-4 1-6 4-5 9"/>`,
         marker: `<path ${stroke} d="M12 21s6-5.2 6-11a6 6 0 0 0-12 0c0 5.8 6 11 6 11z"/><circle ${stroke} cx="12" cy="10" r="2"/>`
       };
-      return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[normalizeLiveVvtMarkerIcon(icon)] || paths.marker}</svg>`;
+      return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[normalizeLiveVttMarkerIcon(icon)] || paths.marker}</svg>`;
     }
 
-    function liveVvtTokenImageCacheKey(request) {
+    function liveVttTokenImageCacheKey(request) {
       const sources = Array.isArray(request?.sources) ? request.sources.join("|") : "";
       const names = Array.isArray(request?.names) ? request.names.join("|") : "";
       return `${sources}::${names}`;
     }
 
-    function resolveLiveVvtTokenImage(token, node) {
+    function resolveLiveVttTokenImage(token, node) {
       const request = token?.imageRequest;
       if (!request || token.kind === "character") return;
       const api = window.dndSheet?.getMonsterTokenUrl;
       if (!api) return;
-      const cacheKey = liveVvtTokenImageCacheKey(request);
+      const cacheKey = liveVttTokenImageCacheKey(request);
       if (!cacheKey) return;
 
       function attachImage(url) {
-        if (!url || node.querySelector(".live-vvt-token-image")) return;
+        if (!url || node.querySelector(".live-vtt-token-image")) return;
         const image = document.createElement("img");
-        image.className = "live-vvt-token-image";
+        image.className = "live-vtt-token-image";
         image.alt = `${token.name || "Token"} token`;
         image.draggable = false;
         image.src = url;
@@ -915,7 +915,7 @@
         return;
       }
 
-      const cached = liveVvtTokenImageCache.get(cacheKey);
+      const cached = liveVttTokenImageCache.get(cacheKey);
       if (typeof cached === "string") {
         attachImage(cached);
         return;
@@ -927,18 +927,18 @@
 
       const pending = api(request)
         .then((url) => {
-          liveVvtTokenImageCache.set(cacheKey, url || "");
+          liveVttTokenImageCache.set(cacheKey, url || "");
           attachImage(url);
           return url || "";
         })
         .catch(() => {
-          liveVvtTokenImageCache.delete(cacheKey);
+          liveVttTokenImageCache.delete(cacheKey);
           return "";
         });
-      liveVvtTokenImageCache.set(cacheKey, pending);
+      liveVttTokenImageCache.set(cacheKey, pending);
     }
 
-    function renderLiveVvtTokens(element, tokens, sourceViewport, layout = null) {
+    function renderLiveVttTokens(element, tokens, sourceViewport, layout = null) {
       const visibleTokens = Array.isArray(tokens) ? tokens.filter((token) => !token?.hidden && !token?.playerHidden) : [];
       if (!visibleTokens.length) {
         element.hidden = true;
@@ -954,7 +954,7 @@
       const nodes = visibleTokens.map((token) => {
         const size = Math.max(8, Number(token.size) || 56);
         const node = document.createElement("div");
-        node.className = "live-vvt-token";
+        node.className = "live-vtt-token";
         node.dataset.kind = token.kind === "character" ? "character" : "monster";
         node.title = [token.name || "Token", token.ac ? `AC ${token.ac}` : ""].filter(Boolean).join(" | ");
         node.style.left = `${(Number(token.x) || 0) * scaleX}px`;
@@ -963,25 +963,25 @@
         node.style.height = `${size * scale}px`;
 
         const initials = document.createElement("span");
-        initials.className = "live-vvt-token-initials";
-        initials.textContent = liveVvtInitials(token.name);
+        initials.className = "live-vtt-token-initials";
+        initials.textContent = liveVttInitials(token.name);
         node.appendChild(initials);
-        resolveLiveVvtTokenImage(token, node);
+        resolveLiveVttTokenImage(token, node);
 
         const label = document.createElement("span");
-        label.className = "live-vvt-token-label";
+        label.className = "live-vtt-token-label";
         label.textContent = token.name || "Token";
         node.appendChild(label);
 
-        const hpRatio = liveVvtHpRatio(token);
+        const hpRatio = liveVttHpRatio(token);
         if (hpRatio !== null) {
           const health = document.createElement("div");
-          health.className = "live-vvt-token-health";
+          health.className = "live-vtt-token-health";
           health.dataset.state = hpRatio <= 0.25 ? "critical" : (hpRatio <= 0.5 ? "wounded" : "healthy");
           const filledSegments = hpRatio <= 0 ? 0 : Math.max(1, Math.ceil(hpRatio * 5));
           for (let segmentIndex = 0; segmentIndex < 5; segmentIndex += 1) {
             const segment = document.createElement("span");
-            segment.className = "live-vvt-token-health-segment";
+            segment.className = "live-vtt-token-health-segment";
             segment.dataset.filled = String(segmentIndex < filledSegments);
             health.appendChild(segment);
           }
@@ -992,7 +992,7 @@
       element.replaceChildren(...nodes);
     }
 
-    function renderLiveVvtMarkers(element, markers, sourceViewport, layout = null) {
+    function renderLiveVttMarkers(element, markers, sourceViewport, layout = null) {
       const visibleMarkers = Array.isArray(markers) ? markers.filter((marker) => !marker?.hidden && !marker?.playerHidden) : [];
       if (!visibleMarkers.length) {
         element.hidden = true;
@@ -1006,7 +1006,7 @@
       const scaleY = (Number(layout?.height) || element.clientHeight || height) / height;
       const nodes = visibleMarkers.map((marker) => {
         const node = document.createElement("div");
-        node.className = "live-vvt-marker";
+        node.className = "live-vtt-marker";
         node.title = marker.label || "Marker";
         node.style.left = `${(Number(marker.x) || 0) * scaleX}px`;
         node.style.top = `${(Number(marker.y) || 0) * scaleY}px`;
@@ -1017,22 +1017,22 @@
           const clipPath = formType === "cone" ? "polygon(50% 0%, 100% 100%, 0% 100%)" : "";
           const borderRadius = formType === "circle" ? "999px" : "";
           const rotation = `rotate(${Number(marker.rotation) || 0}deg)`;
-          const opacity = normalizeLiveVvtMarkerOpacity(marker.opacity);
+          const opacity = normalizeLiveVttMarkerOpacity(marker.opacity);
           node.dataset.markerType = "shape";
           node.style.width = `${markerWidth * scaleX}px`;
           node.style.height = `${markerHeight * scaleY}px`;
-          node.style.setProperty("--live-vvt-marker-fill", liveVvtMarkerColorRgba(marker.color, opacity));
-          node.style.setProperty("--live-vvt-marker-border", liveVvtMarkerColorRgba(marker.color, 0.88));
+          node.style.setProperty("--live-vtt-marker-fill", liveVttMarkerColorRgba(marker.color, opacity));
+          node.style.setProperty("--live-vtt-marker-border", liveVttMarkerColorRgba(marker.color, 0.88));
           const shape = document.createElement("span");
-          shape.className = "live-vvt-marker-shape";
+          shape.className = "live-vtt-marker-shape";
           shape.dataset.formType = formType;
           shape.style.transform = rotation;
           node.appendChild(shape);
-          const pattern = normalizeLiveVvtMarkerPattern(marker.pattern);
+          const pattern = normalizeLiveVttMarkerPattern(marker.pattern);
           if (pattern !== "none") {
             const patternNode = document.createElement("span");
-            patternNode.className = "live-vvt-marker-pattern";
-            patternNode.style.backgroundImage = liveVvtMarkerPatternBackground(pattern, marker.color);
+            patternNode.className = "live-vtt-marker-pattern";
+            patternNode.style.backgroundImage = liveVttMarkerPatternBackground(pattern, marker.color);
             patternNode.style.backgroundSize = `${Math.max(20, 34 * scaleX)}px ${Math.max(20, 34 * scaleY)}px`;
             patternNode.style.opacity = String(Math.max(0.25, Math.min(0.9, opacity + 0.28)));
             patternNode.style.clipPath = clipPath;
@@ -1042,24 +1042,24 @@
             node.appendChild(patternNode);
           }
           const label = document.createElement("span");
-          label.className = "live-vvt-marker-label";
+          label.className = "live-vtt-marker-label";
           label.textContent = marker.label || "Forma";
           node.appendChild(label);
           return node;
         }
 
         const pin = document.createElement("span");
-        pin.className = "live-vvt-marker-pin";
+        pin.className = "live-vtt-marker-pin";
         pin.style.width = "28px";
         pin.style.height = "28px";
         const pinText = document.createElement("span");
-        pinText.className = "live-vvt-marker-pin-icon";
-        pinText.innerHTML = liveVvtMarkerIconSvg(marker.icon);
+        pinText.className = "live-vtt-marker-pin-icon";
+        pinText.innerHTML = liveVttMarkerIconSvg(marker.icon);
         pin.appendChild(pinText);
         node.appendChild(pin);
 
         const label = document.createElement("span");
-        label.className = "live-vvt-marker-label";
+        label.className = "live-vtt-marker-label";
         label.textContent = marker.label || "Marker";
         node.appendChild(label);
         return node;
@@ -1067,7 +1067,7 @@
       element.replaceChildren(...nodes);
     }
 
-    function renderLiveVvtFog(canvas, fog, layout = null) {
+    function renderLiveVttFog(canvas, fog, layout = null) {
       const enabled = fog?.enabled !== false;
       const revealed = Array.isArray(fog?.revealed) ? fog.revealed : [];
       if (!enabled) {
@@ -1110,8 +1110,8 @@
       context.globalCompositeOperation = "source-over";
     }
 
-    function normalizeLiveVvtPing(ping) {
-      const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + LIVE_VVT_PING_TTL_MS);
+    function normalizeLiveVttPing(ping) {
+      const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + LIVE_VTT_PING_TTL_MS);
       return {
         id: String(ping?.id || `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`),
         playerId: String(ping?.playerId || ""),
@@ -1122,14 +1122,14 @@
       };
     }
 
-    function pruneLiveVvtPings(now = Date.now()) {
-      liveVvtPings = liveVvtPings.filter((ping) => Number(ping.expiresAt) > now);
-      return liveVvtPings;
+    function pruneLiveVttPings(now = Date.now()) {
+      liveVttPings = liveVttPings.filter((ping) => Number(ping.expiresAt) > now);
+      return liveVttPings;
     }
 
-    function renderLiveVvtPings(element, layout = null) {
+    function renderLiveVttPings(element, layout = null) {
       if (!element) return;
-      const pings = pruneLiveVvtPings();
+      const pings = pruneLiveVttPings();
       if (!pings.length) {
         element.hidden = true;
         element.replaceChildren();
@@ -1140,12 +1140,12 @@
       element.hidden = false;
       const nodes = pings.map((ping) => {
         const node = document.createElement("div");
-        node.className = "live-vvt-ping";
+        node.className = "live-vtt-ping";
         node.style.left = `${ping.x * width}px`;
         node.style.top = `${ping.y * height}px`;
         node.title = `Ping: ${ping.playerName}`;
         const label = document.createElement("span");
-        label.className = "live-vvt-ping-label";
+        label.className = "live-vtt-ping-label";
         label.textContent = ping.playerName;
         node.appendChild(label);
         return node;
@@ -1153,21 +1153,21 @@
       element.replaceChildren(...nodes);
     }
 
-    function addLiveVvtPing(ping) {
-      const normalized = normalizeLiveVvtPing(ping);
-      liveVvtPings = [
-        ...pruneLiveVvtPings().filter((entry) => (
+    function addLiveVttPing(ping) {
+      const normalized = normalizeLiveVttPing(ping);
+      liveVttPings = [
+        ...pruneLiveVttPings().filter((entry) => (
           normalized.playerId
             ? entry.playerId !== normalized.playerId
             : entry.id !== normalized.id
         )),
         normalized
       ].slice(-16);
-      requestAnimationFrame(updateLiveVvtLayout);
+      requestAnimationFrame(updateLiveVttLayout);
       const timeout = Math.max(0, normalized.expiresAt - Date.now());
       window.setTimeout(() => {
-        pruneLiveVvtPings();
-        requestAnimationFrame(updateLiveVvtLayout);
+        pruneLiveVttPings();
+        requestAnimationFrame(updateLiveVttLayout);
       }, timeout + 40);
     }
 
@@ -1232,11 +1232,11 @@
       });
     }
 
-    function liveVvtPointFromEvent(event) {
-      if (!liveVvtState?.active || !liveVvtElements || liveVvtElements.image.hidden) return null;
-      const elements = liveVvtElements;
+    function liveVttPointFromEvent(event) {
+      if (!liveVttState?.active || !liveVttElements || liveVttElements.image.hidden) return null;
+      const elements = liveVttElements;
       const rect = elements.body.getBoundingClientRect();
-      const layout = liveVvtZoomedLayout(liveVvtBaseLayout || liveVvtContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight));
+      const layout = liveVttZoomedLayout(liveVttBaseLayout || liveVttContainedRect(rect.width, rect.height, elements.image.naturalWidth, elements.image.naturalHeight));
       const localX = event.clientX - rect.left;
       const localY = event.clientY - rect.top;
       const x = (localX - layout.left) / layout.width;
@@ -1245,10 +1245,10 @@
       return { x, y, localX, localY };
     }
 
-    function sendLiveVvtPing(point) {
+    function sendLiveVttPing(point) {
       if (!point) return;
       sendLiveSheetMessage({
-        type: "vvt:ping",
+        type: "vtt:ping",
         ping: {
           id: `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`,
           x: point.x,
@@ -1258,89 +1258,89 @@
       });
     }
 
-    function setLiveVvtHandRaised(raised) {
-      liveVvtHandRaised = Boolean(raised);
-      const handButton = liveVvtElements?.hand;
+    function setLiveVttHandRaised(raised) {
+      liveVttHandRaised = Boolean(raised);
+      const handButton = liveVttElements?.hand;
       if (!handButton) return;
-      handButton.setAttribute("aria-pressed", liveVvtHandRaised ? "true" : "false");
-      handButton.textContent = liveVvtHandRaised ? "Bajar mano" : "Levantar";
-      handButton.setAttribute("aria-label", liveVvtHandRaised ? "Bajar la mano" : "Levantar la mano");
+      handButton.setAttribute("aria-pressed", liveVttHandRaised ? "true" : "false");
+      handButton.textContent = liveVttHandRaised ? "Bajar mano" : "Levantar";
+      handButton.setAttribute("aria-label", liveVttHandRaised ? "Bajar la mano" : "Levantar la mano");
     }
 
-    function toggleLiveVvtHand(event) {
+    function toggleLiveVttHand(event) {
       event?.preventDefault?.();
       event?.stopPropagation?.();
-      const nextRaised = !liveVvtHandRaised;
+      const nextRaised = !liveVttHandRaised;
       if (!sendLiveSheetMessage({ type: "player:hand", raised: nextRaised })) {
         showStatus("No estas conectado al DM.");
         return;
       }
-      setLiveVvtHandRaised(nextRaised);
+      setLiveVttHandRaised(nextRaised);
     }
 
-    function handleLiveVvtPointerDown(event) {
+    function handleLiveVttPointerDown(event) {
       if (event.button != null && event.button !== 0 && event.button !== 1) return;
-      if (event.target?.closest?.(".live-vvt-window-actions")) return;
-      const point = liveVvtPointFromEvent(event);
+      if (event.target?.closest?.(".live-vtt-window-actions")) return;
+      const point = liveVttPointFromEvent(event);
       if (!point) return;
-      if (event.button === 1 && liveVvtView.scale <= 1.001) return;
+      if (event.button === 1 && liveVttView.scale <= 1.001) return;
       event.preventDefault();
       event.stopPropagation();
       event.currentTarget.setPointerCapture?.(event.pointerId);
-      liveVvtPointer = {
+      liveVttPointer = {
         pointerId: event.pointerId,
         button: event.button || 0,
         startClientX: event.clientX,
         startClientY: event.clientY,
         startLocalX: point.localX,
         startLocalY: point.localY,
-        startView: { ...liveVvtView },
+        startView: { ...liveVttView },
         moved: false
       };
     }
 
-    function handleLiveVvtPointerMove(event) {
-      if (!liveVvtPointer || liveVvtPointer.pointerId !== event.pointerId) return;
-      if (Math.abs(event.clientX - liveVvtPointer.startClientX) > 4 || Math.abs(event.clientY - liveVvtPointer.startClientY) > 4) {
-        liveVvtPointer.moved = true;
+    function handleLiveVttPointerMove(event) {
+      if (!liveVttPointer || liveVttPointer.pointerId !== event.pointerId) return;
+      if (Math.abs(event.clientX - liveVttPointer.startClientX) > 4 || Math.abs(event.clientY - liveVttPointer.startClientY) > 4) {
+        liveVttPointer.moved = true;
       }
-      if (liveVvtPointer.button !== 1 || !liveVvtPointer.moved || liveVvtView.scale <= 1.001) return;
-      const elements = liveVvtElements;
-      if (!elements || !liveVvtBaseLayout) return;
+      if (liveVttPointer.button !== 1 || !liveVttPointer.moved || liveVttView.scale <= 1.001) return;
+      const elements = liveVttElements;
+      if (!elements || !liveVttBaseLayout) return;
       const rect = elements.body.getBoundingClientRect();
       const localX = event.clientX - rect.left;
       const localY = event.clientY - rect.top;
       event.preventDefault();
       event.stopPropagation();
-      liveVvtView = liveVvtClampView({
-        ...liveVvtPointer.startView,
-        x: liveVvtPointer.startView.x + localX - liveVvtPointer.startLocalX,
-        y: liveVvtPointer.startView.y + localY - liveVvtPointer.startLocalY
-      }, liveVvtBaseLayout);
-      updateLiveVvtLayout();
+      liveVttView = liveVttClampView({
+        ...liveVttPointer.startView,
+        x: liveVttPointer.startView.x + localX - liveVttPointer.startLocalX,
+        y: liveVttPointer.startView.y + localY - liveVttPointer.startLocalY
+      }, liveVttBaseLayout);
+      updateLiveVttLayout();
     }
 
-    function handleLiveVvtPointerUp(event) {
-      if (!liveVvtPointer || liveVvtPointer.pointerId !== event.pointerId) return;
-      const completed = liveVvtPointer;
-      liveVvtPointer = null;
+    function handleLiveVttPointerUp(event) {
+      if (!liveVttPointer || liveVttPointer.pointerId !== event.pointerId) return;
+      const completed = liveVttPointer;
+      liveVttPointer = null;
       event.preventDefault();
       event.stopPropagation();
       event.currentTarget.releasePointerCapture?.(event.pointerId);
-      if (completed.button === 0 && !completed.moved) sendLiveVvtPing(liveVvtPointFromEvent(event));
+      if (completed.button === 0 && !completed.moved) sendLiveVttPing(liveVttPointFromEvent(event));
     }
 
-    function renderLiveVvtState(state) {
-      liveVvtState = state || null;
-      const elements = ensureLiveVvtWindow();
+    function renderLiveVttState(state) {
+      liveVttState = state || null;
+      const elements = ensureLiveVttWindow();
       if (!state?.active || !state.image?.dataUrl) {
-        liveVvtView = { scale: 1, x: 0, y: 0 };
-        liveVvtBaseLayout = null;
-        liveVvtViewKey = "";
+        liveVttView = { scale: 1, x: 0, y: 0 };
+        liveVttBaseLayout = null;
+        liveVttViewKey = "";
         elements.root.hidden = true;
         elements.image.hidden = true;
         elements.image.removeAttribute("src");
-        liveVvtImageDataUrl = "";
+        liveVttImageDataUrl = "";
         elements.empty.hidden = false;
         elements.fog.hidden = true;
         elements.grid.hidden = true;
@@ -1350,45 +1350,45 @@
         elements.tokens.replaceChildren();
         elements.markers.replaceChildren();
         elements.pings.replaceChildren();
-        liveVvtPings = [];
+        liveVttPings = [];
         return;
       }
       const nextViewKey = [state.title || "", state.pageName || "", state.image?.name || "", String(state.image?.dataUrl || "").slice(0, 96)].join("|");
-      if (nextViewKey !== liveVvtViewKey) {
-        liveVvtView = { scale: 1, x: 0, y: 0 };
-        liveVvtViewKey = nextViewKey;
+      if (nextViewKey !== liveVttViewKey) {
+        liveVttView = { scale: 1, x: 0, y: 0 };
+        liveVttViewKey = nextViewKey;
       }
-      elements.title.textContent = [state.title || "Mapa VVT", state.pageName || ""].filter(Boolean).join(" - ");
-      if (liveVvtImageDataUrl !== state.image.dataUrl) {
+      elements.title.textContent = [state.title || "Mapa VTT", state.pageName || ""].filter(Boolean).join(" - ");
+      if (liveVttImageDataUrl !== state.image.dataUrl) {
         elements.image.src = state.image.dataUrl;
-        liveVvtImageDataUrl = state.image.dataUrl;
+        liveVttImageDataUrl = state.image.dataUrl;
       }
-      elements.image.alt = state.image.name || "Mapa VVT";
+      elements.image.alt = state.image.name || "Mapa VTT";
       elements.image.hidden = false;
       elements.empty.hidden = true;
-      renderLiveVvtGrid(elements.grid, state.grid);
-      renderLiveVvtFog(elements.fog, state.fogOfWar);
-      renderLiveVvtTokens(elements.tokens, state.tokens, state.sourceViewport);
-      renderLiveVvtMarkers(elements.markers, state.markers, state.sourceViewport);
+      renderLiveVttGrid(elements.grid, state.grid);
+      renderLiveVttFog(elements.fog, state.fogOfWar);
+      renderLiveVttTokens(elements.tokens, state.tokens, state.sourceViewport);
+      renderLiveVttMarkers(elements.markers, state.markers, state.sourceViewport);
       elements.root.hidden = false;
-      requestAnimationFrame(updateLiveVvtLayout);
+      requestAnimationFrame(updateLiveVttLayout);
     }
 
-    function renderLiveVvtPatch(patch) {
-      if (!patch || !liveVvtState?.active) return;
+    function renderLiveVttPatch(patch) {
+      if (!patch || !liveVttState?.active) return;
       const nextPatch = { ...patch };
       if (Array.isArray(patch.tokens)) {
-        const previousTokens = new Map((liveVvtState.tokens || []).map((token) => [token.id, token]));
+        const previousTokens = new Map((liveVttState.tokens || []).map((token) => [token.id, token]));
         nextPatch.tokens = patch.tokens.map((token) => {
           const previous = previousTokens.get(token.id);
           if (!token.imageUnchanged || token.image?.dataUrl || !previous?.image?.dataUrl) return token;
           return { ...token, image: previous.image };
         });
       }
-      renderLiveVvtState({
-        ...liveVvtState,
+      renderLiveVttState({
+        ...liveVttState,
         ...nextPatch,
-        image: liveVvtState.image
+        image: liveVttState.image
       });
     }
 
@@ -1482,8 +1482,8 @@
         }
       }
       liveSheetClientSocket = null;
-      setLiveVvtHandRaised(false);
-      renderLiveVvtState({ active: false });
+      setLiveVttHandRaised(false);
+      renderLiveVttState({ active: false });
       setLiveSheetClientStatus("live.disconnected", "neutral");
       showStatus(t("live.disconnectedStatus"));
     }
@@ -1545,14 +1545,14 @@
             const applied = typeof applyLiveSheetPatch === "function" ? applyLiveSheetPatch(payload.patch) : false;
             setLiveSheetClientStatus(applied ? "live.synced" : "live.patchUnmatched", applied ? "ok" : "error");
           }
-          if (payload?.type === "dm:vvt:state") {
-            renderLiveVvtState(payload.state);
+          if (payload?.type === "dm:vtt:state") {
+            renderLiveVttState(payload.state);
           }
-          if (payload?.type === "dm:vvt:patch") {
-            renderLiveVvtPatch(payload.patch);
+          if (payload?.type === "dm:vtt:patch") {
+            renderLiveVttPatch(payload.patch);
           }
-          if (payload?.type === "dm:vvt:ping") {
-            addLiveVvtPing(payload.ping);
+          if (payload?.type === "dm:vtt:ping") {
+            addLiveVttPing(payload.ping);
           }
           if (payload?.type === "dm:audio:play") {
             playLiveDmAudio(payload.audio);
@@ -1561,7 +1561,7 @@
             controlLiveDmAudio(payload.control);
           }
           if (payload?.type === "dm:hand:state") {
-            setLiveVvtHandRaised(Boolean(payload.raised));
+            setLiveVttHandRaised(Boolean(payload.raised));
           }
           if (payload?.type === "player:roll") {
             window.showLiveSheetRoll?.(payload.roll);
@@ -1569,8 +1569,8 @@
         });
         socket.addEventListener("close", () => {
           if (liveSheetClientSocket === socket) liveSheetClientSocket = null;
-          setLiveVvtHandRaised(false);
-          renderLiveVvtState({ active: false });
+          setLiveVttHandRaised(false);
+          renderLiveVttState({ active: false });
           setLiveSheetClientStatus(liveSheetClientManualDisconnect ? "live.disconnected" : "live.disconnectedFromDm", liveSheetClientManualDisconnect ? "neutral" : "error");
         });
         socket.addEventListener("error", () => {

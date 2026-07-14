@@ -7,14 +7,14 @@ const DEFAULT_PORT = 8787;
 const MAX_MESSAGE_BYTES = 512 * 1024;
 const MAX_NAME_LENGTH = 80;
 const MAX_ROLL_TEXT_LENGTH = 600;
-const MAX_VVT_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_VTT_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_DM_AUDIO_BYTES = 18 * 1024 * 1024;
-const MAX_VVT_FOG_POINTS = 1200;
-const MAX_VVT_TOKENS = 200;
-const MAX_VVT_MARKERS = 200;
-const MAX_VVT_PING_AGE_MS = 5000;
+const MAX_VTT_FOG_POINTS = 1200;
+const MAX_VTT_TOKENS = 200;
+const MAX_VTT_MARKERS = 200;
+const MAX_VTT_PING_AGE_MS = 5000;
 const MAX_HAND_QUEUE = 40;
-const VVT_ANONYMOUS_MONSTER_NAME = "Criatura desconocida";
+const VTT_ANONYMOUS_MONSTER_NAME = "Criatura desconocida";
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -124,7 +124,7 @@ function clampNumber(value, min, max, fallback = min) {
 function sanitizeDataUrl(value) {
   const text = String(value || "");
   if (!/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(text)) return "";
-  if (Buffer.byteLength(text, "utf8") > MAX_VVT_IMAGE_BYTES) return "";
+  if (Buffer.byteLength(text, "utf8") > MAX_VTT_IMAGE_BYTES) return "";
   return text;
 }
 
@@ -135,10 +135,10 @@ function sanitizeAudioDataUrl(value) {
   return text;
 }
 
-function sanitizeVvtFog(fog) {
+function sanitizeVttFog(fog) {
   const source = isPlainObject(fog) ? fog : {};
   const revealed = Array.isArray(source.revealed)
-    ? source.revealed.slice(-MAX_VVT_FOG_POINTS).map((point) => ({
+    ? source.revealed.slice(-MAX_VTT_FOG_POINTS).map((point) => ({
       x: clampNumber(point?.x, 0, 1, 0),
       y: clampNumber(point?.y, 0, 1, 0),
       rx: clampNumber(point?.rx ?? point?.r, 0.001, 1, 0.06),
@@ -155,7 +155,7 @@ function sanitizeVvtFog(fog) {
   };
 }
 
-function sanitizeVvtGrid(grid) {
+function sanitizeVttGrid(grid) {
   const source = isPlainObject(grid) ? grid : {};
   return {
     enabled: Boolean(source.enabled),
@@ -179,7 +179,7 @@ function rollEventPayload(roll) {
   };
 }
 
-function sanitizeVvtViewport(viewport) {
+function sanitizeVttViewport(viewport) {
   const source = isPlainObject(viewport) ? viewport : {};
   return {
     width: clampNumber(source.width, 1, 20000, 1),
@@ -208,7 +208,7 @@ function monsterTokenNameCandidates(monster) {
   ]);
 }
 
-function sanitizeVvtTokenImageRequest(token) {
+function sanitizeVttTokenImageRequest(token) {
   const monster = isPlainObject(token?.monster) ? token.monster : {};
   const sources = monsterTokenSourceCandidates(monster).slice(0, 6);
   const names = monsterTokenNameCandidates(monster).slice(0, 8);
@@ -216,7 +216,7 @@ function sanitizeVvtTokenImageRequest(token) {
   return { sources, names };
 }
 
-function sanitizeVvtToken(token) {
+function sanitizeVttToken(token) {
   if (!isPlainObject(token)) return null;
   if (token.hidden || token.playerHidden) return null;
   const id = sanitizeText(token.id, 120) || crypto.randomUUID?.() || `token-${Date.now()}`;
@@ -224,7 +224,7 @@ function sanitizeVvtToken(token) {
   const identityHidden = kind === "monster" && Boolean(token.identityHidden || token.anonymous || token.hideIdentity);
   const nameHidden = kind === "monster" && Boolean(token.nameHidden || token.hideName);
   const name = identityHidden || nameHidden
-    ? VVT_ANONYMOUS_MONSTER_NAME
+    ? VTT_ANONYMOUS_MONSTER_NAME
     : sanitizeText(token.name || token.character?.name || token.monster?.name, 120);
   if (!name) return null;
   return {
@@ -248,13 +248,13 @@ function sanitizeVvtToken(token) {
       dataUrl: sanitizeDataUrl(token.image?.dataUrl)
     },
     imageUnchanged: Boolean(token.imageUnchanged),
-    imageRequest: identityHidden ? null : sanitizeVvtTokenImageRequest(token),
+    imageRequest: identityHidden ? null : sanitizeVttTokenImageRequest(token),
     identityHidden,
     nameHidden
   };
 }
 
-function sanitizeVvtMarker(marker, index = 0) {
+function sanitizeVttMarker(marker, index = 0) {
   if (!isPlainObject(marker)) return null;
   if (marker.hidden || marker.playerHidden) return null;
   const markerType = marker.markerType === "shape" || marker.kind === "shape" ? "shape" : "pin";
@@ -281,7 +281,7 @@ function sanitizeVvtMarker(marker, index = 0) {
   };
 }
 
-function sanitizeVvtPing(ping) {
+function sanitizeVttPing(ping) {
   if (!isPlainObject(ping)) return null;
   return {
     id: sanitizeText(ping.id, 120) || crypto.randomUUID?.() || `ping-${Date.now()}`,
@@ -321,7 +321,7 @@ function sanitizeHandRaised(value) {
   return value === true || value === "true" || value === 1 || value === "1";
 }
 
-function sanitizeVvtState(payload) {
+function sanitizeVttState(payload) {
   if (!isPlainObject(payload) || payload.active === false) {
     return {
       active: false,
@@ -337,27 +337,27 @@ function sanitizeVvtState(payload) {
   }
   return {
     active: true,
-    title: sanitizeText(payload.title, 140) || "Mapa VVT",
+    title: sanitizeText(payload.title, 140) || "Mapa VTT",
     pageName: sanitizeText(payload.pageName, 140) || "",
     image: {
       name: sanitizeText(payload.image?.name, 180) || "Mapa",
       type: sanitizeText(payload.image?.type, 80) || "",
       dataUrl
     },
-    fogOfWar: sanitizeVvtFog(payload.fogOfWar),
-    grid: sanitizeVvtGrid(payload.grid),
+    fogOfWar: sanitizeVttFog(payload.fogOfWar),
+    grid: sanitizeVttGrid(payload.grid),
     tokens: Array.isArray(payload.tokens)
-      ? payload.tokens.slice(0, MAX_VVT_TOKENS).map(sanitizeVvtToken).filter(Boolean)
+      ? payload.tokens.slice(0, MAX_VTT_TOKENS).map(sanitizeVttToken).filter(Boolean)
       : [],
     markers: Array.isArray(payload.markers)
-      ? payload.markers.slice(0, MAX_VVT_MARKERS).map(sanitizeVvtMarker).filter(Boolean)
+      ? payload.markers.slice(0, MAX_VTT_MARKERS).map(sanitizeVttMarker).filter(Boolean)
       : [],
-    sourceViewport: sanitizeVvtViewport(payload.sourceViewport),
+    sourceViewport: sanitizeVttViewport(payload.sourceViewport),
     updatedAt: sanitizeText(payload.updatedAt, 80) || new Date().toISOString()
   };
 }
 
-function sanitizeVvtPatch(payload) {
+function sanitizeVttPatch(payload) {
   if (!isPlainObject(payload)) return null;
   if (payload.active === false) {
     return {
@@ -366,21 +366,21 @@ function sanitizeVvtPatch(payload) {
     };
   }
   const patch = {};
-  if (Object.prototype.hasOwnProperty.call(payload, "title")) patch.title = sanitizeText(payload.title, 140) || "Mapa VVT";
+  if (Object.prototype.hasOwnProperty.call(payload, "title")) patch.title = sanitizeText(payload.title, 140) || "Mapa VTT";
   if (Object.prototype.hasOwnProperty.call(payload, "pageName")) patch.pageName = sanitizeText(payload.pageName, 140) || "";
-  if (Object.prototype.hasOwnProperty.call(payload, "fogOfWar")) patch.fogOfWar = sanitizeVvtFog(payload.fogOfWar);
-  if (Object.prototype.hasOwnProperty.call(payload, "grid")) patch.grid = sanitizeVvtGrid(payload.grid);
+  if (Object.prototype.hasOwnProperty.call(payload, "fogOfWar")) patch.fogOfWar = sanitizeVttFog(payload.fogOfWar);
+  if (Object.prototype.hasOwnProperty.call(payload, "grid")) patch.grid = sanitizeVttGrid(payload.grid);
   if (Object.prototype.hasOwnProperty.call(payload, "tokens")) {
     patch.tokens = Array.isArray(payload.tokens)
-      ? payload.tokens.slice(0, MAX_VVT_TOKENS).map(sanitizeVvtToken).filter(Boolean)
+      ? payload.tokens.slice(0, MAX_VTT_TOKENS).map(sanitizeVttToken).filter(Boolean)
       : [];
   }
   if (Object.prototype.hasOwnProperty.call(payload, "markers")) {
     patch.markers = Array.isArray(payload.markers)
-      ? payload.markers.slice(0, MAX_VVT_MARKERS).map(sanitizeVvtMarker).filter(Boolean)
+      ? payload.markers.slice(0, MAX_VTT_MARKERS).map(sanitizeVttMarker).filter(Boolean)
       : [];
   }
-  if (Object.prototype.hasOwnProperty.call(payload, "sourceViewport")) patch.sourceViewport = sanitizeVvtViewport(payload.sourceViewport);
+  if (Object.prototype.hasOwnProperty.call(payload, "sourceViewport")) patch.sourceViewport = sanitizeVttViewport(payload.sourceViewport);
   patch.updatedAt = sanitizeText(payload.updatedAt, 80) || new Date().toISOString();
   return Object.keys(patch).length > 1 ? patch : null;
 }
@@ -444,7 +444,7 @@ class LiveSheetServer extends EventEmitter {
     this.players = new Map();
     this.tokenEnabled = false;
     this.sessionToken = "";
-    this.vvtState = { active: false, updatedAt: new Date().toISOString() };
+    this.vttState = { active: false, updatedAt: new Date().toISOString() };
     this.raisedHands = new Map();
     this.selfTests = {
       local: null,
@@ -708,63 +708,63 @@ class LiveSheetServer extends EventEmitter {
     return { ok: true, player: this.playerSnapshot(player) };
   }
 
-  setVvtState(payload) {
-    const state = sanitizeVvtState(payload);
-    this.vvtState = state;
+  setVttState(payload) {
+    const state = sanitizeVttState(payload);
+    this.vttState = state;
     this.broadcastToPlayers({
       version: 1,
-      type: "dm:vvt:state",
+      type: "dm:vtt:state",
       state
     });
     return { ok: true, state };
   }
 
-  patchVvtState(payload) {
-    const patch = sanitizeVvtPatch(payload);
-    if (!patch) return { ok: false, error: "Patch VVT invalido." };
-    if (patch.active === false) return this.setVvtState(patch);
-    if (!this.vvtState?.active || !this.vvtState.image?.dataUrl) {
-      return { ok: false, error: "No hay un mapa VVT activo para actualizar." };
+  patchVttState(payload) {
+    const patch = sanitizeVttPatch(payload);
+    if (!patch) return { ok: false, error: "Patch VTT invalido." };
+    if (patch.active === false) return this.setVttState(patch);
+    if (!this.vttState?.active || !this.vttState.image?.dataUrl) {
+      return { ok: false, error: "No hay un mapa VTT activo para actualizar." };
     }
     const canonicalPatch = { ...patch };
     if (Array.isArray(patch.tokens)) {
-      const previousTokens = new Map((this.vvtState.tokens || []).map((token) => [token.id, token]));
+      const previousTokens = new Map((this.vttState.tokens || []).map((token) => [token.id, token]));
       canonicalPatch.tokens = patch.tokens.map((token) => {
         const previous = previousTokens.get(token.id);
         if (!token.imageUnchanged || token.image?.dataUrl || !previous?.image?.dataUrl) return token;
         return { ...token, image: previous.image };
       });
     }
-    this.vvtState = {
-      ...this.vvtState,
+    this.vttState = {
+      ...this.vttState,
       ...canonicalPatch,
       active: true,
-      image: this.vvtState.image
+      image: this.vttState.image
     };
     this.broadcastToPlayers({
       version: 1,
-      type: "dm:vvt:patch",
+      type: "dm:vtt:patch",
       patch
     });
     return { ok: true, patch };
   }
 
-  publishVvtPing(payload) {
-    const sanitizedPing = sanitizeVvtPing(payload);
+  publishVttPing(payload) {
+    const sanitizedPing = sanitizeVttPing(payload);
     if (!sanitizedPing) return { ok: false, error: "Falta ping de mapa." };
     const ping = {
       ...sanitizedPing,
       playerId: sanitizedPing.playerId || "dm",
       playerName: sanitizedPing.playerName || "DM",
       receivedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + MAX_VVT_PING_AGE_MS).toISOString()
+      expiresAt: new Date(Date.now() + MAX_VTT_PING_AGE_MS).toISOString()
     };
     this.broadcastToPlayers({
       version: 1,
-      type: "dm:vvt:ping",
+      type: "dm:vtt:ping",
       ping
     });
-    this.emit("vvt-ping", ping);
+    this.emit("vtt-ping", ping);
     return { ok: true, ping };
   }
 
@@ -867,11 +867,11 @@ class LiveSheetServer extends EventEmitter {
           serverTime: now,
           recommendedMode: this.status().recommendedConnectionMode
         });
-        if (this.vvtState?.active) {
+        if (this.vttState?.active) {
           sendJson(socket, {
             version: 1,
-            type: "dm:vvt:state",
-            state: this.vvtState
+            type: "dm:vtt:state",
+            state: this.vttState
           });
         }
         sendJson(socket, {
@@ -881,7 +881,7 @@ class LiveSheetServer extends EventEmitter {
         });
       }
       if (
-        !["roll:event", "vvt:ping", "player:hand"].includes(validated.messageType)
+        !["roll:event", "vtt:ping", "player:hand"].includes(validated.messageType)
         || !previous
         || !previous.connected
         || previous.playerName !== validated.playerName
@@ -916,20 +916,20 @@ class LiveSheetServer extends EventEmitter {
           remoteAddress: player.remoteAddress
         });
       }
-      if (validated.messageType === "vvt:ping") {
+      if (validated.messageType === "vtt:ping") {
         const ping = {
           ...validated.ping,
           playerId: validated.playerId,
           playerName: validated.playerName,
           receivedAt: now,
-          expiresAt: new Date(Date.now() + MAX_VVT_PING_AGE_MS).toISOString()
+          expiresAt: new Date(Date.now() + MAX_VTT_PING_AGE_MS).toISOString()
         };
         this.broadcastToPlayers({
           version: 1,
-          type: "dm:vvt:ping",
+          type: "dm:vtt:ping",
           ping
         });
-        this.emit("vvt-ping", ping);
+        this.emit("vtt-ping", ping);
       }
       if (validated.messageType === "player:hand") {
         this.setPlayerHand(validated.playerId, validated.playerName, validated.handRaised);
@@ -962,7 +962,7 @@ class LiveSheetServer extends EventEmitter {
 
   validatePayload(payload) {
     if (!isPlainObject(payload)) return { ok: false, error: "Payload invalido." };
-    if (!["player:hello", "sheet:update", "roll:event", "vvt:ping", "player:hand"].includes(payload.type) || payload.version !== 1) {
+    if (!["player:hello", "sheet:update", "roll:event", "vtt:ping", "player:hand"].includes(payload.type) || payload.version !== 1) {
       return { ok: false, error: "Tipo de mensaje no compatible." };
     }
     const playerId = sanitizePlayerId(payload.playerId);
@@ -970,8 +970,8 @@ class LiveSheetServer extends EventEmitter {
     if (payload.type === "sheet:update" && !isPlainObject(payload.data)) return { ok: false, error: "Falta data de planilla." };
     const roll = payload.type === "roll:event" ? sanitizeRollEvent(payload.roll) : null;
     if (payload.type === "roll:event" && !roll) return { ok: false, error: "Falta tirada." };
-    const ping = payload.type === "vvt:ping" ? sanitizeVvtPing(payload.ping) : null;
-    if (payload.type === "vvt:ping" && !ping) return { ok: false, error: "Falta ping de mapa." };
+    const ping = payload.type === "vtt:ping" ? sanitizeVttPing(payload.ping) : null;
+    if (payload.type === "vtt:ping" && !ping) return { ok: false, error: "Falta ping de mapa." };
     return {
       ok: true,
       messageType: payload.type,

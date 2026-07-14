@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld("dndSheet", {
   getMonsterTokenDataUrl: (request) => ipcRenderer.invoke("monster-token:data-url", request),
   listTokenLibrary: () => ipcRenderer.invoke("token-library:list"),
   getTokenLibraryImage: (tokenId) => ipcRenderer.invoke("token-library:data-url", tokenId),
+  saveTokenLibraryImage: (image) => ipcRenderer.invoke("token-library:save", image),
+  onTokenLibraryChanged: (callback) => onRendererEvent("token-library:changed", callback),
   onPlatformBackgroundChanged: (callback) => {
     return onRendererEvent("platform-background:changed", callback);
   },
@@ -53,15 +55,15 @@ contextBridge.exposeInMainWorld("dndSheet", {
     getRaisedHands: () => ipcRenderer.invoke("live-sheet:get-raised-hands"),
     lowerPlayerHand: (playerId) => ipcRenderer.invoke("live-sheet:lower-player-hand", playerId),
     updatePlayerSheet: (playerId, patch) => ipcRenderer.invoke("live-sheet:update-player-sheet", { playerId, patch }),
-    publishVvtState: (state) => ipcRenderer.invoke("live-sheet:publish-vvt-state", state),
-    publishVvtPatch: (patch) => ipcRenderer.invoke("live-sheet:publish-vvt-patch", patch),
-    publishVvtPing: (ping) => ipcRenderer.invoke("live-sheet:publish-vvt-ping", ping),
+    publishVttState: (state) => ipcRenderer.invoke("live-sheet:publish-vtt-state", state),
+    publishVttPatch: (patch) => ipcRenderer.invoke("live-sheet:publish-vtt-patch", patch),
+    publishVttPing: (ping) => ipcRenderer.invoke("live-sheet:publish-vtt-ping", ping),
     publishDmAudio: (audio) => ipcRenderer.invoke("live-sheet:publish-dm-audio", audio),
     publishDmAudioControl: (control) => ipcRenderer.invoke("live-sheet:publish-dm-audio-control", control),
     onPlayerUpdated: (callback) => onRendererEvent("live-sheet:player-updated", callback),
     onPlayerDisconnected: (callback) => onRendererEvent("live-sheet:player-disconnected", callback),
     onPlayerRoll: (callback) => onRendererEvent("live-sheet:player-roll", callback),
-    onVvtPing: (callback) => onRendererEvent("live-sheet:vvt-ping", callback),
+    onVttPing: (callback) => onRendererEvent("live-sheet:vtt-ping", callback),
     onPlayerHandQueue: (callback) => onRendererEvent("live-sheet:player-hand-queue", callback),
     onServerStatus: (callback) => onRendererEvent("live-sheet:server-status", callback)
   },

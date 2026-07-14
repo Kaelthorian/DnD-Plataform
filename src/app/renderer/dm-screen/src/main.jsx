@@ -138,7 +138,7 @@ const FOG_REVEAL_POINT_LIMIT = 1200;
 const MAP_FOG_BRUSH_MIN_SIZE = 8;
 const MAP_FOG_BRUSH_MAX_SIZE = 360;
 const MAP_FOG_BRUSH_KEY_STEP = 10;
-const VVT_PING_TTL_MS = 5000;
+const VTT_PING_TTL_MS = 5000;
 const MAP_LOCAL_MIN_ZOOM = 1;
 const MAP_LOCAL_MAX_ZOOM = 4;
 const DEFAULT_MAP_GRID = {
@@ -944,7 +944,7 @@ function noteDisplayName(note) {
   if (note?.kind === "character") return note?.character?.name || "Character";
   if (note?.kind === "obsidian") return note?.obsidian?.title || note?.obsidian?.fileName || "Obsidian Note";
   if (note?.kind === "text") return note?.textTitle || "Text Note";
-  if (note?.kind === "map") return note?.titleOverride || note?.mapImage?.name || "VVT Map";
+  if (note?.kind === "map") return note?.titleOverride || note?.mapImage?.name || "VTT Map";
   return note?.entry?.name || (note?.kind === "spell" ? "Spell" : note?.kind === "item" ? "Item" : "Note");
 }
 
@@ -2140,6 +2140,16 @@ function mapNoteHasTokens(note) {
   return note?.kind === "map" && mapPagesForNote(note).some(mapPageHasTokens);
 }
 
+function linkedMapTokenExistsInCollection(note, notes) {
+  const link = normalizeLinkedMapTokenLink(note?.linkedMapToken);
+  if (!link) return false;
+  const mapNote = (notes || []).find((entry) => entry.id === link.mapNoteId && entry.kind === "map");
+  if (!mapNote) return false;
+  return mapPagesForNote(mapNote).some((page) => (
+    page.id === link.pageId && (page.mapTokens || []).some((token) => token.id === link.tokenId)
+  ));
+}
+
 function activeMapPageForNote(note) {
   const pages = mapPagesForNote(note);
   return pages.find((page) => page.id === note?.activeMapPageId) || pages[0] || null;
@@ -2537,6 +2547,7 @@ function noteStorageSnapshot(note) {
       vaultName: note.obsidian?.vaultName || ""
     } : null,
     titleOverride: note.titleOverride || "",
+    savedBoardNoteId: String(note.savedBoardNoteId || ""),
     parentNoteId: note.parentNoteId || null,
     tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.slice() : [],
     activeTabId: note.activeTabId || null,
@@ -2645,6 +2656,7 @@ function restoreStoredNote(note) {
     obsidianSaving: false,
     obsidianUpdatedAt: null,
     titleOverride: typeof note.titleOverride === "string" ? note.titleOverride : "",
+    savedBoardNoteId: String(note.savedBoardNoteId || ""),
     parentNoteId: note.parentNoteId ? String(note.parentNoteId) : null,
     tabNoteIds: Array.isArray(note.tabNoteIds) ? note.tabNoteIds.map((entry) => String(entry || "")).filter(Boolean) : [],
     activeTabId: note.activeTabId ? String(note.activeTabId) : null,
@@ -2698,13 +2710,15 @@ function savedBoardNoteSnapshot(note) {
   });
 }
 
-function createSavedBoardNote(note) {
+function createSavedBoardNote(note, { id = "", title = "" } = {}) {
+  const savedTitle = String(title || noteDisplayName(note)).trim() || noteDisplayName(note);
+  const snapshotNote = savedTitle === noteDisplayName(note) ? note : { ...note, titleOverride: savedTitle };
   return {
-    id: `saved-note-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: String(id || note?.savedBoardNoteId || "") || `saved-note-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     savedAt: new Date().toISOString(),
-    title: noteDisplayName(note),
+    title: savedTitle,
     kind: note.kind,
-    snapshot: savedBoardNoteSnapshot(note)
+    snapshot: savedBoardNoteSnapshot(snapshotNote)
   };
 }
 
@@ -2717,8 +2731,22 @@ function restoreSavedBoardNote(savedNote, index = 0) {
     savedAt: typeof savedNote.savedAt === "string" ? savedNote.savedAt : "",
     title: String(savedNote.title || noteDisplayName(restored)).trim() || noteDisplayName(restored),
     kind: restored.kind,
-    snapshot: savedBoardNoteSnapshot(restored)
+    snapshot: savedBoardNoteSnapshot({ ...restored, savedBoardNoteId: String(savedNote.id || "") })
   };
+}
+
+function mergeSavedBoardNotes(currentNotes, savedNotes) {
+  const nextNotes = Array.isArray(currentNotes) ? currentNotes.slice() : [];
+  (savedNotes || []).forEach((savedNote) => {
+    const existingIndex = nextNotes.findIndex((entry) => entry.id === savedNote.id);
+    if (existingIndex >= 0) nextNotes[existingIndex] = savedNote;
+    else nextNotes.push(savedNote);
+  });
+  return nextNotes;
+}
+
+function upsertSavedBoardNotes(currentNotes, notesToSave) {
+  return mergeSavedBoardNotes(currentNotes, (notesToSave || []).map(createSavedBoardNote));
 }
 
 function defaultBoardState() {
@@ -4321,6 +4349,7 @@ function tokenCropImageName(name, fallbackName = "Token") {
 
 function TokenImageCropperModal({ sourceImage, title = "Token", onCancel, onConfirm }) {
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [name, setName] = useState("");
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [saving, setSaving] = useState(false);
@@ -4330,6 +4359,7 @@ function TokenImageCropperModal({ sourceImage, title = "Token", onCancel, onConf
   useEffect(() => {
     let disposed = false;
     setNaturalSize({ width: 0, height: 0 });
+    setName(tokenCropImageName(sourceImage?.name, `${title || "Token"} token`));
     setZoom(1);
     setOffset({ x: 0, y: 0 });
     setError("");
@@ -4424,14 +4454,14 @@ function TokenImageCropperModal({ sourceImage, title = "Token", onCancel, onConf
       const croppedImage = storedImageSnapshot({
         ...sourceImage,
         id: `token-image-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        name: tokenCropImageName(sourceImage.name, `${title || "Token"} token`),
+        name: String(name || "").trim() || tokenCropImageName(sourceImage.name, `${title || "Token"} token`),
         type: "image/png",
         size: 0,
         dataUrl: canvas.toDataURL("image/png"),
         updatedAt: new Date().toISOString()
       });
+      await onConfirm(croppedImage);
       setSaving(false);
-      onConfirm(croppedImage);
       return;
     } catch (cropError) {
       console.error(cropError);
@@ -4522,6 +4552,16 @@ function TokenImageCropperModal({ sourceImage, title = "Token", onCancel, onConf
             </div>
           </div>
           <label className="block">
+            <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-neutral-400">Nombre en la biblioteca de tokens</div>
+            <input
+              className="h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              value={name}
+              maxLength={120}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Nombre del token"
+            />
+          </label>
+          <label className="block">
             <div className="mb-1 flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-neutral-400">
               <span>Zoom</span>
               <span>{Math.round(zoom * 100)}%</span>
@@ -4560,8 +4600,137 @@ function TokenImageCropperModal({ sourceImage, title = "Token", onCancel, onConf
   ), document.body);
 }
 
+function TokenImageLibraryPickerModal({
+  isOpen,
+  tokens,
+  selectedToken,
+  loading,
+  error,
+  onSelect,
+  onUseSelected,
+  onUpload,
+  onClose
+}) {
+  const [query, setQuery] = useState("");
+  const visibleTokens = useMemo(() => {
+    const normalizedQuery = normalizeSearch(query);
+    if (!normalizedQuery) return tokens;
+    return tokens.filter((token) => normalizeSearch([token?.name, token?.relativePath].filter(Boolean).join(" ")).includes(normalizedQuery));
+  }, [query, tokens]);
+
+  useEffect(() => {
+    if (isOpen) setQuery("");
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+  return createPortal((
+    <div
+      className="fixed inset-0 z-[10050] flex items-center justify-center bg-neutral-950/80 p-4"
+      role="dialog"
+      aria-modal="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <section className="grid h-[min(720px,calc(100vh-32px))] w-[min(980px,calc(100vw-32px))] grid-cols-1 overflow-hidden border border-neutral-700 bg-neutral-900 text-neutral-300 shadow-2xl md:grid-cols-[430px_1fr]">
+        <div className="flex min-h-0 flex-col border-r border-neutral-700">
+          <header className="flex items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-950 p-4">
+            <div>
+              <h2 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Elegir imagen de token</h2>
+              <p className="text-sm text-neutral-500">{visibleTokens.length} de {tokens.length} imágenes</p>
+            </div>
+            <button
+              className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
+              type="button"
+              aria-label="Cerrar"
+              onClick={onClose}
+            >
+              X
+            </button>
+          </header>
+          <div className="border-b border-neutral-800 bg-neutral-950 px-4 py-3">
+            <input
+              className="h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar imágenes"
+              autoFocus
+            />
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto bg-neutral-900">
+            {loading ? <p className="px-4 py-6 text-sm text-neutral-500">Cargando imágenes...</p> : null}
+            {!loading && visibleTokens.map((token) => {
+              const active = selectedToken?.id === token.id;
+              return (
+                <button
+                  key={token.id}
+                  className={`grid w-full grid-cols-[48px_1fr] items-center gap-3 border-b border-neutral-800 px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-300 ${active ? "bg-amber-500 text-neutral-950 hover:bg-amber-400" : "text-neutral-300 hover:bg-neutral-800"}`}
+                  type="button"
+                  onClick={() => onSelect(token)}
+                >
+                  <img className="h-10 w-10 rounded-full border border-neutral-700 bg-neutral-950 object-cover" src={token.url} alt="" draggable={false} />
+                  <span className="min-w-0">
+                    <span className="block truncate font-bold">{token.name}</span>
+                    <span className={`block truncate text-[11px] ${active ? "text-neutral-800" : "text-neutral-500"}`}>{token.relativePath}</span>
+                  </span>
+                </button>
+              );
+            })}
+            {!loading && !visibleTokens.length ? <p className="px-4 py-6 text-sm text-neutral-500">No hay imágenes que coincidan.</p> : null}
+          </div>
+        </div>
+        <div className="flex min-h-0 flex-col bg-neutral-900 p-5">
+          {selectedToken ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="flex min-h-0 flex-1 items-center justify-center border border-neutral-800 bg-neutral-950/70 p-5">
+                <img className="max-h-full max-w-full rounded border border-neutral-700 bg-neutral-950 object-contain" src={selectedToken.url} alt={`${selectedToken.name} preview`} draggable={false} />
+              </div>
+              <p className="mt-4 truncate font-serif text-xl font-bold uppercase text-amber-500">{selectedToken.name}</p>
+              <p className="mt-1 truncate text-sm text-neutral-500">{selectedToken.relativePath}</p>
+            </div>
+          ) : <div className="flex min-h-0 flex-1 items-center justify-center border border-neutral-800 bg-neutral-950/70 p-5 text-sm text-neutral-500">Selecciona una imagen existente.</div>}
+          {error ? <p className="mt-4 border border-red-500/40 bg-red-950/70 px-3 py-2 text-sm text-red-100">{error}</p> : null}
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-neutral-700 pt-4">
+            <label className="inline-flex h-10 cursor-pointer items-center border border-neutral-600 bg-neutral-800 px-4 text-sm font-bold text-neutral-100 transition hover:bg-neutral-700 focus-within:ring-2 focus-within:ring-sky-300">
+              Cargar imagen nueva
+              <input className="sr-only" type="file" accept="image/*" onChange={onUpload} />
+            </label>
+            <button
+              className="h-10 bg-amber-500 px-4 text-sm font-bold text-neutral-950 shadow-sm transition hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              type="button"
+              disabled={!selectedToken || loading}
+              onClick={onUseSelected}
+            >
+              Usar imagen seleccionada
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  ), document.body);
+}
+
 function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragStart = null, onMinimize = null, onDuplicate = null, onClose = null, onMonsterEdit = null, onMonsterTokenImageChange = null }) {
   const [pendingTokenImage, setPendingTokenImage] = useState(null);
+  const [isTokenLibraryPickerOpen, setIsTokenLibraryPickerOpen] = useState(false);
+  const [tokenLibrary, setTokenLibrary] = useState([]);
+  const [selectedTokenLibraryImage, setSelectedTokenLibraryImage] = useState(null);
+  const [tokenLibraryLoading, setTokenLibraryLoading] = useState(false);
+  const [tokenLibraryError, setTokenLibraryError] = useState("");
+
+  async function openTokenImagePicker() {
+    setIsTokenLibraryPickerOpen(true);
+    setTokenLibraryError("");
+    setTokenLibraryLoading(true);
+    try {
+      const tokens = await window.dndSheet?.listTokenLibrary?.();
+      const list = Array.isArray(tokens) ? tokens : [];
+      setTokenLibrary(list);
+      setSelectedTokenLibraryImage(list[0] || null);
+    } catch (error) {
+      setTokenLibraryError(error?.message || "No se pudo cargar la biblioteca de tokens.");
+    } finally {
+      setTokenLibraryLoading(false);
+    }
+  }
 
   async function handleTokenImageChange(event) {
     const input = event.currentTarget;
@@ -4573,10 +4742,33 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
         ...image,
         name: file.name || `${monster?.name || "Monster"} token`
       }));
+      setIsTokenLibraryPickerOpen(false);
     } catch (error) {
       console.error(error);
     } finally {
       input.value = "";
+    }
+  }
+
+  async function confirmTokenImage(image) {
+    const saveImage = window.dndSheet?.saveTokenLibraryImage;
+    if (!saveImage) throw new Error("La biblioteca de tokens no está disponible.");
+    const storedImage = await saveImage(image);
+    if (!storedImage?.dataUrl) throw new Error("No se pudo guardar la imagen de token.");
+    onMonsterTokenImageChange?.(storedImage);
+    setPendingTokenImage(null);
+  }
+
+  async function useSelectedTokenLibraryImage() {
+    if (!selectedTokenLibraryImage?.id) return;
+    setTokenLibraryError("");
+    try {
+      const image = await window.dndSheet?.getTokenLibraryImage?.(selectedTokenLibraryImage.id);
+      if (!image?.dataUrl) throw new Error("No se pudo leer la imagen de token.");
+      onMonsterTokenImageChange?.(image);
+      setIsTokenLibraryPickerOpen(false);
+    } catch (error) {
+      setTokenLibraryError(error?.message || "No se pudo usar la imagen de token.");
     }
   }
 
@@ -4614,19 +4806,18 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
         >
           <MonsterTokenImage monster={monster} className="h-20 w-20" />
           {onMonsterTokenImageChange ? (
-            <label
+            <button
               className="absolute inset-x-1 bottom-1 cursor-pointer rounded-sm border border-amber-300/70 bg-neutral-950/90 px-1 py-0.5 text-center text-[9px] font-bold uppercase tracking-wide text-amber-100 opacity-0 shadow transition hover:bg-amber-950 focus-within:opacity-100 group-hover:opacity-100"
+              type="button"
               title="Cambiar icono del token"
-              onClick={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                openTokenImagePicker();
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
             >
               Cambiar
-              <input
-                className="sr-only"
-                type="file"
-                accept="image/*"
-                onChange={handleTokenImageChange}
-              />
-            </label>
+            </button>
           ) : null}
           {onMonsterTokenImageChange && monster?.tokenImage?.dataUrl ? (
             <button
@@ -4684,12 +4875,20 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
           sourceImage={pendingTokenImage}
           title={monster?.name || title || "Token"}
           onCancel={() => setPendingTokenImage(null)}
-          onConfirm={(image) => {
-            onMonsterTokenImageChange(image);
-            setPendingTokenImage(null);
-          }}
+          onConfirm={confirmTokenImage}
         />
       ) : null}
+      <TokenImageLibraryPickerModal
+        isOpen={isTokenLibraryPickerOpen}
+        tokens={tokenLibrary}
+        selectedToken={selectedTokenLibraryImage}
+        loading={tokenLibraryLoading}
+        error={tokenLibraryError}
+        onSelect={setSelectedTokenLibraryImage}
+        onUseSelected={useSelectedTokenLibraryImage}
+        onUpload={handleTokenImageChange}
+        onClose={() => setIsTokenLibraryPickerOpen(false)}
+      />
     </header>
   );
 }
@@ -6163,9 +6362,9 @@ function MapNote({
   onMapPageRename,
   onMapPageClose,
   onMapFogChange,
-  onShareVvtMap,
+  onShareVttMap,
   onMapPing,
-  isSharedVvtMap = false,
+  isSharedVttMap = false,
   onMapTokenHpChange,
   onMapTokensRollInitiative,
   onMapTokenGroupAdd,
@@ -6186,7 +6385,7 @@ function MapNote({
   onMapMarkerDragStart,
   onMapMarkerResizeStart,
   onMapMarkerContextMenu,
-  vvtPings = [],
+  vttPings = [],
   boardScale = 1
 }) {
   const inputRef = useRef(null);
@@ -6790,7 +6989,7 @@ function MapNote({
   }
 
   function handleDmMapPingPointerDown(event) {
-    if (!isSharedVvtMap || !imageSrc || event.button !== 0 || !leftControlDownRef.current) return false;
+    if (!isSharedVttMap || !imageSrc || event.button !== 0 || !leftControlDownRef.current) return false;
     const isFormShape = Boolean(event.target?.closest?.("[data-map-form-shape='true']"));
     if (event.target?.closest?.("[data-map-token='true'], button, input, select, textarea")) return false;
     if (!isFormShape && event.target?.closest?.("[data-board-control='true']")) return false;
@@ -7017,17 +7216,17 @@ function MapNote({
             inputClassName="w-full border border-amber-500 bg-neutral-950 px-2 py-1 font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500 focus:outline-none"
             onRename={(value) => onRename?.(noteActionId, value)}
           />
-          <p className="mt-2 text-sm italic text-neutral-500">VVT map note</p>
+          <p className="mt-2 text-sm italic text-neutral-500">VTT map note</p>
         </div>
         <div className="flex shrink-0 gap-1">
           <button
-            className={`h-7 border px-2 text-xs font-bold uppercase ${isSharedVvtMap ? "border-emerald-400 bg-emerald-950 text-emerald-100" : "border-neutral-600 bg-neutral-800 text-neutral-100 hover:bg-neutral-700"}`}
+            className={`h-7 border px-2 text-xs font-bold uppercase ${isSharedVttMap ? "border-emerald-400 bg-emerald-950 text-emerald-100" : "border-neutral-600 bg-neutral-800 text-neutral-100 hover:bg-neutral-700"}`}
             type="button"
             title="Compartir este mapa con jugadores conectados"
             onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => onShareVvtMap?.(noteActionId, activePage.id)}
+            onClick={() => onShareVttMap?.(noteActionId, activePage.id)}
           >
-            {isSharedVvtMap ? "LIVE" : "Share"}
+            {isSharedVttMap ? "LIVE" : "Share"}
           </button>
           <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => openFilePicker(event, "add")}>MAP +</button>
           <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
@@ -7327,7 +7526,7 @@ function MapNote({
               onPointerLeave={leaveFogBrush}
               onContextMenu={openFogContextMenu}
             />
-            <MapPingOverlay pings={vvtPings} layout={localImageLayout} />
+            <MapPingOverlay pings={vttPings} layout={localImageLayout} />
             {markers.map((marker) => {
               const visualPoint = localVisualPointFromBasePoint(marker);
               if (marker.markerType === "shape") {
@@ -8441,8 +8640,8 @@ function LivePlayersPanel({
         <button
           className="flex h-14 w-14 items-center justify-center border border-neutral-700 bg-neutral-900/95 text-amber-300 shadow-2xl transition hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           type="button"
-          aria-label="Crear mapa VVT"
-          title="Crear mapa VVT"
+          aria-label="Crear mapa VTT"
+          title="Crear mapa VTT"
           onClick={onAddMapNote}
         >
           <MapIcon className="h-8 w-8" />
@@ -8489,8 +8688,8 @@ function LivePlayersPanel({
               type="button"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={onAddMapNote}
-              aria-label="Crear mapa VVT"
-              title="Crear mapa VVT"
+              aria-label="Crear mapa VTT"
+              title="Crear mapa VTT"
             >
               <MapIcon className="mx-auto h-4 w-4" />
             </button>
@@ -10150,6 +10349,7 @@ function NoteCloseSaveModal({ pendingClose, onSave, onDiscard, onCancel }) {
   if (!pendingClose) return null;
   const notes = Array.isArray(pendingClose.notes) ? pendingClose.notes : [];
   const plural = notes.length > 1;
+  const removingToken = pendingClose.action === "remove-tokens";
 
   return createPortal(
     <div className="fixed inset-0 z-[10020] flex items-center justify-center bg-black/75 p-4" onPointerDown={onCancel}>
@@ -10161,11 +10361,15 @@ function NoteCloseSaveModal({ pendingClose, onSave, onDiscard, onCancel }) {
         onPointerDown={(event) => event.stopPropagation()}
       >
         <header className="border-b border-neutral-800 px-5 py-4">
-          <h2 id="save-note-before-close-title" className="font-serif text-xl font-bold text-amber-500">Guardar nota antes de cerrar</h2>
+          <h2 id="save-note-before-close-title" className="font-serif text-xl font-bold text-amber-500">{removingToken ? "Guardar antes de eliminar token" : "Guardar nota antes de cerrar"}</h2>
           <p className="mt-1 text-sm leading-relaxed text-neutral-300">
-            {plural
+            {removingToken
+              ? (plural
+                ? "Estos tokens contienen cambios. ¿Querés conservarlos para cargarlos después?"
+                : "Este token contiene cambios. ¿Querés conservarlo para cargarlo después?")
+              : (plural
               ? "Estas notas contienen contenido homebrew o notas adicionales. ¿Querés conservarlas para cargarlas después?"
-              : "Esta nota contiene contenido homebrew o notas adicionales. ¿Querés conservarla para cargarla después?"}
+              : "Esta nota contiene contenido homebrew o notas adicionales. ¿Querés conservarla para cargarla después?")}
           </p>
         </header>
         <div className="max-h-48 space-y-1 overflow-auto px-5 py-3 text-sm text-neutral-300">
@@ -10173,8 +10377,8 @@ function NoteCloseSaveModal({ pendingClose, onSave, onDiscard, onCancel }) {
         </div>
         <footer className="flex flex-wrap justify-end gap-2 border-t border-neutral-800 px-5 py-4">
           <button className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onCancel}>Cancelar</button>
-          <button className="h-9 border border-red-900 bg-red-950/50 px-3 text-sm font-bold text-red-200 hover:bg-red-900/50" type="button" onClick={onDiscard}>Cerrar sin guardar</button>
-          <button className="h-9 bg-amber-500 px-3 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={onSave}>Guardar y cerrar</button>
+          <button className="h-9 border border-red-900 bg-red-950/50 px-3 text-sm font-bold text-red-200 hover:bg-red-900/50" type="button" onClick={onDiscard}>{removingToken ? "Eliminar sin guardar" : "Cerrar sin guardar"}</button>
+          <button className="h-9 bg-amber-500 px-3 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={onSave}>{removingToken ? "Guardar y eliminar" : "Guardar y cerrar"}</button>
         </footer>
       </section>
     </div>,
@@ -10182,9 +10386,63 @@ function NoteCloseSaveModal({ pendingClose, onSave, onDiscard, onCancel }) {
   );
 }
 
-function SavedBoardNotesModal({ isOpen, savedNotes, onLoad, onClose }) {
+function SavedBoardNameConflictModal({ conflict, onNameChange, onSaveAsNew, onOverwrite, onCancel }) {
+  if (!conflict) return null;
+  const sameName = normalizeSearch(conflict.draftName) === normalizeSearch(conflict.existingNote.title);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10030] flex items-center justify-center bg-black/75 p-4" onPointerDown={onCancel}>
+      <section
+        className="w-full max-w-lg border border-amber-500/70 bg-neutral-950 text-neutral-100 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="saved-board-name-conflict-title"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <header className="border-b border-neutral-800 px-5 py-4">
+          <h2 id="saved-board-name-conflict-title" className="font-serif text-xl font-bold text-amber-500">Ya existe una nota con ese nombre</h2>
+          <p className="mt-1 text-sm leading-relaxed text-neutral-300">
+            “{conflict.existingNote.title}” ya está guardada. Podés sobrescribirla o guardar este monstruo con otro nombre.
+          </p>
+        </header>
+        <div className="space-y-2 px-5 py-4">
+          <label className="grid gap-1 text-sm font-bold text-neutral-200">
+            Nombre para guardar
+            <input
+              className="h-10 border border-neutral-700 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              value={conflict.draftName}
+              maxLength={120}
+              onChange={(event) => onNameChange(event.target.value)}
+              autoFocus
+            />
+          </label>
+        </div>
+        <footer className="flex flex-wrap justify-end gap-2 border-t border-neutral-800 px-5 py-4">
+          <button className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onCancel}>Volver</button>
+          <button className="h-9 border border-sky-800 bg-sky-950/50 px-3 text-sm font-bold text-sky-100 hover:bg-sky-900/50 disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={sameName} onClick={onSaveAsNew}>Guardar con otro nombre</button>
+          <button className="h-9 bg-amber-500 px-3 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={onOverwrite}>Sobrescribir</button>
+        </footer>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
+function SavedBoardNotesModal({ isOpen, savedNotes, onLoad, onDelete, onClose }) {
+  const [activeTab, setActiveTab] = useState("monster");
+  const [searchQuery, setSearchQuery] = useState("");
   if (!isOpen) return null;
   const notes = Array.isArray(savedNotes) ? savedNotes : [];
+  const tabs = [
+    ["item", "Items"],
+    ["monster", "Monsters"],
+    ["spell", "Spells"]
+  ];
+  const normalizedQuery = normalizeSearch(searchQuery);
+  const visibleNotes = notes.filter((note) => (
+    note.kind === activeTab
+    && (!normalizedQuery || normalizeSearch(note.title).includes(normalizedQuery))
+  ));
 
   return createPortal(
     <div className="fixed inset-0 z-[10020] flex items-center justify-center bg-black/75 p-4" onPointerDown={onClose}>
@@ -10203,18 +10461,46 @@ function SavedBoardNotesModal({ isOpen, savedNotes, onLoad, onClose }) {
           <button className="h-8 w-8 border border-neutral-700 bg-neutral-900 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onClose}>X</button>
         </header>
         <div className="max-h-[60vh] overflow-auto p-4">
+          <div className="mb-4 grid grid-cols-3 gap-2" role="tablist" aria-label="Tipo de homebrew">
+            {tabs.map(([tab, label]) => (
+              <button
+                key={tab}
+                className={`h-9 border px-3 text-xs font-bold uppercase tracking-wide ${activeTab === tab ? "border-amber-500 bg-amber-500 text-neutral-950" : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500 hover:bg-neutral-800"}`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label className="mb-4 block text-xs font-bold uppercase tracking-wide text-neutral-500">
+            Buscar {tabs.find(([tab]) => tab === activeTab)?.[1] || "Homebrew"}
+            <input
+              className="mt-1 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm font-normal normal-case tracking-normal text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              type="search"
+              value={searchQuery}
+              placeholder="Buscar por nombre"
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </label>
+          {notes.length && !visibleNotes.length ? <p className="border border-dashed border-neutral-700 p-5 text-sm text-neutral-400">No hay resultados para esta búsqueda.</p> : null}
           {!notes.length ? <p className="border border-dashed border-neutral-700 p-5 text-sm text-neutral-400">Todavía no hay notas guardadas.</p> : (
             <div className="space-y-2">
-              {notes.map((note) => (
+              {visibleNotes.map((note) => (
                 <article key={note.id} className="flex items-center justify-between gap-4 border border-neutral-800 bg-neutral-900/60 p-3">
                   <div className="min-w-0">
                     <h3 className="truncate font-bold text-neutral-100">{note.title}</h3>
                     <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">
-                      {note.kind === "monster" ? "Monstruo / NPC" : "Ítem"}
+                      {note.kind === "monster" ? "Monstruo / NPC" : note.kind === "spell" ? "Spell" : "Item"}
                       {note.savedAt ? ` · ${new Date(note.savedAt).toLocaleString()}` : ""}
                     </p>
                   </div>
-                  <button className="h-9 shrink-0 bg-amber-500 px-3 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={() => onLoad(note.id)}>Cargar</button>
+                  <div className="flex shrink-0 gap-2">
+                    <button className="h-9 bg-amber-500 px-3 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={() => onLoad(note.id)}>Cargar</button>
+                    <button className="h-9 border border-red-900 bg-red-950/50 px-3 text-sm font-bold text-red-200 hover:bg-red-900/50" type="button" onClick={() => onDelete(note.id)}>Eliminar</button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -10260,7 +10546,7 @@ function DmScreenApp() {
   const [freeDiceSelection, setFreeDiceSelection] = useState(createFreeDiceSelection);
   const [freeDiceRolls, setFreeDiceRolls] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
-  const [contextMenuOpenGroups, setContextMenuOpenGroups] = useState({ notes: false, objects: false, tokens: false });
+  const [contextMenuOpenGroups, setContextMenuOpenGroups] = useState({ notes: false, objects: false, tokens: false, homebrew: false });
   const [tokenContextMenu, setTokenContextMenu] = useState(null);
   const [markerContextMenu, setMarkerContextMenu] = useState(null);
   const [pendingMapMarkerAttach, setPendingMapMarkerAttach] = useState(null);
@@ -10284,6 +10570,7 @@ function DmScreenApp() {
   const [isSavedBoardNotesOpen, setIsSavedBoardNotesOpen] = useState(false);
   const [savedBoardNotesSpawnPoint, setSavedBoardNotesSpawnPoint] = useState(null);
   const [pendingNoteClose, setPendingNoteClose] = useState(null);
+  const [pendingSavedNameConflict, setPendingSavedNameConflict] = useState(null);
   const [isCharacterCodeModalOpen, setIsCharacterCodeModalOpen] = useState(false);
   const [characterCodeValue, setCharacterCodeValue] = useState("");
   const [characterCodeError, setCharacterCodeError] = useState("");
@@ -10313,9 +10600,12 @@ function DmScreenApp() {
   const [soundButtons, setSoundButtons] = useState([]);
   const [soundBarError, setSoundBarError] = useState("");
   const [soundBarBusyId, setSoundBarBusyId] = useState("");
+  const [tokenImportQueue, setTokenImportQueue] = useState([]);
+  const [tokenImportIndex, setTokenImportIndex] = useState(0);
+  const [tokenImportError, setTokenImportError] = useState("");
   const [activeSoundIds, setActiveSoundIds] = useState([]);
-  const [sharedVvtMap, setSharedVvtMap] = useState(null);
-  const [vvtPings, setVvtPings] = useState([]);
+  const [sharedVttMap, setSharedVttMap] = useState(null);
+  const [vttPings, setVttPings] = useState([]);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
   const [selectedRootNoteIds, setSelectedRootNoteIds] = useState([]);
   const [selectedMapTokens, setSelectedMapTokens] = useState({ mapNoteId: "", pageId: "", tokenIds: [] });
@@ -10333,6 +10623,7 @@ function DmScreenApp() {
   const panRef = useRef(null);
   const selectionRef = useRef(null);
   const soundFileInputRef = useRef(null);
+  const tokenImportInputRef = useRef(null);
   const dmSoundAudioPlayersRef = useRef([]);
   const dmSoundAudioPlayersByIdRef = useRef(new Map());
   const tokenContextPointerRef = useRef(null);
@@ -10340,8 +10631,8 @@ function DmScreenApp() {
   const handleBoardWheelRef = useRef(null);
   const monsterNotesRef = useRef(monsterNotes);
   const savedBoardNotesRef = useRef(savedBoardNotes);
-  const publishedVvtTargetKeyRef = useRef("");
-  const publishedVvtTokenImageKeysRef = useRef(new Map());
+  const publishedVttTargetKeyRef = useRef("");
+  const publishedVttTokenImageKeysRef = useRef(new Map());
   const librariesReadyRef = useRef(librariesReady);
   const pendingBoardSaveRef = useRef({ notes: monsterNotes, view: boardView, savedNotes: savedBoardNotes });
   const boardSaveTimerRef = useRef(null);
@@ -10448,6 +10739,11 @@ function DmScreenApp() {
     setSelectedNpcToken(filteredNpcTokens[0] || null);
   }, [filteredNpcTokens, isNpcTokenPickerOpen, selectedNpcToken]);
 
+  useEffect(() => window.dndSheet?.onTokenLibraryChanged?.(() => {
+    setNpcTokenLibrary([]);
+    setSelectedNpcToken(null);
+  }), []);
+
   useEffect(() => {
     librariesReadyRef.current = librariesReady;
   }, [librariesReady]);
@@ -10465,7 +10761,7 @@ function DmScreenApp() {
     function handleGlobalPointerDown(event) {
       if (event.target?.closest?.("[data-context-menu='true']")) return;
       setContextMenu(null);
-      setContextMenuOpenGroups({ notes: false, objects: false, tokens: false });
+      setContextMenuOpenGroups({ notes: false, objects: false, tokens: false, homebrew: false });
       setTokenContextMenu(null);
       setMarkerContextMenu(null);
     }
@@ -10501,16 +10797,16 @@ function DmScreenApp() {
     () => monsterNotes.filter((note) => !note.parentNoteId),
     [monsterNotes]
   );
-  const sharedVvtTarget = useMemo(() => {
+  const sharedVttTarget = useMemo(() => {
     const maps = monsterNotes.filter((note) => note.kind === "map");
     if (!maps.length) return null;
-    const explicitNote = sharedVvtMap?.noteId ? maps.find((note) => note.id === sharedVvtMap.noteId) : null;
+    const explicitNote = sharedVttMap?.noteId ? maps.find((note) => note.id === sharedVttMap.noteId) : null;
     const note = explicitNote || maps.find((entry) => activeMapPageForNote(entry)?.mapImage) || maps[0];
     const pages = mapPagesForNote(note);
-    const explicitPage = sharedVvtMap?.pageId ? pages.find((page) => page.id === sharedVvtMap.pageId) : null;
+    const explicitPage = sharedVttMap?.pageId ? pages.find((page) => page.id === sharedVttMap.pageId) : null;
     const page = explicitPage || activeMapPageForNote(note) || pages[0] || null;
     return note && page ? { note, page } : null;
-  }, [monsterNotes, sharedVvtMap]);
+  }, [monsterNotes, sharedVttMap]);
   const selectedRootNoteIdSet = useMemo(() => new Set(selectedRootNoteIds), [selectedRootNoteIds]);
 
   function flushBoardStateSave() {
@@ -10566,17 +10862,17 @@ function DmScreenApp() {
 
   useEffect(() => {
     const liveSheet = window.dndSheet?.liveSheet;
-    if (!liveSheet?.publishVvtState) return undefined;
+    if (!liveSheet?.publishVttState) return undefined;
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       try {
-        if (!sharedVvtTarget?.page?.mapImage) {
-          if (publishedVvtTargetKeyRef.current) await liveSheet.publishVvtState({ active: false });
-          publishedVvtTargetKeyRef.current = "";
-          publishedVvtTokenImageKeysRef.current = new Map();
+        if (!sharedVttTarget?.page?.mapImage) {
+          if (publishedVttTargetKeyRef.current) await liveSheet.publishVttState({ active: false });
+          publishedVttTargetKeyRef.current = "";
+          publishedVttTokenImageKeysRef.current = new Map();
           return;
         }
-        const { note, page } = sharedVvtTarget;
+        const { note, page } = sharedVttTarget;
         const targetKey = [
           note.id,
           page.id,
@@ -10584,8 +10880,8 @@ function DmScreenApp() {
           page.mapImage.updatedAt || "",
           page.mapImage.size || 0
         ].join("|");
-        const publishFullState = publishedVvtTargetKeyRef.current !== targetKey || !liveSheet.publishVvtPatch;
-        const previousTokenImageKeys = publishedVvtTokenImageKeysRef.current;
+        const publishFullState = publishedVttTargetKeyRef.current !== targetKey || !liveSheet.publishVttPatch;
+        const previousTokenImageKeys = publishedVttTokenImageKeysRef.current;
         const nextTokenImageKeys = new Map((page.mapTokens || []).map((token) => [token.id, mapTokenEmbeddedImageKey(token)]));
         const sourceViewport = mapShareViewportFromDom(note, page);
         const tokens = await mapTokensShareSnapshot(page.mapTokens, sourceViewport, {
@@ -10609,18 +10905,18 @@ function DmScreenApp() {
         if (publishFullState) {
           const image = await mapImageShareSnapshot(page.mapImage);
           if (cancelled || !image?.dataUrl) return;
-          result = await liveSheet.publishVvtState({ active: true, image, ...statePatch });
+          result = await liveSheet.publishVttState({ active: true, image, ...statePatch });
         } else {
-          result = await liveSheet.publishVvtPatch(statePatch);
+          result = await liveSheet.publishVttPatch(statePatch);
           if (!result?.ok) {
             const image = await mapImageShareSnapshot(page.mapImage);
             if (cancelled || !image?.dataUrl) return;
-            result = await liveSheet.publishVvtState({ active: true, image, ...statePatch });
+            result = await liveSheet.publishVttState({ active: true, image, ...statePatch });
           }
         }
         if (!cancelled && result?.ok) {
-          publishedVvtTargetKeyRef.current = targetKey;
-          publishedVvtTokenImageKeysRef.current = nextTokenImageKeys;
+          publishedVttTargetKeyRef.current = targetKey;
+          publishedVttTokenImageKeysRef.current = nextTokenImageKeys;
         }
       } catch (error) {
         console.error(error);
@@ -10630,7 +10926,7 @@ function DmScreenApp() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [sharedVvtTarget?.note?.id, sharedVvtTarget?.note?.titleOverride, sharedVvtTarget?.page]);
+  }, [sharedVttTarget?.note?.id, sharedVttTarget?.note?.titleOverride, sharedVttTarget?.page]);
 
   useEffect(() => {
     saveLivePlayersPanelCollapsed(livePlayersCollapsed);
@@ -10656,17 +10952,17 @@ function DmScreenApp() {
   }, []);
 
   useEffect(() => {
-    if (!vvtPings.length) return undefined;
+    if (!vttPings.length) return undefined;
     const timer = window.setTimeout(() => {
       const now = Date.now();
-      setVvtPings((pings) => pings.filter((ping) => ping.expiresAt > now));
+      setVttPings((pings) => pings.filter((ping) => ping.expiresAt > now));
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [vvtPings]);
+  }, [vttPings]);
 
   useEffect(() => {
-    setVvtPings([]);
-  }, [sharedVvtTarget?.note?.id, sharedVvtTarget?.page?.id]);
+    setVttPings([]);
+  }, [sharedVttTarget?.note?.id, sharedVttTarget?.page?.id]);
 
   useEffect(() => {
     function activeNoteFromPasteTarget(target) {
@@ -10821,8 +11117,8 @@ function DmScreenApp() {
       if (!roll) return;
       appendLivePlayerRoll(roll);
     });
-    const unsubscribeVvtPing = liveSheet.onVvtPing?.((ping) => {
-      appendVvtPing(ping);
+    const unsubscribeVttPing = liveSheet.onVttPing?.((ping) => {
+      appendVttPing(ping);
     });
     const unsubscribeHandQueue = liveSheet.onPlayerHandQueue?.((hands) => {
       setRaisedHands(normalizeRaisedHandQueue(hands));
@@ -10834,13 +11130,13 @@ function DmScreenApp() {
       unsubscribeUpdated?.();
       unsubscribeDisconnected?.();
       unsubscribeRoll?.();
-      unsubscribeVvtPing?.();
+      unsubscribeVttPing?.();
       unsubscribeHandQueue?.();
     };
   }, []);
 
-  function normalizeVvtPing(ping) {
-    const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + VVT_PING_TTL_MS);
+  function normalizeVttPing(ping) {
+    const expiresAt = Date.parse(ping?.expiresAt || "") || (Date.now() + VTT_PING_TTL_MS);
     return {
       id: String(ping?.id || `ping-${Date.now()}-${Math.random().toString(16).slice(2)}`),
       playerId: String(ping?.playerId || ""),
@@ -10851,10 +11147,10 @@ function DmScreenApp() {
     };
   }
 
-  function appendVvtPing(ping) {
-    const normalized = normalizeVvtPing(ping);
+  function appendVttPing(ping) {
+    const normalized = normalizeVttPing(ping);
     const now = Date.now();
-    setVvtPings((pings) => [
+    setVttPings((pings) => [
       ...pings.filter((entry) => (
         entry.expiresAt > now
         && (
@@ -10867,12 +11163,12 @@ function DmScreenApp() {
     ].slice(-16));
   }
 
-  async function publishDmVvtPing(ping) {
+  async function publishDmVttPing(ping) {
     try {
-      await window.dndSheet?.liveSheet?.publishVvtPing?.(ping);
+      await window.dndSheet?.liveSheet?.publishVttPing?.(ping);
     } catch (error) {
       console.error(error);
-      appendVvtPing(ping);
+      appendVttPing(ping);
     }
   }
 
@@ -10978,6 +11274,50 @@ function DmScreenApp() {
     } finally {
       setSoundBarBusyId("");
     }
+  }
+
+  function pickTokenImportFiles() {
+    setTokenImportError("");
+    tokenImportInputRef.current?.click?.();
+  }
+
+  async function addTokenImportFiles(event) {
+    const files = Array.from(event.target?.files || []).filter((file) => String(file.type || "").startsWith("image/"));
+    if (event.target) event.target.value = "";
+    if (!files.length) return;
+    setTokenImportError("");
+    try {
+      const images = [];
+      for (const file of files) {
+        images.push(await readImageFileAsStoredImage(file, "Token"));
+      }
+      setTokenImportQueue(images.map((image, index) => storedImageSnapshot({
+        ...image,
+        name: files[index]?.name || image.name || "Token"
+      })));
+      setTokenImportIndex(0);
+    } catch (error) {
+      console.error(error);
+      setTokenImportError(error?.message || "No se pudieron cargar las imágenes de token.");
+    }
+  }
+
+  async function confirmTokenImport(image) {
+    const saveImage = window.dndSheet?.saveTokenLibraryImage;
+    if (!saveImage) throw new Error("La biblioteca de tokens no está disponible.");
+    const storedImage = await saveImage(image);
+    if (!storedImage?.dataUrl) throw new Error("No se pudo guardar la imagen de token.");
+    if (tokenImportIndex + 1 >= tokenImportQueue.length) {
+      setTokenImportQueue([]);
+      setTokenImportIndex(0);
+    } else {
+      setTokenImportIndex((index) => index + 1);
+    }
+  }
+
+  function cancelTokenImport() {
+    setTokenImportQueue([]);
+    setTokenImportIndex(0);
   }
 
   async function renameSoundButton(soundId, name) {
@@ -11415,7 +11755,7 @@ function DmScreenApp() {
     const pageId = `map-page-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     addBoardNote({
       kind: "map",
-      titleOverride: "Mapa VVT",
+      titleOverride: "Mapa VTT",
       mapImage,
       mapTokens: [],
       mapTokenGroups: [],
@@ -11742,6 +12082,7 @@ function DmScreenApp() {
       textContent: restored.textContent,
       textImages: restored.textImages,
       titleOverride: restored.titleOverride,
+      savedBoardNoteId: savedNote.id,
       width: restored.width,
       height: restored.height,
       tabFrameWidth: restored.tabFrameWidth,
@@ -11750,6 +12091,10 @@ function DmScreenApp() {
       hpMax: restored.hpMax
     }, savedBoardNotesSpawnPoint);
     closeSavedBoardNotes();
+  }
+
+  function deleteSavedBoardNote(savedNoteId) {
+    setSavedBoardNotes((notes) => notes.filter((note) => note.id !== savedNoteId));
   }
 
   function addHomebrewNote() {
@@ -12021,6 +12366,7 @@ function DmScreenApp() {
         obsidianSaving: false,
         obsidianUpdatedAt: payload.obsidianUpdatedAt || null,
         titleOverride: typeof payload.titleOverride === "string" ? payload.titleOverride : "",
+        savedBoardNoteId: String(payload.savedBoardNoteId || ""),
         parentNoteId: null,
         tabNoteIds: [],
         activeTabId: null,
@@ -13557,24 +13903,73 @@ function DmScreenApp() {
     setMarkerContextMenu(null);
   }
 
+  function tokenRemovalSaveCandidates(entry, tokens) {
+    const notes = monsterNotesRef.current;
+    const candidates = tokens.map((token) => {
+      const link = { mapNoteId: entry.mapNote.id, pageId: entry.page.id, tokenId: token.id };
+      const linkedNote = notes.find((note) => noteLinkedToMapToken(note, link));
+      if (linkedNote) return linkedNote;
+      const actorNote = tokenActorNoteFromToken(token);
+      if (!actorNote) return null;
+      const tokenName = String(token.name || "").trim();
+      return {
+        ...actorNote,
+        id: `removed-token-${token.id}`,
+        linkedMapToken: null,
+        titleOverride: tokenName && tokenName !== noteDisplayName(actorNote) ? tokenName : actorNote.titleOverride
+      };
+    }).filter((note) => shouldOfferBoardNoteSave(note));
+    return Array.from(new Map(candidates.map((note) => [note.id, note])).values());
+  }
+
+  function removeMapTokens(mapNoteId, pageId, tokenIds, savedNoteIds = new Map()) {
+    const targetIds = new Set(tokenIds);
+    if (!mapNoteId || !pageId || !targetIds.size) return;
+    setMonsterNotes((notes) => {
+      const withoutTokens = notes.map((note) => (
+        note.id === mapNoteId
+          ? updateMapNotePage(note, pageId, (page) => ({
+            ...page,
+            mapTokens: (page.mapTokens || []).filter((token) => !targetIds.has(token.id)),
+            mapMarkers: (page.mapMarkers || []).map((marker) => (
+              targetIds.has(marker.attachedTokenId) ? { ...marker, attachedTokenId: "" } : marker
+            ))
+          }))
+          : note
+      ));
+      return withoutTokens.map((note) => {
+        const link = normalizeLinkedMapTokenLink(note.linkedMapToken);
+        if (!link || link.mapNoteId !== mapNoteId || link.pageId !== pageId || !targetIds.has(link.tokenId)) return note;
+        return {
+          ...note,
+          linkedMapToken: null,
+          savedBoardNoteId: savedNoteIds.get(note.id) || note.savedBoardNoteId || ""
+        };
+      });
+    });
+    setMapTokenSelection(mapNoteId, pageId, []);
+    setTokenContextMenu(null);
+  }
+
   function removeMapTokenFromMenu() {
     const entry = findMapTokenContextEntry();
     if (!entry) return;
-    const targetIds = new Set(mapTokenContextTargetIds(entry));
-    if (!targetIds.size) return;
-    setMonsterNotes((notes) => notes.map((note) => (
-      note.id === entry.mapNote.id
-        ? updateMapNotePage(note, entry.page.id, (page) => ({
-          ...page,
-          mapTokens: (page.mapTokens || []).filter((token) => !targetIds.has(token.id)),
-          mapMarkers: (page.mapMarkers || []).map((marker) => (
-            targetIds.has(marker.attachedTokenId) ? { ...marker, attachedTokenId: "" } : marker
-          ))
-        }))
-        : note
-    )));
-    setMapTokenSelection(entry.mapNote.id, entry.page.id, []);
-    setTokenContextMenu(null);
+    const targets = mapTokenContextTargets(entry);
+    const tokenIds = targets.map((token) => token.id).filter(Boolean);
+    if (!tokenIds.length) return;
+    const notesToSave = tokenRemovalSaveCandidates(entry, targets);
+    if (notesToSave.length) {
+      setPendingNoteClose({
+        action: "remove-tokens",
+        mapNoteId: entry.mapNote.id,
+        pageId: entry.page.id,
+        tokenIds,
+        notes: notesToSave
+      });
+      setTokenContextMenu(null);
+      return;
+    }
+    removeMapTokens(entry.mapNote.id, entry.page.id, tokenIds);
   }
 
   function removeMapMarkerFromMenu() {
@@ -13967,7 +14362,9 @@ function DmScreenApp() {
     const noteIdSet = new Set(idsToClose);
     const closingNotes = notes.filter((note) => noteIdSet.has(note.id));
     if (closingNotes.some(mapNoteHasTokens)) return;
-    const notesToSave = closingNotes.filter(shouldOfferBoardNoteSave);
+    const notesToSave = closingNotes.filter((note) => (
+      shouldOfferBoardNoteSave(note) && !linkedMapTokenExistsInCollection(note, notes)
+    ));
     if (!notesToSave.length) {
       completeNoteClose({ noteId, closeGroup });
       return;
@@ -13975,19 +14372,64 @@ function DmScreenApp() {
     setPendingNoteClose({ noteId, closeGroup, notes: notesToSave });
   }
 
+  function completePendingNotesSave(plan) {
+    const closeRequest = plan.closeRequest;
+    const savedNotes = plan.savedNotes;
+    setSavedBoardNotes((currentNotes) => mergeSavedBoardNotes(currentNotes, savedNotes));
+    setPendingNoteClose(null);
+    setPendingSavedNameConflict(null);
+    if (closeRequest.action === "remove-tokens") {
+      const savedNoteIds = new Map(plan.noteIds.map((noteId, index) => [noteId, savedNotes[index]?.id]).filter(([, savedNoteId]) => Boolean(savedNoteId)));
+      removeMapTokens(closeRequest.mapNoteId, closeRequest.pageId, closeRequest.tokenIds, savedNoteIds);
+      return;
+    }
+    completeNoteClose(closeRequest);
+  }
+
+  function continuePendingNotesSave(plan, requestedName = "", overwrite = false) {
+    const note = plan.notes[plan.index];
+    if (!note) {
+      completePendingNotesSave(plan);
+      return;
+    }
+    const title = String(requestedName || noteDisplayName(note)).trim() || noteDisplayName(note);
+    const availableNotes = mergeSavedBoardNotes(savedBoardNotesRef.current, plan.savedNotes);
+    const existingNote = availableNotes.find((entry) => normalizeSearch(entry.title) === normalizeSearch(title));
+    if (existingNote && !overwrite) {
+      setPendingSavedNameConflict({ plan, existingNote, draftName: title });
+      return;
+    }
+    const savedNote = createSavedBoardNote(note, { id: existingNote?.id || "", title });
+    const nextPlan = {
+      ...plan,
+      index: plan.index + 1,
+      savedNotes: [...plan.savedNotes, savedNote],
+      noteIds: [...plan.noteIds, note.id]
+    };
+    setPendingSavedNameConflict(null);
+    continuePendingNotesSave(nextPlan);
+  }
+
   function savePendingNotesAndClose() {
     if (!pendingNoteClose) return;
-    const savedNotes = pendingNoteClose.notes.map(createSavedBoardNote);
-    setSavedBoardNotes((currentNotes) => [...currentNotes, ...savedNotes]);
-    const closeRequest = pendingNoteClose;
-    setPendingNoteClose(null);
-    completeNoteClose(closeRequest);
+    continuePendingNotesSave({
+      closeRequest: pendingNoteClose,
+      notes: pendingNoteClose.notes,
+      index: 0,
+      savedNotes: [],
+      noteIds: []
+    });
   }
 
   function discardPendingNotesAndClose() {
     if (!pendingNoteClose) return;
     const closeRequest = pendingNoteClose;
     setPendingNoteClose(null);
+    setPendingSavedNameConflict(null);
+    if (closeRequest.action === "remove-tokens") {
+      removeMapTokens(closeRequest.mapNoteId, closeRequest.pageId, closeRequest.tokenIds);
+      return;
+    }
     completeNoteClose(closeRequest);
   }
 
@@ -14148,7 +14590,7 @@ function DmScreenApp() {
     event.preventDefault();
     setTokenContextMenu(null);
     setMarkerContextMenu(null);
-    setContextMenuOpenGroups({ notes: false, objects: false, tokens: false });
+    setContextMenuOpenGroups({ notes: false, objects: false, tokens: false, homebrew: false });
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
     const boardPoint = clampBoardPoint(screenToBoardPoint(event.clientX, event.clientY), NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
@@ -14164,7 +14606,7 @@ function DmScreenApp() {
     if (!contextMenu && !tokenContextMenu && !markerContextMenu) return;
     if (event.target?.closest?.("[data-context-menu='true']")) return;
     setContextMenu(null);
-    setContextMenuOpenGroups({ notes: false, objects: false, tokens: false });
+    setContextMenuOpenGroups({ notes: false, objects: false, tokens: false, homebrew: false });
     setTokenContextMenu(null);
     setMarkerContextMenu(null);
   }
@@ -14660,6 +15102,7 @@ function DmScreenApp() {
   const activeTokenContextTargetCount = activeTokenContextTargets.length || (activeTokenContext ? 1 : 0);
   const activeMarkerContext = findMapMarkerContextEntry();
   const pendingMapMarkerAttachEntry = pendingMapMarkerAttach ? findMapMarkerContextEntry(pendingMapMarkerAttach) : null;
+  const pendingTokenImport = tokenImportQueue[tokenImportIndex] || null;
 
   return (
     <main
@@ -14735,6 +15178,40 @@ function DmScreenApp() {
         onPause={pauseSoundButton}
         onDelete={deleteSoundButton}
       />
+      {soundBarCollapsed ? (
+        <div
+          className="fixed bottom-4 right-20 z-40"
+          data-board-control="true"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <input
+            ref={tokenImportInputRef}
+            className="hidden"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={addTokenImportFiles}
+          />
+          <button
+            className="relative flex h-14 w-14 items-center justify-center border border-amber-500 bg-neutral-900/95 text-amber-300 shadow-2xl transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            type="button"
+            aria-label="Importar imágenes de token"
+            title="Importar imágenes de token"
+            onClick={pickTokenImportFiles}
+          >
+            <UploadIcon className="h-7 w-7" />
+          </button>
+          {tokenImportError ? <p className="absolute bottom-16 right-0 w-64 border border-red-500/50 bg-red-950 px-2 py-1 text-xs text-red-100 shadow-xl">{tokenImportError}</p> : null}
+        </div>
+      ) : null}
+      {pendingTokenImport ? (
+        <TokenImageCropperModal
+          sourceImage={pendingTokenImport}
+          title={`Importar token ${tokenImportIndex + 1} de ${tokenImportQueue.length}`}
+          onCancel={cancelTokenImport}
+          onConfirm={confirmTokenImport}
+        />
+      ) : null}
       <RaisedHandsNote hands={raisedHands} onLowerHand={lowerRaisedHand} />
       <GlobalDiceTray
         isOpen={freeDiceOpen}
@@ -14803,8 +15280,8 @@ function DmScreenApp() {
             height: activeFrameSize.height
           };
           const isActiveSharedMap = activeNote.kind === "map"
-            && sharedVvtTarget?.note?.id === activeNote.id
-            && sharedVvtTarget?.page?.id === activeMapPageForNote(activeNote)?.id;
+            && sharedVttTarget?.note?.id === activeNote.id
+            && sharedVttTarget?.page?.id === activeMapPageForNote(activeNote)?.id;
           const tabBar = tabs.length > 1 ? (
             <NoteTabBar
               notes={tabs}
@@ -14868,10 +15345,10 @@ function DmScreenApp() {
               onMapPageRename={renameMapPage}
               onMapPageClose={closeMapPage}
               onMapFogChange={updateMapFog}
-              onShareVvtMap={(noteId, pageId) => setSharedVvtMap({ noteId, pageId })}
-              onMapPing={publishDmVvtPing}
-              isSharedVvtMap={isActiveSharedMap}
-              vvtPings={isActiveSharedMap ? vvtPings : []}
+              onShareVttMap={(noteId, pageId) => setSharedVttMap({ noteId, pageId })}
+              onMapPing={publishDmVttPing}
+              isSharedVttMap={isActiveSharedMap}
+              vttPings={isActiveSharedMap ? vttPings : []}
               onMapTokenHpChange={updateMapTokenHp}
               onMapTokensRollInitiative={rollMapTokensInitiative}
               onMapTokenGroupAdd={addMapTokenGroup}
@@ -15320,22 +15797,37 @@ function DmScreenApp() {
               </div>
             ) : null}
           </div>
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={openHomebrewMonsterModal}
-          >
-            <span>Add Homebrew</span>
-            <span className="text-neutral-500">+</span>
-          </button>
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={openSavedBoardNotes}
-          >
-            <span>Load</span>
-            <span className="text-neutral-500">↗</span>
-          </button>
+          <div className="border-b border-neutral-800 py-1">
+            <button
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              type="button"
+              aria-expanded={contextMenuOpenGroups.homebrew}
+              onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, homebrew: !groups.homebrew }))}
+            >
+              <span>Homebrew</span>
+              <span className="text-neutral-500">{contextMenuOpenGroups.homebrew ? "−" : "+"}</span>
+            </button>
+            {contextMenuOpenGroups.homebrew ? (
+              <div className="border-t border-neutral-800 py-1">
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={openHomebrewMonsterModal}
+                >
+                  <span>Add Homebrew</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={openSavedBoardNotes}
+                >
+                  <span>Load homebrew</span>
+                  <span className="text-neutral-500">↗</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
           <div className="border-y border-neutral-800 py-1">
             <button
               className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
@@ -15372,7 +15864,7 @@ function DmScreenApp() {
             type="button"
             onClick={openContextMapNote}
           >
-            <span>Add VVT Map</span>
+            <span>Add VTT Map</span>
             <span className="text-neutral-500">+</span>
           </button>
           <div className="border-y border-neutral-800 py-1">
@@ -15434,15 +15926,29 @@ function DmScreenApp() {
         onSubmit={addHomebrewNote}
       />
       <NoteCloseSaveModal
-        pendingClose={pendingNoteClose}
+        pendingClose={pendingSavedNameConflict ? null : pendingNoteClose}
         onSave={savePendingNotesAndClose}
         onDiscard={discardPendingNotesAndClose}
         onCancel={() => setPendingNoteClose(null)}
+      />
+      <SavedBoardNameConflictModal
+        conflict={pendingSavedNameConflict}
+        onNameChange={(draftName) => setPendingSavedNameConflict((current) => current ? { ...current, draftName } : current)}
+        onSaveAsNew={() => {
+          if (!pendingSavedNameConflict) return;
+          continuePendingNotesSave(pendingSavedNameConflict.plan, pendingSavedNameConflict.draftName);
+        }}
+        onOverwrite={() => {
+          if (!pendingSavedNameConflict) return;
+          continuePendingNotesSave(pendingSavedNameConflict.plan, pendingSavedNameConflict.draftName, true);
+        }}
+        onCancel={() => setPendingSavedNameConflict(null)}
       />
       <SavedBoardNotesModal
         isOpen={isSavedBoardNotesOpen}
         savedNotes={savedBoardNotes}
         onLoad={loadSavedBoardNote}
+        onDelete={deleteSavedBoardNote}
         onClose={closeSavedBoardNotes}
       />
 

@@ -33,7 +33,7 @@ flowchart LR
 
 ### DM Screen
 
-`src/app/renderer/dm-screen/src/main.jsx` contiene el tablero React, bibliotecas, stat blocks, mapas/VVT, audio, jugadores en vivo, importación de personajes y Obsidian. Vite genera `dm-screen/dist/`, que está versionado porque Electron lo carga directamente. El estado ligero del tablero usa `localStorage`; imágenes de mapas y audio usan IndexedDB.
+`src/app/renderer/dm-screen/src/main.jsx` contiene el tablero React, bibliotecas, stat blocks, mapas/VTT, audio, jugadores en vivo, importación de personajes y Obsidian. Vite genera `dm-screen/dist/`, que está versionado porque Electron lo carga directamente. El estado ligero del tablero usa `localStorage`; imágenes de mapas y audio usan IndexedDB.
 
 ## Datos y estado
 
@@ -48,7 +48,7 @@ flowchart LR
 1. El DM inicia `LiveSheetServer` desde el DM Screen.
 2. Main escucha WebSocket en `0.0.0.0` y aplica límites de payload, sanitización y token opcional.
 3. El jugador envía `player:hello`, `sheet:update`, tiradas, pings o estado de mano.
-4. El servidor mantiene jugadores/VVT en memoria y emite snapshots por IPC al DM Screen.
+4. El servidor mantiene jugadores/VTT en memoria y emite snapshots por IPC al DM Screen.
 5. Los datos remotos no se escriben automáticamente en slots locales.
 
 No hay TLS, cuentas, relay ni persistencia de sesión. La frontera prevista es LAN privada o Tailscale.

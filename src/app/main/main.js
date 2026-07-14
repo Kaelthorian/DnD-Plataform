@@ -10,6 +10,7 @@ const dataLoader = require("../../services/data-loader");
 const { liveSheetServer, listLocalAddresses } = require("../../services/live-sheet-server");
 const { ObsidianService } = require("../../services/obsidian-service");
 const saveService = require("../../services/save-service");
+const { saveTokenLibraryImage } = require("../../services/token-library-service");
 const translationService = require("../../services/translation-service");
 
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
@@ -332,11 +333,28 @@ function getPlatformBackgroundImageUrl() {
 
 function getMonsterTokenDirectoryCandidates() {
   return uniquePaths([
+    path.join(app.getPath("userData"), "Tokens"),
     path.join(process.cwd(), "Tokens"),
     path.join(__dirname, "..", "..", "..", "Tokens"),
     path.join(process.resourcesPath || "", "app.asar", "Tokens"),
     path.join(path.dirname(app.getPath("exe")), "Tokens")
   ]);
+}
+
+function getWritableTokenDirectory() {
+  const candidates = app.isPackaged
+    ? [path.join(path.dirname(app.getPath("exe")), "Tokens"), path.join(app.getPath("userData"), "Tokens")]
+    : [path.join(process.cwd(), "Tokens"), path.join(app.getPath("userData"), "Tokens")];
+  for (const directoryPath of uniquePaths(candidates)) {
+    try {
+      fs.mkdirSync(directoryPath, { recursive: true });
+      fs.accessSync(directoryPath, fs.constants.W_OK);
+      return directoryPath;
+    } catch (_error) {
+      // Try the next approved token-library location.
+    }
+  }
+  throw new Error("No se pudo acceder a la carpeta de imágenes de tokens.");
 }
 
 function normalizeTokenCandidate(value) {
@@ -662,6 +680,25 @@ ipcMain.handle("token-library:data-url", async (_event, tokenId) => {
   return tokenLibraryImageDataUrl(tokenId);
 });
 
+ipcMain.handle("token-library:save", async (_event, image) => {
+  const saved = saveTokenLibraryImage({
+    directoryPath: getWritableTokenDirectory(),
+    name: image?.name,
+    dataUrl: image?.dataUrl
+  });
+  const storedImage = imageFileDataUrl(saved.filePath);
+  if (!storedImage) throw new Error("No se pudo leer la imagen de token guardada.");
+  BrowserWindow.getAllWindows().forEach((windowInstance) => {
+    if (!windowInstance.isDestroyed()) windowInstance.webContents.send("token-library:changed");
+  });
+  return {
+    ...storedImage,
+    id: saved.filePath,
+    fileName: saved.fileName,
+    url: toFileUrl(saved.filePath)
+  };
+});
+
 ipcMain.handle("obsidian:get-vault", async () => {
   return getObsidianService().getVault();
 });
@@ -786,16 +823,16 @@ ipcMain.handle("live-sheet:update-player-sheet", async (_event, { playerId, patc
   return liveSheetServer.updatePlayerSheet(playerId, patch);
 });
 
-ipcMain.handle("live-sheet:publish-vvt-state", async (_event, state) => {
-  return liveSheetServer.setVvtState(state);
+ipcMain.handle("live-sheet:publish-vtt-state", async (_event, state) => {
+  return liveSheetServer.setVttState(state);
 });
 
-ipcMain.handle("live-sheet:publish-vvt-patch", async (_event, patch) => {
-  return liveSheetServer.patchVvtState(patch);
+ipcMain.handle("live-sheet:publish-vtt-patch", async (_event, patch) => {
+  return liveSheetServer.patchVttState(patch);
 });
 
-ipcMain.handle("live-sheet:publish-vvt-ping", async (_event, ping) => {
-  return liveSheetServer.publishVvtPing(ping);
+ipcMain.handle("live-sheet:publish-vtt-ping", async (_event, ping) => {
+  return liveSheetServer.publishVttPing(ping);
 });
 
 ipcMain.handle("live-sheet:publish-dm-audio", async (_event, audio) => {
@@ -818,8 +855,8 @@ liveSheetServer.on("player-roll", (roll) => {
   broadcastToRenderers("live-sheet:player-roll", roll);
 });
 
-liveSheetServer.on("vvt-ping", (ping) => {
-  broadcastToRenderers("live-sheet:vvt-ping", ping);
+liveSheetServer.on("vtt-ping", (ping) => {
+  broadcastToRenderers("live-sheet:vtt-ping", ping);
 });
 
 liveSheetServer.on("player-hand-queue", (raisedHands) => {

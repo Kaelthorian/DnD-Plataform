@@ -8,7 +8,7 @@ Alcance: código propio, configuración, scripts, tests, documentación, rutas d
 - Electron separa main/preload/renderer, con `contextIsolation` activo y Node desactivado en renderer.
 - Preload expone operaciones concretas; no entrega IPC o filesystem genérico.
 - Obsidian valida extensión, existencia, `realpath` y permanencia dentro del vault.
-- Live Sheet limita payloads, valida tipos, sanitiza mensajes/VVT/audio y soporta token de sesión.
+- Live Sheet limita payloads, valida tipos, sanitiza mensajes/VTT/audio y soporta token de sesión.
 - Saves migran el formato histórico a seis slots sin borrar campos desconocidos.
 - Tests reales cubren reglas centrales, datos, i18n, networking y path traversal.
 - Datos propios y snapshot vendorizado están separados; packaging incluye rutas explícitas.
@@ -18,7 +18,7 @@ Alcance: código propio, configuración, scripts, tests, documentación, rutas d
 | Severidad | Hallazgo e impacto | Estado / siguiente acción |
 | --- | --- | --- |
 | Alta | `index.html` (~14 000 líneas) mezcla DOM, reglas, persistencia, inventario, spells/feats y tiradas. Regresión difícil y alto coste de navegación. | Pendiente: extracción incremental con tests por dominio; no reescribir. |
-| Alta | `dm-screen/src/main.jsx` (~14 000 líneas) mezcla tablero, bibliotecas, VVT, audio, networking y Obsidian. | Pendiente: separar primero parsers/serialización y servicios puros. |
+| Alta | `dm-screen/src/main.jsx` (~14 000 líneas) mezcla tablero, bibliotecas, VTT, audio, networking y Obsidian. | Pendiente: separar primero parsers/serialización y servicios puros. |
 | Alta | Save principal se escribía directamente; una interrupción podía truncarlo y no existía fallback. | Corregido y probado: temp + rename, backup válido y recuperación. |
 | Media | `setWindowOpenHandler` enviaba cualquier esquema a `shell.openExternal`. | Corregido: solo HTTP/HTTPS. |
 | Media | Live Sheet escucha `0.0.0.0`; el token puede desactivarse y no hay TLS. Expone hojas a la red alcanzable. | Diseño LAN/Tailscale; mantener token activo y documentar frontera. |
@@ -46,7 +46,7 @@ No se confirmaron dependencias circulares en los módulos CommonJS inspeccionado
 ## Trabajo futuro recomendado
 
 1. Alta: pruebas DOM/Electron de save/load y startup; luego extraer un dominio del Character Sheet.
-2. Alta: extraer del DM Screen serialización/parsers de board/VVT con pruebas antes de dividir componentes.
+2. Alta: extraer del DM Screen serialización/parsers de board/VTT con pruebas antes de dividir componentes.
 3. Media: diseñar índices livianos/carga diferida para datasets grandes y medir tiempo/memoria.
 4. Media: migrar traducción a main exclusivamente, añadir aviso de privacidad y endurecer CSP.
 5. Media: mantener token Live Sheet obligatorio fuera de loopback o añadir una opción de bind explícita.

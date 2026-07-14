@@ -24,7 +24,7 @@ El test de saves usa `.test-tmp/save-service`, nunca datos reales del usuario. L
 5. Iniciar Live Sheet con token, conectar a `127.0.0.1`, modificar HP, tirar y desconectar.
 6. Añadir/mover/redimensionar una nota/mapa y reiniciar para verificar persistencia.
 7. Si se tocó Obsidian, usar un vault de prueba y verificar lectura, escritura y rechazo de `../`.
-8. Si se tocó VVT/audio, verificar límites, estado compartido y que contenido oculto no llegue al jugador.
+8. Si se tocó VTT/audio, verificar límites, estado compartido y que contenido oculto no llegue al jugador.
 
 Usar además las listas específicas en `docs/feature-map.md`, `docs/manual-testing-mercantile.md` y `docs/live-sheet-tailscale.md` cuando corresponda.
 

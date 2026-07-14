@@ -6,7 +6,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 | --- | --- | --- |
 | Arranque, ventanas, IPC, updater | `src/app/main/main.js` | `src/app/preload/preload.js` |
 | Hoja de personaje | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `i18n.js` |
-| DM Screen/tablero/VVT | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config |
+| DM Screen/tablero/VTT | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config |
 | Save slots/migración | `src/services/save-service.js` | helpers de slots en `index.html`, test de save service |
 | Live Sheet | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`, panel React |
 | Obsidian | `src/services/obsidian-service.js` | IPC/preload y componentes React |
