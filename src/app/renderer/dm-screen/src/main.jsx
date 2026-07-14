@@ -10260,6 +10260,7 @@ function DmScreenApp() {
   const [freeDiceSelection, setFreeDiceSelection] = useState(createFreeDiceSelection);
   const [freeDiceRolls, setFreeDiceRolls] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
+  const [contextMenuOpenGroups, setContextMenuOpenGroups] = useState({ notes: false, objects: false, tokens: false });
   const [tokenContextMenu, setTokenContextMenu] = useState(null);
   const [markerContextMenu, setMarkerContextMenu] = useState(null);
   const [pendingMapMarkerAttach, setPendingMapMarkerAttach] = useState(null);
@@ -10464,6 +10465,7 @@ function DmScreenApp() {
     function handleGlobalPointerDown(event) {
       if (event.target?.closest?.("[data-context-menu='true']")) return;
       setContextMenu(null);
+      setContextMenuOpenGroups({ notes: false, objects: false, tokens: false });
       setTokenContextMenu(null);
       setMarkerContextMenu(null);
     }
@@ -14146,6 +14148,7 @@ function DmScreenApp() {
     event.preventDefault();
     setTokenContextMenu(null);
     setMarkerContextMenu(null);
+    setContextMenuOpenGroups({ notes: false, objects: false, tokens: false });
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
     const boardPoint = clampBoardPoint(screenToBoardPoint(event.clientX, event.clientY), NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
@@ -14161,6 +14164,7 @@ function DmScreenApp() {
     if (!contextMenu && !tokenContextMenu && !markerContextMenu) return;
     if (event.target?.closest?.("[data-context-menu='true']")) return;
     setContextMenu(null);
+    setContextMenuOpenGroups({ notes: false, objects: false, tokens: false });
     setTokenContextMenu(null);
     setMarkerContextMenu(null);
   }
@@ -15285,14 +15289,37 @@ function DmScreenApp() {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={openContextMonsterPicker}
-          >
-            <span>Add Monster</span>
-            <span className="text-neutral-500">+</span>
-          </button>
+          <div className="border-b border-neutral-800 py-1">
+            <button
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              type="button"
+              aria-expanded={contextMenuOpenGroups.tokens}
+              onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, tokens: !groups.tokens }))}
+            >
+              <span>Add Token</span>
+              <span className="text-neutral-500">{contextMenuOpenGroups.tokens ? "−" : "+"}</span>
+            </button>
+            {contextMenuOpenGroups.tokens ? (
+              <div className="border-t border-neutral-800 py-1">
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={openContextMonsterPicker}
+                >
+                  <span>Add Monster</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={openCharacterCodeModal}
+                >
+                  <span>Add Character Code</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
             type="button"
@@ -15306,17 +15333,40 @@ function DmScreenApp() {
             type="button"
             onClick={openSavedBoardNotes}
           >
-            <span>Cargar</span>
+            <span>Load</span>
             <span className="text-neutral-500">↗</span>
           </button>
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={openContextTextNote}
-          >
-            <span>Add Text Note</span>
-            <span className="text-neutral-500">+</span>
-          </button>
+          <div className="border-y border-neutral-800 py-1">
+            <button
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              type="button"
+              aria-expanded={contextMenuOpenGroups.notes}
+              onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, notes: !groups.notes }))}
+            >
+              <span>Add Notes</span>
+              <span className="text-neutral-500">{contextMenuOpenGroups.notes ? "−" : "+"}</span>
+            </button>
+            {contextMenuOpenGroups.notes ? (
+              <div className="border-t border-neutral-800 py-1">
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={openContextTextNote}
+                >
+                  <span>Add Text Note</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={openContextObsidianPicker}
+                >
+                  <span>Add Obsidian Note</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
           <button
             className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
             type="button"
@@ -15325,38 +15375,37 @@ function DmScreenApp() {
             <span>Add VVT Map</span>
             <span className="text-neutral-500">+</span>
           </button>
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={openCharacterCodeModal}
-          >
-            <span>Add Character Code</span>
-            <span className="text-neutral-500">+</span>
-          </button>
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={() => openContextResourcePicker("spell")}
-          >
-            <span>Add Spell</span>
-            <span className="text-neutral-500">+</span>
-          </button>
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={() => openContextResourcePicker("item")}
-          >
-            <span>Add Item</span>
-            <span className="text-neutral-500">+</span>
-          </button>
-          <button
-            className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
-            type="button"
-            onClick={openContextObsidianPicker}
-          >
-            <span>Add Obsidian Note</span>
-            <span className="text-neutral-500">+</span>
-          </button>
+          <div className="border-y border-neutral-800 py-1">
+            <button
+              className="flex w-full items-center justify-between px-3 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+              type="button"
+              aria-expanded={contextMenuOpenGroups.objects}
+              onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, objects: !groups.objects }))}
+            >
+              <span>Add Object</span>
+              <span className="text-neutral-500">{contextMenuOpenGroups.objects ? "−" : "+"}</span>
+            </button>
+            {contextMenuOpenGroups.objects ? (
+              <div className="border-t border-neutral-800 py-1">
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={() => openContextResourcePicker("spell")}
+                >
+                  <span>Add Spell</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+                <button
+                  className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
+                  type="button"
+                  onClick={() => openContextResourcePicker("item")}
+                >
+                  <span>Add Item</span>
+                  <span className="text-neutral-500">+</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       ), document.body) : null}
 

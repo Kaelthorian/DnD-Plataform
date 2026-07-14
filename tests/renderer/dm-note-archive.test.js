@@ -15,6 +15,6 @@ assert.match(source, /parsed\.savedNotes\.map\(restoreSavedBoardNote\)\.filter\(
 assert.match(source, /saveDmBoardState\(notes, view, savedNotes = \[\]\)/);
 assert.match(source, /function requestNoteClose\(noteId, closeGroup\)/);
 assert.match(source, /function openSavedBoardNotes\(\)/);
-assert.match(source, /<span>Cargar<\/span>/);
+assert.match(source, /<span>Load<\/span>/);
 
 console.log("DM note archive wiring verified.");
