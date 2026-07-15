@@ -231,6 +231,60 @@ assert.ok(/prepared-resource-orb/.test(RENDERER), "resource counters render as c
 assert.ok(/orb\.textContent = `\$\{remaining\}\/\$\{maximum\}`/.test(RENDERER), "each resource sphere displays its remaining over maximum value");
 
 {
+  const { file } = loadClass("fighter");
+  const feature = (file.classFeature || []).find((item) => item.name === "Weapon Mastery" && item.source === "XPHB" && Number(item.level) === 1);
+  assert.ok(feature, "Fighter exposes Weapon Mastery at level 1");
+  const featureText = flattenForTest(feature.entries);
+  assert.ok(/three kinds/i.test(featureText), "Fighter level 1 chooses three Weapon Mastery weapons");
+  assert.ok(/weapon drills and change one/i.test(featureText), "Fighter Weapon Mastery includes one Weapon Drills replacement after a Long Rest");
+
+  const itemData = JSON.parse(fs.readFileSync(path.join(ROOT, "vendor", "5etools-src-main", "data", "items-base.json"), "utf8"));
+  const masteryDefinitions = new Set((itemData.itemMastery || []).map((item) => `${item.name}|${item.source}`));
+  const selectableWeapons = (itemData.baseitem || []).filter((item) => item.source === "XPHB" && item.weapon && item.mastery?.length);
+  assert.ok(selectableWeapons.length >= 3, "packaged XPHB data exposes enough real weapons for the Fighter level 1 picker");
+  assert.ok(selectableWeapons.every((item) => item.mastery.every((ref) => masteryDefinitions.has(ref))), "every selectable XPHB weapon resolves to a packaged mastery definition");
+  assert.ok(/item\.source === "XPHB" && item\.weapon && item\.mastery\?\.length/.test(extractRendererFunction("weaponMasteryOptionsForFeature")), "renderer builds Weapon Mastery choices from the packaged XPHB weapons");
+
+  const featureDetectionContext = {
+    normalizeName: (value) => String(value || "").trim().toLowerCase(),
+    flattenEntryText: flattenForTest
+  };
+  vm.runInNewContext(extractRendererFunction("isWeaponMasteryFeature"), featureDetectionContext);
+  assert.strictEqual(featureDetectionContext.isWeaponMasteryFeature(feature, "mastery properties"), true, "mixed-case Weapon Mastery feature name opens the choice flow even when rendered tag text is abbreviated");
+  assert.ok(/isWeaponMasteryFeature\(feature, text\)/.test(extractRendererFunction("featureChoiceSpecs")), "feature choice specs use normalized Weapon Mastery detection");
+  assert.ok(/await waitForItemCatalog\(\)/.test(extractRendererFunction("showFeatureDrawer")), "Features & Traits waits for the weapon catalog before rendering choices");
+
+  let characterLevel = 1;
+  const countContext = {
+    normalizeName: (value) => String(value || "").trim().toLowerCase(),
+    getCharacterLevel: () => characterLevel,
+    flattenEntryText: flattenForTest,
+    countWordToNumber: (value) => ({ one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 }[value] || 0)
+  };
+  vm.runInNewContext(extractRendererFunction("weaponMasteryCountForFeature"), countContext);
+  for (const [level, expected] of [[1, 3], [4, 4], [9, 5], [16, 6]]) {
+    characterLevel = level;
+    assert.strictEqual(countContext.weaponMasteryCountForFeature(feature), expected, `Fighter level ${level} has ${expected} Weapon Mastery choices`);
+  }
+
+  const drillContext = {};
+  vm.runInNewContext([
+    extractRendererFunction("weaponMasteryChoiceDifference"),
+    extractRendererFunction("canApplyWeaponMasteryDrillChange")
+  ].join("\n"), drillContext);
+  const initial = ["weapon-mastery:Longsword", "weapon-mastery:Longbow", "weapon-mastery:Maul"];
+  assert.strictEqual(drillContext.canApplyWeaponMasteryDrillChange([], initial, 3), true, "initial Weapon Mastery choices are not treated as a drill replacement");
+  assert.strictEqual(drillContext.canApplyWeaponMasteryDrillChange(initial, [initial[0], initial[1]], 3), true, "Weapon Drills allows removing one old weapon before choosing its replacement");
+  assert.strictEqual(drillContext.canApplyWeaponMasteryDrillChange(initial, [initial[0], initial[1], "weapon-mastery:Greatsword"], 3), true, "Weapon Drills allows one complete replacement");
+  assert.strictEqual(drillContext.canApplyWeaponMasteryDrillChange(initial, [initial[0], "weapon-mastery:Greatsword", "weapon-mastery:Rapier"], 3), false, "Weapon Drills rejects replacing two choices in one Long Rest");
+  const longRestSource = extractRendererFunction("longRestSpellResources");
+  assert.ok(/snapshotWeaponMasteryChoicesForLongRest\(\)/.test(longRestSource), "starting a Long Rest snapshots Weapon Mastery choices");
+  assert.ok(/weaponMasteryRestSelectionsComplete\(\)/.test(longRestSource), "finishing a Long Rest requires a complete Weapon Drills replacement");
+  assert.ok(/restoreWeaponMasteryChoicesFromInterruptedLongRest\(\)/.test(extractRendererFunction("interruptActiveRest")), "interrupting a Long Rest restores pre-drill Weapon Mastery choices");
+  assert.ok(/dataset\.weaponMasteryChoice = "true"/.test(RENDERER), "Weapon Mastery choices have an explicit Character Ready lock exception");
+}
+
+{
   const { file } = loadClass("rogue");
   const arcaneTrickster = (file.subclass || []).find((subclass) => subclass.name === "Arcane Trickster" && subclass.source === "XPHB");
   assert.ok(arcaneTrickster, "Rogue has Arcane Trickster subclass");

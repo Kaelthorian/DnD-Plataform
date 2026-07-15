@@ -1438,6 +1438,10 @@
     }
 
     function longRestSpellResources() {
+      if (isLongRestActive() && !weaponMasteryRestSelectionsComplete()) {
+        showStatus(t("rest.weaponMasteryIncomplete"));
+        return;
+      }
       const result = resolveLongRest({
         characterReady: isCharacterReady(),
         longRestActive: isLongRestActive(),
@@ -1473,6 +1477,7 @@
         sheetMeta.restState = normalizeRestState({});
       } else if (sheetMeta.longRestActive) {
         sheetMeta.restState = normalizeRestState({ kind: "long", elapsedMinutes: 0, interrupted: false, lastHitDie: null, lastHitPoints: Number.parseInt(getCurrentHitPointsField()?.value || "0", 10) || 0 });
+        snapshotWeaponMasteryChoicesForLongRest();
       }
       updateInteractionState();
       if (itemDrawer?.classList.contains("visible") && itemDrawer.classList.contains("spell-picker-drawer")) {
@@ -1481,7 +1486,7 @@
       }
       scheduleSave();
       showStatus(sheetMeta.longRestActive
-        ? t("rest.longStarted")
+        ? t(Object.keys(weaponMasteryRestSnapshots()).length ? "rest.longStartedWeaponDrills" : "rest.longStarted")
         : t("rest.longFinished"));
     }
 
@@ -1620,6 +1625,7 @@
         restoreSpellSlots: isWarlockCharacter()
       });
       const interruption = resolveLongRestInterruption({ elapsedMinutes, reason, shortRestRecovery: shortRecovery });
+      restoreWeaponMasteryChoicesFromInterruptedLongRest();
       sheetMeta.longRestActive = false;
       sheetMeta.restState = normalizeRestState({ interrupted: true, elapsedMinutes });
       if (interruption.recovery) applyShortRestRecovery(interruption.recovery);
@@ -9157,6 +9163,7 @@
       if (target.closest?.("#freeDiceMenu")) return;
       if (target.closest?.("#itemPickerBackdrop")) return;
       if (target.closest?.("#familiarPickerBackdrop")) return;
+      if (target.closest?.("[data-weapon-mastery-choice='true']")) return;
       if (target.closest?.(".spell-picker")) return;
       if (!target.matches?.("input[type='checkbox'], input[type='radio'], select")) return;
       event.preventDefault();
@@ -9208,6 +9215,7 @@
     function toggleCharacterReady() {
       sheetMeta.characterReady = !isCharacterReady();
       if (!sheetMeta.characterReady) {
+        if (isLongRestActive()) restoreWeaponMasteryChoicesFromInterruptedLongRest();
         sheetMeta.longRestActive = false;
         sheetMeta.shortRestActive = false;
       }
@@ -11132,6 +11140,104 @@
       scheduleSheetChoiceRefresh({ prepared: false });
     }
 
+    function isWeaponMasteryChoiceSpec(spec) {
+      return normalizeName(spec?.label || "") === "weapon mastery"
+        || (spec?.options || []).some((option) => String(option?.type || "").toLowerCase() === "weaponmastery");
+    }
+
+    function isWeaponMasteryFeature(feature, descriptionText = "") {
+      const name = normalizeName(feature?.name || "");
+      const description = normalizeName(descriptionText || flattenEntryText(feature?.entries || ""));
+      return name === "weapon mastery" || description.includes("weapon mastery properties");
+    }
+
+    function weaponMasteryChoiceDifference(baseline = [], selected = []) {
+      const before = new Set(Array.isArray(baseline) ? baseline : []);
+      const after = new Set(Array.isArray(selected) ? selected : []);
+      const removed = [...before].filter((value) => !after.has(value)).length;
+      const added = [...after].filter((value) => !before.has(value)).length;
+      return { removed, added };
+    }
+
+    function canApplyWeaponMasteryDrillChange(baseline, selected, required) {
+      const expected = Math.max(1, Number.parseInt(required, 10) || 1);
+      if ((baseline || []).length < expected) return true;
+      const difference = weaponMasteryChoiceDifference(baseline, selected);
+      return difference.removed <= 1 && difference.added <= 1;
+    }
+
+    function weaponMasteryRestSnapshots() {
+      const value = sheetMeta.restState?.weaponMasteryChoices;
+      return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    }
+
+    function weaponMasteryChoicesForSpec(key, spec) {
+      const values = new Set((spec?.options || []).map((option) => option.value));
+      return selectedFeatureChoices(key).filter((value) => values.has(value));
+    }
+
+    function snapshotWeaponMasteryChoicesForLongRest() {
+      const snapshots = {};
+      choosableFeatureEntriesForCharacter().forEach((entry) => {
+        const feature = entry?.feature || entry?.parentFeature;
+        if (!feature) return;
+        const key = featureChoiceKey(feature);
+        featureChoiceSpecs(feature).filter(isWeaponMasteryChoiceSpec).forEach((spec) => {
+          snapshots[key] = {
+            values: weaponMasteryChoicesForSpec(key, spec),
+            required: Math.max(1, Number.parseInt(spec.count, 10) || 1)
+          };
+        });
+      });
+      sheetMeta.restState = normalizeRestState({ ...sheetMeta.restState, weaponMasteryChoices: snapshots });
+      return snapshots;
+    }
+
+    function ensureWeaponMasteryRestSnapshot(key, spec) {
+      if (!isLongRestActive() || !isWeaponMasteryChoiceSpec(spec)) return null;
+      const snapshots = weaponMasteryRestSnapshots();
+      const existing = snapshots[key];
+      if (existing && Array.isArray(existing.values)) return existing;
+      const snapshot = {
+        values: weaponMasteryChoicesForSpec(key, spec),
+        required: Math.max(1, Number.parseInt(spec.count, 10) || 1)
+      };
+      sheetMeta.restState = normalizeRestState({
+        ...sheetMeta.restState,
+        weaponMasteryChoices: { ...snapshots, [key]: snapshot }
+      });
+      return snapshot;
+    }
+
+    function updateWeaponMasteryRestSnapshot(key, values, required) {
+      if (!isLongRestActive()) return;
+      sheetMeta.restState = normalizeRestState({
+        ...sheetMeta.restState,
+        weaponMasteryChoices: {
+          ...weaponMasteryRestSnapshots(),
+          [key]: { values: [...values], required: Math.max(1, Number.parseInt(required, 10) || 1) }
+        }
+      });
+    }
+
+    function weaponMasteryRestSelectionsComplete() {
+      return Object.entries(weaponMasteryRestSnapshots()).every(([key, snapshot]) => {
+        const baseline = Array.isArray(snapshot?.values) ? snapshot.values : [];
+        const required = Math.max(1, Number.parseInt(snapshot?.required, 10) || 1);
+        if (baseline.length < required) return true;
+        return selectedFeatureChoices(key).filter((value) => String(value).startsWith("weapon-mastery:")).length === required;
+      });
+    }
+
+    function restoreWeaponMasteryChoicesFromInterruptedLongRest() {
+      const snapshots = weaponMasteryRestSnapshots();
+      Object.entries(snapshots).forEach(([key, snapshot]) => {
+        if (!Array.isArray(snapshot?.values)) return;
+        const preserved = selectedFeatureChoices(key).filter((value) => !String(value).startsWith("weapon-mastery:"));
+        setSelectedFeatureChoices(key, [...preserved, ...snapshot.values]);
+      });
+    }
+
     function optionalFeatureByName(name) {
       const normalized = normalizeName(name);
       return optionalFeatures.find((item) => normalizeName(item.name || "") === normalized && item.source === "XPHB")
@@ -11698,7 +11804,7 @@
         const options = subclassOptionsForFeature(feature);
         if (options.length) specs.push({ label: "Subclass", count: 1, options });
       }
-      if (/weapon mastery/.test(feature?.name || "") || /weapon mastery properties/.test(text)) {
+      if (isWeaponMasteryFeature(feature, text)) {
         const options = weaponMasteryOptionsForFeature(feature);
         if (options.length) specs.push({ label: "Weapon Mastery", count: weaponMasteryCountForFeature(feature), options });
       }
@@ -11856,11 +11962,16 @@
 
     function refreshFeatureChoiceSectionState(section, key, spec) {
       const selectedValues = selectedFeatureChoices(key);
+      const selectedCount = selectedFeatureChoiceCountForSpec(selectedValues, spec);
+      const masteryLocked = isWeaponMasteryChoiceSpec(spec)
+        && isCharacterReady()
+        && !isLongRestActive()
+        && selectedCount >= Math.max(1, Number.parseInt(spec.count, 10) || 1);
       section.querySelectorAll("[data-choice-value]").forEach((row) => {
         const option = spec.options.find((item) => item.value === row.dataset.choiceValue);
         if (!option) return;
         const selected = selectedValues.includes(option.value);
-        const disabled = Boolean(option.disabled) || isSkillOptionAlreadyProficient(option, selectedValues);
+        const disabled = masteryLocked || Boolean(option.disabled) || isSkillOptionAlreadyProficient(option, selectedValues);
         const input = row.querySelector("input");
         const text = row.querySelector(".option-choice-text");
         const action = row.querySelector("[data-choice-action='true']");
@@ -11878,7 +11989,7 @@
         if (action) {
           action.classList.toggle("secondary", spec.count > 1 && selected);
           action.textContent = selected ? (spec.count > 1 ? "Quitar" : "Elegida") : "Elegir";
-          action.disabled = selected ? spec.count === 1 : disabled;
+          action.disabled = disabled || (selected && spec.count === 1);
         }
       });
     }
@@ -11893,6 +12004,24 @@
         input.checked = false;
         picked = picked.filter((value) => value !== option.value);
         showStatus(`Maximo ${spec.count} opcion(es)`);
+      }
+      if (isWeaponMasteryChoiceSpec(spec)) {
+        const required = Math.max(1, Number.parseInt(spec.count, 10) || 1);
+        const selectedCount = selectedFeatureChoiceCountForSpec(selectedFeatureChoices(key), spec);
+        if (isCharacterReady() && !isLongRestActive() && selectedCount >= required) {
+          showStatus(t("feature.weaponMasteryLocked"));
+          refreshFeatureChoiceSectionState(section, key, spec);
+          return;
+        }
+        const snapshot = ensureWeaponMasteryRestSnapshot(key, spec);
+        if (snapshot && !canApplyWeaponMasteryDrillChange(snapshot.values, picked, required)) {
+          showStatus(t("feature.weaponMasteryChangeLimit"));
+          refreshFeatureChoiceSectionState(section, key, spec);
+          return;
+        }
+        if (snapshot && snapshot.values.length < required && picked.length === required) {
+          updateWeaponMasteryRestSnapshot(key, picked, required);
+        }
       }
       setSelectedFeatureChoices(key, [...current, ...picked]);
       if (isAbilityScoreImprovementFeature(feature) || isMagicInitiateFeat(feature?.feat || feature)) {
@@ -11958,7 +12087,18 @@
     function buildFeatureChoicePickerSection(feature, key, spec, specIndex) {
       const section = document.createElement("div");
       section.className = "option-choice-group feature-choice-picker";
+      if (isWeaponMasteryChoiceSpec(spec)) section.dataset.weaponMasteryChoice = "true";
       appendText(section, "option-choice-title", `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`);
+      if (isWeaponMasteryChoiceSpec(spec)) {
+        ensureWeaponMasteryRestSnapshot(key, spec);
+        const selectedCount = selectedFeatureChoiceCountForSpec(selectedFeatureChoices(key), spec);
+        const hintKey = selectedCount < spec.count
+          ? "feature.weaponMasteryInitialHint"
+          : isLongRestActive()
+            ? "feature.weaponMasteryRestHint"
+            : "feature.weaponMasteryLockedHint";
+        appendText(section, "feature-choice-picker-summary", t(hintKey));
+      }
 
       const picker = document.createElement("div");
       picker.className = "spell-picker";
@@ -12037,7 +12177,18 @@
         }
         const section = document.createElement("div");
         section.className = "option-choice-group";
+        if (isWeaponMasteryChoiceSpec(spec)) section.dataset.weaponMasteryChoice = "true";
         appendText(section, "option-choice-title", `${spec.label}: elegir ${spec.count === 1 ? "una opcion" : `${spec.count} opciones`}`);
+        if (isWeaponMasteryChoiceSpec(spec)) {
+          ensureWeaponMasteryRestSnapshot(key, spec);
+          const selectedCount = selectedFeatureChoiceCountForSpec(selectedFeatureChoices(key), spec);
+          const hintKey = selectedCount < spec.count
+            ? "feature.weaponMasteryInitialHint"
+            : isLongRestActive()
+              ? "feature.weaponMasteryRestHint"
+              : "feature.weaponMasteryLockedHint";
+          appendText(section, "feature-choice-picker-summary", t(hintKey));
+        }
         spec.options.forEach((option) => {
           const label = document.createElement("label");
           label.className = "option-choice";
@@ -12571,8 +12722,9 @@
       itemDrawer.setAttribute("aria-hidden", "true");
     }
 
-    function showFeatureDrawer(field) {
+    async function showFeatureDrawer(field) {
       if (field?.dataset.generatedFeaturesAndTraits === "true") {
+        await waitForItemCatalog();
         const entries = generatedFeaturesAndTraitsEntries();
         showDrawer("Features & Traits", "Generated", buildFeaturesAndTraitsDrawerContent(entries));
         return;

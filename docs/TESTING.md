@@ -19,6 +19,8 @@ El test puro de descansos valida la transición 2024, gasto determinista de Hit 
 
 `tests/engine/combat.test.js` cubre la economía, Extra Attack, orden Hit → Damage, saves/daño automático, movimiento, reacciones, cancelación/doble ejecución, recursos, Concentration y log. `tests/renderer/combat-ui.test.js` verifica que el shell carga los cuatro módulos, presenta todos los contadores y conserva el wiring del stepper/log.
 
+`tests/engine/class-level3-mechanics.test.js` verifica también Weapon Mastery del Fighter 2024: tres elecciones iniciales en nivel 1, progresión 3/4/5/6, un solo reemplazo mediante Weapon Drills por Long Rest, instantánea al iniciar y restauración si el descanso se interrumpe.
+
 `tests/renderer/combat-performance.test.js` protege el índice `Map`, la fotografía revisionada, la memoización por pasada, el worker de PDF y la concurrencia limitada. `tests/services/data-loader-cache.test.js` usa JSON temporales para comprobar primera compilación, hit de caché persistente e invalidación al cambiar la fuente; no toca `userData` real. `tests/services/dm-screen-build-cache.test.js` evita que la comprobación de vigencia vuelva a mezclar las marcas de tiempo de los bundles CSS y JS.
 
 ## Smoke test manual mínimo

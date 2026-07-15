@@ -55,3 +55,10 @@ Mapa operativo para evitar búsquedas globales repetidas.
 - `src/app/renderer/index.html` aplica esos resultados a los campos PDF, `__sheetMeta`, la superficie existente `itemDrawer` y el estado Character Ready. Las interrupciones se enrutan por `globalThis.dndRestRuntime`.
 - `src/app/renderer/renderer.js` conserva la sincronización pública de HP/HD/slots/Inspiration y no envía `__sheetMeta`.
 - Validación específica: `node tests/engine/rests.test.js`; validación completa de engine: `npm run test:engine`.
+
+## Weapon Mastery 2024
+
+- La elección inicial se genera en `src/app/renderer/index.html` desde el trait de clase y `vendor/5etools-src-main/data/items-base.json`: Fighter nivel 1 elige tres armas, y la progresión aumenta en niveles 4, 9 y 16. El drawer espera `itemCatalogReadyPromise` antes de construir las opciones; la detección del nombre debe permanecer normalizada porque los nombres canónicos usan mayúsculas.
+- Las selecciones viven en `__sheetMeta.featureChoices` con valores `weapon-mastery:<arma>` y aparecen en el drawer existente de `Features & Traits`; no crear un store paralelo.
+- Al iniciar un Long Rest con la hoja en Character Ready se guarda una instantánea en `__sheetMeta.restState.weaponMasteryChoices`. Weapon Drills permite reemplazar como máximo una elección; terminar el descanso exige completar el reemplazo y una interrupción restaura la instantánea.
+- Validación específica: `node tests/engine/class-level3-mechanics.test.js`; los textos visibles EN/ES se validan con `npm run test:i18n`.
