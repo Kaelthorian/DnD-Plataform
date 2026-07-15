@@ -49,6 +49,12 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
 - Resource use state normalization, spending, and reset math: `src/engine/resources/resource-state.js`
 - Proficiencies: `src/engine/proficiencies`
 - Attacks: `src/engine/attacks`
+- Combat turn/resolution: `src/engine/combat`
+  - `turn-economy.js`: Action, Bonus Action, Reaction, Movement, Object Interaction, Extra Attack y reservas.
+  - `action-definitions.js`: acciones universales y perfiles de armas/hechizos.
+  - `resolution-engine.js`: Target/Hit/Save/Check/Damage/Confirm/Cancel.
+  - `combat-log.js`: eventos persistibles y formato de desglose.
+  - Adaptación/UI: `combatTurnState()`, `registerTurnActionProviders()`, `openCombatResolution()` y `renderCombatResolution()` en `src/app/renderer/index.html`.
 - Skills: `src/engine/skills`
 - Saves: `src/engine/saves`
 
@@ -65,10 +71,11 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
 
 - Roll mechanics and result text still live in `src/app/renderer/index.html` near `rollDiceExpression`, `rollAttack`, `rollD20Check`, `rollDamage`, and `showDiceTray`.
 - Free dice rolling and the dice log live in `src/app/renderer/index.html`; free rolls support d2 through d100 and the recent roll log is stored in `localStorage` under `dnd-character-sheet-dice-log-v1`.
+- Combat resolution does not define another random-number path. Hit, damage, saves/checks and live forwarding call the same `rollD20WithMode()`, `rollDiceExpression()`, `summarizeD20Roll()` and `showDiceTray()` helpers.
 
 ## Services
 
-- Data loading: `src/services/data-loader.js`
+- Data loading: `src/services/data-loader.js`; el catálogo grande de items se compila fuera del main thread en `src/services/workers/item-data-worker.js`, usa caché derivada bajo `userData/data-cache/` y se indexa en `renderer.js`.
 - Save state: `src/services/save-service.js`
   - Character sheets use the existing `character-sheet.json` path with a versioned multi-slot store.
   - Store format is `version: 2`, `activeSlotId`, and six fixed slots containing `{ id, name, updatedAt, data }`.

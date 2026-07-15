@@ -6,10 +6,11 @@ const projectRoot = path.resolve(__dirname, "..");
 const distDir = path.join(projectRoot, "src", "app", "renderer", "dm-screen", "dist");
 const distCss = path.join(distDir, "dm-screen.css");
 const distJs = path.join(distDir, "dm-screen.js");
-const sourceFiles = [
-  path.join(projectRoot, "src", "app", "renderer", "dm-screen.html"),
+const cssSourceFiles = [
   path.join(projectRoot, "src", "app", "renderer", "dm-screen", "styles.css"),
-  path.join(projectRoot, "src", "app", "renderer", "dm-screen", "tailwind.config.cjs"),
+  path.join(projectRoot, "src", "app", "renderer", "dm-screen", "tailwind.config.cjs")
+];
+const jsSourceFiles = [
   path.join(projectRoot, "src", "app", "renderer", "dm-screen", "vite.config.mjs"),
   path.join(projectRoot, "src", "app", "renderer", "dm-screen", "src", "main.jsx")
 ];
@@ -28,11 +29,15 @@ function getMtimeMs(filePath) {
   return fs.statSync(filePath).mtimeMs;
 }
 
+function outputNeedsBuild(outputPath, sources) {
+  if (!fileExists(outputPath)) return true;
+  const outputMtime = getMtimeMs(outputPath);
+  return sources.some((filePath) => fileExists(filePath) && getMtimeMs(filePath) > outputMtime);
+}
+
 function needsBuild() {
   if (forceBuild) return true;
-  if (!fileExists(distCss) || !fileExists(distJs)) return true;
-  const outputMtime = Math.min(getMtimeMs(distCss), getMtimeMs(distJs));
-  return sourceFiles.some((filePath) => fileExists(filePath) && getMtimeMs(filePath) > outputMtime);
+  return outputNeedsBuild(distCss, cssSourceFiles) || outputNeedsBuild(distJs, jsSourceFiles);
 }
 
 function getNodeMajor(versionText) {

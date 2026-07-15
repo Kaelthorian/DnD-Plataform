@@ -15,6 +15,7 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - `src/app/preload`: API mínima expuesta como `window.dndSheet`.
 - `src/services`: disco, red local, traducción externa y vault de Obsidian.
 - `src/engine`: reglas aisladas y comprobables sin DOM.
+- `src/engine/combat`: economía de turno, acciones declarativas, resolución transaccional y combat log. Las tiradas y adaptadores de sheet permanecen en `src/app/renderer/index.html`.
 - `src/app/renderer`: hoja de personaje y DM Screen. Ambos contienen monolitos; extraer por subsistema, con pruebas, no mediante reescritura total.
 - `src/data`: datos propios declarativos.
 - `vendor/5etools-src-main`: snapshot externo de referencia y datos empaquetados. No editar por defecto.
@@ -26,6 +27,7 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - Live Sheet: es WebSocket local/Tailscale, guarda jugadores remotos solo en memoria y debe conservar validación, límites y token de sesión.
 - Electron: conservar `contextIsolation: true`, `nodeIntegration: false`, preload acotado, validación de rutas y protocolos externos permitidos.
 - Datos: no deduplicar nombres que solo difieren en puntuación; pueden representar entradas distintas.
+- Rendimiento de datos: conservar el worker/caché versionado de items y el índice en memoria; `localStorage` no es válido para catálogos grandes. Toda caché derivada debe invalidarse al cambiar sus JSON fuente.
 
 ## Comandos
 
@@ -45,6 +47,7 @@ No hay scripts de lint ni typecheck. `npm run publish:win` publica una release r
 ## Validación mínima
 
 - Cambio de código: prueba específica, `npm test`, `git diff --check` y revisión de `git diff`/`git status`.
+- Motor/ventana de combate: `node tests/engine/combat.test.js`, `node tests/renderer/combat-ui.test.js` y el smoke test de `docs/COMBAT.md`.
 - DM Screen: además `npm run build:dm-screen` y smoke test manual cuando cambie interacción o persistencia.
 - Datos de backgrounds: `node scripts/diagnose-backgrounds.js`.
 - Texto visible del jugador: `npm run test:i18n`; no aumentes las advertencias de hardcoded strings.

@@ -23,7 +23,7 @@ npm ci
 npm start
 ```
 
-`prestart` reconstruye el DM Screen solo si falta o está desactualizado. No cambies npm ni regeneres `package-lock.json` sin revisar el diff; el lockfile actual es versión 1.
+`prestart` reconstruye el DM Screen solo si falta o está desactualizado. `scripts/ensure-dm-screen-build.js` compara el CSS con sus fuentes Tailwind y el JavaScript con sus fuentes Vite de forma independiente; no vuelvas a usar la fecha más antigua de ambos outputs como una sola señal porque causa un rebuild en cada arranque. No cambies npm ni regeneres `package-lock.json` sin revisar el diff; el lockfile actual es versión 1.
 
 ## Variables de entorno
 

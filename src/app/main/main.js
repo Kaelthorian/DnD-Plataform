@@ -754,7 +754,7 @@ ipcMain.handle("feats:load", async () => {
 });
 
 ipcMain.handle("items:load", async () => {
-  return dataLoader.loadItems();
+  return dataLoader.loadItems(app.getPath("userData"));
 });
 
 ipcMain.handle("conditions-diseases:load", async () => {

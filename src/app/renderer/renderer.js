@@ -54,6 +54,16 @@
     const turnActionsBonusOrb = document.getElementById("turnActionsBonusOrb");
     const turnActionsActionLabel = document.getElementById("turnActionsActionLabel");
     const turnActionsBonusLabel = document.getElementById("turnActionsBonusLabel");
+    const turnActionsReactionOrb = document.getElementById("turnActionsReactionOrb");
+    const turnActionsMovementOrb = document.getElementById("turnActionsMovementOrb");
+    const turnActionsObjectOrb = document.getElementById("turnActionsObjectOrb");
+    const turnActionsAttacksCounter = document.getElementById("turnActionsAttacksCounter");
+    const turnActionsAttacksOrb = document.getElementById("turnActionsAttacksOrb");
+    const turnActionsEndTurn = document.getElementById("turnActionsEndTurn");
+    const combatResolution = document.getElementById("combatResolution");
+    const combatLogSection = document.getElementById("combatLogSection");
+    const combatLogList = document.getElementById("combatLogList");
+    const combatLogClear = document.getElementById("combatLogClear");
     const optionMenu = document.getElementById("optionMenu");
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
@@ -100,6 +110,10 @@
     let spells = [];
     let feats = [];
     let items = [];
+    let itemLookupByName = new Map();
+    let itemCatalogReady = false;
+    let itemCatalogReadyPromise = Promise.resolve(false);
+    let itemCatalogLoadMeta = {};
     let raceDetails = [];
     let backgroundDetails = [];
     let classDetails = [];
@@ -2138,7 +2152,7 @@
           Promise.try = (callback, ...args) => new Promise((resolve) => resolve(callback(...args)));
         }
         pdfjsLib = await import("../../../node_modules/pdfjs-dist/legacy/build/pdf.mjs");
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs";
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs", window.location.href).href;
       } catch (error) {
         throw new Error("No se encontro PDF.js. Ejecuta `npm install` en la carpeta del proyecto antes de abrir la app.");
       }
@@ -2307,8 +2321,18 @@
               return spellSource ? candidateSource === spellSource : true;
             })
             || detailsByName.get(normalizeName(spell?.name || ""))?.[0];
-          if (!detail?.time) return spell;
-          return { ...spell, time: detail.time };
+          if (!detail) return spell;
+          return {
+            ...spell,
+            time: detail.time || spell.time,
+            duration: detail.duration || spell.duration,
+            range: detail.range || spell.range,
+            components: detail.components || spell.components,
+            savingThrow: detail.savingThrow || spell.savingThrow,
+            miscTags: detail.miscTags || spell.miscTags,
+            areaTags: detail.areaTags || spell.areaTags,
+            concentration: Array.isArray(detail.duration) && detail.duration.some((duration) => duration?.concentration)
+          };
         });
     }
 
@@ -2335,6 +2359,45 @@
         items: itemsResponse,
         baseItems: baseItemsResponse
       };
+    }
+
+    function applyItemCatalogData(itemData) {
+      items = dedupeModernByName([
+        ...(Array.isArray(itemData?.baseItems?.baseitem) ? itemData.baseItems.baseitem : []),
+        ...(Array.isArray(itemData?.items?.item) ? itemData.items.item : [])
+      ], (item) => item?.name || "", (item) => item?.source || "");
+      itemProperties = Array.isArray(itemData?.baseItems?.itemProperty) ? itemData.baseItems.itemProperty : [];
+      itemTypes = Array.isArray(itemData?.baseItems?.itemType) ? itemData.baseItems.itemType : [];
+      itemMasteries = Array.isArray(itemData?.baseItems?.itemMastery) ? itemData.baseItems.itemMastery : [];
+      itemLookupByName = new Map();
+      items.forEach((item) => {
+        const key = normalizeItemLookupName(item?.name || "");
+        if (key && !itemLookupByName.has(key)) itemLookupByName.set(key, item);
+      });
+      itemCatalogLoadMeta = itemData?.cacheMeta || {};
+      itemCatalogReady = true;
+      return true;
+    }
+
+    async function waitForItemCatalog() {
+      try {
+        return await itemCatalogReadyPromise;
+      } catch (_error) {
+        return false;
+      }
+    }
+
+    async function runWithConcurrency(itemsList, limit, task) {
+      const queue = Array.from(itemsList || []);
+      let cursor = 0;
+      const workerCount = Math.max(1, Math.min(Number(limit) || 1, queue.length || 1));
+      await Promise.all(Array.from({ length: workerCount }, async () => {
+        while (cursor < queue.length) {
+          const index = cursor;
+          cursor += 1;
+          await task(queue[index], index);
+        }
+      }));
     }
 
     async function loadConditionOptions() {
@@ -2586,7 +2649,7 @@
       schedulePanelRefresh(refreshTurnActionsPanelIfVisible);
     }
 
-    async function renderPage(pdf, pageNumber) {
+    async function renderPage(pdf, pageNumber, mountMarker = null) {
       const page = await pdf.getPage(pageNumber);
       const baseViewport = page.getViewport({ scale: 1 });
       const scale = BASE_WIDTH / baseViewport.width;
@@ -2616,7 +2679,8 @@
       layer.className = "field-layer";
       layer.autocomplete = "off";
       pageNode.appendChild(layer);
-      app.appendChild(pageNode);
+      if (mountMarker?.parentNode) mountMarker.replaceWith(pageNode);
+      else app.appendChild(pageNode);
 
       await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
 
@@ -2651,7 +2715,14 @@
           }
         }, { once: true });
       }
-      const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, spellActionMetadata, featData, optionalFeatureData, itemData, conditionData, languageData] = await Promise.all([
+      itemCatalogReadyPromise = loadItemOptions()
+        .then(applyItemCatalogData)
+        .catch((error) => {
+          console.error("Item catalog failed to load", error);
+          itemCatalogReady = false;
+          return false;
+        });
+      const [raceOptions, raceDetailData, backgroundOptions, backgroundDetailData, classOptions, classDetailData, spellOptions, spellActionMetadata, featData, optionalFeatureData, conditionData, languageData] = await Promise.all([
         loadRaceOptions(),
         loadRaceDetails(),
         loadBackgroundOptions(),
@@ -2662,7 +2733,6 @@
         loadSpellActionMetadata(),
         loadFeatOptions(),
         loadOptionalFeatureOptions(),
-        loadItemOptions(),
         loadConditionOptions(),
         loadLanguageOptions()
       ]);
@@ -2679,23 +2749,19 @@
       classDetails = classDetailData;
       feats = dedupeModernByName(Array.isArray(featData?.feat) ? featData.feat : [], (feat) => feat?.name || "", (feat) => feat?.source || "");
       optionalFeatures = dedupeModernByName(Array.isArray(optionalFeatureData?.optionalfeature) ? optionalFeatureData.optionalfeature : [], (feature) => feature?.name || "", (feature) => feature?.source || "");
-      items = dedupeModernByName([
-        ...(Array.isArray(itemData?.baseItems?.baseitem) ? itemData.baseItems.baseitem : []),
-        ...(Array.isArray(itemData?.items?.item) ? itemData.items.item : [])
-      ], (item) => item?.name || "", (item) => item?.source || "");
-      itemProperties = Array.isArray(itemData?.baseItems?.itemProperty) ? itemData.baseItems.itemProperty : [];
-      itemTypes = Array.isArray(itemData?.baseItems?.itemType) ? itemData.baseItems.itemType : [];
-      itemMasteries = Array.isArray(itemData?.baseItems?.itemMastery) ? itemData.baseItems.itemMastery : [];
       globalThis.dndConditionEngine?.setExternalConditionEntries?.(conditionData);
       languages = Array.isArray(languageData?.language) ? languageData.language : [];
 
       const pdfBytes = await loadPdfBytes();
-      const pdf = await pdfjsLib.getDocument({ data: pdfBytes, disableWorker: true }).promise;
-
-      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-        if (HIDDEN_PDF_PAGES.has(pageNumber)) continue;
-        await renderPage(pdf, pageNumber);
-      }
+      const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+      const visiblePages = Array.from({ length: pdf.numPages }, (_item, index) => index + 1)
+        .filter((pageNumber) => !HIDDEN_PDF_PAGES.has(pageNumber));
+      const pageMarkers = visiblePages.map((pageNumber) => {
+        const marker = document.createComment(`sheet-page-${pageNumber}`);
+        app.appendChild(marker);
+        return { pageNumber, marker };
+      });
+      await runWithConcurrency(pageMarkers, 2, ({ pageNumber, marker }) => renderPage(pdf, pageNumber, marker));
 
       applyData(await loadData());
       syncAutoCantrips();
@@ -2711,6 +2777,16 @@
       updateInteractionState();
       syncSettingsControls();
       setupUpdaterUi();
+      void itemCatalogReadyPromise.then((loaded) => {
+        if (!loaded) return;
+        updateEquipmentPanel();
+        updateArmorClass();
+        updatePreparedSpellsPanel();
+        renderAlertsPanel();
+        invalidateCombatActionCache?.("item-catalog-ready");
+        scheduleCombatActionCacheWarmup?.();
+        scheduleTurnActionsPanelRefresh();
+      });
       topControlsLauncher?.addEventListener("pointerdown", (event) => {
         event.stopPropagation();
       });
@@ -2767,10 +2843,12 @@
       characterReadyButton?.addEventListener("click", toggleCharacterReady);
       turnActionsButton?.addEventListener("click", () => {
         globalThis.dndRestRuntime?.interrupt?.("initiative");
-        openTurnActionsPanel();
+        openTurnActionsPanel().catch(console.error);
       });
       turnActionsClose?.addEventListener("click", closeTurnActionsPanel);
       turnActionsNewTurn?.addEventListener("click", startNewCombatTurn);
+      turnActionsEndTurn?.addEventListener("click", requestEndCombatTurn);
+      combatLogClear?.addEventListener("click", clearCombatLog);
       turnActionsBackdrop?.addEventListener("click", (event) => {
         if (event.target === turnActionsBackdrop) closeTurnActionsPanel();
       });
@@ -2813,6 +2891,10 @@
       });
       app.addEventListener("input", scheduleTurnActionsPanelRefresh);
       app.addEventListener("change", scheduleTurnActionsPanelRefresh);
+      app.addEventListener("input", () => globalThis.invalidateCombatActionCache?.("field-input"));
+      app.addEventListener("change", () => globalThis.invalidateCombatActionCache?.("field-change"));
+      app.addEventListener("input", () => globalThis.scheduleCombatActionCacheWarmup?.());
+      app.addEventListener("change", () => globalThis.scheduleCombatActionCacheWarmup?.());
       app.addEventListener("change", handleSpellAvailabilityChange);
       itemDrawerClose.addEventListener("click", closeItemDrawer);
       itemPickerClose?.addEventListener("click", closeItemPicker);

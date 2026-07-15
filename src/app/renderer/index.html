@@ -215,9 +215,34 @@
           <span class="turn-actions-orb" id="turnActionsBonusOrb">1</span>
           <span id="turnActionsBonusLabel" data-i18n="turn.bonusActions">Bonus actions</span>
         </div>
+        <div class="turn-actions-counter">
+          <span class="turn-actions-orb" id="turnActionsReactionOrb">1</span>
+          <span data-i18n="turn.reaction">Reaction</span>
+        </div>
+        <div class="turn-actions-counter">
+          <span class="turn-actions-orb wide" id="turnActionsMovementOrb">30/30</span>
+          <span data-i18n="turn.movement">Movement</span>
+        </div>
+        <div class="turn-actions-counter">
+          <span class="turn-actions-orb" id="turnActionsObjectOrb">1</span>
+          <span data-i18n="turn.objectInteraction">Object</span>
+        </div>
+        <div class="turn-actions-counter" id="turnActionsAttacksCounter" hidden>
+          <span class="turn-actions-orb" id="turnActionsAttacksOrb">1</span>
+          <span data-i18n="turn.attacksRemaining">Attacks</span>
+        </div>
         <button class="turn-actions-new-turn" id="turnActionsNewTurn" type="button" data-i18n="turn.newTurn">New turn</button>
+        <button class="turn-actions-end-turn" id="turnActionsEndTurn" type="button" data-i18n="turn.endTurn">End Turn</button>
       </div>
+      <section class="combat-resolution" id="combatResolution" hidden aria-live="polite"></section>
       <div class="turn-actions-body" id="turnActionsBody"></div>
+      <section class="combat-log" id="combatLogSection">
+        <div class="combat-log-header">
+          <h3 data-i18n="turn.combatLog">Combat Log</h3>
+          <button type="button" id="combatLogClear" data-i18n="turn.clearLog">Clear</button>
+        </div>
+        <div class="combat-log-list" id="combatLogList"></div>
+      </section>
     </aside>
   </div>
   <div class="character-import-backdrop" id="characterImportBackdrop" aria-hidden="true" hidden>
@@ -245,6 +270,10 @@
 
   <script src="../../engine/conditions/statuses.js"></script>
   <script src="../../engine/actions/action-advisor.js"></script>
+  <script src="../../engine/combat/turn-economy.js"></script>
+  <script src="../../engine/combat/action-definitions.js"></script>
+  <script src="../../engine/combat/resolution-engine.js"></script>
+  <script src="../../engine/combat/combat-log.js"></script>
   <script src="../../engine/resources/resource-state.js"></script>
   <script src="../../engine/resources/sorcery-points.js"></script>
   <script src="../../engine/rests/rest-state.js"></script>
@@ -314,7 +343,52 @@
       createActionRegistry,
       groupActionsByType
     } = globalThis.dndActionAdvisorEngine;
+    const {
+      normalizeTurnEconomy,
+      createTurnEconomy,
+      startTurn,
+      endTurn,
+      projectedTurnEconomy,
+      validateAction: validateCombatAction,
+      attacksRemaining: combatAttacksRemaining
+    } = globalThis.dndTurnEconomyEngine;
+    const {
+      RESOLUTION_STEPS,
+      ACTION_CATEGORIES,
+      createUniversalActionDefinitions,
+      createAttackActionDefinition,
+      createSpellActionDefinition,
+      maxAttacksFromFeatureText
+    } = globalThis.dndCombatActionDefinitions;
+    const {
+      createResolution: createCombatResolution,
+      beginProcessing: beginCombatProcessing,
+      finishProcessing: finishCombatProcessing,
+      recordTarget: recordCombatTarget,
+      recordAttackRoll: recordCombatAttackRoll,
+      resolveAttackOutcome: resolveCombatAttackOutcome,
+      recordSavingThrow: recordCombatSavingThrow,
+      recordAbilityCheck: recordCombatAbilityCheck,
+      recordDamageRoll: recordCombatDamageRoll,
+      confirmConcentrationReplacement,
+      validateResolutionForConfirmation: validateCombatResolutionForConfirmation,
+      confirmResolution: confirmCombatResolution,
+      cancelResolution: cancelCombatResolution
+    } = globalThis.dndCombatResolutionEngine;
+    const {
+      createCombatLogEvent,
+      appendCombatLog,
+      formatCombatLogEvent
+    } = globalThis.dndCombatLogEngine;
     const turnActionRegistry = createActionRegistry();
+    const COMBAT_LOG_KEY = "dnd-character-sheet-combat-log-v1";
+    const COMBAT_LOG_LIMIT = 100;
+    let activeCombatResolution = null;
+    let combatLogEntries = loadCombatLogEntries();
+    let combatCollectionMemo = null;
+    let combatActionCache = null;
+    let combatActionCacheRevision = 0;
+    const combatPerformanceSamples = [];
     let statusDock = null;
     let statusSearchQuery = "";
     const pendingCriticalHits = new Set();
@@ -3249,22 +3323,24 @@
       return candidates.find((info) => info.remaining > 0) || candidates[0] || null;
     }
 
-    function spendClassFreeSpellUse(spellName) {
+    function spendClassFreeSpellUse(spellName, { deferUi = false } = {}) {
       const grant = classFreeSpellUseGrantForSpell(spellName);
       const result = spendResourceUse({ key: grant?.key, max: 1, state: featureUseState() });
       if (!result.changed) return false;
       sheetMeta.featureUses = result.state;
       showStatus(`${spellName}: casteada con uso gratis de ${grant.sourceLabel}. Uso gratis: 0/1`);
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      if (!deferUi) {
+        updatePreparedSpellsPanel();
+        scheduleSave();
+      }
       return true;
     }
 
-    function spendFreeSpellUse(spellName) {
+    function spendFreeSpellUse(spellName, options = {}) {
       const info = freeSpellUseInfo(spellName);
       if (!info?.remaining) return false;
-      if (info.grant?.fromMagicInitiate) return spendMagicInitiateFreeUse(spellName);
-      if (info.grant?.fromClassFeature) return spendClassFreeSpellUse(spellName);
+      if (info.grant?.fromMagicInitiate) return spendMagicInitiateFreeUse(spellName, options);
+      if (info.grant?.fromClassFeature) return spendClassFreeSpellUse(spellName, options);
       return false;
     }
 
@@ -3831,7 +3907,7 @@
     }
 
     function selectedFightingStyleNames() {
-      return selectedFeatureChoiceEntries()
+      return combatMemoValue("selected-fighting-style-names", () => selectedFeatureChoiceEntries()
         .filter((entry) => entry.type === "feat" || entry.type === "optionalfeature")
         .map((entry) => (
           entry.type === "optionalfeature"
@@ -3846,7 +3922,7 @@
             || /^fighting style/i.test(name);
         })
         .map((name) => String(name).replace(/^Fighting Style:\s*/i, ""))
-        .map(normalizeName);
+        .map(normalizeName));
     }
 
     function hasFightingStyle(name) {
@@ -3900,8 +3976,8 @@
     }
 
     function equippedArmorWithoutProficiency() {
-      return equippedEntries()
-        .some(({ item, record }) => ["armor", "offHand"].includes(record.slot) && (isArmorItem(item) || isShieldItem(item)) && !hasEquipmentProficiency(item));
+      return combatMemoValue("equipped-armor-without-proficiency", () => equippedEntries()
+        .some(({ item, record }) => ["armor", "offHand"].includes(record.slot) && (isArmorItem(item) || isShieldItem(item)) && !hasEquipmentProficiency(item)));
     }
 
     function armorProficiencyPenaltyText() {
@@ -3925,6 +4001,11 @@
       else if (slot === "offHand") nameParts.push("Off");
       if (thrownAttack && itemTypeAbbreviation(item) !== "R") nameParts.push("Lanzada");
       const styleLabels = fightingStyleDamageLabels(item, slot, record, attackMode);
+      const abilityKey = itemTypeAbbreviation(item) === "R" || hasItemProperty(item, "F") ? "DEX" : "STR";
+      const ammoName = item?.ammoType ? itemNameFromRef(item.ammoType) : "";
+      const ammoEntry = ammoName
+        ? equipmentEntries().find((candidate) => normalizeItemLookupName(candidate.displayName) === normalizeItemLookupName(ammoName)) || null
+        : null;
       return {
         name: `${item.name || entry.displayName}${nameParts.length ? ` (${nameParts.join(", ")})` : ""}`,
         item,
@@ -3932,6 +4013,13 @@
         damageLabel: damageExpression,
         damageType: (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase(),
         description: itemDescriptionText(item),
+        range: item.range || (hasItemProperty(item, "R") ? "10 ft" : "5 ft"),
+        properties: itemPropertiesLine(item),
+        ability: abilityKey,
+        proficient,
+        ammoName,
+        ammoEntry,
+        ammoRemaining: ammoEntry?.quantity ?? (ammoName ? 0 : null),
         actionType: slot === "offHand" ? ACTION_TYPES.bonus : ACTION_TYPES.action,
         actionCostLabel: slot === "offHand" ? "Consume: Accion Bonus (two-weapon fighting)." : "Consume: Accion.",
         attackBonus: ability + prof + fightingStyleAttackBonus(item),
@@ -3973,10 +4061,11 @@
     }
 
     function featureGrantedAttackSelections() {
-      const rows = [];
-      const entries = generatedFeaturesAndTraitsEntries();
-      const seen = new Set();
-      entries.forEach((entry) => {
+      return combatMemoValue("feature-granted-attack-selections", () => {
+        const rows = [];
+        const entries = generatedFeaturesAndTraitsEntries();
+        const seen = new Set();
+        entries.forEach((entry) => {
         if (entry.type === "raceChoice" || entry.type === "raceChoiceControl") return;
         const description = String(entry.description || flattenEntryText(entry.feature?.entries || entry.optionalFeature?.entries || "") || "");
         const title = entry.feature?.name || entry.optionalFeature?.name || entry.title || "";
@@ -4060,8 +4149,9 @@
           usesMax,
           level: 0
         });
+        });
+        return rows;
       });
-      return rows;
     }
 
     function activeFeatureState() {
@@ -4241,14 +4331,16 @@
       });
     }
 
-    function spendMagicInitiateFreeUse(spellName) {
+    function spendMagicInitiateFreeUse(spellName, { deferUi = false } = {}) {
       const grant = magicInitiateGrantForSpell(spellName);
       const result = spendMagicInitiateUse({ grant, state: featureUseState() });
       if (!result.changed) return false;
       sheetMeta.featureUses = result.state;
       showStatus(`${spellName}: casteada por Magic Initiate. Uso gratis: 0/1`);
-      updatePreparedSpellsPanel();
-      scheduleSave();
+      if (!deferUi) {
+        updatePreparedSpellsPanel();
+        scheduleSave();
+      }
       return true;
     }
 
@@ -4409,28 +4501,20 @@
       if (spell.level <= 0) {
         const statusResult = activateSpellStatuses(spell.sourceName || spell.name, spell.name);
         if (familiar) showFamiliarNote(familiar);
-        if (statusResult.activated) {
-          updateDerivedStats();
-          scheduleSave();
-          showStatus(`${spell.name}: status activo`);
-        } else if (familiar) {
-          showStatus(`${spell.name}: ${familiar.name} invocado`);
-        } else {
-          showStatus(options.quickened ? t("sorcery.quickenedCast", { spell: spell.name }) : `${spell.name}: cantrip, no gasta spell slot`);
-        }
-        recordSuccessfulSpellCast(spell, options);
+        if (statusResult.activated) showStatus(`${spell.name}: status activo`);
+        else if (familiar) showStatus(`${spell.name}: ${familiar.name} invocado`);
+        else showStatus(options.quickened ? t("sorcery.quickenedCast", { spell: spell.name }) : `${spell.name}: cantrip, no gasta spell slot`);
+        recordSuccessfulSpellCast(spell, { ...options, statusChanged: statusResult.activated });
         return true;
       }
       const castLevel = Math.max(spell.level, spell.castLevel || spell.level);
       const sourceName = spell.sourceName || spell.name;
-      if (castLevel === spell.level && freeSpellUseInfo(sourceName)?.remaining > 0 && spendFreeSpellUse(sourceName)) {
+      if (castLevel === spell.level && freeSpellUseInfo(sourceName)?.remaining > 0 && spendFreeSpellUse(sourceName, options)) {
         const statusResult = activateSpellStatuses(sourceName, spell.name);
         if (familiar) showFamiliarNote(familiar);
-        updateDerivedStats();
-        scheduleSave();
         if (statusResult.activated) showStatus(`${spell.name}: status activo`);
         else if (familiar) showStatus(`${spell.name}: ${familiar.name} invocado`);
-        recordSuccessfulSpellCast(spell, options);
+        recordSuccessfulSpellCast(spell, { ...options, statusChanged: statusResult.activated });
         return true;
       }
       if (!spendSpellSlot(castLevel)) {
@@ -4448,10 +4532,7 @@
         : statusResult.activated
         ? `${spell.name}: status activo. Slots nivel ${castLevel}: ${remaining}/${total}`
         : `${spell.name} casteada a nivel ${castLevel}. Slots nivel ${castLevel}: ${remaining}/${total}`);
-      updateDerivedStats();
-      updatePreparedSpellsPanel();
-      scheduleSave();
-      recordSuccessfulSpellCast(spell, options);
+      recordSuccessfulSpellCast(spell, { ...options, statusChanged: statusResult.activated });
       return true;
     }
 
@@ -4460,9 +4541,18 @@
       if (spell?.level > 0) state.levelOnePlusSpellCast = true;
       if (options.quickened) {
         state.quickenedSpellUsed = true;
-        state.spent.bonus = (Number.parseInt(state.spent.bonus || 0, 10) || 0) + 1;
+        state.bonusActionsRemaining = Math.max(0, (Number.parseInt(state.bonusActionsRemaining || 0, 10) || 0) - 1);
       }
-      refreshTurnActionsPanel();
+      invalidateCombatActionCache("spell-cast");
+      if (options.deferUi) return;
+      if (options.statusChanged) {
+        updateArmorClass();
+        updateSpeed();
+        renderStatusDock();
+      }
+      updatePreparedSpellsPanel();
+      renderAlertsPanel();
+      scheduleTurnActionsPanelRefresh();
       scheduleSave();
     }
 
@@ -5536,7 +5626,7 @@
 
     function currentSpeedFeet() {
       const parsed = Number.parseInt(fieldValue("Speed") || "", 10);
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : 30;
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 30;
     }
 
     function unarmedTurnActionSelection() {
@@ -5587,26 +5677,28 @@
     }
 
     function castableSpellSelections() {
-      const selected = castableSpellFieldSelections();
-      const seen = new Set(selected.map((entry) => normalizeName(entry.name)));
-      autoAlwaysPreparedSpellNames().forEach((spellName) => {
-        if (seen.has(normalizeName(spellName))) return;
-        const spell = findSpellByName(spellName);
-        selected.push({
-          name: spellName,
-          spell: spell || { name: spellName, level: 1, time: [] },
-          level: spell?.level ?? 1
+      return combatMemoValue("castable-spell-selections", () => {
+        const selected = castableSpellFieldSelections();
+        const seen = new Set(selected.map((entry) => normalizeName(entry.name)));
+        autoAlwaysPreparedSpellNames().forEach((spellName) => {
+          if (seen.has(normalizeName(spellName))) return;
+          const spell = findSpellByName(spellName);
+          selected.push({
+            name: spellName,
+            spell: spell || { name: spellName, level: 1, time: [] },
+            level: spell?.level ?? 1
+          });
         });
+        const deduped = [];
+        const emitted = new Set();
+        selected.forEach((entry) => {
+          const key = normalizeName(entry.name);
+          if (!key || emitted.has(key)) return;
+          emitted.add(key);
+          deduped.push(entry);
+        });
+        return deduped.sort((left, right) => left.level - right.level || left.name.localeCompare(right.name));
       });
-      const deduped = [];
-      const emitted = new Set();
-      selected.forEach((entry) => {
-        const key = normalizeName(entry.name);
-        if (!key || emitted.has(key)) return;
-        emitted.add(key);
-        deduped.push(entry);
-      });
-      return deduped.sort((left, right) => left.level - right.level || left.name.localeCompare(right.name));
     }
 
     function spellActionTypes(spell) {
@@ -5633,7 +5725,7 @@
       }
       const remaining = spellSlotRemaining(spellEntry.level);
       const total = spellSlotTotal(spellEntry.level);
-      if (remaining <= 0) return { available: false };
+      if (remaining <= 0) return { available: false, reason: `No spell slot level ${spellEntry.level} remaining.` };
       return {
         available: true,
         shortLabel: `slot nivel ${spellEntry.level}`,
@@ -5653,13 +5745,13 @@
     }
 
     function featureAttackRowsByName() {
-      return featureGrantedAttackSelections().reduce((map, row) => {
+      return combatMemoValue("feature-attack-rows-by-name", () => featureGrantedAttackSelections().reduce((map, row) => {
         const key = normalizeName(row.name || "");
         if (!key) return map;
         if (!map.has(key)) map.set(key, []);
         map.get(key).push(row);
         return map;
-      }, new Map());
+      }, new Map()));
     }
 
     function featureActionItemsFromEntries(entries = [], sourceLabel = "", context = {}) {
@@ -5684,13 +5776,26 @@
           uses ? `${uses.remaining}/${uses.max} usos` : Number.isFinite(usesMax) ? `${usesMax} usos` : "",
           turnActionShortDescription(description)
         ].filter(Boolean);
-        return actionTypes.map((type) => ({
-          key: `${sourceLabel}:${type}:${normalizeName(name)}`,
-          type,
-          title: `Usar ${name}`,
-          detail: detailParts.join("\n"),
-          source: sourceLabel
-        }));
+        return actionTypes.map((type) => {
+          const base = attackRow && Number.isFinite(Number(attackRow.attackBonus))
+            ? createAttackActionDefinition({ ...attackRow, actionType: type }, {
+              id: `${sourceLabel}:${type}:${normalizeName(name)}`,
+              name: `Use ${name}`,
+              category: ACTION_CATEGORIES.attacks
+            })
+            : {};
+          return {
+            ...base,
+            key: `${sourceLabel}:${type}:${normalizeName(name)}`,
+            type,
+            title: `Use ${name}`,
+            detail: detailParts.join("\n"),
+            resourceRow: uses ? { ...resourceRow } : null,
+            resourceInfo: uses ? { name, ...uses } : null,
+            oncePerTurnKey: normalizeName(name).includes("sneak attack") ? "sneak-attack" : "",
+            source: sourceLabel
+          };
+        });
       });
     }
 
@@ -5702,7 +5807,7 @@
     }
 
     function turnActionEntriesForLookups() {
-      return [...generatedFeaturesAndTraitsEntries(), ...activeFeatEntriesForEffects()];
+      return combatMemoValue("turn-action-entries", () => [...generatedFeaturesAndTraitsEntries(), ...activeFeatEntriesForEffects()]);
     }
 
     function findTurnActionEntryByNames(names = [], entries = turnActionEntriesForLookups()) {
@@ -5737,6 +5842,18 @@
       };
     }
 
+    function combatOptionalDamageChoices() {
+      return featureGrantedAttackSelections()
+        .filter((row) => normalizeName(row.name).includes("sneak attack") && row.damage)
+        .map((row) => ({
+          key: "sneak-attack",
+          name: row.name,
+          damage: row.damage,
+          oncePerTurnKey: "sneak-attack",
+          description: row.description || "Apply only when Sneak Attack requirements are satisfied."
+        }));
+    }
+
     function currentSorceryPointData() {
       const sorcererLevel = sorcererLevelForCharacter();
       const legacyKey = normalizeName("resource:Sorcery Points");
@@ -5750,8 +5867,9 @@
     }
 
     function refreshSorceryPointUi() {
+      invalidateCombatActionCache("sorcery-points");
       updatePreparedSpellsPanel();
-      if (typeof refreshTurnActionsPanel === "function") refreshTurnActionsPanel();
+      if (typeof scheduleTurnActionsPanelRefresh === "function") scheduleTurnActionsPanelRefresh();
     }
 
     function spendSheetSorceryPoints(amount, { quiet = false } = {}) {
@@ -5973,6 +6091,9 @@
         detail: detailParts.filter(Boolean).join("\n"),
         activatesFeatureKey: activatedEntry ? activationKeyForEntry(activatedEntry) : "",
         activatesFeatureName: activatedEntry ? turnActionEntryName(activatedEntry) : "",
+        resourceRow: resource?.info ? { key: resource.key, name: resource.name, usesMax: resource.info.max } : null,
+        resourceInfo: resource?.info ? { name: resource.name, ...resource.info } : null,
+        effect: normalizeName(definition.title) === "action surge" ? "actionSurge" : definition.effect || "",
         source: definition.source || "derived"
       };
     }
@@ -6265,7 +6386,52 @@
         .filter(Boolean);
     }
 
-    function turnActionResourceSummaries() {
+    function combatMemoValue(key, factory) {
+      if (!combatCollectionMemo) return factory();
+      if (!combatCollectionMemo.has(key)) combatCollectionMemo.set(key, factory());
+      return combatCollectionMemo.get(key);
+    }
+
+    function withCombatCollectionMemo(factory) {
+      if (combatCollectionMemo) return factory();
+      combatCollectionMemo = new Map();
+      try {
+        return factory();
+      } finally {
+        combatCollectionMemo = null;
+      }
+    }
+
+    function invalidateCombatActionCache(_reason = "state-change") {
+      combatActionCacheRevision += 1;
+      combatActionCache = null;
+    }
+
+    globalThis.invalidateCombatActionCache = invalidateCombatActionCache;
+
+    let combatCacheWarmupTimer = 0;
+    let combatCacheWarmupIdle = 0;
+    function scheduleCombatActionCacheWarmup() {
+      clearTimeout(combatCacheWarmupTimer);
+      if (combatCacheWarmupIdle && typeof cancelIdleCallback === "function") cancelIdleCallback(combatCacheWarmupIdle);
+      combatCacheWarmupTimer = setTimeout(() => {
+        const warm = () => {
+          combatCacheWarmupIdle = 0;
+          if (!itemCatalogReady || activeCombatResolution || turnActionsBackdrop?.classList.contains("visible")) return;
+          try {
+            collectCurrentTurnActions();
+          } catch (error) {
+            console.warn("Combat cache warmup failed", error);
+          }
+        };
+        if (typeof requestIdleCallback === "function") combatCacheWarmupIdle = requestIdleCallback(warm, { timeout: 1200 });
+        else requestAnimationFrame(warm);
+      }, 350);
+    }
+
+    globalThis.scheduleCombatActionCacheWarmup = scheduleCombatActionCacheWarmup;
+
+    function turnActionResourceSummaries(entries = null) {
       const resources = [];
       for (let level = 1; level <= 9; level += 1) {
         const total = spellSlotTotal(level);
@@ -6305,8 +6471,7 @@
           source: "features"
         });
       }
-      generatedFeaturesAndTraitsEntries()
-        .concat(activeFeatEntriesForEffects())
+      (entries || turnActionEntriesForLookups())
         .forEach((entry) => {
           const name = turnActionEntryName(entry);
           const description = turnActionEntryDescription(entry);
@@ -6331,54 +6496,153 @@
     }
 
     function buildTurnActionContext() {
+      const turnActionEntries = turnActionEntriesForLookups();
+      const effects = activeStatusEffects();
+      const speed = currentSpeedFeet();
+      const maxAttacksPerAttackAction = combatMaximumAttacks(turnActionEntries);
+      const combatState = combatTurnState({ effects, speed, maxAttacksPerAttackAction });
       return {
         featureAttackRowsByName: featureAttackRowsByName(),
         castableSpells: castableSpellSelections(),
-        turnActionEntries: turnActionEntriesForLookups()
+        turnActionEntries,
+        speed,
+        prone: ensureActiveStatusIds().includes("prone"),
+        maxAttacksPerAttackAction,
+        readyAction: combatState.readyAction,
+        effects,
+        combatState
       };
     }
 
-    function collectCurrentTurnActions() {
-      return turnActionRegistry.collect(buildTurnActionContext());
+    function combatMaximumAttacks(entries = null) {
+      return combatMemoValue("combat-maximum-attacks", () => maxAttacksFromFeatureText((entries || turnActionEntriesForLookups()).map((entry) => ({
+        description: `${turnActionEntryName(entry)}\n${turnActionEntryDescription(entry)}`
+      })), getCharacterLevel()));
     }
 
-    function combatTurnState() {
-      if (!sheetMeta.combatTurn || typeof sheetMeta.combatTurn !== "object") {
-        sheetMeta.combatTurn = {
-          active: true,
-          turn: 1,
-          spent: { action: 0, bonus: 0 },
-          levelOnePlusSpellCast: false,
-          quickenedSpellUsed: false
+    function combatActionCostFromType(type) {
+      if (type === ACTION_TYPES.bonus) return [{ type: "bonusAction", amount: 1 }];
+      if (type === ACTION_TYPES.reaction) return [{ type: "reaction", amount: 1 }];
+      if (type === ACTION_TYPES.objectInteraction) return [{ type: "objectInteraction", amount: 1 }];
+      if (type === ACTION_TYPES.none || type === ACTION_TYPES.movement) return [];
+      return [{ type: "action", amount: 1 }];
+    }
+
+    function combatCategoryForAction(action) {
+      if (action.category) return action.category;
+      if (action.type === ACTION_TYPES.bonus) return ACTION_CATEGORIES.bonusActions;
+      if (action.type === ACTION_TYPES.reaction) return ACTION_CATEGORIES.reactions;
+      if (action.type === ACTION_TYPES.movement) return ACTION_CATEGORIES.movement;
+      if (action.source === "spells") return ACTION_CATEGORIES.spells;
+      if (action.source === "equipment") return ACTION_CATEGORIES.attacks;
+      if (["class", "race", "background", "feat", "derived"].includes(action.source)) return ACTION_CATEGORIES.features;
+      return ACTION_CATEGORIES.actions;
+    }
+
+    function enrichCombatAction(action, runtime = {}) {
+      const actionCost = Array.isArray(action.actionCost) && action.actionCost.length
+        ? action.actionCost
+        : combatActionCostFromType(action.type);
+      const enriched = {
+        ...action,
+        actionCost,
+        category: combatCategoryForAction(action),
+        resolutionSteps: Array.isArray(action.resolutionSteps) && action.resolutionSteps.length
+          ? action.resolutionSteps
+          : [RESOLUTION_STEPS.confirmResult]
+      };
+      if (!enriched.effect && normalizeName(enriched.title).includes("action surge")) enriched.effect = "actionSurge";
+      const effects = runtime.effects || activeStatusEffects();
+      const costTypes = new Set(actionCost.map((cost) => cost.type));
+      if (!enriched.disabledReason && effects.actionsBlocked && costTypes.has("action")) enriched.disabledReason = "You are Incapacitated.";
+      if (!enriched.disabledReason && effects.bonusActionsBlocked && costTypes.has("bonusAction")) enriched.disabledReason = "You are Incapacitated.";
+      if (!enriched.disabledReason && effects.reactionsBlocked && costTypes.has("reaction")) enriched.disabledReason = "You cannot take Reactions.";
+      const validation = validateCombatAction(runtime.combatState || combatTurnState(), enriched);
+      if (!validation.ok && !enriched.disabledReason) enriched.disabledReason = validation.reason;
+      return enriched;
+    }
+
+    function collectCurrentTurnActions({ fresh = false } = {}) {
+      if (!fresh && combatActionCache?.revision === combatActionCacheRevision) {
+        combatPerformanceSamples.unshift({ phase: "collect", cached: true, durationMs: 0, at: Date.now() });
+        return combatActionCache.value;
+      }
+      const startedAt = performance.now();
+      const value = withCombatCollectionMemo(() => {
+        const context = buildTurnActionContext();
+        const providerTimings = [];
+        context.onProviderTiming = (timing) => providerTimings.push(timing);
+        const summary = turnActionRegistry.collect(context);
+        return {
+          ...summary,
+          actions: summary.actions.map((action) => enrichCombatAction(action, context)),
+          combatState: context.combatState,
+          effects: context.effects,
+          providerTimings
         };
+      });
+      combatActionCache = { revision: combatActionCacheRevision, value };
+      combatPerformanceSamples.unshift({ phase: "collect", cached: false, durationMs: performance.now() - startedAt, providerTimings: value.providerTimings, at: Date.now() });
+      combatPerformanceSamples.splice(30);
+      return value;
+    }
+
+    globalThis.dndCombatPerformance = {
+      samples: () => combatPerformanceSamples.map((sample) => ({ ...sample })),
+      clear: () => { combatPerformanceSamples.length = 0; },
+      itemCatalog: () => ({ ready: itemCatalogReady, ...itemCatalogLoadMeta })
+    };
+
+    function combatTurnState(overrides = {}) {
+      const effects = overrides.effects || activeStatusEffects();
+      const speed = Number.isFinite(overrides.speed) ? overrides.speed : currentSpeedFeet();
+      const maxAttacksPerAttackAction = Number.isFinite(overrides.maxAttacksPerAttackAction)
+        ? overrides.maxAttacksPerAttackAction
+        : combatMaximumAttacks();
+      if (!sheetMeta.combatTurn || typeof sheetMeta.combatTurn !== "object") {
+        sheetMeta.combatTurn = createTurnEconomy({
+          speed,
+          maxAttacksPerAttackAction,
+          prone: ensureActiveStatusIds().includes("prone"),
+          effects: {
+            actionsBlocked: effects.actionsBlocked,
+            bonusActionsBlocked: effects.bonusActionsBlocked,
+            reactionsBlocked: effects.reactionsBlocked
+          }
+        });
+      } else {
+        sheetMeta.combatTurn = normalizeTurnEconomy(sheetMeta.combatTurn, {
+          speed,
+          maxAttacksPerAttackAction
+        });
       }
-      if (!sheetMeta.combatTurn.spent || typeof sheetMeta.combatTurn.spent !== "object") {
-        sheetMeta.combatTurn.spent = { action: 0, bonus: 0 };
-      }
-      sheetMeta.combatTurn.levelOnePlusSpellCast = Boolean(sheetMeta.combatTurn.levelOnePlusSpellCast);
-      sheetMeta.combatTurn.quickenedSpellUsed = Boolean(sheetMeta.combatTurn.quickenedSpellUsed);
       return sheetMeta.combatTurn;
     }
 
-    function turnActionTotals(actions = []) {
-      const hasActions = actions.some((action) => action.type === ACTION_TYPES.action);
-      const effects = activeStatusEffects();
+    function turnActionTotals(actions = [], stateOverride = null) {
+      const state = stateOverride || combatTurnState();
       return {
-        action: effects.actionsBlocked ? 0 : hasActions ? 1 : 0,
-        bonus: effects.bonusActionsBlocked ? 0 : 1
+        action: state.actionsTotal,
+        bonus: state.bonusActionsTotal,
+        reaction: state.reactionsTotal,
+        movement: state.movementTotal,
+        objectInteraction: state.objectInteractionsTotal
       };
     }
 
-    function turnActionBudget(actions = []) {
-      const state = combatTurnState();
-      const totals = turnActionTotals(actions);
-      const spentAction = Math.max(0, Number.parseInt(state.spent.action || 0, 10) || 0);
-      const spentBonus = Math.max(0, Number.parseInt(state.spent.bonus || 0, 10) || 0);
+    function turnActionBudget(actions = [], stateOverride = null) {
+      const sourceState = stateOverride || combatTurnState();
+      const state = projectedTurnEconomy(sourceState);
+      const totals = turnActionTotals(actions, sourceState);
       return {
         totals,
         remaining: {
-          action: Math.max(0, totals.action - spentAction),
-          bonus: Math.max(0, totals.bonus - spentBonus)
+          action: state.actionsRemaining,
+          bonus: state.bonusActionsRemaining,
+          reaction: state.reactionsRemaining,
+          movement: state.movementRemaining,
+          objectInteraction: state.objectInteractionsRemaining,
+          attacks: combatAttacksRemaining(state)
         },
         optionCounts: {
           action: actions.filter((action) => action.type === ACTION_TYPES.action).length,
@@ -6387,33 +6651,59 @@
       };
     }
 
-    function updateTurnActionCounters(actions = []) {
-      const budget = turnActionBudget(actions);
+    function updateTurnActionCounters(actions = [], stateOverride = null) {
+      const state = stateOverride || combatTurnState();
+      const budget = turnActionBudget(actions, state);
       if (turnActionsActionOrb) {
-        turnActionsActionOrb.textContent = `${budget.remaining.action}/${budget.totals.action}`;
+        turnActionsActionOrb.textContent = t("turn.counterRatio", { remaining: budget.remaining.action, total: budget.totals.action });
         turnActionsActionOrb.classList.toggle("empty", budget.remaining.action <= 0);
         turnActionsActionOrb.closest(".turn-actions-counter")?.setAttribute("title", t("turn.actionsAvailable", { count: budget.optionCounts.action }));
       }
       if (turnActionsActionLabel) turnActionsActionLabel.textContent = t("turn.actionsWithCount", { count: budget.optionCounts.action });
       if (turnActionsBonusOrb) {
-        turnActionsBonusOrb.textContent = `${budget.remaining.bonus}/${budget.totals.bonus}`;
+        turnActionsBonusOrb.textContent = t("turn.counterRatio", { remaining: budget.remaining.bonus, total: budget.totals.bonus });
         turnActionsBonusOrb.classList.toggle("empty", budget.remaining.bonus <= 0);
         turnActionsBonusOrb.closest(".turn-actions-counter")?.setAttribute("title", t("turn.bonusActionsAvailable", { count: budget.optionCounts.bonus }));
       }
       if (turnActionsBonusLabel) turnActionsBonusLabel.textContent = t("turn.bonusActionsWithCount", { count: budget.optionCounts.bonus });
+      if (turnActionsReactionOrb) {
+        turnActionsReactionOrb.textContent = t("turn.counterRatio", { remaining: budget.remaining.reaction, total: budget.totals.reaction });
+        turnActionsReactionOrb.classList.toggle("empty", budget.remaining.reaction <= 0);
+      }
+      if (turnActionsMovementOrb) {
+        turnActionsMovementOrb.textContent = t("turn.counterRatio", { remaining: budget.remaining.movement, total: budget.totals.movement });
+        turnActionsMovementOrb.classList.toggle("empty", budget.remaining.movement <= 0);
+      }
+      if (turnActionsObjectOrb) {
+        turnActionsObjectOrb.textContent = t("turn.counterRatio", { remaining: budget.remaining.objectInteraction, total: budget.totals.objectInteraction });
+        turnActionsObjectOrb.classList.toggle("empty", budget.remaining.objectInteraction <= 0);
+      }
+      if (turnActionsAttacksCounter) turnActionsAttacksCounter.hidden = !state.attackActionActive;
+      if (turnActionsAttacksOrb) {
+        turnActionsAttacksOrb.textContent = String(budget.remaining.attacks);
+        turnActionsAttacksOrb.classList.toggle("empty", budget.remaining.attacks <= 0);
+      }
     }
 
     function startNewCombatTurn() {
       const state = combatTurnState();
-      sheetMeta.combatTurn = {
-        ...state,
-        active: true,
-        turn: (Number.parseInt(state.turn || 1, 10) || 1) + 1,
-        spent: { action: 0, bonus: 0 },
-        levelOnePlusSpellCast: false,
-        quickenedSpellUsed: false
-      };
-      refreshTurnActionsPanel();
+      sheetMeta.activeStatuses = ensureActiveStatusIds().filter((id) => id !== "dodging");
+      renderStatusDock();
+      const effects = activeStatusEffects();
+      sheetMeta.combatTurn = startTurn(state, {
+        speed: currentSpeedFeet(),
+        maxAttacksPerAttackAction: combatMaximumAttacks(),
+        prone: ensureActiveStatusIds().includes("prone"),
+        effects: {
+          actionsBlocked: effects.actionsBlocked,
+          bonusActionsBlocked: effects.bonusActionsBlocked,
+          reactionsBlocked: effects.reactionsBlocked
+        }
+      });
+      activeCombatResolution = null;
+      invalidateCombatActionCache("new-turn");
+      renderCombatResolution();
+      scheduleTurnActionsPanelRefresh();
       scheduleSave();
       showStatus(t("turn.newTurnRestored"));
     }
@@ -6421,13 +6711,12 @@
     function turnActionSpendType(action) {
       if (action?.type === ACTION_TYPES.action) return "action";
       if (action?.type === ACTION_TYPES.bonus) return "bonus";
+      if (action?.type === ACTION_TYPES.reaction) return "reaction";
       return "";
     }
 
     function canSpendTurnAction(action, budget) {
-      const spendType = turnActionSpendType(action);
-      if (!spendType) return true;
-      return (budget.remaining[spendType] || 0) > 0;
+      return validateCombatAction(combatTurnState(), action).ok && !action.disabledReason;
     }
 
     function activateTurnActionFeature(action) {
@@ -6438,28 +6727,578 @@
     }
 
     function spendTurnAction(action) {
-      const summary = collectCurrentTurnActions();
-      const budget = turnActionBudget(summary.actions);
-      const spendType = turnActionSpendType(action);
-      if (!spendType) {
-        showStatus(t("turn.noCost", { title: action.title }));
+      openCombatResolution(action);
+    }
+
+    function loadCombatLogEntries() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(COMBAT_LOG_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed.slice(0, COMBAT_LOG_LIMIT) : [];
+      } catch (_error) {
+        return [];
+      }
+    }
+
+    function persistCombatLogEntries() {
+      combatLogEntries = combatLogEntries.slice(0, COMBAT_LOG_LIMIT);
+      localStorage.setItem(COMBAT_LOG_KEY, JSON.stringify(combatLogEntries));
+      if (sheetMeta && typeof sheetMeta === "object") sheetMeta.combatLog = combatLogEntries;
+    }
+
+    function renderCombatLog() {
+      if (!combatLogList) return;
+      if (Array.isArray(sheetMeta?.combatLog) && sheetMeta.combatLog.length) combatLogEntries = sheetMeta.combatLog.slice(0, COMBAT_LOG_LIMIT);
+      combatLogList.textContent = "";
+      if (!combatLogEntries.length) {
+        const empty = document.createElement("div");
+        empty.className = "combat-log-entry";
+        empty.textContent = t("turn.noEvents");
+        combatLogList.appendChild(empty);
         return;
       }
-      if (!canSpendTurnAction(action, budget)) {
-        showStatus(spendType === "action" ? t("turn.noActions") : t("turn.noBonusActions"));
-        return;
-      }
-      const state = combatTurnState();
-      state.spent[spendType] = (Number.parseInt(state.spent[spendType] || 0, 10) || 0) + 1;
-      const activated = activateTurnActionFeature(action);
-      updateDerivedStats();
-      refreshTurnActionsPanel();
+      combatLogEntries.slice(0, 20).forEach((event) => {
+        const row = document.createElement("article");
+        row.className = "combat-log-entry";
+        row.textContent = formatCombatLogEvent(event);
+        combatLogList.appendChild(row);
+      });
+    }
+
+    function clearCombatLog() {
+      combatLogEntries = [];
+      if (sheetMeta && typeof sheetMeta === "object") sheetMeta.combatLog = [];
+      persistCombatLogEntries();
+      renderCombatLog();
       scheduleSave();
-      showStatus(t("turn.spent", {
-        title: action.title,
-        type: spendType === "action" ? t("turn.group.action.title") : t("turn.group.bonus.title"),
-        suffix: activated ? t("turn.effectActive") : ""
-      }));
+    }
+
+    function requestEndCombatTurn() {
+      const endAction = collectCurrentTurnActions().actions.find((action) => action.id === "core:end-turn" || action.key === "core:end-turn");
+      if (endAction) openCombatResolution(endAction);
+    }
+
+    function characterCombatName() {
+      return String(fieldValue("CharacterName") || fieldValue("CharacterName 2") || "Character").trim() || "Character";
+    }
+
+    function addCombatLogEvent(session, resourcesConsumed = [], effectsApplied = []) {
+      const state = combatTurnState();
+      const attack = session.results.attackRoll;
+      const damage = session.results.damageRoll;
+      const save = session.results.savingThrow;
+      const event = createCombatLogEvent({
+        actor: characterCombatName(),
+        action: session.action.title,
+        target: session.results.target?.name || "",
+        turn: state.turn,
+        round: state.round,
+        formulas: [session.action.formula, session.action.damageFormula].filter(Boolean),
+        dice: [...(attack?.dice || []), ...(damage?.dice || [])],
+        modifiers: attack?.parts || [],
+        rollMode: attack?.mode || "normal",
+        attackTotal: attack?.total,
+        hit: attack?.hit,
+        damage: session.action.healing ? null : damage?.appliedTotal ?? damage?.total,
+        healing: session.action.healing ? damage?.appliedTotal ?? damage?.total : null,
+        damageType: session.action.damageType,
+        savingThrows: save ? [`${session.action.saveAbility || "Save"}: ${save.outcome}`] : [],
+        resourcesConsumed,
+        effectsApplied,
+        attacksRemaining: session.action.attackAction ? combatAttacksRemaining(state) : null,
+        pendingDmResolution: attack?.hit == null || save?.outcome === "pending" || session.action.id === "core:improvised",
+        detail: [
+          attack?.detail,
+          damage?.detail,
+          session.results.abilityCheck?.detail,
+          session.results.variant?.description,
+          session.results.variant?.trigger
+        ].filter(Boolean).join("\n")
+      });
+      combatLogEntries = appendCombatLog(combatLogEntries, event, COMBAT_LOG_LIMIT);
+      persistCombatLogEntries();
+      renderCombatLog();
+    }
+
+    function combatCostLabel(action) {
+      const labels = {
+        action: "Action",
+        bonusAction: "Bonus Action",
+        reaction: "Reaction",
+        movement: "Movement",
+        objectInteraction: "Object Interaction"
+      };
+      const costs = (action.actionCost || []).map((cost) => `${cost.amount || 1} ${labels[cost.type] || cost.type}`);
+      return costs.length ? costs.join(" + ") : "No action cost";
+    }
+
+    function setCombatSessionResults(patch = {}) {
+      if (!activeCombatResolution) return;
+      activeCombatResolution = {
+        ...activeCombatResolution,
+        results: { ...activeCombatResolution.results, ...patch }
+      };
+    }
+
+    function openCombatResolution(action) {
+      if (activeCombatResolution?.status === "resolving") {
+        showStatus(t("turn.finishCurrent"));
+        combatResolution?.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      const validation = validateCombatAction(combatTurnState(), action);
+      if (!validation.ok || action.disabledReason) {
+        showStatus(action.disabledReason || validation.reason);
+        return;
+      }
+      activeCombatResolution = createCombatResolution(action, combatTurnState());
+      if (activeCombatResolution.status === "blocked") {
+        showStatus(activeCombatResolution.blockedReason);
+        return;
+      }
+      renderCombatResolution();
+      const summary = collectCurrentTurnActions();
+      updateTurnActionCounters(summary.actions, activeCombatResolution.economy);
+      combatResolution?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    function cancelActiveCombatResolution() {
+      if (!activeCombatResolution) return;
+      const cancelled = cancelCombatResolution(activeCombatResolution);
+      sheetMeta.combatTurn = cancelled.economy;
+      activeCombatResolution = null;
+      invalidateCombatActionCache("cancel-resolution");
+      renderCombatResolution();
+      scheduleTurnActionsPanelRefresh();
+      showStatus(t("turn.cancelled"));
+    }
+
+    function combatRollModeLabel(mode) {
+      return mode === "advantage" ? "Advantage" : mode === "disadvantage" ? "Disadvantage" : "Normal";
+    }
+
+    function rollActiveCombatAttack(mode = "normal") {
+      if (!activeCombatResolution || activeCombatResolution.busy) return;
+      const processing = beginCombatProcessing(activeCombatResolution);
+      if (!processing.ok) return;
+      activeCombatResolution = processing.session;
+      const action = activeCombatResolution.action;
+      const statusContext = attackRollStatusContext();
+      const resolvedMode = mergeRollModes([statusContext.mode, mode]);
+      const roll = rollD20WithMode(resolvedMode);
+      const bonus = Number(action.attack?.attackBonus) || 0;
+      const summary = summarizeD20Roll({
+        roll,
+        parts: [...attackRollParts(bonus, action.attack?.attackLabel || "attack"), ...(statusContext.d20TestPenalty ? [{ label: "Exhaustion", value: -statusContext.d20TestPenalty }] : [])],
+        bonusDice: statusContext.bonusDice,
+        label: action.attack?.attackLabel || "attack",
+        notes: statusContext.notes
+      });
+      activeCombatResolution = recordCombatAttackRoll(activeCombatResolution, {
+        natural: roll.selected,
+        total: summary.total,
+        dice: roll.values,
+        mode: resolvedMode,
+        parts: attackRollParts(bonus, action.attack?.attackLabel || "attack"),
+        detail: summary.detail
+      });
+      activeCombatResolution = finishCombatProcessing(activeCombatResolution);
+      showDiceTray(`${action.title}: Hit Roll`, String(summary.total), summary.detail);
+      renderCombatResolution();
+    }
+
+    function rollActiveCombatDamage() {
+      if (!activeCombatResolution || activeCombatResolution.busy) return;
+      const action = activeCombatResolution.action;
+      const attack = activeCombatResolution.results.attackRoll;
+      const save = activeCombatResolution.results.savingThrow;
+      if (attack && attack.hit !== true) {
+        showStatus(attack.hit === false ? "A Miss does not allow a normal Damage Roll." : "Resolve Hit or Miss first.");
+        return;
+      }
+      if (save?.outcome === "pending") {
+        showStatus(t("turn.resolveSaveFirst"));
+        return;
+      }
+      const optionalDamage = (action.optionalDamageChoices || [])
+        .filter((choice) => activeCombatResolution.results.variant?.optionalDamageKeys?.includes(choice.key))
+        .map((choice) => choice.damage)
+        .filter(Boolean);
+      const expression = [action.damageFormula, ...optionalDamage].filter(Boolean).join("+");
+      if (!expression) {
+        showStatus(t("turn.noDamageRoll"));
+        return;
+      }
+      const critical = Boolean(attack?.critical);
+      const finalExpression = critical ? criticalDamageExpression(expression) || expression : expression;
+      const roll = applyDamageRollOptions(rollDiceExpression(finalExpression), action.attack?.damageRollOptions || {});
+      if (!roll) {
+        showStatus(t("turn.invalidDamage"));
+        return;
+      }
+      let appliedTotal = roll.total;
+      if (save?.outcome === "passed" && action.saveDamageRule === "half") appliedTotal = Math.floor(roll.total / 2);
+      if (save?.outcome === "passed" && action.saveDamageRule === "none") appliedTotal = 0;
+      const detail = formatDiceLines([
+        critical ? `Critical: ${expression} -> ${finalExpression}` : `Formula: ${expression}`,
+        ...roll.terms.filter((term) => term.type === "dice").map((term) => `${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
+        `Rolled total: ${roll.total}`,
+        appliedTotal !== roll.total ? `After save: ${appliedTotal}` : "",
+        action.damageType ? `Type: ${action.damageType}` : ""
+      ]);
+      activeCombatResolution = recordCombatDamageRoll(activeCombatResolution, {
+        total: roll.total,
+        appliedTotal,
+        dice: roll.terms.filter((term) => term.type === "dice").flatMap((term) => term.rolls),
+        expression: finalExpression,
+        detail
+      });
+      showDiceTray(`${action.title}: ${action.healing ? "Healing" : "Damage"}`, String(appliedTotal), detail);
+      renderCombatResolution();
+    }
+
+    function rollActiveCombatCheck(ability = "STR", label = "Ability Check") {
+      if (!activeCombatResolution) return;
+      const modifier = abilityModifierByKey(ability);
+      const statusContext = d20CheckStatusContext(label);
+      const roll = rollD20WithMode(statusContext.mode);
+      const summary = summarizeD20Roll({
+        roll,
+        parts: [{ label: ability, value: modifier }, ...(statusContext.d20TestPenalty ? [{ label: "Exhaustion", value: -statusContext.d20TestPenalty }] : [])],
+        bonusDice: statusContext.bonusDice,
+        label,
+        notes: statusContext.notes
+      });
+      activeCombatResolution = recordCombatAbilityCheck(activeCombatResolution, {
+        ability,
+        natural: roll.selected,
+        total: summary.total,
+        dice: roll.values,
+        detail: summary.detail
+      });
+      showDiceTray(`${activeCombatResolution.action.title}: ${label}`, String(summary.total), summary.detail);
+      renderCombatResolution();
+    }
+
+    function combatResourcesConsumed(action) {
+      const resources = (action.actionCost || []).map((cost) => combatCostLabel({ actionCost: [cost] }));
+      if (action.category === ACTION_CATEGORIES.spells && action.attack?.level > 0) resources.push(`Spell Slot L${action.attack.castLevel || action.attack.level}`);
+      if (action.resourceInfo?.name) resources.push(action.resourceInfo.name);
+      return resources;
+    }
+
+    function applyCombatActionSideEffects(action) {
+      const effectsApplied = [];
+      if (action.effect === "dodging" && activateStatusById("dodging")) effectsApplied.push("Dodging");
+      if (action.effect === "dropProne" && activateStatusById("prone")) effectsApplied.push("Prone");
+      if (action.effect === "standUp") {
+        sheetMeta.activeStatuses = ensureActiveStatusIds().filter((id) => id !== "prone");
+        renderStatusDock();
+        effectsApplied.push("Prone removed");
+      }
+      if (activateTurnActionFeature(action)) effectsApplied.push(action.activatesFeatureName || action.title);
+      return effectsApplied;
+    }
+
+    function commitActiveCombatResolution() {
+      if (!activeCombatResolution || activeCombatResolution.busy) return;
+      const validation = validateCombatResolutionForConfirmation(activeCombatResolution);
+      if (!validation.ok) {
+        showStatus(validation.reason);
+        return;
+      }
+      let actionPatch = {};
+      const variant = activeCombatResolution.results.variant || {};
+      if (activeCombatResolution.action.id === "core:movement") {
+        const distance = Math.max(0, Number(variant.distance) || 0);
+        const mode = variant.movementMode || "normal";
+        const multiplier = ["difficult", "crawl", "climb", "swim"].includes(mode) ? 2 : 1;
+        actionPatch.actionCost = distance ? [{ type: "movement", amount: distance * multiplier }] : [];
+        actionPatch.movementMode = mode;
+      }
+      if (activeCombatResolution.action.id === "core:ready") {
+        actionPatch.readyAction = { action: variant.preparedAction || "", trigger: variant.trigger || "", createdAt: new Date().toISOString() };
+      }
+      const selectedOptionalDamage = activeCombatResolution.results.variant?.optionalDamageKeys || [];
+      if (activeCombatResolution.action.optionalDamageChoices?.some((choice) => choice.oncePerTurnKey && selectedOptionalDamage.includes(choice.key))) {
+        actionPatch.oncePerTurnKey = activeCombatResolution.action.optionalDamageChoices.find((choice) => selectedOptionalDamage.includes(choice.key))?.oncePerTurnKey || "";
+      }
+      const committed = confirmCombatResolution(activeCombatResolution, actionPatch);
+      if (!committed.ok) {
+        showStatus(committed.reason);
+        return;
+      }
+      const action = committed.session.action;
+      if (action.category === ACTION_CATEGORIES.spells && action.attack?.kind === "spell") {
+        if (!castPreparedSpell(action.attack, { deferUi: true })) {
+          showStatus(t("turn.spellCommitFailed"));
+          return;
+        }
+        const spellState = combatTurnState();
+        committed.economy.levelOnePlusSpellCast = spellState.levelOnePlusSpellCast;
+        committed.economy.quickenedSpellUsed = spellState.quickenedSpellUsed;
+        if (action.type === ACTION_TYPES.bonus) committed.economy.bonusActionSpellCast = true;
+      }
+      if (action.resourceRow) {
+        const before = featureUseInfo(action.resourceRow);
+        if (before && before.remaining <= 0) {
+          showStatus(t("turn.noUsesRemaining", { title: action.title }));
+          return;
+        }
+        expendFeatureUse(action.resourceRow);
+      }
+      if (action.inventoryEntry) removeItemFromEquipment(action.inventoryEntry, 1);
+      if (action.ammoEntry) removeItemFromEquipment(action.ammoEntry, 1);
+      sheetMeta.combatTurn = committed.economy;
+      if (action.effect === "executeReady") sheetMeta.combatTurn.readyAction = null;
+      const effectsApplied = applyCombatActionSideEffects(action);
+      (action.optionalDamageChoices || [])
+        .filter((choice) => activeCombatResolution.results.variant?.optionalDamageKeys?.includes(choice.key))
+        .forEach((choice) => effectsApplied.push(choice.name));
+      if (action.effect === "endTurn") sheetMeta.combatTurn = endTurn(sheetMeta.combatTurn);
+      addCombatLogEvent({ ...committed.session, action, results: activeCombatResolution.results }, combatResourcesConsumed(action), effectsApplied);
+      activeCombatResolution = null;
+      invalidateCombatActionCache("commit-resolution");
+      renderCombatResolution();
+      updatePreparedSpellsPanel();
+      renderAlertsPanel();
+      scheduleTurnActionsPanelRefresh();
+      scheduleSave();
+      showStatus(t("turn.resolved", { title: action.title }));
+    }
+
+    function renderCombatResolution() {
+      if (!combatResolution) return;
+      combatResolution.textContent = "";
+      combatResolution.hidden = !activeCombatResolution || activeCombatResolution.status !== "resolving";
+      if (combatResolution.hidden) return;
+      const session = activeCombatResolution;
+      const action = session.action;
+
+      const header = document.createElement("div");
+      header.className = "combat-resolution-header";
+      const title = document.createElement("div");
+      title.className = "combat-resolution-title";
+      title.textContent = action.title;
+      const cost = document.createElement("div");
+      cost.textContent = combatCostLabel(action);
+      header.append(title, cost);
+
+      const steps = document.createElement("div");
+      steps.className = "combat-resolution-steps";
+      action.resolutionSteps.forEach((step) => {
+        const pill = document.createElement("span");
+        pill.className = "combat-resolution-step";
+        const done = Boolean(session.results[step])
+          || step === RESOLUTION_STEPS.selectTarget && Boolean(session.results.target)
+          || step === RESOLUTION_STEPS.confirmResult && session.confirmed;
+        pill.classList.toggle("active", done);
+        pill.textContent = step.replace(/([A-Z])/g, " $1");
+        steps.appendChild(pill);
+      });
+
+      const fields = document.createElement("div");
+      fields.className = "combat-resolution-fields";
+      if (action.resolutionSteps.includes(RESOLUTION_STEPS.selectTarget)) {
+        const targetLabel = document.createElement("label");
+        targetLabel.textContent = t("turn.target");
+        const targetInput = document.createElement("input");
+        targetInput.value = session.results.target?.name || "";
+        targetInput.placeholder = t("turn.targetPlaceholder");
+        targetInput.addEventListener("input", () => {
+          activeCombatResolution = recordCombatTarget(activeCombatResolution, { name: targetInput.value, ac: session.results.target?.ac });
+        });
+        targetLabel.appendChild(targetInput);
+        const acLabel = document.createElement("label");
+        acLabel.textContent = t("turn.knownAc");
+        const acInput = document.createElement("input");
+        acInput.type = "number";
+        acInput.min = "0";
+        acInput.value = session.results.target?.ac || "";
+        acInput.placeholder = t("turn.hiddenAcPlaceholder");
+        acInput.addEventListener("input", () => {
+          activeCombatResolution = recordCombatTarget(activeCombatResolution, { name: targetInput.value, ac: acInput.value ? Number(acInput.value) : null });
+        });
+        acLabel.appendChild(acInput);
+        fields.append(targetLabel, acLabel);
+      }
+
+      if (action.id === "core:movement") {
+        const movement = document.createElement("label");
+        movement.textContent = t("turn.distanceRemaining", { distance: projectedTurnEconomy(session.economy).movementRemaining });
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = String(projectedTurnEconomy(session.economy).movementRemaining);
+        input.value = session.results.variant?.distance || "";
+        input.addEventListener("input", () => setCombatSessionResults({ variant: { ...(activeCombatResolution.results.variant || {}), distance: input.value } }));
+        movement.appendChild(input);
+        fields.appendChild(movement);
+        const mode = document.createElement("label");
+        mode.textContent = t("turn.movementMode");
+        const select = document.createElement("select");
+        [["normal", "Normal"], ["difficult", "Difficult Terrain (2x)"], ["crawl", "Crawl (2x)"], ["climb", "Climb (2x unless Speed applies)"], ["swim", "Swim (2x unless Speed applies)"], ["jump", "Jump"]].forEach(([value, text]) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = text;
+          option.selected = session.results.variant?.movementMode === value;
+          select.appendChild(option);
+        });
+        select.addEventListener("change", () => setCombatSessionResults({ variant: { ...(activeCombatResolution.results.variant || {}), movementMode: select.value } }));
+        mode.appendChild(select);
+        fields.appendChild(mode);
+      }
+
+      if (action.id === "core:ready") {
+        [["Prepared action", "preparedAction"], ["Perceptible trigger", "trigger"]].forEach(([labelText, key]) => {
+          const label = document.createElement("label");
+          label.textContent = labelText;
+          const input = document.createElement("input");
+          input.value = session.results.variant?.[key] || "";
+          input.addEventListener("input", () => setCombatSessionResults({ variant: { ...(activeCombatResolution.results.variant || {}), [key]: input.value } }));
+          label.appendChild(input);
+          fields.appendChild(label);
+        });
+      }
+
+      if (action.id === "core:improvised") {
+        const description = document.createElement("label");
+        description.textContent = t("turn.attemptDescription");
+        const textarea = document.createElement("textarea");
+        textarea.value = session.results.variant?.description || "";
+        textarea.addEventListener("input", () => setCombatSessionResults({ variant: { ...(activeCombatResolution.results.variant || {}), description: textarea.value } }));
+        description.appendChild(textarea);
+        fields.appendChild(description);
+      }
+
+      if (Array.isArray(action.optionalDamageChoices) && action.optionalDamageChoices.length) {
+        action.optionalDamageChoices.forEach((choice) => {
+          const label = document.createElement("label");
+          label.textContent = t("turn.optionalDamage", { name: choice.name, damage: choice.damage });
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.checked = session.results.variant?.optionalDamageKeys?.includes(choice.key) || false;
+          input.disabled = Boolean(choice.oncePerTurnKey && session.economy.oncePerTurnUses?.[choice.oncePerTurnKey]);
+          input.addEventListener("change", () => {
+            const keys = new Set(activeCombatResolution.results.variant?.optionalDamageKeys || []);
+            if (input.checked) keys.add(choice.key);
+            else keys.delete(choice.key);
+            setCombatSessionResults({ variant: { ...(activeCombatResolution.results.variant || {}), optionalDamageKeys: [...keys] } });
+          });
+          label.appendChild(input);
+          fields.appendChild(label);
+        });
+      }
+
+      const controls = document.createElement("div");
+      controls.className = "combat-resolution-actions";
+      if (action.resolutionSteps.includes(RESOLUTION_STEPS.attackRoll)) {
+        const mode = document.createElement("select");
+        ["normal", "advantage", "disadvantage"].forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = combatRollModeLabel(value);
+          mode.appendChild(option);
+        });
+        const rollHit = document.createElement("button");
+        rollHit.type = "button";
+        rollHit.textContent = session.results.attackRoll ? `Re${t("turn.rollHit").toLowerCase()}` : t("turn.rollHit");
+        rollHit.addEventListener("click", () => rollActiveCombatAttack(mode.value));
+        controls.append(mode, rollHit);
+      }
+
+      if (action.resolutionSteps.includes(RESOLUTION_STEPS.savingThrow)) {
+        const label = document.createElement("span");
+        label.textContent = t("turn.saveDc", { ability: action.saveAbility || "Target", dc: fieldValue("SpellSaveDC  2") || fieldValue("SpellSaveDC") || "DM" });
+        controls.appendChild(label);
+        [["Failed Save", "failed"], ["Passed Save", "passed"], ["DM Pending", "pending"]].forEach(([text, outcome]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = outcome === "pending" ? "secondary" : "";
+          button.textContent = text;
+          button.addEventListener("click", () => {
+            activeCombatResolution = recordCombatSavingThrow(activeCombatResolution, { outcome, ability: action.saveAbility });
+            renderCombatResolution();
+          });
+          controls.appendChild(button);
+        });
+      }
+
+      if (action.resolutionSteps.includes(RESOLUTION_STEPS.abilityCheck)) {
+        const ability = document.createElement("select");
+        ["STR", "DEX", "CON", "INT", "WIS", "CHA"].forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          ability.appendChild(option);
+        });
+        const check = document.createElement("button");
+        check.type = "button";
+        check.textContent = session.results.abilityCheck ? "Reroll Check" : "Roll Check (optional)";
+        check.addEventListener("click", () => rollActiveCombatCheck(ability.value, `${ability.value} Check`));
+        controls.append(ability, check);
+      }
+
+      const attackResult = session.results.attackRoll;
+      if (attackResult && attackResult.hit == null) {
+        [["DM: Hit", true], ["DM: Miss", false]].forEach(([text, hit]) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "secondary";
+          button.textContent = text;
+          button.addEventListener("click", () => {
+            activeCombatResolution = resolveCombatAttackOutcome(activeCombatResolution, hit);
+            renderCombatResolution();
+          });
+          controls.appendChild(button);
+        });
+      }
+
+      if (action.resolutionSteps.includes(RESOLUTION_STEPS.damageRoll)) {
+        const damage = document.createElement("button");
+        damage.type = "button";
+        damage.textContent = session.results.damageRoll
+          ? `Re${(action.healing ? t("turn.rollHealing") : t("turn.rollDamage")).toLowerCase()}`
+          : action.healing ? t("turn.rollHealing") : t("turn.rollDamage");
+        damage.disabled = Boolean(attackResult && attackResult.hit !== true) || session.results.savingThrow?.outcome === "pending";
+        damage.addEventListener("click", rollActiveCombatDamage);
+        controls.appendChild(damage);
+      }
+
+      if (action.requiresConcentration && session.economy.concentration && !session.results.concentrationReplacementConfirmed) {
+        const replace = document.createElement("button");
+        replace.type = "button";
+        replace.className = "secondary";
+        replace.textContent = t("turn.replaceConcentration", { name: session.economy.concentration.name });
+        replace.addEventListener("click", () => {
+          activeCombatResolution = confirmConcentrationReplacement(activeCombatResolution, true);
+          renderCombatResolution();
+        });
+        controls.appendChild(replace);
+      }
+
+      const result = document.createElement("div");
+      result.className = "combat-resolution-result";
+      const resultLines = [];
+      if (attackResult) resultLines.push(`Hit Roll: ${attackResult.total} (${attackResult.natural === 20 ? "Natural 20 — Critical" : attackResult.natural === 1 ? "Natural 1 — Miss" : attackResult.hit === true ? "Hit" : attackResult.hit === false ? "Miss" : "DM resolution required"})`);
+      if (session.results.savingThrow) resultLines.push(`Saving Throw: ${session.results.savingThrow.outcome}`);
+      if (session.results.abilityCheck) resultLines.push(`Ability Check: ${session.results.abilityCheck.total}`);
+      if (session.results.damageRoll) resultLines.push(`${action.healing ? "Healing" : "Damage"}: ${session.results.damageRoll.appliedTotal ?? session.results.damageRoll.total}${action.damageType ? ` ${action.damageType}` : ""}`);
+      result.textContent = resultLines.join("\n") || action.description || action.detail || "Confirm to resolve this action.";
+
+      const footer = document.createElement("div");
+      footer.className = "combat-resolution-actions";
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.className = "secondary";
+      cancel.textContent = t("turn.cancelNoCost");
+      cancel.addEventListener("click", cancelActiveCombatResolution);
+      const confirm = document.createElement("button");
+      confirm.type = "button";
+      confirm.textContent = action.effect === "endTurn" ? t("turn.endTurn") : t("turn.confirmResult");
+      confirm.addEventListener("click", commitActiveCombatResolution);
+      footer.append(cancel, confirm);
+
+      combatResolution.append(header, steps, fields, controls, result, footer);
     }
 
     function renderTurnActionResources(resources = []) {
@@ -6614,47 +7453,59 @@
       return section;
     }
 
-    function renderTurnActionGroups(actions = []) {
+    function renderTurnActionGroups(actions = [], stateOverride = null) {
       const container = document.createElement("section");
       container.className = "turn-actions-groups";
-      const grouped = groupActionsByType(actions);
-      const budget = turnActionBudget(actions);
-      ACTION_TYPE_ORDER.forEach((type) => {
-        const items = grouped.get(type) || [];
+      const categoryOrder = [
+        [ACTION_CATEGORIES.attacks, t("turn.category.attacks")],
+        [ACTION_CATEGORIES.spells, t("turn.category.spells")],
+        [ACTION_CATEGORIES.actions, t("turn.category.actions")],
+        [ACTION_CATEGORIES.bonusActions, t("turn.category.bonus")],
+        [ACTION_CATEGORIES.movement, t("turn.category.movement")],
+        [ACTION_CATEGORIES.reactions, t("turn.category.reactions")],
+        [ACTION_CATEGORIES.items, t("turn.category.items")],
+        [ACTION_CATEGORIES.features, t("turn.category.features")]
+      ];
+      categoryOrder.forEach(([category, label]) => {
+        const items = actions.filter((action) => combatCategoryForAction(action) === category);
         if (!items.length) return;
         const group = document.createElement("div");
         group.className = "turn-actions-group";
         const title = document.createElement("h3");
         title.className = "turn-actions-section-title";
-        title.textContent = `${translateDynamicText(TURN_ACTION_GROUP_GUIDE[type]?.title || ACTION_TYPE_LABELS[type] || type)} (${items.length})`;
+        title.textContent = `${label} (${items.length})`;
         group.appendChild(title);
-        const subtitleText = TURN_ACTION_GROUP_GUIDE[type]?.subtitle || "";
-        if (subtitleText) {
-          const subtitle = document.createElement("div");
-          subtitle.className = "turn-actions-group-subtitle";
-          subtitle.textContent = translateDynamicText(subtitleText, subtitleText);
-          group.appendChild(subtitle);
-        }
         const list = document.createElement("div");
         list.className = "turn-actions-list";
         items.forEach((action) => {
           const row = document.createElement("button");
           row.type = "button";
           row.className = "turn-actions-row";
-          const disabled = !canSpendTurnAction(action, budget);
+          const validation = validateCombatAction(stateOverride || combatTurnState(), action);
+          const disabledReason = action.disabledReason || (!validation.ok ? validation.reason : "");
+          const disabled = Boolean(disabledReason);
           row.disabled = disabled;
           row.classList.toggle("disabled", disabled);
-          row.addEventListener("click", () => spendTurnAction(action));
+          row.title = disabledReason;
+          if (!disabled) row.addEventListener("click", () => spendTurnAction(action));
           const rowTitle = document.createElement("div");
           rowTitle.className = "turn-actions-row-title";
           rowTitle.textContent = translateDynamicText(action.title, action.title);
           row.appendChild(rowTitle);
+          const cost = document.createElement("div");
+          cost.className = "turn-actions-row-cost";
+          cost.textContent = combatCostLabel(action);
+          row.appendChild(cost);
           if (action.detail) {
             const detail = document.createElement("div");
             detail.className = "turn-actions-row-detail";
             detail.textContent = translateDynamicText(action.detail, action.detail);
             row.appendChild(detail);
           }
+          const state = document.createElement("div");
+          state.className = `turn-actions-row-state${disabledReason ? " blocked" : ""}`;
+          state.textContent = disabledReason || t("turn.available");
+          row.appendChild(state);
           list.appendChild(row);
         });
         group.appendChild(list);
@@ -6665,12 +7516,13 @@
 
     function refreshTurnActionsPanel() {
       if (!turnActionsBody) return;
+      const startedAt = performance.now();
       turnActionsBody.textContent = "";
       const summary = collectCurrentTurnActions();
-      updateTurnActionCounters(summary.actions);
+      updateTurnActionCounters(summary.actions, summary.combatState);
       const resourceSection = renderTurnActionResources(summary.resources);
       const statusSection = renderTurnActionStatuses();
-      const actionGroups = renderTurnActionGroups(summary.actions);
+      const actionGroups = renderTurnActionGroups(summary.actions, summary.combatState);
       if (resourceSection) turnActionsBody.appendChild(resourceSection);
       if (statusSection) turnActionsBody.appendChild(statusSection);
       if (summary.actions.length) turnActionsBody.appendChild(actionGroups);
@@ -6680,13 +7532,25 @@
         empty.textContent = t("turn.noUsableActions");
         turnActionsBody.appendChild(empty);
       }
+      renderCombatResolution();
+      renderCombatLog();
+      combatPerformanceSamples.unshift({ phase: "render", cached: false, durationMs: performance.now() - startedAt, at: Date.now() });
+      combatPerformanceSamples.splice(30);
     }
 
-    function openTurnActionsPanel() {
+    async function openTurnActionsPanel() {
       if (!turnActionsBackdrop) return;
-      refreshTurnActionsPanel();
       turnActionsBackdrop.classList.add("visible");
       turnActionsBackdrop.setAttribute("aria-hidden", "false");
+      if (!itemCatalogReady) {
+        turnActionsBody.textContent = "";
+        const loadingMessage = document.createElement("div");
+        loadingMessage.className = "turn-actions-empty";
+        loadingMessage.textContent = t("turn.loadingCatalog");
+        turnActionsBody.appendChild(loadingMessage);
+        await waitForItemCatalog();
+      }
+      refreshTurnActionsPanel();
       turnActionsClose?.focus();
     }
 
@@ -8180,13 +9044,15 @@
     }
 
     function activeStatusEffects() {
-      const effects = collectStatusEffects(ensureActiveStatusIds());
-      const exhaustion = exhaustionEffectsForLevel(sheetMeta.exhaustionLevel);
-      return {
-        ...effects,
-        speedBonus: effects.speedBonus + exhaustion.speedBonus,
-        d20TestPenalty: (effects.d20TestPenalty || 0) + exhaustion.d20TestPenalty
-      };
+      return combatMemoValue("active-status-effects", () => {
+        const effects = collectStatusEffects(ensureActiveStatusIds());
+        const exhaustion = exhaustionEffectsForLevel(sheetMeta.exhaustionLevel);
+        return {
+          ...effects,
+          speedBonus: effects.speedBonus + exhaustion.speedBonus,
+          d20TestPenalty: (effects.d20TestPenalty || 0) + exhaustion.d20TestPenalty
+        };
+      });
     }
 
     function activateStatusById(statusId) {
@@ -8678,11 +9544,7 @@
     function findItemData(name) {
       const parenthetical = String(name || "").match(/\(([^)]+)\)/)?.[1] || "";
       if (parenthetical && !/same as above|any/i.test(parenthetical)) {
-        const exactParenthetical = dedupeModernByName(
-          items.filter((item) => normalizeItemLookupName(item.name) === normalizeItemLookupName(parenthetical)),
-          (item) => item?.name || "",
-          (item) => item?.source || ""
-        )[0] || null;
+        const exactParenthetical = itemLookupByName.get(normalizeItemLookupName(parenthetical)) || null;
         if (exactParenthetical) return exactParenthetical;
       }
 
@@ -8695,11 +9557,11 @@
         normalized.replace(/^arrow$/, "arrow"),
         normalized.replace(/^traveler s clothes$/, "traveler s clothes")
       ]);
-      return dedupeModernByName(
-        items.filter((item) => variants.has(normalizeItemLookupName(item.name))),
-        (item) => item?.name || "",
-        (item) => item?.source || ""
-      )[0] || null;
+      for (const variant of variants) {
+        const item = itemLookupByName.get(variant);
+        if (item) return item;
+      }
+      return null;
     }
 
     function formatItemValue(value, quantity = 1) {
@@ -10033,13 +10895,14 @@
     }
 
     function activeFeatEntriesForEffects() {
-      return [
+      return combatMemoValue("active-feat-entries", () => [
         ...backgroundFeatureEntries().filter((entry) => entry.type === "feat"),
         ...selectedFeatureChoiceEntries().filter((entry) => entry.type === "feat")
-      ];
+      ]);
     }
 
     function activeFeatData() {
+      return combatMemoValue("active-feat-data", () => {
       const seen = new Set();
       return activeFeatEntriesForEffects()
         .map((entry) => entry.feat || findFeatData(entry.featName || entry.title))
@@ -10050,6 +10913,7 @@
           seen.add(key);
           return true;
         });
+      });
     }
 
     function formatPrerequisiteItem(item) {
@@ -11433,14 +12297,14 @@
     }
 
     function equippedEntries() {
-      return equipmentEntries()
+      return combatMemoValue("equipped-entries", () => equipmentEntries()
         .flatMap((entry) => {
           const key = equipmentItemKey(entry);
           const item = findItemData(entry.displayName);
           const record = equippedRecord(key);
           return recordSlots(record).map((slot) => ({ entry, key, item, record: { ...record, slot } }));
         })
-        .filter(Boolean);
+        .filter(Boolean));
     }
 
     function equippedInSlot(slot) {
@@ -11453,6 +12317,7 @@
     }
 
     function pruneEquippedItems() {
+      if (!itemCatalogReady) return;
       const quantities = new Map(equipmentEntries().map((entry) => [equipmentItemKey(entry), entry.quantity]));
       Object.keys(equippedItems()).forEach((key) => {
         const quantity = quantities.get(key) || 0;
@@ -11475,12 +12340,12 @@
     }
 
     function combinedProficiencyText() {
-      return [
+      return combatMemoValue("combined-proficiency-text", () => [
         selectedOptionDescription("class", getSelectedClassName()),
         selectedOptionDescription("race", getSelectedRaceName()),
         selectedOptionDescription("background", getFieldValueByNormalizedKey("background")),
         fieldValue("ProficienciesLang")
-      ].join(" ").toLowerCase();
+      ].join(" ").toLowerCase());
     }
 
     function itemHasWeaponPropertyName(item, property) {
@@ -11539,8 +12404,10 @@
     }
 
     function hasEquipmentProficiency(item) {
-      const text = combinedProficiencyText();
       if (!item) return false;
+      const cacheKey = `equipment-proficiency:${normalizeItemLookupName(item.name || "")}:${normalizeName(item.source || "")}`;
+      return combatMemoValue(cacheKey, () => {
+      const text = combinedProficiencyText();
       if (isShieldItem(item)) return /\bshield(s)?\b/.test(text);
       if (isArmorItem(item)) {
         const type = itemTypeAbbreviation(item);
@@ -11566,6 +12433,7 @@
         return /\ball weapons\b|\bsimple, martial\b|\bmartial, simple\b/.test(text);
       }
       return true;
+      });
     }
 
     function itemArmorClassBonus(item) {
@@ -11863,11 +12731,13 @@
     }
 
     function equipmentEntries() {
-      const text = fieldValue("Equipment");
-      const lines = text.includes("\n") ? text.split(/\n+/) : splitEquipmentItems(text);
-      return lines
-        .map(parseEquipmentLine)
-        .filter((entry) => entry.displayName);
+      return combatMemoValue("equipment-entries", () => {
+        const text = fieldValue("Equipment");
+        const lines = text.includes("\n") ? text.split(/\n+/) : splitEquipmentItems(text);
+        return lines
+          .map(parseEquipmentLine)
+          .filter((entry) => entry.displayName);
+      });
     }
 
     function updateEquipmentPanel() {
@@ -14958,6 +15828,7 @@
     }
 
     function backgroundFeatureEntries() {
+      return combatMemoValue("background-feature-entries", () => {
       const featRefs = selectedBackgroundFeatRefs();
       const featureEntries = selectedBackgroundFeatureEntries();
       const entries = [];
@@ -14997,6 +15868,7 @@
         });
       });
       return entries;
+      });
     }
 
     function backgroundFeatChoiceEntries(includeSelected = false) {
@@ -15023,6 +15895,7 @@
     }
 
     function classFeatureEntriesForCharacter() {
+      return combatMemoValue("class-feature-entries", () => {
       const className = getMainClassName() || getSelectedClassName();
       const level = Math.max(1, Math.min(20, getCharacterLevel()));
       const detail = classDetailByName(className);
@@ -15074,10 +15947,11 @@
         const levelB = Number(b.feature?.level) || 0;
         return levelA - levelB || a.title.localeCompare(b.title);
       });
+      });
     }
 
     function selectedFeatureChoiceEntries() {
-      return choosableFeatureEntriesForCharacter().flatMap((entry) => {
+      return combatMemoValue("selected-feature-choice-entries", () => choosableFeatureEntriesForCharacter().flatMap((entry) => {
         const key = featureChoiceKey(entry.feature);
         const selected = selectedFeatureChoices(key);
         const specOptions = featureChoiceSpecs(entry.feature).flatMap((spec) => spec.options || []);
@@ -15151,7 +16025,7 @@
             parentFeature: entry.feature
           };
         });
-      });
+      }));
     }
 
     function renderSingleRaceChoiceControl(option, choice, onChange = null) {
@@ -15298,6 +16172,7 @@
     }
 
     function raceFeatureEntriesForCharacter() {
+      return combatMemoValue("race-feature-entries", () => {
       const race = raceDetailByName(getSelectedRaceName());
       if (!race?.entries?.length) return [];
       const selectedChoiceSections = new Set(
@@ -15328,6 +16203,7 @@
             feature
           };
         });
+      });
     }
 
     function choosableFeatureEntriesForCharacter() {
@@ -15342,11 +16218,13 @@
     }
 
     function generatedFeaturesAndTraitsEntries() {
-      const selectedEntries = selectedFeatureChoiceEntries();
-      const languageEntry = derivedLanguageSummaryEntry();
-      const baseEntries = [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()]
-        .filter((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0 || featureChoiceSpecs(entry.feature).length > 0);
-      return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...classStartingSkillChoiceEntries(), ...classStartingToolChoiceEntries(), ...raceChoiceControlEntries(), ...(languageEntry ? [languageEntry] : []), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
+      return combatMemoValue("generated-features-and-traits", () => {
+        const selectedEntries = selectedFeatureChoiceEntries();
+        const languageEntry = derivedLanguageSummaryEntry();
+        const baseEntries = [...raceFeatureEntriesForCharacter(), ...classFeatureEntriesForCharacter()]
+          .filter((entry) => selectedFeatureChoices(featureChoiceKey(entry.feature)).length === 0 || featureChoiceSpecs(entry.feature).length > 0);
+        return [...backgroundFeatureEntries(), ...backgroundFeatChoiceEntries(), ...classStartingSkillChoiceEntries(), ...classStartingToolChoiceEntries(), ...raceChoiceControlEntries(), ...(languageEntry ? [languageEntry] : []), ...selectedRaceChoiceEntries(), ...baseEntries, ...selectedEntries];
+      });
     }
 
     function derivedLanguageSummaryEntry() {
@@ -16039,6 +16917,7 @@
     }
 
     function updateDerivedStats() {
+      invalidateCombatActionCache("derived-stats");
       ensureCurrencyDefaults();
       applySelectedBackgroundChoices();
       applySelectedClassEquipment();
@@ -16104,6 +16983,32 @@
 
     function registerTurnActionProviders() {
       turnActionRegistry.register({
+        id: "combat:universal",
+        order: 5,
+        getActions(context) {
+          return {
+            actions: createUniversalActionDefinitions({ speed: context.speed, prone: context.prone }).map((definition) => {
+              const costType = definition.actionCost?.[0]?.type || "none";
+              const type = costType === "bonusAction"
+                ? ACTION_TYPES.bonus
+                : costType === "reaction"
+                ? ACTION_TYPES.reaction
+                : costType === "movement"
+                ? ACTION_TYPES.movement
+                : costType === "objectInteraction"
+                ? ACTION_TYPES.objectInteraction
+                : costType === "none" || !definition.actionCost?.length
+                ? ACTION_TYPES.none
+                : ACTION_TYPES.action;
+              return { ...definition, type, detail: definition.description };
+            })
+          };
+        }
+      });
+
+      // Kept as reference for the older detailed copy, but the universal provider above is authoritative.
+      // Registering both created duplicate cards and doubled validation/render work.
+      if (false) turnActionRegistry.register({
         id: "core:actions",
         order: 10,
         getActions() {
@@ -16184,15 +17089,41 @@
           const meleeOption = equippedEntries()
             .filter(({ item, record }) => isWeaponItem(item) && record.slot === "mainHand" && itemTypeAbbreviation(item) !== "R")
             .map(({ entry, item, record }) => weaponAttackSelection(entry, item, record.slot))[0] || unarmedTurnActionSelection();
-          return {
-            actions: [{
-              key: "core:opportunity-attack",
-              type: ACTION_TYPES.reaction,
-              title: "Opportunity Attack",
-              detail: `Que haces: si una criatura sale de tu alcance, puedes hacer un ataque melee contra ella.\nConsume: tu Reaction.\nSuma: ${turnActionRowStats(meleeOption) || "un ataque cuerpo a cuerpo"}.\nResta: si gastas la Reaction aqui, no la tienes para otras reacciones hasta tu proximo turno.`,
-              source: "core"
-            }]
-          };
+          return { actions: [{
+            ...createAttackActionDefinition(meleeOption, {
+              id: "core:opportunity-attack",
+              name: "Opportunity Attack",
+              actionCost: [{ type: "reaction", amount: 1 }],
+              attackAction: false,
+              allowOutsideTurn: true,
+              category: ACTION_CATEGORIES.reactions,
+              description: "Triggered when a visible creature leaves your reach. You may decline it."
+            }),
+            type: ACTION_TYPES.reaction,
+            source: "core",
+            detail: `Trigger: creature leaves your reach. ${turnActionRowStats(meleeOption)}`
+          }] };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "combat:readied-reaction",
+        order: 18,
+        getActions(context) {
+          if (!context.readyAction) return { actions: [] };
+          return { actions: [{
+            key: "combat:execute-readied-action",
+            id: "combat:execute-readied-action",
+            type: ACTION_TYPES.reaction,
+            title: `Use Readied Action: ${context.readyAction.action || "Prepared action"}`,
+            detail: `Trigger: ${context.readyAction.trigger || "DM adjudication"}. Optional; you may decline this Reaction.`,
+            actionCost: [{ type: "reaction", amount: 1 }],
+            resolutionSteps: [RESOLUTION_STEPS.confirmResult],
+            category: ACTION_CATEGORIES.reactions,
+            allowOutsideTurn: true,
+            effect: "executeReady",
+            source: "core"
+          }] };
         }
       });
 
@@ -16200,15 +17131,64 @@
         id: "equipment:attacks",
         order: 20,
         getActions() {
+          const optionalDamageChoices = combatOptionalDamageChoices();
           return {
             actions: turnActionWeaponSelections().map((row) => ({
-              key: `equipment:${normalizeName(row.name)}`,
+              ...createAttackActionDefinition(row, {
+                id: `equipment:${normalizeName(row.name)}`,
+                name: row.name.startsWith("Ataque ") ? row.name : `Atacar con ${row.name}`
+              }),
               type: row.actionType || ACTION_TYPES.action,
-              title: row.name.startsWith("Ataque ") ? row.name : `Atacar con ${row.name}`,
-              detail: [turnActionRowStats(row), row.actionCostLabel].filter(Boolean).join("\n"),
+              optionalDamageChoices,
+              disabledReason: row.ammoName && !row.ammoEntry ? `No ${row.ammoName} ammunition remaining.` : "",
+              ammoEntry: row.ammoEntry ? { ...row.ammoEntry } : null,
+              detail: [
+                turnActionRowStats(row),
+                row.range ? `Range: ${row.range}` : "",
+                row.properties ? `Properties: ${row.properties}` : "",
+                `${row.ability || "STR"} | ${row.proficient ? "Proficient" : "Not proficient"}`,
+                row.ammoName ? `Ammunition: ${row.ammoRemaining} ${row.ammoName}` : "",
+                row.actionCostLabel,
+                row.description
+              ].filter(Boolean).join("\n"),
               source: "equipment"
             }))
           };
+        }
+      });
+
+      turnActionRegistry.register({
+        id: "inventory:consumables",
+        order: 25,
+        getActions() {
+          return { actions: equipmentEntries().flatMap((entry) => {
+            const item = findItemData(entry.displayName);
+            if (!item || !isConsumableItem(item) || entry.quantity <= 0) return [];
+            const description = itemDescriptionText(item);
+            const healing = /\bregains?\b[^.]{0,80}\bHit Points?\b|\bhealing\b/i.test(description);
+            const expression = description.match(diceExpressionRegex("i"))?.[0] || "";
+            return [{
+              key: `inventory:use:${equipmentItemKey(entry)}`,
+              id: `inventory:use:${equipmentItemKey(entry)}`,
+              type: ACTION_TYPES.action,
+              title: `Use ${item.name || entry.displayName}`,
+              detail: `${entry.quantity} available. ${turnActionShortDescription(description)}`,
+              actionCost: [{ type: "action", amount: 1 }],
+              resolutionSteps: [
+                RESOLUTION_STEPS.selectTarget,
+                ...(expression ? [RESOLUTION_STEPS.damageRoll] : []),
+                RESOLUTION_STEPS.applyEffect,
+                RESOLUTION_STEPS.confirmResult
+              ],
+              category: ACTION_CATEGORIES.items,
+              targetRequired: false,
+              inventoryEntry: { ...entry },
+              damageFormula: expression,
+              damageType: healing ? "healing" : "",
+              healing,
+              source: "inventory"
+            }];
+          }) };
         }
       });
 
@@ -16220,13 +17200,30 @@
             actions: (context.castableSpells || []).flatMap((spellEntry) => {
               const types = spellActionTypes(spellEntry.spell);
               const availability = spellAvailabilityInfo(spellEntry);
-              if (!availability.available || !types.length) return [];
+              const armorBlocksCasting = equippedArmorWithoutProficiency();
+              if (!types.length) return [];
               const detail = [availability.detail, spellActionCombatDetail(spellEntry)].filter(Boolean).join(" | ");
+              const row = spellAttackSelections(spellEntry.name, spellEntry.level)[0] || {
+                name: spellEntry.name,
+                kind: "spell",
+                level: spellEntry.level,
+                castLevel: spellEntry.level,
+                noAttackRoll: true,
+                description: spellEntry.spell?.description || ""
+              };
               return types.map((type) => ({
-                key: `spell:${type}:${normalizeName(spellEntry.name)}`,
+                ...createSpellActionDefinition(spellEntry, row, {
+                  id: `spell:${type}:${normalizeName(spellEntry.name)}`,
+                  name: `Cast ${spellEntry.name}`,
+                  allowOutsideTurn: type === ACTION_TYPES.reaction
+                }),
                 type,
-                title: `Lanzar ${spellEntry.name} (${availability.shortLabel})`,
-                detail,
+                disabledReason: armorBlocksCasting
+                  ? "Armor or shield without proficiency prevents spellcasting."
+                  : availability.available
+                  ? ""
+                  : availability.reason || "No valid spell resource available.",
+                detail: [detail, spellEntry.spell?.description].filter(Boolean).join("\n"),
                 source: "spells"
               }));
             })
@@ -16284,6 +17281,8 @@
                   type,
                   title: `Usar ${row.name}`,
                   detail: [uses ? `${uses.remaining}/${uses.max} usos` : "", row.description].filter(Boolean).join("\n"),
+                  resourceRow: uses ? row : null,
+                  resourceInfo: uses ? { name: row.name, ...uses } : null,
                   source: "feat"
                 }));
               })
@@ -16295,8 +17294,8 @@
       turnActionRegistry.register({
         id: "resources:summary",
         order: 90,
-        getActions() {
-          return { resources: turnActionResourceSummaries() };
+        getActions(context) {
+          return { resources: turnActionResourceSummaries(context.turnActionEntries) };
         }
       });
 

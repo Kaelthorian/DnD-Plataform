@@ -9,21 +9,27 @@
     action: "action",
     bonus: "bonus",
     movement: "movement",
-    reaction: "reaction"
+    reaction: "reaction",
+    objectInteraction: "objectInteraction",
+    none: "none"
   });
 
   const ACTION_TYPE_ORDER = Object.freeze([
     ACTION_TYPES.movement,
     ACTION_TYPES.action,
     ACTION_TYPES.bonus,
-    ACTION_TYPES.reaction
+    ACTION_TYPES.reaction,
+    ACTION_TYPES.objectInteraction,
+    ACTION_TYPES.none
   ]);
 
   const ACTION_TYPE_LABELS = Object.freeze({
     [ACTION_TYPES.action]: "Accion",
     [ACTION_TYPES.bonus]: "Accion Bonus",
     [ACTION_TYPES.movement]: "Movimiento",
-    [ACTION_TYPES.reaction]: "Reaccion"
+    [ACTION_TYPES.reaction]: "Reaccion",
+    [ACTION_TYPES.objectInteraction]: "Interaccion con objeto",
+    [ACTION_TYPES.none]: "Sin coste"
   });
 
   function normalizeActionType(type) {
@@ -32,6 +38,8 @@
     if (value === ACTION_TYPES.bonus || value === "bonus action") return ACTION_TYPES.bonus;
     if (value === ACTION_TYPES.movement || value === "move") return ACTION_TYPES.movement;
     if (value === ACTION_TYPES.reaction) return ACTION_TYPES.reaction;
+    if (value === ACTION_TYPES.objectInteraction || value === "object interaction") return ACTION_TYPES.objectInteraction;
+    if (value === ACTION_TYPES.none || value === "free") return ACTION_TYPES.none;
     return ACTION_TYPES.action;
   }
 
@@ -51,13 +59,23 @@
     if (!title) return null;
     const type = normalizeActionType(action.type);
     return {
+      ...action,
       key: String(action.key || `${providerId}:${type}:${title}`).trim(),
       type,
       title,
       detail: String(action.detail || "").trim(),
       source: String(action.source || providerId || "").trim(),
       sortKey: String(action.sortKey || title).trim().toLowerCase(),
-      tags: Array.isArray(action.tags) ? action.tags.filter(Boolean) : []
+      tags: Array.isArray(action.tags) ? action.tags.filter(Boolean) : [],
+      category: String(action.category || "").trim(),
+      actionCost: Array.isArray(action.actionCost)
+        ? action.actionCost.map((cost) => ({ ...cost }))
+        : action.actionCost && typeof action.actionCost === "object"
+        ? [{ ...action.actionCost }]
+        : [],
+      resolutionSteps: Array.isArray(action.resolutionSteps) ? [...action.resolutionSteps] : [],
+      disabledReason: String(action.disabledReason || "").trim(),
+      attackAction: Boolean(action.attackAction)
     };
   }
 
@@ -141,6 +159,7 @@
       const actions = [];
       const resources = [];
       normalizedProviders.forEach((provider) => {
+        const startedAt = globalThis.performance?.now?.() ?? Date.now();
         const result = normalizeProviderResult(provider.getActions(context));
         result.actions
           .map((action) => normalizeActionDescriptor(action, provider.id))
@@ -150,6 +169,14 @@
           .map((resource) => normalizeResourceDescriptor(resource, provider.id))
           .filter(Boolean)
           .forEach((resource) => resources.push(resource));
+        if (typeof context.onProviderTiming === "function") {
+          context.onProviderTiming({
+            id: provider.id,
+            durationMs: (globalThis.performance?.now?.() ?? Date.now()) - startedAt,
+            actionCount: result.actions.length,
+            resourceCount: result.resources.length
+          });
+        }
       });
       return {
         actions: sortActions(dedupeByKey(actions)),

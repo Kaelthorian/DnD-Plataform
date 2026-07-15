@@ -3610,10 +3610,10 @@
     }
 
     .turn-actions-panel {
-      width: min(760px, calc(100vw - 40px));
-      max-height: min(82vh, 900px);
+      width: min(1080px, calc(100vw - 40px));
+      max-height: min(90vh, 980px);
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr);
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
       border: 1px solid rgba(0, 0, 0, 0.24);
       border-radius: 10px;
       background: rgba(255, 255, 255, 0.98);
@@ -3671,6 +3671,7 @@
       padding: 10px 16px;
       border-bottom: 1px solid #d8d8d8;
       background: #fff;
+      overflow-x: auto;
     }
 
     .turn-actions-counter {
@@ -3695,13 +3696,21 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .turn-actions-orb.wide {
+      width: auto;
+      min-width: 48px;
+      padding: 0 6px;
+      border-radius: 19px;
+    }
+
     .turn-actions-orb.empty {
       background: #fff;
       color: #8b1e24;
       border-color: #8b1e24;
     }
 
-    .turn-actions-new-turn {
+    .turn-actions-new-turn,
+    .turn-actions-end-turn {
       margin-left: auto;
       min-height: 32px;
       padding: 0 12px;
@@ -3713,8 +3722,23 @@
       cursor: pointer;
     }
 
+    .turn-actions-end-turn {
+      margin-left: 0;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid #8b1e24;
+      border-radius: 6px;
+      background: #8b1e24;
+      color: #fff;
+      font: 700 12px/1.2 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
     .turn-actions-new-turn:hover,
-    .turn-actions-new-turn:focus {
+    .turn-actions-new-turn:focus,
+    .turn-actions-end-turn:hover,
+    .turn-actions-end-turn:focus {
       background: #111;
       color: #fff;
       outline: none;
@@ -3793,6 +3817,161 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
+    }
+
+    .turn-actions-row-cost,
+    .turn-actions-row-state {
+      margin-top: 6px;
+      color: #6b4b12;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .turn-actions-row-state.blocked {
+      color: #8b1e24;
+    }
+
+    .combat-resolution {
+      display: grid;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #d8d8d8;
+      background: linear-gradient(135deg, #17140f 0%, #2e261a 100%);
+      color: #f7eed9;
+    }
+
+    .combat-resolution[hidden] {
+      display: none;
+    }
+
+    .combat-resolution-header,
+    .combat-resolution-actions,
+    .combat-resolution-outcome-actions,
+    .combat-log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .combat-resolution-title {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .combat-resolution-steps {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+    }
+
+    .combat-resolution-step {
+      padding: 4px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
+      color: #cfc4ae;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .combat-resolution-step.active {
+      border-color: #d6a84b;
+      background: #d6a84b;
+      color: #17140f;
+      font-weight: 800;
+    }
+
+    .combat-resolution-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .combat-resolution label {
+      display: grid;
+      gap: 4px;
+      color: #d9ccb4;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .combat-resolution input,
+    .combat-resolution select,
+    .combat-resolution textarea {
+      min-height: 34px;
+      padding: 7px 8px;
+      border: 1px solid #6d604d;
+      border-radius: 6px;
+      background: #fffdf8;
+      color: #17140f;
+      font: 13px/1.25 "Segoe UI", Arial, sans-serif;
+    }
+
+    .combat-resolution textarea {
+      min-height: 64px;
+      resize: vertical;
+    }
+
+    .combat-resolution button,
+    .combat-log button {
+      min-height: 32px;
+      padding: 0 11px;
+      border: 1px solid #d6a84b;
+      border-radius: 6px;
+      background: #d6a84b;
+      color: #17140f;
+      font: 800 12px/1.2 "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+    }
+
+    .combat-resolution button.secondary,
+    .combat-log button {
+      background: transparent;
+      color: #f7eed9;
+    }
+
+    .combat-resolution button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .combat-resolution-result {
+      padding: 9px 10px;
+      border: 1px solid rgba(214, 168, 75, 0.5);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.06);
+      white-space: pre-wrap;
+    }
+
+    .combat-log {
+      max-height: 190px;
+      overflow: hidden;
+      padding: 10px 16px 12px;
+      border-top: 1px solid #d8d8d8;
+      background: #211c15;
+      color: #f7eed9;
+    }
+
+    .combat-log h3 {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .combat-log-list {
+      max-height: 130px;
+      margin-top: 8px;
+      overflow: auto;
+      display: grid;
+      gap: 6px;
+    }
+
+    .combat-log-entry {
+      padding: 7px 8px;
+      border-left: 3px solid #d6a84b;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 11px;
+      white-space: pre-wrap;
     }
 
     .turn-actions-row {

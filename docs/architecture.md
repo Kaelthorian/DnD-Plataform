@@ -31,6 +31,23 @@ flowchart LR
 
 `src/app/renderer/index.html` es el shell y contiene la mayor parte de la lógica de dominio, DOM y estado. `renderer.js` carga datos/PDF, inicializa UI y gestiona el cliente Live Sheet; `i18n.js` contiene diccionarios EN/ES. Algunos cálculos aislados se cargan como módulos UMD desde `src/engine`.
 
+La ventana central de combate usa una frontera incremental:
+
+- `src/engine/combat` mantiene definiciones, economía, reservas, pipeline y contrato de log como módulos puros UMD/CommonJS.
+- `index.html` adapta el modelo real de la hoja (armas, spells, features, estados, slots, inventario) y ejecuta las tiradas existentes mediante `showDiceTray()`.
+- `__sheetMeta.combatTurn` y `__sheetMeta.combatLog` persisten el turno/log con cada slot. Cancelar una sesión elimina la reserva sin consumir Action, slot, uso, munición ni consumible.
+- El cliente no lee datos privados del DM: target y AC conocida son entradas explícitas; sin AC el resultado queda para resolución del DM.
+
+La ventana central mantiene un indice `Map` inmutable del catalogo y una fotografia revisionada de acciones. Una pasada comparte inventario, features, estados, Extra Attack y economia entre proveedores/render; los cambios relevantes invalidan esa fotografia.
+
+### Carga de catalogos y PDF
+
+`items:load` delega el catalogo vendor grande a `src/services/workers/item-data-worker.js`. El worker valida `mtime` y tamano de ambos JSON, reutiliza `userData/data-cache/items-catalog-v1.bin` cuando coincide y vuelve a compilarlo automaticamente cuando cambia la fuente. `data-loader.js` conserva ademas la promesa en memoria para solicitudes repetidas del mismo proceso.
+
+La Character Sheet inicia esa carga junto con los demas datasets, pero no bloquea el primer render del PDF. Al completarse reconstruye equipo, AC, spells y combate; `pruneEquippedItems()` no elimina selecciones mientras el catalogo esta pendiente. PDF.js usa su worker empaquetado y las paginas visibles se procesan con concurrencia maxima dos para no saturar memoria/GPU.
+
+No guardar el catalogo en `localStorage`: es sincrono, tiene cuota limitada y bloquearia el renderer. La cache binaria es derivada y descartable; nunca es fuente de verdad.
+
 ### DM Screen
 
 `src/app/renderer/dm-screen/src/main.jsx` contiene el tablero React, bibliotecas, stat blocks, mapas/VTT, audio, jugadores en vivo, importación de personajes y Obsidian. Vite genera `dm-screen/dist/`, que está versionado porque Electron lo carga directamente. El estado ligero del tablero usa `localStorage`; imágenes de mapas y audio usan IndexedDB.
@@ -50,6 +67,8 @@ flowchart LR
 3. El jugador envía `player:hello`, `sheet:update`, tiradas, pings o estado de mano.
 4. El servidor mantiene jugadores/VTT en memoria y emite snapshots por IPC al DM Screen.
 5. Los datos remotos no se escriben automáticamente en slots locales.
+
+Las tiradas del stepper de combate usan el mensaje existente `roll:event`. La economía y aplicación de efectos siguen siendo autoritativas sólo en modo local; todavía no existe un protocolo host/DM de solicitud-confirmación para mutaciones de combate. No presentar el estado `__sheetMeta.combatTurn` del cliente como autoridad multijugador.
 
 No hay TLS, cuentas, relay ni persistencia de sesión. La frontera prevista es LAN privada o Tailscale.
 

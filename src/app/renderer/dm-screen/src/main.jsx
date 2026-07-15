@@ -6497,6 +6497,8 @@ function MapNote({
   selectedMapTokenIds = [],
   onMapTokenSelectionChange,
   onMapTokenDragStart,
+  onMapTokenDragMove,
+  onMapTokenDragEnd,
   onMapTokenContextMenu,
   onMapContextAddMonster,
   onMapContextAddNpc,
@@ -7785,6 +7787,18 @@ function MapNote({
                     height: visualSize
                   }}
                   onPointerDown={(event) => onMapTokenDragStart?.(event, noteActionId, activePage.id, token.id)}
+                  onPointerMove={(event) => {
+                    onMapTokenDragMove?.(event);
+                    event.stopPropagation();
+                  }}
+                  onPointerUp={(event) => {
+                    onMapTokenDragEnd?.(event);
+                    event.stopPropagation();
+                  }}
+                  onPointerCancel={(event) => {
+                    onMapTokenDragEnd?.(event);
+                    event.stopPropagation();
+                  }}
                   onContextMenu={(event) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, token.id)}
                 >
                   <MapTokenImage token={token} className="h-full w-full border-0" />
@@ -15612,6 +15626,8 @@ function DmScreenApp() {
               selectedMapTokenIds={selectedMapTokens.mapNoteId === activeNote.id && selectedMapTokens.pageId === activeMapPageForNote(activeNote)?.id ? selectedMapTokens.tokenIds : []}
               onMapTokenSelectionChange={setMapTokenSelection}
               onMapTokenDragStart={startMapTokenDrag}
+              onMapTokenDragMove={updateDrag}
+              onMapTokenDragEnd={stopDrag}
               onMapTokenContextMenu={openMapTokenContextMenu}
               onMapContextAddMonster={openMonsterTokenPicker}
               onMapContextAddNpc={openNpcTokenPicker}
