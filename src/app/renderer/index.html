@@ -247,6 +247,7 @@
   <script src="../../engine/actions/action-advisor.js"></script>
   <script src="../../engine/resources/resource-state.js"></script>
   <script src="../../engine/resources/sorcery-points.js"></script>
+  <script src="../../engine/rests/rest-state.js"></script>
   <script src="../../engine/rests/long-rest.js"></script>
   <script src="../../engine/rests/short-rest.js"></script>
   <script src="./i18n.js"></script>
@@ -258,11 +259,13 @@
     const {
       computeLongRestRecovery,
       computeSpellSlotFieldUpdates,
-      resolveLongRest
+      resolveLongRest,
+      resolveLongRestInterruption
     } = globalThis.dndLongRestEngine;
     const {
       computeShortRestRecovery,
-      resolveShortRest
+      resolveShortRest,
+      resolveShortRestInterruption
     } = globalThis.dndShortRestEngine;
     const {
       ensureResourceState,
@@ -271,6 +274,12 @@
       getMagicInitiateUseInfo,
       spendMagicInitiateUse
     } = globalThis.dndResourceStateEngine;
+    const {
+      normalizeSheetMeta,
+      normalizeHitDiceState,
+      spendHitDie: spendRestHitDie,
+      normalizeRestState
+    } = globalThis.dndRestStateEngine;
     const {
       SPELL_SLOT_CREATION_RULES,
       ensureSorceryPointData,
@@ -287,7 +296,8 @@
       findStatusDefinition,
       normalizeStatusIds,
       mergeRollModes,
-      collectStatusEffects
+      collectStatusEffects,
+      exhaustionEffectsForLevel
     } = globalThis.dndConditionEngine;
     const importCharacterButton = document.getElementById("importCharacterButton");
     const characterImportBackdrop = document.getElementById("characterImportBackdrop");
@@ -1228,6 +1238,7 @@
       if (!recovery) return;
       applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
       sheetMeta.featureUses = recovery.nextResourceState;
+      normalizeRestSheetState();
       updatePreparedSpellsPanel();
     }
 
@@ -1240,12 +1251,28 @@
       sheetMeta.featureUses = recovery.nextResourceState;
       resetLongRestFeaturePools();
       if (currentHpField && fieldValue("HPMax")) currentHpField.value = recovery.currentHitPoints;
-      setFieldValue("Inspiration", longRestInspirationValue());
+      const tempHpField = getTemporaryHitPointsField();
+      if (tempHpField) tempHpField.value = "";
+      const dice = normalizeRestSheetState();
+      if (dice.total) setFieldValue("HD", String(dice.total));
+      if (sheetMeta.reducedAbilityScores && typeof sheetMeta.reducedAbilityScores === "object") {
+        Object.entries(sheetMeta.reducedAbilityScores).forEach(([key, value]) => {
+          if (getFieldByKey(key)) setFieldValue(key, String(value));
+        });
+        sheetMeta.reducedAbilityScores = {};
+      }
+      const exhaustion = Math.max(0, Math.min(6, Number.parseInt(sheetMeta.exhaustionLevel, 10) || 0));
+      sheetMeta.exhaustionLevel = Math.max(0, exhaustion - 1);
+      const inspiration = String(fieldValue("Inspiration") || "").trim();
+      if (!inspiration && normalizeName(selectedRaceBaseName()) === "human") setFieldValue("Inspiration", "1");
+      ensureActiveStatusIds();
       updatePreparedSpellsPanel();
+      updateDerivedStats();
     }
 
     function longRestInspirationValue() {
-      return normalizeName(selectedRaceBaseName()) === "human" ? "1" : "0";
+      const current = String(fieldValue("Inspiration") || "").trim();
+      return current || (normalizeName(selectedRaceBaseName()) === "human" ? "1" : "0");
     }
 
     function restoreLongRestResources() {
@@ -1253,7 +1280,11 @@
         slotTotals: baseSpellSlotsForCharacter(),
         remainingByLevel: spellSlotRemainingByLevel(),
         currentHitPoints: getCurrentHitPointsField()?.value || "",
-        maxHitPoints: fieldValue("HPMax")
+        maxHitPoints: fieldValue("HPMax"),
+        resourceState: featureUseState(),
+        recoverResourceKeys: longRestRecoverableResourceKeys(),
+        hitDiceTotal: normalizeRestSheetState().total,
+        exhaustionLevel: sheetMeta.exhaustionLevel
       }));
     }
 
@@ -1270,7 +1301,15 @@
       return [];
     }
 
-    function featureRecoveryKinds(title, description) {
+    function featureRecoveryKinds(title, description, source = null) {
+      const explicit = source?.recharge ?? source?.rechargeType ?? source?.rechargeOn ?? source?.restRecharge;
+      if (explicit != null) {
+        const normalized = String(typeof explicit === "object" ? explicit.type || explicit.kind || explicit.name || "" : explicit).toLowerCase();
+        if (/short\s+or\s+long|long\s+or\s+short/.test(normalized)) return ["short", "long"];
+        if (/short/.test(normalized)) return ["short"];
+        if (/long/.test(normalized)) return ["long"];
+        if (/none|never|custom/.test(normalized)) return [];
+      }
       return resourceRecoveryKindsFromText(`${title || ""}\n${description || ""}`);
     }
 
@@ -1284,19 +1323,31 @@
       const keys = new Set();
       featureGrantedAttackSelections().forEach((row) => {
         if (!row?.key || !row?.usesMax) return;
-        if (featureRecoveryKinds(row.name, row.description).includes("short")) keys.add(row.key);
+        if (featureRecoveryKinds(row.name, row.description, row.sourceEntry?.feature || row.sourceEntry?.optionalFeature).includes("short")) keys.add(row.key);
       });
       featureActivationSelections().forEach((row) => {
         if (!row?.key || !row?.usesMax) return;
-        if (featureRecoveryKinds(row.name, row.description).includes("short")) keys.add(row.key);
+        if (featureRecoveryKinds(row.name, row.description, row.sourceEntry?.feature || row.sourceEntry?.optionalFeature).includes("short")) keys.add(row.key);
       });
       featResourceSelections().forEach((row) => {
         if (!row?.key || !row?.usesMax) return;
-        if (featureRecoveryKinds(row.name, row.description).includes("short")) keys.add(row.key);
+        if (featureRecoveryKinds(row.name, row.description, row.sourceEntry?.feat || row.sourceEntry?.feature).includes("short")) keys.add(row.key);
       });
       activeFeatSpellGrants().forEach((grant) => {
         if (!grant?.key) return;
         if (magicInitiateRecoveryKinds(grant).includes("short")) keys.add(grant.key);
+      });
+      return [...keys];
+    }
+
+    function longRestRecoverableResourceKeys() {
+      const keys = new Set();
+      [...featureGrantedAttackSelections(), ...featureActivationSelections(), ...featResourceSelections()].forEach((row) => {
+        if (!row?.key || !row?.usesMax) return;
+        if (featureRecoveryKinds(row.name, row.description, row.sourceEntry?.feature || row.sourceEntry?.optionalFeature || row.sourceEntry?.feat).includes("long")) keys.add(row.key);
+      });
+      activeFeatSpellGrants().forEach((grant) => {
+        if (grant?.key && magicInitiateRecoveryKinds(grant).includes("long")) keys.add(grant.key);
       });
       return [...keys];
     }
@@ -1320,23 +1371,34 @@
         slotTotals: baseSpellSlotsForCharacter(),
         remainingByLevel: spellSlotRemainingByLevel(),
         currentHitPoints: getCurrentHitPointsField()?.value || "",
-        maxHitPoints: fieldValue("HPMax")
+        maxHitPoints: fieldValue("HPMax"),
+        resourceState: featureUseState(),
+        recoverResourceKeys: longRestRecoverableResourceKeys(),
+        hitDiceTotal: normalizeRestSheetState().total,
+        exhaustionLevel: sheetMeta.exhaustionLevel,
+        heroicInspiration: String(fieldValue("Inspiration") || "").trim(),
+        human: normalizeName(selectedRaceBaseName()) === "human"
       });
       if (result.mode === "blocked") {
-        showStatus(t("rest.longBlockedByShort"));
+        showStatus(result.reason === "zero-hit-points" ? t("rest.zeroHitPoints") : t("rest.longBlockedByShort"));
         return;
       }
       if (result.mode === "instant") {
         applyLongRestRecovery(result.recovery);
         sheetMeta.shortRestActive = false;
+        sheetMeta.longRestActive = false;
+        sheetMeta.restState = normalizeRestState({});
         scheduleSave();
-        showStatus("Long rest: vida y spell slots restaurados");
+        showStatus(t("rest.longFinished"));
         return;
       }
       sheetMeta.longRestActive = result.nextLongRestActive;
       if (sheetMeta.longRestActive) sheetMeta.shortRestActive = false;
       if (result.recovery) {
         applyLongRestRecovery(result.recovery);
+        sheetMeta.restState = normalizeRestState({});
+      } else if (sheetMeta.longRestActive) {
+        sheetMeta.restState = normalizeRestState({ kind: "long", elapsedMinutes: 0, interrupted: false, lastHitDie: null, lastHitPoints: Number.parseInt(getCurrentHitPointsField()?.value || "0", 10) || 0 });
       }
       updateInteractionState();
       if (itemDrawer?.classList.contains("visible") && itemDrawer.classList.contains("spell-picker-drawer")) {
@@ -1345,11 +1407,12 @@
       }
       scheduleSave();
       showStatus(sheetMeta.longRestActive
-        ? isBardCharacter() && !usesManagedPreparedSpells() ? "Long rest iniciado: Bard no cambia magias" : "Long rest iniciado: podes cambiar magias"
-        : "Long rest terminado: vida y spell slots restaurados");
+        ? t("rest.longStarted")
+        : t("rest.longFinished"));
     }
 
     function shortRestResources() {
+      const dice = normalizeRestSheetState();
       const result = resolveShortRest({
         characterReady: isCharacterReady(),
         shortRestActive: isShortRestActive(),
@@ -1358,27 +1421,172 @@
         remainingByLevel: spellSlotRemainingByLevel(),
         resourceState: featureUseState(),
         recoverResourceKeys: shortRestRecoverableResourceKeys(),
-        restoreSpellSlots: isWarlockCharacter()
+        restoreSpellSlots: isWarlockCharacter(),
+        currentHitPoints: getCurrentHitPointsField()?.value || "",
+        maxHitPoints: fieldValue("HPMax"),
+        hitDiceAvailable: dice.available,
+        hitDiceTotal: dice.total
       });
       if (result.mode === "blocked") {
-        showStatus(t("rest.shortBlockedByLong"));
+        showStatus(result.reason === "zero-hit-points" ? t("rest.zeroHitPoints") : t("rest.shortBlockedByLong"));
         return;
       }
       if (result.mode === "instant") {
         applyShortRestRecovery(result.recovery);
         sheetMeta.longRestActive = false;
+        sheetMeta.shortRestActive = false;
+        sheetMeta.restState = normalizeRestState({});
         scheduleSave();
-        showStatus("Short rest: recursos recuperados");
+        showStatus(t("rest.shortFinished"));
         return;
       }
       sheetMeta.shortRestActive = result.nextShortRestActive;
       if (sheetMeta.shortRestActive) sheetMeta.longRestActive = false;
-      if (result.recovery) applyShortRestRecovery(result.recovery);
+      if (sheetMeta.shortRestActive) {
+        sheetMeta.restState = normalizeRestState({ kind: "short", elapsedMinutes: 0, interrupted: false, lastHitDie: null, lastHitPoints: Number.parseInt(getCurrentHitPointsField()?.value || "0", 10) || 0 });
+        renderShortRestDrawer();
+      } else {
+        if (result.recovery) applyShortRestRecovery(result.recovery);
+        sheetMeta.restState = normalizeRestState({});
+        closeItemDrawer();
+      }
       updateInteractionState();
       scheduleSave();
       showStatus(sheetMeta.shortRestActive
-        ? "Short rest iniciado: podes gastar Hit Dice y ajustar HP actual"
-        : "Short rest terminado: recursos de short rest recuperados");
+        ? t("rest.shortStarted")
+        : t("rest.shortFinished"));
+    }
+
+    function spendShortRestHitDie() {
+      if (!isShortRestActive()) return false;
+      const dice = normalizeRestSheetState();
+      const currentField = getCurrentHitPointsField();
+      const result = spendRestHitDie({
+        available: dice.available,
+        total: dice.total,
+        currentHitPoints: currentField?.value || "0",
+        maxHitPoints: fieldValue("HPMax"),
+        hitDieFaces: characterHitDieFaces(),
+        constitutionModifier: abilityModifier(getFieldByKey("CON")?.value || "") ?? 0,
+        rng: (faces) => rollDie(faces)
+      });
+      if (!result.changed) {
+        showStatus(result.reason === "hp-full" ? t("rest.hpFull") : t("rest.noHitDice"));
+        renderShortRestDrawer();
+        return false;
+      }
+      if (currentField) currentField.value = String(result.currentHitPoints);
+      setFieldValue("HD", String(result.available));
+      sheetMeta.hitDice = { available: result.available, total: result.total, faces: characterHitDieFaces() };
+      sheetMeta.restState = normalizeRestState({ ...sheetMeta.restState, lastHitDie: result, lastHitPoints: result.currentHitPoints });
+      updateDerivedStats();
+      renderShortRestDrawer();
+      scheduleSave();
+      return true;
+    }
+
+    function renderShortRestDrawer() {
+      if (!isShortRestActive() || typeof showDrawer !== "function") return;
+      const root = document.createElement("div");
+      root.className = "rest-drawer-content";
+      const dice = normalizeRestSheetState();
+      const current = Number.parseInt(getCurrentHitPointsField()?.value || "0", 10) || 0;
+      const maximum = Number.parseInt(fieldValue("HPMax") || "0", 10) || 0;
+      const con = abilityModifier(getFieldByKey("CON")?.value || "") ?? 0;
+      const last = sheetMeta.restState?.lastHitDie;
+      root.innerHTML = `<div class="rest-summary-grid"><div><span>${t("rest.hp")}</span><strong>${current}/${maximum}</strong></div><div><span>${t("rest.hitDice")}</span><strong>${dice.available}/${dice.total}</strong></div><div><span>${t("rest.dieSize")}</span><strong>d${characterHitDieFaces() || "?"}</strong></div><div><span>${t("rest.constitution")}</span><strong>${formatModifier(con)}</strong></div></div>`;
+      const lastRoll = document.createElement("p");
+      lastRoll.className = "rest-last-roll";
+      lastRoll.textContent = last ? t("rest.lastHitDie", { roll: last.roll, healing: last.healing }) : t("rest.noHitDieYet");
+      root.appendChild(lastRoll);
+      const actions = document.createElement("div");
+      actions.className = "rest-drawer-actions";
+      const spend = document.createElement("button");
+      spend.type = "button";
+      spend.className = "rest-drawer-primary";
+      spend.textContent = t("rest.spendHitDie");
+      spend.disabled = dice.available <= 0 || current >= maximum;
+      spend.addEventListener("click", spendShortRestHitDie);
+      const finish = document.createElement("button");
+      finish.type = "button";
+      finish.className = "rest-drawer-secondary";
+      finish.textContent = t("rest.finish");
+      finish.addEventListener("click", shortRestResources);
+      actions.append(spend, finish);
+      root.appendChild(actions);
+      showDrawer(t("top.shortRest"), t("rest.shortDuration"), root, "rest-drawer");
+    }
+
+    function normalizeHitDiceFieldFromInput() {
+      const dice = normalizeRestSheetState();
+      setFieldValue("HD", dice.total ? String(dice.available) : "");
+      setFieldValue("HDTotal", dice.total ? String(dice.total) : "");
+      return dice;
+    }
+
+    function interruptActiveRest(reason = "interrupted") {
+      if (!isShortRestActive() && !isLongRestActive()) return false;
+      const elapsedMinutes = Number.parseInt(sheetMeta.restState?.elapsedMinutes, 10) || 0;
+      if (isShortRestActive()) {
+        resolveShortRestInterruption({ reason });
+        sheetMeta.shortRestActive = false;
+        sheetMeta.restState = normalizeRestState({ interrupted: true, elapsedMinutes });
+        closeItemDrawer();
+        updateInteractionState();
+        scheduleSave();
+        showStatus(t("rest.interrupted"));
+        return true;
+      }
+      const dice = normalizeRestSheetState();
+      const shortRecovery = computeShortRestRecovery({
+        slotTotals: spellSlotsForCharacter(),
+        remainingByLevel: spellSlotRemainingByLevel(),
+        resourceState: featureUseState(),
+        recoverResourceKeys: shortRestRecoverableResourceKeys(),
+        restoreSpellSlots: isWarlockCharacter()
+      });
+      const interruption = resolveLongRestInterruption({ elapsedMinutes, reason, shortRestRecovery: shortRecovery });
+      sheetMeta.longRestActive = false;
+      sheetMeta.restState = normalizeRestState({ interrupted: true, elapsedMinutes });
+      if (interruption.recovery) applyShortRestRecovery(interruption.recovery);
+      updateInteractionState();
+      scheduleSave();
+      showStatus(interruption.grantsShortRest ? t("rest.longInterruptedShortBenefit") : t("rest.interrupted"));
+      return true;
+    }
+
+    function advanceActiveRest(minutes) {
+      if (!isShortRestActive() && !isLongRestActive()) return false;
+      const next = Math.max(0, (Number.parseInt(sheetMeta.restState?.elapsedMinutes, 10) || 0) + Math.max(0, Number.parseInt(minutes, 10) || 0));
+      sheetMeta.restState = normalizeRestState({ ...sheetMeta.restState, elapsedMinutes: next });
+      scheduleSave();
+      return next;
+    }
+
+    globalThis.dndRestRuntime = {
+      interrupt: interruptActiveRest,
+      advance: advanceActiveRest,
+      spendHitDie: spendShortRestHitDie,
+      handleFieldEvent: handleRestFieldEvent
+    };
+
+    function handleRestFieldEvent(event) {
+      const field = event.target?.closest?.(".field");
+      if (!field) return;
+      const key = normalizeName(field.dataset.key || "");
+      if (key === "hd" || key === "hdtotal") {
+        normalizeHitDiceFieldFromInput();
+        if (isShortRestActive()) renderShortRestDrawer();
+        return;
+      }
+      if (!isCurrentHitPointsField(field) || (!isShortRestActive() && !isLongRestActive())) return;
+      const current = Number.parseInt(field.value || "0", 10) || 0;
+      const previous = Number.parseInt(sheetMeta.restState?.lastHitPoints, 10);
+      if (Number.isFinite(previous) && current < previous) {
+        interruptActiveRest("damage");
+        return;
+      }
+      sheetMeta.restState = normalizeRestState({ ...sheetMeta.restState, lastHitPoints: current });
     }
 
     function isSpellAlreadySelected(spellName, exceptField = null) {
@@ -4187,6 +4395,7 @@
 
     function castPreparedSpell(spell, options = {}) {
       if (!spell || spell.kind !== "spell") return false;
+      if (spell.level > 0) interruptActiveRest("spell");
       const turnState = combatTurnState();
       if (spell.level > 0 && !options.quickened && turnState.quickenedSpellUsed) {
         showStatus(t("sorcery.quickenedBlocksLevelSpell"));
@@ -4449,6 +4658,7 @@
       return {
         mode: effects.attackRollMode,
         bonusDice: effects.attackBonusDice,
+        d20TestPenalty: effects.d20TestPenalty || 0,
         notes: [...effects.attackNotes, ...effects.generalNotes]
       };
     }
@@ -4494,6 +4704,7 @@
         return {
           mode: effects.abilityCheckMode,
           bonusDice: effects.checkBonusDice,
+          d20TestPenalty: effects.d20TestPenalty || 0,
           notes: [...effects.checkNotes, ...effects.generalNotes]
         };
       }
@@ -4501,6 +4712,7 @@
       return {
         mode: mergeRollModes([effects.saveRollMode, effects.saveModeByAbility?.[ability] || "normal"]),
         bonusDice: effects.saveBonusDice,
+        d20TestPenalty: effects.d20TestPenalty || 0,
         notes: [...effects.saveNotes, ...effects.generalNotes]
       };
     }
@@ -4836,7 +5048,7 @@
       const shortcutNote = clickRollModeNote(event);
       const summary = summarizeD20Roll({
         roll,
-        parts: attackRollParts(bonus, label),
+        parts: [...attackRollParts(bonus, label), ...(statusContext.d20TestPenalty ? [{ label: "Exhaustion", value: -statusContext.d20TestPenalty }] : [])],
         bonusDice: statusContext.bonusDice,
         label,
         notes: [
@@ -4856,7 +5068,7 @@
       const roll = rollD20WithMode(resolveRollMode(statusContext.mode, event));
       const summary = summarizeD20Roll({
         roll,
-        parts: [{ label: "Modificador", value: modifier }],
+        parts: [{ label: "Modificador", value: modifier }, ...(statusContext.d20TestPenalty ? [{ label: "Exhaustion", value: -statusContext.d20TestPenalty }] : [])],
         bonusDice: statusContext.bonusDice,
         notes: [clickRollModeNote(event), ...statusContext.notes]
       });
@@ -7604,6 +7816,28 @@
       setCharacterImportError("");
     }
 
+    function characterHitDieFaces() {
+      return Number.parseInt(classDetailByName(getMainClassName() || getSelectedClassName())?.classItem?.hd?.faces, 10) || 0;
+    }
+
+    function normalizeRestSheetState() {
+      sheetMeta = normalizeSheetMeta(sheetMeta, {
+        characterLevel: getCharacterLevel(),
+        classHitDieFaces: characterHitDieFaces()
+      });
+      const dice = normalizeHitDiceState({
+        available: fieldValue("HD"),
+        total: fieldValue("HDTotal"),
+        characterLevel: getCharacterLevel(),
+        classHitDieFaces: characterHitDieFaces()
+      });
+      if (getFieldByKey("HD")) setFieldValue("HD", dice.total ? String(dice.available) : "");
+      if (getFieldByKey("HDTotal")) setFieldValue("HDTotal", dice.total ? String(dice.total) : "");
+      sheetMeta.hitDice = dice;
+      ensureActiveStatusIds();
+      return dice;
+    }
+
     function applyData(data) {
       sheetMeta = data?.__sheetMeta && typeof data.__sheetMeta === "object" ? data.__sheetMeta : { choices: {} };
       if (!sheetMeta.choices || typeof sheetMeta.choices !== "object") sheetMeta.choices = {};
@@ -7633,6 +7867,7 @@
         if (element.type === "checkbox") element.checked = Boolean(value);
         else if (typeof value === "string" || typeof value === "number") element.value = value;
       });
+      normalizeRestSheetState();
       sheetMeta.temporarySpellSlots = ensureTemporarySpellSlots(sheetMeta.temporarySpellSlots);
       currentSorceryPointData();
       pendingCriticalHits.clear();
@@ -7929,7 +8164,12 @@
     }
 
     function ensureActiveStatusIds() {
-      sheetMeta.activeStatuses = normalizeStatusIds(sheetMeta.activeStatuses);
+      const normalized = normalizeStatusIds(sheetMeta.activeStatuses);
+      const exhaustionLevel = Math.min(6, Math.max(0, Number.parseInt(sheetMeta.exhaustionLevel, 10) || 0));
+      sheetMeta.exhaustionLevel = exhaustionLevel;
+      sheetMeta.activeStatuses = exhaustionLevel > 0
+        ? normalizeStatusIds(["exhaustion", ...normalized])
+        : normalized.filter((id) => id !== "exhaustion");
       return sheetMeta.activeStatuses;
     }
 
@@ -7940,7 +8180,13 @@
     }
 
     function activeStatusEffects() {
-      return collectStatusEffects(ensureActiveStatusIds());
+      const effects = collectStatusEffects(ensureActiveStatusIds());
+      const exhaustion = exhaustionEffectsForLevel(sheetMeta.exhaustionLevel);
+      return {
+        ...effects,
+        speedBonus: effects.speedBonus + exhaustion.speedBonus,
+        d20TestPenalty: (effects.d20TestPenalty || 0) + exhaustion.d20TestPenalty
+      };
     }
 
     function activateStatusById(statusId) {
@@ -11433,7 +11679,7 @@
     }
 
     function showDrawer(title, meta, body, drawerClass = "") {
-      itemDrawer.classList.remove("spell-picker-drawer", "wizard-spellbook-drawer", "feat-readable-drawer");
+      itemDrawer.classList.remove("spell-picker-drawer", "wizard-spellbook-drawer", "feat-readable-drawer", "rest-drawer");
       if (drawerClass) itemDrawer.classList.add(drawerClass);
       itemDrawerTitle.textContent = title || "Detalle";
       itemDrawerMeta.textContent = meta || "";

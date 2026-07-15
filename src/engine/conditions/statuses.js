@@ -7,6 +7,14 @@
 
   const STATUS_DEFINITIONS = [
     {
+      id: "exhaustion",
+      name: "Exhaustion",
+      symbol: "EXH",
+      tone: "negative",
+      description: "Cada nivel resta 2 a los D20 Tests y 5 pies a Speed. Se acumula de 0 a 6.",
+      effects: {}
+    },
+    {
       id: "bardic-inspiration",
       name: "Bardic Inspiration",
       symbol: "BI d6",
@@ -586,7 +594,8 @@
       generalNotes: [],
       actionsBlocked: false,
       bonusActionsBlocked: false,
-      reactionsBlocked: false
+      reactionsBlocked: false,
+      d20TestPenalty: 0
     };
 
     definitions.forEach((definition) => {
@@ -628,6 +637,7 @@
       effects.actionsBlocked = effects.actionsBlocked || Boolean(raw.actionsBlocked);
       effects.bonusActionsBlocked = effects.bonusActionsBlocked || Boolean(raw.bonusActionsBlocked);
       effects.reactionsBlocked = effects.reactionsBlocked || Boolean(raw.reactionsBlocked);
+      effects.d20TestPenalty += Number(raw.d20TestPenalty) || 0;
     });
 
     return {
@@ -647,6 +657,14 @@
     setExternalConditionEntries,
     normalizeStatusIds,
     mergeRollModes,
-    collectStatusEffects
+    collectStatusEffects,
+    exhaustionEffectsForLevel(level) {
+      const normalized = Math.min(6, Math.max(0, Number.parseInt(level, 10) || 0));
+      return {
+        d20TestPenalty: normalized * 2,
+        speedBonus: normalized * -5,
+        level: normalized
+      };
+    }
   };
 });

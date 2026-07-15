@@ -10,6 +10,18 @@
     return state;
   }
 
+  function normalizeResourceState(state) {
+    const source = ensureResourceState(state);
+    const normalized = {};
+    Object.entries(source).forEach(([key, value]) => {
+      const normalizedKey = String(key || "").trim();
+      if (!normalizedKey) return;
+      const parsed = Number.parseInt(value, 10);
+      if (Number.isFinite(parsed) && parsed > 0) normalized[normalizedKey] = parsed;
+    });
+    return normalized;
+  }
+
   function parseResourceMaximum(max) {
     const parsed = Number.parseInt(max, 10);
     if (!Number.isFinite(parsed) || parsed <= 0) return null;
@@ -69,7 +81,7 @@
   }
 
   function recoverResourceState({ state, keys = [] } = {}) {
-    const resourceState = ensureResourceState(state);
+    const resourceState = normalizeResourceState(state);
     const uniqueKeys = [...new Set((Array.isArray(keys) ? keys : []).map((key) => String(key || "").trim()).filter(Boolean))];
     if (!uniqueKeys.length) return { ...resourceState };
     const nextState = { ...resourceState };
@@ -83,6 +95,7 @@
 
   return {
     ensureResourceState,
+    normalizeResourceState,
     getResourceUseInfo,
     spendResourceUse,
     getMagicInitiateUseInfo,

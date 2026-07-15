@@ -2866,6 +2866,60 @@
       text-transform: uppercase;
     }
 
+    .item-drawer.rest-drawer {
+      width: min(430px, 92vw);
+    }
+
+    .rest-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .rest-summary-grid > div {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .rest-summary-grid span {
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+
+    .rest-summary-grid strong {
+      font-size: 1.15rem;
+    }
+
+    .rest-last-roll {
+      margin: 0 0 16px;
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .rest-drawer-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .rest-drawer-actions button {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 7px;
+      padding: 9px 12px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .rest-drawer-primary { background: rgba(34, 197, 94, 0.7); }
+    .rest-drawer-secondary { background: rgba(71, 85, 105, 0.85); }
+    .rest-drawer-actions button:disabled { cursor: not-allowed; opacity: 0.45; }
+
     .save-slot-select {
       width: 100%;
       min-width: 0;

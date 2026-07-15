@@ -8,12 +8,14 @@ Las pruebas son scripts Node con `assert`, sin runner externo. Cubren módulos p
 | --- | --- | --- |
 | Completa | `npm test` | i18n, engine, services y renderer |
 | i18n | `npm run test:i18n` | paridad EN/ES, placeholders y advertencias hardcoded |
-| Engine | `npm run test:engine` | backgrounds, registries, resources/rest y mecánicas de clase nivel 3 |
+| Engine | `npm run test:engine` | backgrounds, registries, resources/rest (incluye `tests/engine/rests.test.js`) y mecánicas de clase nivel 3 |
 | Services | `npm run test:services` | saves, Obsidian y protocolo Live Sheet |
 | Renderer | `npm run test:renderer` | helpers i18n cargables en Node |
 | DM build | `npm run build:dm-screen` | transformación Vite/Tailwind y assets importados |
 
 El test de saves usa `.test-tmp/save-service`, nunca datos reales del usuario. Los tests existentes de Obsidian/backgrounds usan directorios temporales descartables.
+
+El test puro de descansos valida la transición 2024, gasto determinista de Hit Dice, recuperación por `recharge`, Warlock Pact Magic, Exhaustion, interrupciones, migración idempotente y preservación de recursos desconocidos.
 
 ## Smoke test manual mínimo
 

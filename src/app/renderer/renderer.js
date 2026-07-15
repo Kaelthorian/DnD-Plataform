@@ -2765,7 +2765,10 @@
       longRestButton?.addEventListener("click", longRestSpellResources);
       shortRestButton?.addEventListener("click", shortRestResources);
       characterReadyButton?.addEventListener("click", toggleCharacterReady);
-      turnActionsButton?.addEventListener("click", openTurnActionsPanel);
+      turnActionsButton?.addEventListener("click", () => {
+        globalThis.dndRestRuntime?.interrupt?.("initiative");
+        openTurnActionsPanel();
+      });
       turnActionsClose?.addEventListener("click", closeTurnActionsPanel);
       turnActionsNewTurn?.addEventListener("click", startNewCombatTurn);
       turnActionsBackdrop?.addEventListener("click", (event) => {
@@ -2779,6 +2782,8 @@
       document.addEventListener("change", handleLockedAuxiliaryInput, true);
       app.addEventListener("input", handleDerivedStatInput);
       app.addEventListener("change", handleDerivedStatInput);
+      app.addEventListener("input", (event) => globalThis.dndRestRuntime?.handleFieldEvent?.(event));
+      app.addEventListener("change", (event) => globalThis.dndRestRuntime?.handleFieldEvent?.(event));
       app.addEventListener("change", handleWizardPreparedLimitChange);
       app.addEventListener("input", scheduleSave);
       app.addEventListener("change", scheduleSave);

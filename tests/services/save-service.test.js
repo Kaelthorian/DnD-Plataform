@@ -30,9 +30,20 @@ async function resetFixture() {
     const loaded = await saveService.loadSaveStore(fixtureRoot);
     assert.strictEqual(loaded.slots[0].data.HPCurrent, "9");
 
+    loaded.slots[0].data.HD = "2";
+    loaded.slots[0].data.__sheetMeta = { exhaustionLevel: 2, featureUses: { "slot-1": 1 } };
+    loaded.slots[1].data = { CharacterName: "Borin", HD: "5", __sheetMeta: { exhaustionLevel: 0, featureUses: {} } };
+    await saveService.saveSaveStore(fixtureRoot, loaded);
+    const isolatedSlots = await saveService.loadSaveStore(fixtureRoot);
+    assert.strictEqual(isolatedSlots.slots[0].data.HD, "2");
+    assert.strictEqual(isolatedSlots.slots[0].data.__sheetMeta.exhaustionLevel, 2);
+    assert.strictEqual(isolatedSlots.slots[1].data.HD, "5");
+    assert.strictEqual(isolatedSlots.slots[1].data.__sheetMeta.exhaustionLevel, 0);
+    assert.notStrictEqual(isolatedSlots.slots[0].data.__sheetMeta, isolatedSlots.slots[1].data.__sheetMeta);
+
     await fs.writeFile(saveService.dataFilePath(fixtureRoot), "{invalid json", "utf8");
     const recovered = await saveService.loadSaveStore(fixtureRoot);
-    assert.strictEqual(recovered.slots[0].data.HPCurrent, "7");
+    assert.strictEqual(recovered.slots[0].data.HPCurrent, "9");
 
     const files = await fs.readdir(fixtureRoot);
     assert.strictEqual(files.some((fileName) => fileName.endsWith(".tmp")), false);
