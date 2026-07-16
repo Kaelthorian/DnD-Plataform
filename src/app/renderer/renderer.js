@@ -90,6 +90,8 @@
     const itemPickerSearch = document.getElementById("itemPickerSearch");
     const itemPickerFilters = document.getElementById("itemPickerFilters");
     const itemPickerList = document.getElementById("itemPickerList");
+    const itemPickerCount = document.getElementById("itemPickerCount");
+    const itemPickerDetail = document.getElementById("itemPickerDetail");
     const itemPickerQuantity = document.getElementById("itemPickerQuantity");
     const itemPickerAdd = document.getElementById("itemPickerAdd");
     const familiarPickerBackdrop = document.getElementById("familiarPickerBackdrop");
@@ -2652,6 +2654,14 @@
       schedulePanelRefresh(refreshTurnActionsPanelIfVisible);
     }
 
+    function isEquipmentFieldEvent(event) {
+      return String(event?.target?.dataset?.key || "").trim().toLowerCase().includes("equipment");
+    }
+
+    function scheduleUnlessEquipmentField(event, callback) {
+      if (!isEquipmentFieldEvent(event)) callback();
+    }
+
     async function renderPage(pdf, pageNumber, mountMarker = null) {
       const page = await pdf.getPage(pageNumber);
       const baseViewport = page.getViewport({ scale: 1 });
@@ -2873,12 +2883,12 @@
       app.addEventListener("change", scheduleSave);
       app.addEventListener("input", scheduleLiveSheetUpdate);
       app.addEventListener("change", scheduleLiveSheetUpdate);
-      app.addEventListener("input", schedulePreparedSpellsPanelRefresh);
-      app.addEventListener("change", schedulePreparedSpellsPanelRefresh);
-      app.addEventListener("input", scheduleEquipmentPanelRefresh);
-      app.addEventListener("change", scheduleEquipmentPanelRefresh);
-      app.addEventListener("input", scheduleAlertsPanelRefresh);
-      app.addEventListener("change", scheduleAlertsPanelRefresh);
+      app.addEventListener("input", (event) => scheduleUnlessEquipmentField(event, schedulePreparedSpellsPanelRefresh));
+      app.addEventListener("change", (event) => scheduleUnlessEquipmentField(event, schedulePreparedSpellsPanelRefresh));
+      app.addEventListener("input", (event) => scheduleUnlessEquipmentField(event, scheduleEquipmentPanelRefresh));
+      app.addEventListener("change", (event) => scheduleUnlessEquipmentField(event, scheduleEquipmentPanelRefresh));
+      app.addEventListener("input", (event) => scheduleUnlessEquipmentField(event, scheduleAlertsPanelRefresh));
+      app.addEventListener("change", (event) => scheduleUnlessEquipmentField(event, scheduleAlertsPanelRefresh));
       document.addEventListener("pointerdown", (event) => {
         if (!isTopControlsMenuOpen() || topControlsMenu?.contains(event.target)) return;
         setTopControlsMenuOpen(false);
@@ -2895,12 +2905,20 @@
         if (event.key !== "Escape" || !isAppSettingsMenuOpen()) return;
         setAppSettingsMenuOpen(false);
       });
-      app.addEventListener("input", scheduleTurnActionsPanelRefresh);
-      app.addEventListener("change", scheduleTurnActionsPanelRefresh);
-      app.addEventListener("input", () => globalThis.invalidateCombatActionCache?.("field-input"));
-      app.addEventListener("change", () => globalThis.invalidateCombatActionCache?.("field-change"));
-      app.addEventListener("input", () => globalThis.scheduleCombatActionCacheWarmup?.());
-      app.addEventListener("change", () => globalThis.scheduleCombatActionCacheWarmup?.());
+      app.addEventListener("input", (event) => scheduleUnlessEquipmentField(event, scheduleTurnActionsPanelRefresh));
+      app.addEventListener("change", (event) => scheduleUnlessEquipmentField(event, scheduleTurnActionsPanelRefresh));
+      app.addEventListener("input", (event) => {
+        if (!isEquipmentFieldEvent(event)) globalThis.invalidateCombatActionCache?.("field-input");
+      });
+      app.addEventListener("change", (event) => {
+        if (!isEquipmentFieldEvent(event)) globalThis.invalidateCombatActionCache?.("field-change");
+      });
+      app.addEventListener("input", (event) => {
+        if (!isEquipmentFieldEvent(event)) globalThis.scheduleCombatActionCacheWarmup?.();
+      });
+      app.addEventListener("change", (event) => {
+        if (!isEquipmentFieldEvent(event)) globalThis.scheduleCombatActionCacheWarmup?.();
+      });
       app.addEventListener("change", handleSpellAvailabilityChange);
       itemDrawerClose.addEventListener("click", closeItemDrawer);
       itemPickerClose?.addEventListener("click", closeItemPicker);
@@ -2912,9 +2930,6 @@
         selectedPickerItem = null;
         if (itemPickerAdd) itemPickerAdd.disabled = true;
         renderItemPickerList();
-      });
-      itemPickerQuantity?.addEventListener("input", () => {
-        if (selectedPickerItem) showItemDrawer({ displayName: selectedPickerItem.name, quantity: pickerQuantity() }, selectedPickerItem);
       });
       itemPickerAdd?.addEventListener("click", addSelectedPickerItem);
       itemPickerBackdrop?.addEventListener("click", (event) => {

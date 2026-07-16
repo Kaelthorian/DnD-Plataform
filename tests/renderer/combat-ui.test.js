@@ -62,6 +62,21 @@ assert.ok(styles.includes(".combat-log-entry"), "combat log styles missing");
 assert.ok(styles.includes(".turn-actions-panel.is-collapsed"), "combat collapsed styles missing");
 assert.ok(styles.includes("var(--dm-amber)"), "DM Screen visual language is missing");
 
+const equipmentProviderStart = html.indexOf('id: "equipment:attacks"');
+const equipmentProviderEnd = html.indexOf('id: "inventory:consumables"', equipmentProviderStart);
+assert.ok(equipmentProviderStart >= 0 && equipmentProviderEnd > equipmentProviderStart, "equipment attack provider missing");
+const equipmentProvider = html.slice(equipmentProviderStart, equipmentProviderEnd);
+assert.ok(equipmentProvider.includes("turnActionWeaponSummary(row)"), "weapon actions should use the compact combat summary");
+assert.ok(equipmentProvider.includes("detail: weaponSummary"), "weapon cards should show only the compact summary");
+assert.ok(equipmentProvider.includes("description: weaponSummary"), "weapon resolution should retain the compact summary");
+assert.ok(!equipmentProvider.includes("row.properties"), "weapon cards should not show the full property list");
+assert.ok(!equipmentProvider.includes("row.description"), "weapon cards should not show the full item description");
+const weaponSummaryStart = html.indexOf("function turnActionWeaponSummary(");
+const weaponSummaryEnd = html.indexOf("\n    function ", weaponSummaryStart + 1);
+const weaponSummary = html.slice(weaponSummaryStart, weaponSummaryEnd);
+assert.ok(weaponSummary.includes('t("turn.weaponDamage"'), "weapon summary should include localized damage and type");
+assert.ok(weaponSummary.includes('t("turn.weaponRange"'), "weapon summary should include localized range");
+
 const inlineScripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
   .map((match) => match[1])
   .filter((code) => code.trim());

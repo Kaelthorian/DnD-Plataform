@@ -167,24 +167,40 @@
   </aside>
   <div class="item-picker-backdrop" id="itemPickerBackdrop" aria-hidden="true">
     <div class="item-picker" role="dialog" aria-modal="true" aria-labelledby="itemPickerTitle">
-      <div class="item-picker-header">
-        <div class="item-picker-title" id="itemPickerTitle" data-i18n="item.addItem">Add item</div>
-        <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
-      </div>
-      <div class="item-picker-filters" id="itemPickerFilters" aria-label="Item filters" data-i18n-aria-label="item.filters">
-        <button class="item-picker-filter active" type="button" data-filter="all" data-i18n="item.filterAll">All</button>
-        <button class="item-picker-filter" type="button" data-filter="weapon" data-i18n="item.filterWeapons">Weapons</button>
-        <button class="item-picker-filter" type="button" data-filter="armor" data-i18n="item.filterArmor">Armor</button>
-        <button class="item-picker-filter" type="button" data-filter="accessory" data-i18n="item.filterAccessories">Accessories</button>
-        <button class="item-picker-filter" type="button" data-filter="consumable" data-i18n="item.filterConsumables">Consumables</button>
-        <button class="item-picker-filter" type="button" data-filter="gear" data-i18n="item.filterGear">Gear</button>
-      </div>
-      <input class="item-picker-search" id="itemPickerSearch" type="search" placeholder="Search item" data-i18n-placeholder="item.searchPlaceholder">
-      <div class="item-picker-list" id="itemPickerList"></div>
-      <div class="item-picker-actions">
-        <input class="item-picker-quantity" id="itemPickerQuantity" type="number" min="1" step="1" value="1" aria-label="Quantity" data-i18n-aria-label="item.quantity">
-        <button class="item-picker-add" id="itemPickerAdd" type="button" disabled data-i18n="common.add">Add</button>
-      </div>
+      <section class="item-picker-browser">
+        <div class="item-picker-header">
+          <div>
+            <div class="item-picker-title" id="itemPickerTitle" data-i18n="item.addItem">Add item</div>
+            <div class="item-picker-count" id="itemPickerCount" aria-live="polite"></div>
+          </div>
+          <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        </div>
+        <input class="item-picker-search" id="itemPickerSearch" type="search" placeholder="Search item" data-i18n-placeholder="item.searchPlaceholder">
+        <div class="item-picker-filters" id="itemPickerFilters" aria-label="Item filters" data-i18n-aria-label="item.filters">
+          <button class="item-picker-filter active" type="button" data-filter="all" data-i18n="item.filterAll">All</button>
+          <button class="item-picker-filter" type="button" data-filter="weapon" data-i18n="item.filterWeapons">Weapons</button>
+          <button class="item-picker-filter" type="button" data-filter="armor" data-i18n="item.filterArmor">Armor</button>
+          <button class="item-picker-filter" type="button" data-filter="accessory" data-i18n="item.filterAccessories">Accessories</button>
+          <button class="item-picker-filter" type="button" data-filter="consumable" data-i18n="item.filterConsumables">Consumables</button>
+          <button class="item-picker-filter" type="button" data-filter="gear" data-i18n="item.filterGear">Gear</button>
+        </div>
+        <div class="item-picker-list-header" aria-hidden="true">
+          <span data-i18n="item.name">Name</span>
+          <span data-i18n="item.type">Type</span>
+          <span data-i18n="item.source">Source</span>
+        </div>
+        <div class="item-picker-list" id="itemPickerList"></div>
+      </section>
+      <section class="item-picker-detail-panel">
+        <div class="item-picker-detail" id="itemPickerDetail"></div>
+        <div class="item-picker-actions">
+          <label class="item-picker-quantity-field">
+            <span data-i18n="item.quantity">Quantity</span>
+            <input class="item-picker-quantity" id="itemPickerQuantity" type="number" min="1" step="1" value="1" aria-label="Quantity" data-i18n-aria-label="item.quantity">
+          </label>
+          <button class="item-picker-add" id="itemPickerAdd" type="button" disabled data-i18n="item.addSelected">Add item</button>
+        </div>
+      </section>
     </div>
   </div>
   <div class="familiar-picker-backdrop" id="familiarPickerBackdrop" aria-hidden="true" hidden>
@@ -5778,9 +5794,14 @@
       return true;
     }
 
-    function updatePreparedSpellsPanel() {
+    function updatePreparedSpellsPanelWithoutCombatRefresh() {
+      updatePreparedSpellsPanel({ refreshCombat: false });
+    }
+
+    function updatePreparedSpellsPanel({ refreshCombat = true } = {}) {
       if (!preparedSpellsPanel) return;
-      if (deferPanelRefreshUntilVisible(preparedSpellsPanel, updatePreparedSpellsPanel)) return;
+      const deferredRefresh = refreshCombat ? updatePreparedSpellsPanel : updatePreparedSpellsPanelWithoutCombatRefresh;
+      if (deferPanelRefreshUntilVisible(preparedSpellsPanel, deferredRefresh)) return;
       preparedSpellsPanel.textContent = "";
 
       const resourceCounters = document.createElement("div");
@@ -5982,7 +6003,7 @@
         row.append(name, damageType, levelButton, castButton, attackButton, damageButton);
         preparedSpellsPanel.appendChild(row);
       });
-      refreshTurnActionsPanelIfVisible();
+      if (refreshCombat) refreshTurnActionsPanelIfVisible();
     }
 
     function turnActionEntryName(entry) {
@@ -6055,6 +6076,14 @@
         parts.push(`${row.damageLabel}${row.damageType ? ` ${row.damageType}` : ""}`.trim());
       }
       return parts.join(", ");
+    }
+
+    function turnActionWeaponSummary(row) {
+      const damage = [row?.damageLabel, row?.damageType].filter(Boolean).join(" ");
+      return [
+        damage ? t("turn.weaponDamage", { damage }) : "",
+        row?.range ? t("turn.weaponRange", { range: row.range }) : ""
+      ].filter(Boolean).join(" | ");
     }
 
     function castableSpellFieldSelections() {
@@ -7446,6 +7475,7 @@
         }
         expendFeatureUse(action.resourceRow);
       }
+      const equipmentConsumed = Boolean(action.inventoryEntry || action.ammoEntry);
       if (action.inventoryEntry) removeItemFromEquipment(action.inventoryEntry, 1);
       if (action.ammoEntry) removeItemFromEquipment(action.ammoEntry, 1);
       sheetMeta.combatTurn = committed.economy;
@@ -7457,11 +7487,13 @@
       if (action.effect === "endTurn") sheetMeta.combatTurn = endTurn(sheetMeta.combatTurn);
       addCombatLogEvent({ ...committed.session, action, results: activeCombatResolution.results }, combatResourcesConsumed(action), effectsApplied);
       activeCombatResolution = null;
-      invalidateCombatActionCache("commit-resolution");
+      if (!equipmentConsumed) invalidateCombatActionCache("commit-resolution");
       renderCombatResolution();
-      updatePreparedSpellsPanel();
-      renderAlertsPanel();
-      scheduleTurnActionsPanelRefresh();
+      if (!equipmentConsumed) {
+        updatePreparedSpellsPanel();
+        renderAlertsPanel();
+        scheduleTurnActionsPanelRefresh();
+      }
       scheduleSave();
       showStatus(t("turn.resolved", { title: action.title }));
     }
@@ -8705,24 +8737,28 @@
 
     function createAddEquipmentButton(layer, viewport) {
       if (layer.dataset.addEquipmentButtonCreated === "true") return;
-      const ppField = fieldByLayerKey(layer, "PP");
-      if (!ppField) return;
+      const equipmentField = fieldByLayerKey(layer, "Equipment");
+      const anchorField = equipmentField || fieldByLayerKey(layer, "PP");
+      if (!anchorField) return;
       layer.dataset.addEquipmentButtonCreated = "true";
 
-      const x1 = Number(ppField.dataset.pdfX1);
-      const y1 = Number(ppField.dataset.pdfY1);
-      const y2 = Number(ppField.dataset.pdfY2);
-      const x2 = Number(ppField.dataset.pdfX2);
+      const x1 = Number(anchorField.dataset.pdfX1);
+      const y1 = Number(anchorField.dataset.pdfY1);
+      const y2 = Number(anchorField.dataset.pdfY2);
+      const x2 = Number(anchorField.dataset.pdfX2);
       if (![x1, y1, y2, x2].every(Number.isFinite)) return;
 
       const button = document.createElement("button");
       button.type = "button";
       button.className = "add-equipment-button";
-      button.textContent = "+";
+      button.textContent = t("item.addShort");
       button.title = t("item.addItem");
       button.setAttribute("aria-label", t("item.addItem"));
       button.addEventListener("click", openItemPicker);
-      placeFromPdfRect(button, viewport, [x1, y1 - 21, x2, y1 - 3]);
+      const buttonRect = equipmentField
+        ? [Math.max(x1 + 2, x2 - 52), y1 + 2, x2 - 2, Math.min(y2 - 2, y1 + 19)]
+        : [x1, y1 - 21, x2, y1 - 3];
+      placeFromPdfRect(button, viewport, buttonRect);
       layer.appendChild(button);
     }
 
@@ -8967,7 +9003,7 @@
       equipmentField.classList.add("equipment-storage");
 
       const panel = document.createElement("div");
-      panel.className = "equipment-panel transparent-sheet-box";
+      panel.className = "equipment-panel dm-equipment-panel";
       panel.style.left = equipmentField.style.left;
       panel.style.top = equipmentField.style.top;
       panel.style.width = equipmentField.style.width;
@@ -13122,20 +13158,107 @@
       return Boolean(main?.item && (hasItemProperty(main.item, "2H") || main.record.twoHanded));
     }
 
-    function notifyEquipmentCombatStateChanged(reason = "equipment-change") {
-      invalidateCombatActionCache(reason);
-      if (typeof scheduleTurnActionsPanelRefresh === "function") scheduleTurnActionsPanelRefresh();
-      else refreshTurnActionsPanelIfVisible();
-      if (typeof scheduleCombatActionCacheWarmup === "function") scheduleCombatActionCacheWarmup();
+    const equipmentPerformanceSamples = [];
+    let pendingEquipmentMutationRefresh = null;
+    let equipmentMutationRefreshRunning = false;
+    let equipmentMutationFallbackScheduled = false;
+
+    function equipmentPerformanceNow() {
+      return globalThis.performance?.now?.() ?? Date.now();
     }
 
-    function pruneEquippedItems() {
+    function recordEquipmentPerformance(sample) {
+      equipmentPerformanceSamples.unshift(sample);
+      if (equipmentPerformanceSamples.length > 40) equipmentPerformanceSamples.length = 40;
+    }
+
+    globalThis.dndEquipmentPerformance = {
+      samples: () => equipmentPerformanceSamples.map((sample) => ({ ...sample, reasons: [...sample.reasons] })),
+      clear: () => { equipmentPerformanceSamples.length = 0; }
+    };
+
+    function flushEquipmentMutationRefresh() {
+      const request = pendingEquipmentMutationRefresh;
+      pendingEquipmentMutationRefresh = null;
+      equipmentMutationFallbackScheduled = false;
+      if (!request) return;
+      const startedAt = equipmentPerformanceNow();
+      equipmentMutationRefreshRunning = true;
+      try {
+        withCombatCollectionMemo(() => {
+          if (request.panel) updateEquipmentPanel();
+          if (request.armorClass) updateArmorClass();
+          if (request.prepared) updatePreparedSpellsPanel({ refreshCombat: false });
+          if (request.alerts) renderAlertsPanel();
+        });
+      } finally {
+        equipmentMutationRefreshRunning = false;
+      }
+      if (request.combat) {
+        if (turnActionsBackdrop?.classList.contains("visible")) refreshTurnActionsPanelIfVisible();
+        else if (typeof scheduleCombatActionCacheWarmup === "function") scheduleCombatActionCacheWarmup();
+      }
+      const finishedAt = equipmentPerformanceNow();
+      recordEquipmentPerformance({
+        reasons: [...request.reasons],
+        queueMs: Math.max(0, startedAt - request.queuedAt),
+        durationMs: Math.max(0, finishedAt - startedAt),
+        at: Date.now()
+      });
+    }
+
+    function scheduleEquipmentMutationRefresh({
+      reason = "equipment-change",
+      panel = true,
+      armorClass = true,
+      prepared = true,
+      alerts = true,
+      combat = true,
+      save = true
+    } = {}) {
+      if (equipmentMutationRefreshRunning) return;
+      if (!pendingEquipmentMutationRefresh) {
+        pendingEquipmentMutationRefresh = {
+          reasons: new Set(),
+          queuedAt: equipmentPerformanceNow(),
+          panel: false,
+          armorClass: false,
+          prepared: false,
+          alerts: false,
+          combat: false
+        };
+      }
+      const request = pendingEquipmentMutationRefresh;
+      request.reasons.add(reason);
+      request.panel ||= panel;
+      request.armorClass ||= armorClass;
+      request.prepared ||= prepared;
+      request.alerts ||= alerts;
+      if (combat && !request.combat) invalidateCombatActionCache(reason);
+      request.combat ||= combat;
+      if (save && typeof scheduleSave === "function") scheduleSave();
+      if (typeof schedulePanelRefresh === "function") {
+        schedulePanelRefresh(flushEquipmentMutationRefresh);
+        return;
+      }
+      if (equipmentMutationFallbackScheduled) return;
+      equipmentMutationFallbackScheduled = true;
+      const refresh = () => setTimeout(flushEquipmentMutationRefresh, 0);
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(refresh);
+      else refresh();
+    }
+
+    function notifyEquipmentCombatStateChanged(reason = "equipment-change") {
+      scheduleEquipmentMutationRefresh({ reason });
+    }
+
+    function pruneEquippedItems(entries = equipmentEntries()) {
       if (!itemCatalogReady) return;
-      const quantities = new Map(equipmentEntries().map((entry) => [equipmentItemKey(entry), entry.quantity]));
+      const quantities = new Map(entries.map((entry) => [equipmentItemKey(entry), entry.quantity]));
       let changed = false;
       Object.keys(equippedItems()).forEach((key) => {
         const quantity = quantities.get(key) || 0;
-        const entry = equipmentEntries().find((item) => equipmentItemKey(item) === key);
+        const entry = entries.find((item) => equipmentItemKey(item) === key);
         const item = entry ? findItemData(entry.displayName) : null;
         if (quantity <= 0) {
           delete equippedItems()[key];
@@ -13354,11 +13477,6 @@
       } else if (isWeaponItem(item) && hasItemProperty(item, "V") && recordSlots(current).includes("mainHand") && !current.twoHanded) {
         const changed = setVersatileTwoHanded(entry, item);
         if (!changed) return;
-        scheduleSave();
-        updateEquipmentPanel();
-        updateArmorClass();
-        updatePreparedSpellsPanel();
-        renderAlertsPanel();
         return;
       } else if (isWeaponItem(item) && hasItemProperty(item, "L") && entry.quantity > recordSlots(current).length) {
         const slots = recordSlots(current);
@@ -13367,11 +13485,6 @@
       }
       const changed = nextSlot ? setEquipped(entry, item, nextSlot) : setEquipped(entry, item, "");
       if (!changed) return;
-      scheduleSave();
-      updateEquipmentPanel();
-      updateArmorClass();
-      updatePreparedSpellsPanel();
-      renderAlertsPanel();
     }
 
     function showDrawer(title, meta, body, drawerClass = "") {
@@ -13439,28 +13552,54 @@
       return Number.isFinite(value) && value > 0 ? value : 1;
     }
 
+    function visibleItemPickerItems() {
+      const query = normalizeName(itemPickerSearch?.value || "");
+      return itemPickerItems().filter((item) => {
+        const matchesFilter = activeItemFilter === "all" || itemFilterCategory(item) === activeItemFilter;
+        if (!matchesFilter) return false;
+        if (!query) return true;
+        return normalizeName([
+          item.name,
+          itemTypeName(item.type),
+          item.weaponCategory,
+          item.rarity,
+          itemFilterCategory(item),
+          sourceLabel(item.source)
+        ].filter(Boolean).join(" ")).includes(query);
+      });
+    }
+
+    function renderItemPickerDetail() {
+      if (!itemPickerDetail) return;
+      itemPickerDetail.textContent = "";
+      if (!selectedPickerItem) {
+        const empty = document.createElement("div");
+        empty.className = "item-picker-detail-empty";
+        empty.textContent = t("item.selectPrompt");
+        itemPickerDetail.appendChild(empty);
+        return;
+      }
+      const detail = buildItemDrawerContent(selectedPickerItem);
+      detail.classList.add("item-picker-detail-sheet");
+      itemPickerDetail.appendChild(detail);
+    }
+
     function renderItemPickerList() {
       if (!itemPickerList) return;
-      const query = normalizeName(itemPickerSearch?.value || "");
       const selectedKey = normalizeName(selectedPickerItem?.name || "");
+      const visibleItems = visibleItemPickerItems();
       itemPickerList.textContent = "";
+      if (itemPickerCount) itemPickerCount.textContent = t("item.results", { count: visibleItems.length });
       itemPickerFilters?.querySelectorAll(".item-picker-filter").forEach((button) => {
         button.classList.toggle("active", button.dataset.filter === activeItemFilter);
       });
-      itemPickerItems()
-        .filter((item) => {
-          const matchesFilter = activeItemFilter === "all" || itemFilterCategory(item) === activeItemFilter;
-          if (!matchesFilter) return false;
-          if (!query) return true;
-          return normalizeName([
-            item.name,
-            itemTypeName(item.type),
-            item.weaponCategory,
-            itemFilterCategory(item),
-            sourceLabel(item.source)
-          ].filter(Boolean).join(" ")).includes(query);
-        })
-        .forEach((item) => {
+      if (!visibleItems.length) {
+        const empty = document.createElement("div");
+        empty.className = "item-picker-list-empty";
+        empty.textContent = t("item.noMatches");
+        itemPickerList.appendChild(empty);
+      } else {
+        visibleItems.forEach((item) => {
           const row = document.createElement("button");
           row.type = "button";
           row.className = `item-picker-row ${normalizeName(item.name) === selectedKey ? "selected" : ""}`;
@@ -13469,21 +13608,26 @@
           name.className = "item-picker-row-name";
           name.textContent = item.name;
 
-          const meta = document.createElement("span");
-          meta.className = "item-picker-row-meta";
-          meta.textContent = [formatItemValue(item.value), sourceLabel(item.source)].filter(Boolean).join(" - ");
+          const type = document.createElement("span");
+          type.className = "item-picker-row-type";
+          type.textContent = itemTypeName(item.type) || itemFilterCategory(item);
 
-          row.append(name, meta);
+          const source = document.createElement("span");
+          source.className = "item-picker-row-source";
+          source.textContent = sourceLabel(item.source);
+
+          row.append(name, type, source);
           row.addEventListener("click", () => selectPickerItem(item));
           itemPickerList.appendChild(row);
         });
+      }
+      renderItemPickerDetail();
     }
 
     function selectPickerItem(item) {
       selectedPickerItem = item;
       if (itemPickerAdd) itemPickerAdd.disabled = !item;
       renderItemPickerList();
-      if (item) showItemDrawer({ displayName: item.name, quantity: pickerQuantity() }, item);
     }
 
     function openItemPicker() {
@@ -13527,11 +13671,7 @@
       });
       if (!added) nextLines.push(formatEquipmentEntryLine(quantity, item.name));
       field.value = nextLines.join("\n");
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
-      updateEquipmentPanel();
-      updateArmorClass();
-      scheduleSave();
+      scheduleEquipmentMutationRefresh({ reason: "equipment-added" });
       showStatus("Item agregado");
     }
 
@@ -13552,13 +13692,7 @@
       });
 
       field.value = nextLines.join("\n");
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-      field.dispatchEvent(new Event("change", { bubbles: true }));
-      scheduleSave();
-      updateEquipmentPanel();
-      updateArmorClass();
-      updatePreparedSpellsPanel();
-      renderAlertsPanel();
+      scheduleEquipmentMutationRefresh({ reason: "equipment-removed" });
       showStatus("Item removido");
     }
 
@@ -13580,12 +13714,12 @@
 
     function updateEquipmentPanel() {
       if (!equipmentPanel) return;
-      pruneEquippedItems();
+      const entries = equipmentEntries();
+      pruneEquippedItems(entries);
       if (deferPanelRefreshUntilVisible(equipmentPanel, updateEquipmentPanel)) return;
       const list = equipmentPanel.querySelector(".equipment-list");
       if (!list) return;
       list.textContent = "";
-      const entries = equipmentEntries();
       if (!entries.length) {
         const empty = document.createElement("div");
         empty.className = "equipment-empty";
@@ -17818,7 +17952,11 @@
         .some((target) => target.proficiency.toLowerCase() === key.toLowerCase());
       const isLevel = key.toLowerCase() === "characterlevel";
       const normalizedKey = key.toLowerCase();
-      const affectsArmorClass = ["classlevel", "race"].includes(normalizedKey) || normalizedKey.includes("equipment");
+      if (normalizedKey.includes("equipment")) {
+        scheduleEquipmentMutationRefresh({ reason: `equipment-field-${event.type}`, save: false });
+        return;
+      }
+      const affectsArmorClass = ["classlevel", "race"].includes(normalizedKey);
       const affectsSpeed = normalizedKey === "race";
       const affectsOtherProficiencies = ["classlevel", "background", "race"].includes(normalizedKey);
       if (!isAbility && !isProficiencyCheckbox && !isLevel && !affectsArmorClass && !affectsSpeed && !affectsOtherProficiencies) return;
@@ -17946,7 +18084,7 @@
             }),
             type: ACTION_TYPES.reaction,
             source: "core",
-            detail: `Trigger: creature leaves your reach. ${turnActionRowStats(meleeOption)}`
+            detail: `Trigger: creature leaves your reach. ${turnActionWeaponSummary(meleeOption)}`
           }] };
         }
       });
@@ -17978,26 +18116,22 @@
         getActions() {
           const optionalDamageChoices = combatOptionalDamageChoices();
           return {
-            actions: turnActionWeaponSelections().map((row) => ({
-              ...createAttackActionDefinition(row, {
-                id: `equipment:${normalizeName(row.name)}`,
-                name: row.name.startsWith("Ataque ") ? row.name : `Atacar con ${row.name}`
-              }),
-              type: row.actionType || ACTION_TYPES.action,
-              optionalDamageChoices,
-              disabledReason: row.ammoName && !row.ammoEntry ? `No ${row.ammoName} ammunition remaining.` : "",
-              ammoEntry: row.ammoEntry ? { ...row.ammoEntry } : null,
-              detail: [
-                turnActionRowStats(row),
-                row.range ? `Range: ${row.range}` : "",
-                row.properties ? `Properties: ${row.properties}` : "",
-                `${row.ability || "STR"} | ${row.proficient ? "Proficient" : "Not proficient"}`,
-                row.ammoName ? `Ammunition: ${row.ammoRemaining} ${row.ammoName}` : "",
-                row.actionCostLabel,
-                row.description
-              ].filter(Boolean).join("\n"),
-              source: "equipment"
-            }))
+            actions: turnActionWeaponSelections().map((row) => {
+              const weaponSummary = turnActionWeaponSummary(row);
+              return {
+                ...createAttackActionDefinition(row, {
+                  id: `equipment:${normalizeName(row.name)}`,
+                  name: row.name.startsWith("Ataque ") ? row.name : `Atacar con ${row.name}`,
+                  description: weaponSummary
+                }),
+                type: row.actionType || ACTION_TYPES.action,
+                optionalDamageChoices,
+                disabledReason: row.ammoName && !row.ammoEntry ? `No ${row.ammoName} ammunition remaining.` : "",
+                ammoEntry: row.ammoEntry ? { ...row.ammoEntry } : null,
+                detail: weaponSummary,
+                source: "equipment"
+              };
+            })
           };
         }
       });
