@@ -21,7 +21,13 @@ El test puro de descansos valida la transición 2024, gasto determinista de Hit 
 
 `tests/engine/class-level3-mechanics.test.js` verifica también Weapon Mastery del Fighter 2024: tres elecciones iniciales en nivel 1, progresión 3/4/5/6, un solo reemplazo mediante Weapon Drills por Long Rest, instantánea al iniciar y restauración si el descanso se interrumpe.
 
-`tests/renderer/combat-performance.test.js` protege el índice `Map`, la fotografía revisionada, la memoización por pasada, el worker de PDF y la concurrencia limitada. `tests/services/data-loader-cache.test.js` usa JSON temporales para comprobar primera compilación, hit de caché persistente e invalidación al cambiar la fuente; no toca `userData` real. `tests/services/dm-screen-build-cache.test.js` evita que la comprobación de vigencia vuelva a mezclar las marcas de tiempo de los bundles CSS y JS.
+`tests/renderer/combat-performance.test.js` protege el índice `Map`, la fotografía revisionada, la memoización por pasada, el worker de PDF y la concurrencia limitada. `tests/renderer/vtt-token-health-ring.test.js` verifica que jugador y DM rendericen el HP compartido como un aro alrededor del token. `tests/renderer/resize-corner-standard.test.js` exige que todas las ventanas redimensionables de ambos renderers usen la esquina inferior derecha `app-resize-corner`; no incluye textareas ni formas del mapa. `tests/renderer/floating-sheet-windows.test.js` protege el controlador/chrome común, los controles de colapsado y resize, las claves i18n, el cierre explícito y el tema oscuro sin fotos ni paneles blancos de `itemDrawer`, Character Statuses y Free Dice. `tests/services/data-loader-cache.test.js` usa JSON temporales para comprobar primera compilación, hit de caché persistente e invalidación al cambiar la fuente; no toca `userData` real. `tests/services/dm-screen-build-cache.test.js` evita que la comprobación de vigencia vuelva a mezclar las marcas de tiempo de los bundles CSS y JS.
+
+`tests/renderer/spell-picker-performance.test.js` protege el snapshot único por apertura del administrador de spells: grants de feats/subclase, sets, conteos, límites y opciones accesibles deben reutilizarse en las filas. También exige las mediciones Performance API `spell-picker-open` y `spell-picker-level-render`.
+
+`tests/renderer/choice-response-performance.test.js` protege la respuesta inmediata de Features & Traits y selectores relacionados: las elecciones deben agrupar `updateDerivedStats()` después del primer pintado, reutilizar un solo snapshot liviano al validar spells, actualizar las filas de spells de forma optimista y diferir el render de Equipment/Prepared Spells cuando sus paneles están fuera del viewport.
+
+`tests/renderer/status-popup.test.js` protege el popup temporal inferior derecho: mantiene el contrato fade, permanece visible cinco segundos y conserva el tamaño ampliado con límite responsive dentro del viewport.
 
 ## Smoke test manual mínimo
 
@@ -32,7 +38,7 @@ El test puro de descansos valida la transición 2024, gasto determinista de Hit 
 5. Iniciar Live Sheet con token, conectar a `127.0.0.1`, modificar HP, tirar y desconectar.
 6. Añadir/mover/redimensionar una nota/mapa y reiniciar para verificar persistencia.
 7. Si se tocó Obsidian, usar un vault de prueba y verificar lectura, escritura y rechazo de `../`.
-8. Si se tocó VTT/audio, verificar límites, estado compartido y que contenido oculto no llegue al jugador.
+8. Si se tocó VTT/audio, verificar límites, estado compartido y que contenido oculto no llegue al jugador. Para HP de tokens, confirmar que el aro circular se actualice en el mapa del DM y en el VTT del jugador.
 9. Si se tocó combate, seguir además `docs/COMBAT.md`: Hit/Miss/crit, spell save, Magic Missile, cancelación, Extra Attack, End Turn y Reaction fuera de turno.
 
 Usar además las listas específicas en `docs/feature-map.md`, `docs/manual-testing-mercantile.md` y `docs/live-sheet-tailscale.md` cuando corresponda.

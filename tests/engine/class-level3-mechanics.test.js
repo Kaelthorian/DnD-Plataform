@@ -220,7 +220,7 @@ assert.ok(/item\.choose \|\| item\.all \|\| item/.test(RENDERER), "renderer pars
 assert.ok(/spell\.classes\?\.some\(\(name\) => normalizeName\(name\) === normalizeName\(grant\.className\)\)/.test(RENDERER), "renderer matches subclass expanded class spell filters");
 assert.ok(/spellcastingSourceForCharacter\(\)\?\.spellcastingAbility/.test(RENDERER), "renderer uses subclass spellcasting ability");
 assert.ok(/function canLearnCantrip\(spellName\)[\s\S]*return spellMatchesSelection\(spell, 0\);/.test(RENDERER), "renderer learns subclass-expanded cantrips");
-assert.ok(/function getAccessibleCantripOptions\(\)[\s\S]*spellMatchesSelection\(spell, 0\)[\s\S]*!autoCantrips\.has/.test(RENDERER), "renderer lists subclass-expanded cantrips and excludes auto cantrips");
+assert.ok(/function getAccessibleCantripOptions\(snapshot = null\)[\s\S]*spellMatchesSelection\(spell, 0, snapshot\)[\s\S]*!autoCantrips\.has/.test(RENDERER), "renderer lists subclass-expanded cantrips, reuses the render snapshot, and excludes auto cantrips");
 assert.ok(/function sorceryPointsResourceInfo\(\)[\s\S]*resource:\$\{name\}/.test(RENDERER), "renderer exposes a shared Sorcery Points resource pool");
 assert.ok(/name === "sorcery point" \|\| name === "sorcery points"/.test(RENDERER), "Sorcerer features consume the shared Sorcery Points pool");
 assert.ok(/"Sorcery Points"/.test(RENDERER), "attacks and spellcasting panel renders the Sorcery Points counter");

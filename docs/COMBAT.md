@@ -2,6 +2,13 @@
 
 La ventana accesible desde el botón central de espadas es un ejecutor de turno local. Deriva opciones del personaje real, reserva costes mientras una acción está abierta y sólo confirma recursos al completar el flujo.
 
+## Ventana flotante
+
+- La superficie usa el lenguaje visual neutral/ámbar del DM Screen sin cambiar el motor ni los proveedores de acciones.
+- El encabezado mueve la ventana; los bordes derecho, inferior y la esquina inferior derecha ajustan su tamaño.
+- El control `−`/`+` colapsa o expande el contenido. La posición, tamaño y estado colapsado se conservan en `localStorage` bajo `dnd-character-sheet-combat-window-v1`.
+- La geometría se limita al viewport al abrir y al redimensionar la aplicación. El panel es flotante y no bloquea la interacción con la hoja.
+
 ## Entradas y fuentes de verdad
 
 | Responsabilidad | Fuente |
@@ -54,7 +61,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 
 ## Prueba manual
 
-1. Abrir una hoja con arma equipada y pulsar las espadas. Confirmar los cinco recursos y `End Turn`.
+1. Abrir una hoja con arma equipada y pulsar las espadas. Confirmar los cinco recursos y `End Turn`; mover, redimensionar y colapsar la ventana, cerrarla y volver a abrirla para verificar persistencia.
 2. Abrir un arma, indicar target/AC, tirar Hit y verificar que Damage estaba bloqueado antes. Probar natural 1/20 cuando sea posible y cancelar otra acción.
 3. En un Fighter con Extra Attack, confirmar dos ataques: la primera confirmación consume Action y la segunda no.
 4. Probar un spell attack, un spell con save (por ejemplo Fireball/Sacred Flame), Magic Missile y un healing spell. Cancelar antes de confirmar y comprobar el slot.

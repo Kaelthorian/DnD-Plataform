@@ -47,6 +47,9 @@
     const turnActionsButton = document.getElementById("turnActionsButton");
     const turnActionsBackdrop = document.getElementById("turnActionsBackdrop");
     const turnActionsPanel = document.getElementById("turnActionsPanel");
+    const turnActionsHeader = document.getElementById("turnActionsHeader");
+    const turnActionsCollapse = document.getElementById("turnActionsCollapse");
+    const turnActionsResizeHandles = Array.from(document.querySelectorAll("[data-combat-resize-edge]"));
     const turnActionsClose = document.getElementById("turnActionsClose");
     const turnActionsBody = document.getElementById("turnActionsBody");
     const turnActionsNewTurn = document.getElementById("turnActionsNewTurn");
@@ -713,28 +716,23 @@
         }
         .live-vtt-token-health {
           position: absolute;
-          left: 50%;
-          top: calc(100% + 18px);
-          display: grid;
-          width: 46px;
-          height: 7px;
-          transform: translateX(-50%);
-          grid-template-columns: repeat(5, 1fr);
-          gap: 2px;
+          inset: -5px;
+          z-index: 3;
+          border-radius: 999px;
+          background: conic-gradient(
+            from -90deg,
+            var(--live-vtt-health-color, #22c55e) 0deg var(--live-vtt-health-angle, 0deg),
+            rgba(15, 23, 42, 0.88) var(--live-vtt-health-angle, 0deg) 360deg
+          );
+          -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
           pointer-events: none;
         }
-        .live-vtt-token-health-segment {
-          border: 1px solid rgba(15, 23, 42, 0.95);
-          background: #111827;
+        .live-vtt-token-health[data-state="wounded"] {
+          --live-vtt-health-color: #f59e0b;
         }
-        .live-vtt-token-health-segment[data-filled="true"] {
-          background: #22c55e;
-        }
-        .live-vtt-token-health[data-state="wounded"] .live-vtt-token-health-segment[data-filled="true"] {
-          background: #f59e0b;
-        }
-        .live-vtt-token-health[data-state="critical"] .live-vtt-token-health-segment[data-filled="true"] {
-          background: #dc2626;
+        .live-vtt-token-health[data-state="critical"] {
+          --live-vtt-health-color: #ef4444;
         }
         .live-vtt-empty {
           display: flex;
@@ -1168,13 +1166,8 @@
           const health = document.createElement("div");
           health.className = "live-vtt-token-health";
           health.dataset.state = hpRatio <= 0.25 ? "critical" : (hpRatio <= 0.5 ? "wounded" : "healthy");
-          const filledSegments = hpRatio <= 0 ? 0 : Math.max(1, Math.ceil(hpRatio * 5));
-          for (let segmentIndex = 0; segmentIndex < 5; segmentIndex += 1) {
-            const segment = document.createElement("span");
-            segment.className = "live-vtt-token-health-segment";
-            segment.dataset.filled = String(segmentIndex < filledSegments);
-            health.appendChild(segment);
-          }
+          health.style.setProperty("--live-vtt-health-angle", `${hpRatio * 360}deg`);
+          health.setAttribute("aria-hidden", "true");
           node.appendChild(health);
         }
         return node;
@@ -2618,6 +2611,15 @@
       scheduleLiveSheetUpdate();
     }
 
+    function runAfterNextPaint(callback) {
+      if (typeof callback !== "function") return;
+      if (typeof requestAnimationFrame !== "function") {
+        setTimeout(callback, 0);
+        return;
+      }
+      requestAnimationFrame(() => setTimeout(callback, 0));
+    }
+
     let panelRefreshFrame = 0;
     const pendingPanelRefreshes = new Set();
 
@@ -2625,7 +2627,8 @@
       if (typeof callback !== "function") return;
       pendingPanelRefreshes.add(callback);
       if (panelRefreshFrame) return;
-      panelRefreshFrame = requestAnimationFrame(() => {
+      panelRefreshFrame = 1;
+      runAfterNextPaint(() => {
         panelRefreshFrame = 0;
         const callbacks = [...pendingPanelRefreshes];
         pendingPanelRefreshes.clear();
@@ -2702,7 +2705,6 @@
       await loadPdfJs();
       sheetBackgroundImageUrl = await resolveSheetBackgroundImageUrl();
       applyPlatformBackgroundImage(await resolvePlatformBackgroundImageUrl());
-      document.documentElement.style.setProperty("--sheet-background-image", `url("${sheetBackgroundImageUrl}")`);
       if (desktopStore?.onPlatformBackgroundChanged) {
         const unsubscribePlatformBackground = desktopStore.onPlatformBackgroundChanged((nextUrl) => {
           applyPlatformBackgroundImage(nextUrl);
@@ -2809,6 +2811,7 @@
         button.addEventListener("click", () => {
           playerI18n.setLanguage(button.dataset.playerLanguage || "en");
           syncSettingsControls();
+          requestAnimationFrame(() => applyCombatWindowLayout());
         });
       });
       dmScreenButton?.addEventListener("click", openDmScreen);
@@ -2846,12 +2849,15 @@
         openTurnActionsPanel().catch(console.error);
       });
       turnActionsClose?.addEventListener("click", closeTurnActionsPanel);
+      turnActionsCollapse?.addEventListener("click", toggleTurnActionsPanelCollapsed);
+      turnActionsHeader?.addEventListener("pointerdown", startCombatWindowMove);
+      turnActionsResizeHandles.forEach((handle) => {
+        handle.addEventListener("pointerdown", (event) => startCombatWindowResize(event, handle.dataset.combatResizeEdge || "corner"));
+      });
       turnActionsNewTurn?.addEventListener("click", startNewCombatTurn);
       turnActionsEndTurn?.addEventListener("click", requestEndCombatTurn);
       combatLogClear?.addEventListener("click", clearCombatLog);
-      turnActionsBackdrop?.addEventListener("click", (event) => {
-        if (event.target === turnActionsBackdrop) closeTurnActionsPanel();
-      });
+      window.addEventListener("resize", () => applyCombatWindowLayout());
       app.addEventListener("pointerdown", handleLockedSheetEvent, true);
       app.addEventListener("keydown", handleLockedSheetEvent, true);
       app.addEventListener("beforeinput", handleLockedSheetEvent, true);

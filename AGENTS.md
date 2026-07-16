@@ -28,6 +28,7 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - Electron: conservar `contextIsolation: true`, `nodeIntegration: false`, preload acotado, validación de rutas y protocolos externos permitidos.
 - Datos: no deduplicar nombres que solo difieren en puntuación; pueden representar entradas distintas.
 - Rendimiento de datos: conservar el worker/caché versionado de items y el índice en memoria; `localStorage` no es válido para catálogos grandes. Toda caché derivada debe invalidarse al cambiar sus JSON fuente.
+- UI redimensionable: toda ventana o nota con resize debe usar la esquina inferior derecha `app-resize-corner` en ambos renderers. Start Combat fija el patrón de arrastre, colapsado, resize, geometría persistente y estilo DM; `itemDrawer`, Character Statuses y Free Dice lo reutilizan mediante el chrome/controlador `floating-sheet-window`. El contenido de esas ventanas usa superficies neutras oscuras y acento ámbar: no reintroducir fotos de hoja/Spellbook ni paneles blancos. No aplicar ese indicador de ventana a textareas ni a formas del mapa.
 
 ## Comandos
 

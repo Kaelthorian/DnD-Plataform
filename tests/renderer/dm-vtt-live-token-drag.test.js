@@ -12,6 +12,9 @@ assert.match(source, /drag\.previewMarkerPositions = previewMarkerPositions;\s+q
 assert.match(source, /onMapTokenDragMove=\{updateDrag\}/);
 assert.match(source, /onPointerMove=\{\(event\) => \{\s+onMapTokenDragMove\?\.\(event\);\s+event\.stopPropagation\(\);/);
 assert.match(source, /onPointerUp=\{\(event\) => \{\s+onMapTokenDragEnd\?\.\(event\);\s+event\.stopPropagation\(\);/);
+assert.match(source, /data-map-page-id=\{activePage\.id\}/);
+assert.match(source, /element\.dataset\.mapPageId === String\(pageId \|\| ""\)/);
+assert.doesNotMatch(source, /element\.dataset\.pageId === String\(pageId \|\| ""\)/);
 assert.match(source, /mapTokensShareSnapshot\(previewPage\.mapTokens, sourceViewport, \{\s+includeImage: \(\) => false\s+\}\)/);
 assert.match(source, /liveSheet\.publishVttPatch\(\{\s+tokens,\s+markers: mapMarkersShareSnapshot\(previewPage\.mapMarkers, sourceViewport\),/);
 assert.match(source, /publishedVttTargetKeyRef\.current !== targetKey/);

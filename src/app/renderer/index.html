@@ -120,13 +120,16 @@
     <div class="dice-result" id="diceResult"></div>
     <div class="dice-detail" id="diceDetail"></div>
   </div>
-  <div class="free-dice-menu" id="freeDiceMenu" hidden>
-    <div class="free-dice-header">
-      <div>
+  <div class="free-dice-menu floating-sheet-window" id="freeDiceMenu" hidden>
+    <div class="free-dice-header floating-sheet-window-header" data-floating-window-header>
+      <div class="floating-sheet-window-heading">
         <div class="free-dice-title" data-i18n="dice.freeTitle">Free dice</div>
         <div class="free-dice-subtitle" data-i18n="dice.freeSubtitle">D2, d3, d4, d6, d10, percentile d10, d12, d20, d30, d60, and d100</div>
       </div>
-      <button class="free-dice-close" id="freeDiceClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+      <div class="floating-sheet-window-controls">
+        <button class="free-dice-collapse floating-sheet-window-collapse" id="freeDiceCollapse" type="button" aria-label="Collapse window" data-i18n-aria-label="window.collapse" data-floating-window-collapse>−</button>
+        <button class="free-dice-close floating-sheet-window-close" id="freeDiceClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+      </div>
     </div>
     <div class="free-dice-picker">
       <select class="free-dice-select" id="freeDiceSelect" aria-label="Die type" data-i18n-aria-label="dice.type"></select>
@@ -139,19 +142,28 @@
       <div class="dice-log-title" data-i18n="dice.log">Log</div>
       <div class="dice-log-list" id="diceLogList"></div>
     </div>
+    <span class="floating-sheet-window-resize floating-sheet-window-resize-right" data-floating-window-resize="right" aria-hidden="true"></span>
+    <span class="floating-sheet-window-resize floating-sheet-window-resize-bottom" data-floating-window-resize="bottom" aria-hidden="true"></span>
+    <span class="floating-sheet-window-resize floating-sheet-window-resize-corner app-resize-corner" data-floating-window-resize="corner" aria-hidden="true"></span>
   </div>
   <div class="dice-roll-overlay" id="diceRollOverlay" aria-hidden="true">
     <div class="dice-roll-canvas" id="diceRollCanvas"></div>
   </div>
-  <aside class="item-drawer" id="itemDrawer" aria-hidden="true">
-    <div class="item-drawer-header">
-      <div>
+  <aside class="item-drawer floating-sheet-window" id="itemDrawer" aria-hidden="true">
+    <div class="item-drawer-header floating-sheet-window-header" data-floating-window-header>
+      <div class="floating-sheet-window-heading">
         <div class="item-drawer-title" id="itemDrawerTitle" data-i18n="item.drawerTitle">Item</div>
         <div class="item-drawer-meta" id="itemDrawerMeta"></div>
       </div>
-      <button class="item-drawer-close" id="itemDrawerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+      <div class="floating-sheet-window-controls">
+        <button class="item-drawer-collapse floating-sheet-window-collapse" id="itemDrawerCollapse" type="button" aria-label="Collapse window" data-i18n-aria-label="window.collapse" data-floating-window-collapse>−</button>
+        <button class="item-drawer-close floating-sheet-window-close" id="itemDrawerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+      </div>
     </div>
     <div class="item-drawer-body" id="itemDrawerBody"></div>
+    <span class="floating-sheet-window-resize floating-sheet-window-resize-right" data-floating-window-resize="right" aria-hidden="true"></span>
+    <span class="floating-sheet-window-resize floating-sheet-window-resize-bottom" data-floating-window-resize="bottom" aria-hidden="true"></span>
+    <span class="floating-sheet-window-resize floating-sheet-window-resize-corner app-resize-corner" data-floating-window-resize="corner" aria-hidden="true"></span>
   </aside>
   <div class="item-picker-backdrop" id="itemPickerBackdrop" aria-hidden="true">
     <div class="item-picker" role="dialog" aria-modal="true" aria-labelledby="itemPickerTitle">
@@ -198,13 +210,16 @@
   <div class="familiar-note-root" id="familiarNoteRoot" aria-live="polite"></div>
   <div class="damage-tooltip" id="damageTooltip"></div>
   <div class="turn-actions-backdrop" id="turnActionsBackdrop" aria-hidden="true">
-    <aside class="turn-actions-panel" id="turnActionsPanel" role="dialog" aria-modal="true" aria-labelledby="turnActionsTitle">
-      <div class="turn-actions-header">
-        <div>
+    <aside class="turn-actions-panel" id="turnActionsPanel" role="dialog" aria-modal="false" aria-labelledby="turnActionsTitle">
+      <div class="turn-actions-header" id="turnActionsHeader">
+        <div class="turn-actions-heading">
           <div class="turn-actions-title" id="turnActionsTitle" data-i18n="turn.title">Start combat</div>
           <div class="turn-actions-subtitle" data-i18n="turn.subtitle">Available actions based on the character's current state.</div>
         </div>
-        <button class="turn-actions-close" id="turnActionsClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        <div class="turn-actions-window-controls">
+          <button class="turn-actions-collapse" id="turnActionsCollapse" type="button" aria-label="Collapse combat window" title="Collapse combat window" data-i18n-aria-label="turn.collapseWindow" data-i18n-title="turn.collapseWindow" aria-expanded="true">−</button>
+          <button class="turn-actions-close" id="turnActionsClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        </div>
       </div>
       <div class="turn-actions-turnbar" aria-live="polite">
         <div class="turn-actions-counter">
@@ -243,6 +258,9 @@
         </div>
         <div class="combat-log-list" id="combatLogList"></div>
       </section>
+      <span class="turn-actions-resize turn-actions-resize-right" data-combat-resize-edge="right" aria-hidden="true"></span>
+      <span class="turn-actions-resize turn-actions-resize-bottom" data-combat-resize-edge="bottom" aria-hidden="true"></span>
+      <span class="turn-actions-resize turn-actions-resize-corner app-resize-corner" data-combat-resize-edge="corner" aria-hidden="true"></span>
     </aside>
   </div>
   <div class="character-import-backdrop" id="characterImportBackdrop" aria-hidden="true" hidden>
@@ -383,8 +401,17 @@
     const turnActionRegistry = createActionRegistry();
     const COMBAT_LOG_KEY = "dnd-character-sheet-combat-log-v1";
     const COMBAT_LOG_LIMIT = 100;
+    const COMBAT_WINDOW_LAYOUT_KEY = "dnd-character-sheet-combat-window-v1";
+    const COMBAT_WINDOW_MIN_WIDTH = 420;
+    const COMBAT_WINDOW_MIN_HEIGHT = 300;
+    const COMBAT_WINDOW_MARGIN = 8;
+    const FLOATING_SHEET_WINDOW_MARGIN = 8;
+    const floatingSheetWindowControllers = new Map();
+    let floatingSheetWindowZIndex = 60;
     let activeCombatResolution = null;
     let combatLogEntries = loadCombatLogEntries();
+    let combatWindowLayout = loadCombatWindowLayout();
+    let combatWindowPointerAction = null;
     let combatCollectionMemo = null;
     let combatActionCache = null;
     let combatActionCacheRevision = 0;
@@ -842,9 +869,10 @@
       return 0;
     }
 
-    function canUseSpellLevel(level) {
+    function canUseSpellLevel(level, snapshot = null) {
       if (level === 0) return true;
-      return level <= maxSpellLevelForCharacter() || featGrantedSpellChoiceLimit(level) > 0;
+      const maxLevel = snapshot?.maxSpellLevel ?? maxSpellLevelForCharacter();
+      return level <= maxLevel || featGrantedSpellChoiceLimit(level, snapshot?.featSpellGrants) > 0;
     }
 
     function spellChooseMeta(value) {
@@ -1163,15 +1191,15 @@
       });
     }
 
-    function featGrantedSpellChoiceLimit(level) {
-      return activeFeatSpellGrants()
+    function featGrantedSpellChoiceLimit(level, featSpellGrants = null) {
+      return (featSpellGrants || activeFeatSpellGrants())
         .filter((grant) => grant.level === level && !grant.spellName && (level === 0 || grant.prepared))
         .reduce((total, grant) => total + (grant.count || 1), 0);
     }
 
-    function featGrantsSpell(spell, level) {
+    function featGrantsSpell(spell, level, featSpellGrants = null) {
       if (spell.level !== level) return false;
-      return activeFeatSpellGrants().some((grant) => {
+      return (featSpellGrants || activeFeatSpellGrants()).some((grant) => {
         if (grant.level !== level) return false;
         if (grant.spellName) return normalizeName(grant.spellName) === normalizeName(spell.name);
         if (!grant.className) return true;
@@ -1179,18 +1207,21 @@
       });
     }
 
-    function getSpellLevelLimit(level) {
-      if (level === 0) return cantripsKnownForCharacter() + featGrantedSpellChoiceLimit(0);
-      if (isWizardCharacter()) return Infinity;
-      if (isBardCharacter()) return Infinity;
-      const preparedLimit = managedPreparedSpellLimit();
+    function getSpellLevelLimit(level, snapshot = null) {
+      if (snapshot?.spellLevelLimits?.has(level)) return snapshot.spellLevelLimits.get(level);
+      if (level === 0) return (snapshot?.cantripLimit ?? cantripsKnownForCharacter()) + featGrantedSpellChoiceLimit(0, snapshot?.featSpellGrants);
+      if (snapshot ? snapshot.isWizard : isWizardCharacter()) return Infinity;
+      if (snapshot ? snapshot.isBard : isBardCharacter()) return Infinity;
+      const preparedLimit = snapshot ? snapshot.managedPreparedLimit : managedPreparedSpellLimit();
       if (preparedLimit != null) return preparedLimit;
       const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
       if (!totalKey) return Infinity;
-      const value = getFieldValueByNormalizedKey(totalKey.toLowerCase());
-      const parsed = Number.parseInt(value, 10);
-      const slotLimit = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-      const featLimit = featGrantedSpellChoiceLimit(level);
+      const slotLimit = snapshot?.spellSlotLimits?.get(level) ?? (() => {
+        const value = getFieldValueByNormalizedKey(totalKey.toLowerCase());
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+      })();
+      const featLimit = featGrantedSpellChoiceLimit(level, snapshot?.featSpellGrants);
       return slotLimit || featLimit ? slotLimit + featLimit : Infinity;
     }
 
@@ -1699,18 +1730,18 @@
       return wizardSpellFields().find((field) => normalizeName(field.value || "") === normalized) || null;
     }
 
-    function extraKnownSpellLimit() {
-      return activeFeatSpellGrants()
+    function extraKnownSpellLimit(featSpellGrants = null) {
+      return (featSpellGrants || activeFeatSpellGrants())
         .filter((grant) => grant.level > 0 && !grant.spellName)
         .reduce((total, grant) => total + (grant.count || 1), 0);
     }
 
-    function bardKnownSpellLimit() {
+    function bardKnownSpellLimit(featSpellGrants = null) {
       const level = Math.min(20, Math.max(1, getCharacterLevel()));
       const detail = classDetailByName("Bard");
       const progression = detail?.classItem?.spellsKnownProgression || detail?.classItem?.preparedSpellsProgression;
       const base = Array.isArray(progression) ? progression[level - 1] : BARD_SPELLS_KNOWN[level - 1];
-      return (base || 0) + extraKnownSpellLimit();
+      return (base || 0) + extraKnownSpellLimit(featSpellGrants);
     }
 
     function preparedSpellsProgressionForCharacter() {
@@ -1723,12 +1754,12 @@
       return Boolean(preparedSpellsProgressionForCharacter());
     }
 
-    function managedPreparedSpellLimit() {
+    function managedPreparedSpellLimit(featSpellGrants = null) {
       if (!usesManagedPreparedSpells()) return null;
       const level = Math.min(20, Math.max(1, getCharacterLevel()));
       const progression = preparedSpellsProgressionForCharacter();
       const base = Number(progression[level - 1]) || 0;
-      const featBonus = Array.from({ length: 9 }, (_item, index) => featGrantedSpellChoiceLimit(index + 1))
+      const featBonus = Array.from({ length: 9 }, (_item, index) => featGrantedSpellChoiceLimit(index + 1, featSpellGrants))
         .reduce((total, count) => total + count, 0);
       return base + featBonus;
     }
@@ -1740,11 +1771,11 @@
         .length;
     }
 
-    function bardCanLearnSpell(spellName) {
-      const spell = findSpellByName(spellName);
-      if (!spell || spell.level <= 0 || !canUseSpellLevel(spell.level)) return false;
+    function bardCanLearnSpell(spellOrName, snapshot = null) {
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
+      if (!spell || spell.level <= 0 || !canUseSpellLevel(spell.level, snapshot)) return false;
       if (spell.classes?.some((name) => normalizeName(name) === "bard")) return true;
-      return featGrantsSpell(spell, spell.level);
+      return featGrantsSpell(spell, spell.level, snapshot?.featSpellGrants);
     }
 
     function scheduleSheetChoiceRefresh({ prepared = true, equipment = false, alerts = true, turnActions = true, save = true } = {}) {
@@ -1767,6 +1798,26 @@
       if (save) scheduleSave();
     }
 
+    let pendingDerivedChoiceRefresh = false;
+
+    function scheduleDerivedChoiceRefresh() {
+      scheduleSave();
+      if (pendingDerivedChoiceRefresh) return;
+      pendingDerivedChoiceRefresh = true;
+      const refresh = () => {
+        pendingDerivedChoiceRefresh = false;
+        updateDerivedStats();
+        scheduleSheetChoiceRefresh({ prepared: false, alerts: true, turnActions: true, save: false });
+      };
+      if (typeof runAfterNextPaint === "function") {
+        runAfterNextPaint(refresh);
+      } else if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => setTimeout(refresh, 0));
+      } else {
+        setTimeout(refresh, 0);
+      }
+    }
+
     let pendingSpellSelectionDrawerRefresh = null;
     let pendingSpellSelectionDrawerFrame = 0;
 
@@ -1780,8 +1831,11 @@
         if (!pending?.field) return;
         showSpellSelectionDrawer(pending.field, pending.selectedSpell);
       };
-      if (typeof requestAnimationFrame === "function") {
-        pendingSpellSelectionDrawerFrame = requestAnimationFrame(refresh);
+      if (typeof runAfterNextPaint === "function") {
+        pendingSpellSelectionDrawerFrame = 1;
+        runAfterNextPaint(refresh);
+      } else if (typeof requestAnimationFrame === "function") {
+        pendingSpellSelectionDrawerFrame = requestAnimationFrame(() => setTimeout(refresh, 0));
       } else {
         pendingSpellSelectionDrawerFrame = setTimeout(refresh, 0);
       }
@@ -1814,13 +1868,13 @@
       scheduleSheetChoiceRefresh();
     }
 
-    function getAllBardAccessibleSpellOptions() {
-      const autoPrepared = new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
-      const maxLevel = maxSpellLevelForCharacter();
+    function getAllBardAccessibleSpellOptions(snapshot = null) {
+      const autoPrepared = snapshot?.autoAlwaysPreparedSet || new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
+      const maxLevel = snapshot?.maxSpellLevel ?? maxSpellLevelForCharacter();
       return spells.filter((spell) => spell.level > 0
         && spell.level <= maxLevel
         && !autoPrepared.has(normalizeName(spell.name))
-        && bardCanLearnSpell(spell.name));
+        && bardCanLearnSpell(spell, snapshot));
     }
 
     function wizardMaxSpellbookSpells() {
@@ -1942,22 +1996,23 @@
       return true;
     }
 
-    function spellMatchesSelection(spell, level) {
+    function spellMatchesSelection(spell, level, snapshot = null) {
       if (spell.level !== level) return false;
-      if (!canUseSpellLevel(level)) return false;
-      const className = normalizeName(getSelectedClassName());
-      const raceName = normalizeName(selectedRaceBaseName());
+      if (!canUseSpellLevel(level, snapshot)) return false;
+      const className = snapshot?.className ?? normalizeName(getSelectedClassName());
+      const raceName = snapshot?.raceName ?? normalizeName(selectedRaceBaseName());
       const classMatches = className && spell.classes?.some((name) => normalizeName(name) === className);
       const raceMatches = raceName && spell.races?.some((name) => normalizeName(name) === raceName);
-      const featMatches = featGrantsSpell(spell, level);
-      const subclassGrants = activeSubclassSpellGrants();
+      const featSpellGrants = snapshot?.featSpellGrants || activeFeatSpellGrants();
+      const featMatches = featGrantsSpell(spell, level, featSpellGrants);
+      const subclassGrants = snapshot?.subclassSpellGrants || activeSubclassSpellGrants();
       const subclassMatches = subclassGrants.some((grant) => {
         if (grant.level !== level) return false;
         if (grant.spellName) return normalizeName(grant.spellName) === normalizeName(spell.name);
         if (!grant.className) return true;
         return spell.classes?.some((name) => normalizeName(name) === normalizeName(grant.className));
       });
-      if (className || raceName || activeFeatSpellGrants().length || subclassGrants.length) return Boolean(classMatches || raceMatches || featMatches || subclassMatches);
+      if (className || raceName || featSpellGrants.length || subclassGrants.length) return Boolean(classMatches || raceMatches || featMatches || subclassMatches);
       return true;
     }
 
@@ -1976,6 +2031,95 @@
         && canUseSpellLevel(level)
         && spell.classes?.some((name) => normalizeName(name) === "wizard")
         && !autoPrepared.has(normalizeName(spell.name)));
+    }
+
+    function createSpellValidationSnapshot() {
+      const featSpellGrants = activeFeatSpellGrants();
+      const subclassSpellGrants = activeSubclassSpellGrants();
+      const isWizard = isWizardCharacter();
+      const isBard = isBardCharacter();
+      const spellSlotLimits = new Map();
+      for (let level = 1; level <= 9; level += 1) {
+        const totalKey = SPELL_SLOT_TOTAL_KEYS.get(level);
+        const parsed = Number.parseInt(getFieldValueByNormalizedKey(String(totalKey || "").toLowerCase()), 10);
+        spellSlotLimits.set(level, Number.isFinite(parsed) && parsed > 0 ? parsed : 0);
+      }
+      return {
+        featSpellGrants,
+        subclassSpellGrants,
+        className: normalizeName(getSelectedClassName()),
+        raceName: normalizeName(selectedRaceBaseName()),
+        isWizard,
+        isBard,
+        maxSpellLevel: maxSpellLevelForCharacter(),
+        cantripLimit: cantripsKnownForCharacter(),
+        spellSlotLimits,
+        managedPreparedLimit: !isWizard && !isBard ? managedPreparedSpellLimit(featSpellGrants) : null
+      };
+    }
+
+    function createSpellSelectionSnapshot() {
+      const validationSnapshot = createSpellValidationSnapshot();
+      const { featSpellGrants, subclassSpellGrants, isWizard, isBard } = validationSnapshot;
+      const selectedCantripNamesSnapshot = selectedCantripNames();
+      const selectedKnownSpellNamesSnapshot = selectedKnownSpellNames();
+      const wizardSpellbookNamesSnapshot = isWizard ? wizardSpellbookNames() : [];
+      const spellFields = sheetSpellFieldElements();
+      const selectedSpellCounts = new Map();
+      const wizardPreparedSet = new Set();
+      let wizardPreparedCount = 0;
+
+      spellFields.forEach((field) => {
+        if (!field.value.trim()) return;
+        const level = Number(field.dataset.spellLevel);
+        if (!isAutoGrantedSpellField(field)) {
+          selectedSpellCounts.set(level, (selectedSpellCounts.get(level) || 0) + 1);
+        }
+        if (level <= 0) return;
+        const checkbox = getFieldByKey(field.dataset.preparedKey || "");
+        if (checkbox?.checked) {
+          wizardPreparedCount += 1;
+          wizardPreparedSet.add(normalizeName(field.value));
+        }
+      });
+
+      const grantContext = { featSpellGrants, subclassSpellGrants };
+      const autoGrantedNames = autoGrantedSpellNames(grantContext);
+      const snapshot = {
+        ...validationSnapshot,
+        selectedCantripNames: selectedCantripNamesSnapshot,
+        selectedCantripSet: new Set(selectedCantripNamesSnapshot.map(normalizeName)),
+        selectedKnownSpellNames: selectedKnownSpellNamesSnapshot,
+        selectedKnownSpellSet: new Set(selectedKnownSpellNamesSnapshot.map(normalizeName)),
+        selectedManagedSpellCount: selectedKnownSpellNamesSnapshot.length,
+        selectedSpellCounts,
+        spellLevelLimits: new Map(),
+        wizardSpellbookNames: wizardSpellbookNamesSnapshot,
+        wizardSpellbookSet: new Set(wizardSpellbookNamesSnapshot.map(normalizeName)),
+        wizardSpellbookLimit: isWizard ? wizardMaxSpellbookSpells() : 0,
+        wizardPreparedSet,
+        wizardPreparedCount,
+        wizardPreparedLimit: isWizard ? wizardPreparedSpellLimit() : 0,
+        bardKnownLimit: isBard ? bardKnownSpellLimit(featSpellGrants) : 0,
+        autoAlwaysPreparedSet: new Set(autoAlwaysPreparedSpellNames(grantContext).map(normalizeName)),
+        autoCantripSet: new Set(autoCantripNames({ ...grantContext, autoGrantedNames }).map(normalizeName)),
+        accessibleCantrips: [],
+        accessibleSpells: []
+      };
+
+      for (let level = 0; level <= 9; level += 1) {
+        snapshot.spellLevelLimits.set(level, getSpellLevelLimit(level, snapshot));
+      }
+      snapshot.accessibleCantrips = getAccessibleCantripOptions(snapshot)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      snapshot.accessibleSpells = (
+        snapshot.isWizard
+          ? getAllWizardAccessibleSpellOptions(snapshot)
+          : snapshot.isBard
+            ? getAllBardAccessibleSpellOptions(snapshot)
+            : getAllManagedSpellOptions(snapshot)
+      ).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+      return snapshot;
     }
 
     function selectedSpellFieldsForLevel(level) {
@@ -2093,15 +2237,15 @@
         .trim();
     }
 
-    function autoGrantedSpellNames() {
+    function autoGrantedSpellNames({ featSpellGrants = null, subclassSpellGrants = null } = {}) {
       const known = new Set(spells.map((spell) => normalizeName(spell.name)));
       const names = [];
       const className = normalizeName(getSelectedClassName());
       (ALWAYS_PREPARED_SPELLS_BY_CLASS[className] || []).forEach((name) => names.push(name));
-      activeFeatSpellGrants()
+      (featSpellGrants || activeFeatSpellGrants())
         .filter((grant) => grant.spellName)
         .forEach((grant) => names.push(grant.spellName));
-      activeSubclassSpellGrants()
+      (subclassSpellGrants || activeSubclassSpellGrants())
         .filter((grant) => grant.spellName)
         .forEach((grant) => names.push(grant.spellName));
       choosableFeatureEntriesForCharacter()
@@ -2153,15 +2297,15 @@
         .filter((name) => known.has(normalizeName(name)));
     }
 
-    function autoAlwaysPreparedSpellNames() {
+    function autoAlwaysPreparedSpellNames({ featSpellGrants = null, subclassSpellGrants = null } = {}) {
       const known = new Set(spells.map((spell) => normalizeName(spell.name)));
       const names = [];
       const className = normalizeName(getSelectedClassName());
       (ALWAYS_PREPARED_SPELLS_BY_CLASS[className] || []).forEach((name) => names.push(name));
-      activeFeatSpellGrants()
+      (featSpellGrants || activeFeatSpellGrants())
         .filter((grant) => grant.prepared && grant.spellName)
         .forEach((grant) => names.push(grant.spellName));
-      activeSubclassSpellGrants()
+      (subclassSpellGrants || activeSubclassSpellGrants())
         .filter((grant) => grant.prepared && grant.spellName)
         .forEach((grant) => names.push(grant.spellName));
       const texts = [
@@ -2184,9 +2328,10 @@
         .filter((name) => known.has(normalizeName(name)));
     }
 
-    function autoCantripNames() {
+    function autoCantripNames(context = {}) {
       const cantrips = new Set(spells.filter((spell) => spell.level === 0).map((spell) => normalizeName(spell.name)));
-      return autoGrantedSpellNames().filter((name) => cantrips.has(normalizeName(name)));
+      const autoGrantedNames = context.autoGrantedNames || autoGrantedSpellNames(context);
+      return autoGrantedNames.filter((name) => cantrips.has(normalizeName(name)));
     }
 
     function isAutoGrantedSpellField(field) {
@@ -2242,12 +2387,12 @@
       sheetSpellFieldElements().forEach(syncFeatPreparedSpellCheckbox);
     }
 
-    function syncAutoCantrips() {
+    function syncAutoCantrips(grantContext = {}) {
       const fields = sheetSpellFieldElements();
       if (!fields.length) return;
-      const autoNames = autoCantripNames();
+      const autoNames = autoCantripNames(grantContext);
       const nextSet = new Set(autoNames.map(normalizeName));
-      const autoPreparedNames = autoAlwaysPreparedSpellNames();
+      const autoPreparedNames = autoAlwaysPreparedSpellNames(grantContext);
       const preparedSet = new Set(autoPreparedNames.map(normalizeName));
 
       fields.forEach((field) => {
@@ -2294,7 +2439,7 @@
       syncFeatPreparedSpellCheckboxes();
       sheetMeta.autoGrantedSpells = autoNames;
       sheetMeta.autoPreparedSpells = autoPreparedNames;
-      sheetMeta.autoCantrips = autoCantripNames();
+      sheetMeta.autoCantrips = autoNames;
     }
 
     function normalizeName(name) {
@@ -2502,6 +2647,218 @@
 
     function viewportClamp(value, min, max) {
       return Math.min(max, Math.max(min, value));
+    }
+
+    function createFloatingSheetWindowController(options = {}) {
+      const margin = Number(options.margin) || FLOATING_SHEET_WINDOW_MARGIN;
+      const minWidthSetting = Number(options.minWidth) || 300;
+      const minHeightSetting = Number(options.minHeight) || 220;
+      let element = null;
+      let layout = null;
+      let pointerAction = null;
+
+      const resolveDefault = (value, context, fallback) => (
+        typeof value === "function" ? Number(value(context)) : Number(value)
+      ) || fallback;
+
+      function defaultLayout() {
+        const viewportWidth = window.innerWidth || 1200;
+        const viewportHeight = window.innerHeight || 800;
+        const availableWidth = Math.max(1, viewportWidth - margin * 2);
+        const availableHeight = Math.max(1, viewportHeight - margin * 2);
+        const width = viewportClamp(resolveDefault(options.defaultWidth, {}, 520), Math.min(minWidthSetting, availableWidth), availableWidth);
+        const height = viewportClamp(resolveDefault(options.defaultHeight, {}, 620), Math.min(minHeightSetting, availableHeight), availableHeight);
+        const context = { viewportWidth, viewportHeight, width, height, margin };
+        return {
+          x: resolveDefault(options.defaultX, context, margin),
+          y: resolveDefault(options.defaultY, context, margin),
+          width,
+          height,
+          collapsed: false
+        };
+      }
+
+      function normalizeLayout(candidate = {}) {
+        const defaults = defaultLayout();
+        const viewportWidth = window.innerWidth || 1200;
+        const viewportHeight = window.innerHeight || 800;
+        const availableWidth = Math.max(1, viewportWidth - margin * 2);
+        const availableHeight = Math.max(1, viewportHeight - margin * 2);
+        const minWidth = Math.min(minWidthSetting, availableWidth);
+        const minHeight = Math.min(minHeightSetting, availableHeight);
+        const width = viewportClamp(Number(candidate.width) || defaults.width, minWidth, availableWidth);
+        const height = viewportClamp(Number(candidate.height) || defaults.height, minHeight, availableHeight);
+        const collapsed = Boolean(candidate.collapsed);
+        const visibleHeight = collapsed ? 54 : height;
+        return {
+          x: viewportClamp(Number.isFinite(Number(candidate.x)) ? Number(candidate.x) : defaults.x, margin, Math.max(margin, viewportWidth - width - margin)),
+          y: viewportClamp(Number.isFinite(Number(candidate.y)) ? Number(candidate.y) : defaults.y, margin, Math.max(margin, viewportHeight - visibleHeight - margin)),
+          width,
+          height,
+          collapsed
+        };
+      }
+
+      function loadLayout() {
+        try {
+          const raw = localStorage.getItem(options.storageKey);
+          return normalizeLayout(raw ? JSON.parse(raw) : {});
+        } catch (error) {
+          console.warn(`Could not load ${options.storageKey} layout.`, error);
+          return normalizeLayout();
+        }
+      }
+
+      function persistLayout() {
+        try {
+          localStorage.setItem(options.storageKey, JSON.stringify(layout));
+        } catch (error) {
+          console.warn(`Could not save ${options.storageKey} layout.`, error);
+        }
+      }
+
+      function bringToFront() {
+        if (!element) return;
+        floatingSheetWindowZIndex += 1;
+        element.style.zIndex = String(floatingSheetWindowZIndex);
+      }
+
+      function apply({ persist = false } = {}) {
+        if (!element) return;
+        layout = normalizeLayout(layout || loadLayout());
+        element.style.removeProperty("right");
+        element.style.removeProperty("bottom");
+        element.style.left = `${layout.x}px`;
+        element.style.top = `${layout.y}px`;
+        element.style.width = `${layout.width}px`;
+        element.style.height = layout.collapsed ? "auto" : `${layout.height}px`;
+        element.classList.toggle("is-collapsed", layout.collapsed);
+        const collapse = element.querySelector("[data-floating-window-collapse]");
+        if (collapse) {
+          const label = t(layout.collapsed ? "window.expand" : "window.collapse");
+          collapse.textContent = layout.collapsed ? "+" : "−";
+          collapse.title = label;
+          collapse.setAttribute("aria-label", label);
+          collapse.setAttribute("aria-expanded", String(!layout.collapsed));
+        }
+        if (persist) persistLayout();
+      }
+
+      function stopPointerAction(event = null) {
+        if (!pointerAction) return;
+        if (event?.pointerId !== undefined && event.pointerId !== pointerAction.pointerId) return;
+        pointerAction = null;
+        element?.classList.remove("is-interacting");
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("pointerup", stopPointerAction);
+        document.removeEventListener("pointercancel", stopPointerAction);
+        persistLayout();
+      }
+
+      function handlePointerMove(event) {
+        const action = pointerAction;
+        if (!action || action.pointerId !== event.pointerId) return;
+        const deltaX = event.clientX - action.startClientX;
+        const deltaY = event.clientY - action.startClientY;
+        if (action.kind === "move") {
+          layout = { ...layout, x: action.startX + deltaX, y: action.startY + deltaY };
+        } else {
+          const viewportWidth = window.innerWidth || 1200;
+          const viewportHeight = window.innerHeight || 800;
+          const minWidth = Math.min(minWidthSetting, Math.max(1, viewportWidth - margin * 2));
+          const minHeight = Math.min(minHeightSetting, Math.max(1, viewportHeight - margin * 2));
+          layout = {
+            ...layout,
+            width: action.edge === "right" || action.edge === "corner"
+              ? viewportClamp(action.startWidth + deltaX, minWidth, Math.max(minWidth, viewportWidth - layout.x - margin))
+              : layout.width,
+            height: action.edge === "bottom" || action.edge === "corner"
+              ? viewportClamp(action.startHeight + deltaY, minHeight, Math.max(minHeight, viewportHeight - layout.y - margin))
+              : layout.height
+          };
+        }
+        apply();
+        event.preventDefault();
+      }
+
+      function startMove(event) {
+        if (event.button !== 0 || event.target?.closest?.("button, input, select, textarea, a")) return;
+        bringToFront();
+        pointerAction = {
+          kind: "move",
+          pointerId: event.pointerId,
+          startClientX: event.clientX,
+          startClientY: event.clientY,
+          startX: layout.x,
+          startY: layout.y
+        };
+        element?.classList.add("is-interacting");
+        document.addEventListener("pointermove", handlePointerMove);
+        document.addEventListener("pointerup", stopPointerAction);
+        document.addEventListener("pointercancel", stopPointerAction);
+        event.preventDefault();
+      }
+
+      function startResize(event, edge) {
+        if (event.button !== 0 || layout.collapsed) return;
+        bringToFront();
+        pointerAction = {
+          kind: "resize",
+          edge,
+          pointerId: event.pointerId,
+          startClientX: event.clientX,
+          startClientY: event.clientY,
+          startWidth: layout.width,
+          startHeight: layout.height
+        };
+        element?.classList.add("is-interacting");
+        document.addEventListener("pointermove", handlePointerMove);
+        document.addEventListener("pointerup", stopPointerAction);
+        document.addEventListener("pointercancel", stopPointerAction);
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      function attach(nextElement) {
+        if (!nextElement) return controller;
+        if (!layout) layout = loadLayout();
+        if (element === nextElement) {
+          apply();
+          return controller;
+        }
+        stopPointerAction();
+        element = nextElement;
+        element.classList.add("floating-sheet-window");
+        element.querySelector("[data-floating-window-header]")?.addEventListener("pointerdown", startMove);
+        element.querySelector("[data-floating-window-collapse]")?.addEventListener("click", () => {
+          layout = { ...layout, collapsed: !layout.collapsed };
+          apply({ persist: true });
+        });
+        element.querySelectorAll("[data-floating-window-resize]").forEach((handle) => {
+          handle.addEventListener("pointerdown", (event) => startResize(event, handle.dataset.floatingWindowResize || "corner"));
+        });
+        element.addEventListener("pointerdown", bringToFront);
+        element.addEventListener("focusin", bringToFront);
+        apply();
+        return controller;
+      }
+
+      const controller = {
+        attach,
+        apply,
+        bringToFront,
+        isCollapsed: () => Boolean(layout?.collapsed)
+      };
+      window.addEventListener("resize", () => apply());
+      return controller;
+    }
+
+    function attachFloatingSheetWindow(id, element, options) {
+      if (!id || !element) return null;
+      if (!floatingSheetWindowControllers.has(id)) {
+        floatingSheetWindowControllers.set(id, createFloatingSheetWindowController(options));
+      }
+      return floatingSheetWindowControllers.get(id).attach(element);
     }
 
     function familiarNotesStorageKey(slotId = activeSaveSlotId) {
@@ -3187,7 +3544,7 @@
           if (tabBar) note.appendChild(tabBar);
           note.appendChild(buildFamiliarBody(activeNote));
           note.appendChild(buildFamiliarDicePanel(activeNote));
-          [["right", "familiar-note-resize-right"], ["bottom", "familiar-note-resize-bottom"], ["corner", "familiar-note-resize-corner"]].forEach(([edge, className]) => {
+          [["right", "familiar-note-resize-right"], ["bottom", "familiar-note-resize-bottom"], ["corner", "familiar-note-resize-corner app-resize-corner"]].forEach(([edge, className]) => {
             const handle = document.createElement("button");
             handle.type = "button";
             handle.className = `familiar-note-resize ${className}`;
@@ -5046,6 +5403,15 @@
     function ensureFreeDiceMenuInitialized() {
       if (freeDiceMenuInitialized) return;
       freeDiceMenuInitialized = true;
+      attachFloatingSheetWindow("free-dice", freeDiceMenuElement(), {
+        storageKey: "dnd-character-sheet-free-dice-window-v1",
+        defaultWidth: 380,
+        defaultHeight: 620,
+        minWidth: 320,
+        minHeight: 300,
+        defaultX: ({ viewportWidth, width }) => viewportWidth - width - 58,
+        defaultY: ({ viewportHeight, height }) => viewportHeight - height - 66
+      });
       populateFreeDiceSelect();
       renderFreeDiceSelection();
       renderDiceLog();
@@ -5053,11 +5419,6 @@
       document.getElementById("freeDiceMinus")?.addEventListener("click", () => removeFreeDie());
       document.getElementById("freeDiceRoll")?.addEventListener("click", rollFreeDice);
       document.getElementById("freeDiceClose")?.addEventListener("click", () => setFreeDiceMenuOpen(false));
-      document.addEventListener("pointerdown", (event) => {
-        if (!isFreeDiceMenuOpen()) return;
-        if (event.target?.closest?.("#freeDiceMenu") || event.target?.closest?.(".status-dice-button")) return;
-        setFreeDiceMenuOpen(false);
-      });
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && isFreeDiceMenuOpen()) setFreeDiceMenuOpen(false);
       });
@@ -5385,8 +5746,41 @@
       );
     }
 
+    const deferredPanelRefreshObservers = new WeakMap();
+
+    function panelIsNearViewport(panel, margin = 180) {
+      if (!panel?.isConnected || typeof panel.getBoundingClientRect !== "function") return true;
+      const rect = panel.getBoundingClientRect();
+      if (!rect.width && !rect.height) return true;
+      return rect.bottom >= -margin
+        && rect.right >= -margin
+        && rect.top <= (window.innerHeight || document.documentElement.clientHeight) + margin
+        && rect.left <= (window.innerWidth || document.documentElement.clientWidth) + margin;
+    }
+
+    function deferPanelRefreshUntilVisible(panel, refresh) {
+      if (!panel || panelIsNearViewport(panel) || typeof IntersectionObserver !== "function") {
+        const existing = panel ? deferredPanelRefreshObservers.get(panel) : null;
+        existing?.disconnect();
+        if (panel) deferredPanelRefreshObservers.delete(panel);
+        return false;
+      }
+      if (deferredPanelRefreshObservers.has(panel)) return true;
+      const observer = new IntersectionObserver((entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        deferredPanelRefreshObservers.delete(panel);
+        if (typeof schedulePanelRefresh === "function") schedulePanelRefresh(refresh);
+        else refresh();
+      }, { root: null, rootMargin: "180px" });
+      deferredPanelRefreshObservers.set(panel, observer);
+      observer.observe(panel);
+      return true;
+    }
+
     function updatePreparedSpellsPanel() {
       if (!preparedSpellsPanel) return;
+      if (deferPanelRefreshUntilVisible(preparedSpellsPanel, updatePreparedSpellsPanel)) return;
       preparedSpellsPanel.textContent = "";
 
       const resourceCounters = document.createElement("div");
@@ -7544,8 +7938,161 @@
       combatPerformanceSamples.splice(30);
     }
 
+    function defaultCombatWindowLayout() {
+      const viewportWidth = window.innerWidth || 1200;
+      const viewportHeight = window.innerHeight || 800;
+      const width = Math.min(1080, Math.max(Math.min(COMBAT_WINDOW_MIN_WIDTH, viewportWidth - COMBAT_WINDOW_MARGIN * 2), viewportWidth - 40));
+      const height = Math.min(820, Math.max(Math.min(COMBAT_WINDOW_MIN_HEIGHT, viewportHeight - COMBAT_WINDOW_MARGIN * 2), viewportHeight - 40));
+      return {
+        x: Math.max(COMBAT_WINDOW_MARGIN, (viewportWidth - width) / 2),
+        y: Math.max(COMBAT_WINDOW_MARGIN, (viewportHeight - height) / 2),
+        width,
+        height,
+        collapsed: false
+      };
+    }
+
+    function normalizeCombatWindowLayout(layout = {}) {
+      const defaults = defaultCombatWindowLayout();
+      const viewportWidth = window.innerWidth || 1200;
+      const viewportHeight = window.innerHeight || 800;
+      const availableWidth = Math.max(1, viewportWidth - COMBAT_WINDOW_MARGIN * 2);
+      const availableHeight = Math.max(1, viewportHeight - COMBAT_WINDOW_MARGIN * 2);
+      const minWidth = Math.min(COMBAT_WINDOW_MIN_WIDTH, availableWidth);
+      const minHeight = Math.min(COMBAT_WINDOW_MIN_HEIGHT, availableHeight);
+      const width = viewportClamp(Number(layout.width) || defaults.width, minWidth, availableWidth);
+      const height = viewportClamp(Number(layout.height) || defaults.height, minHeight, availableHeight);
+      const collapsed = Boolean(layout.collapsed);
+      const visibleHeight = collapsed ? 54 : height;
+      return {
+        x: viewportClamp(Number.isFinite(Number(layout.x)) ? Number(layout.x) : defaults.x, COMBAT_WINDOW_MARGIN, Math.max(COMBAT_WINDOW_MARGIN, viewportWidth - width - COMBAT_WINDOW_MARGIN)),
+        y: viewportClamp(Number.isFinite(Number(layout.y)) ? Number(layout.y) : defaults.y, COMBAT_WINDOW_MARGIN, Math.max(COMBAT_WINDOW_MARGIN, viewportHeight - visibleHeight - COMBAT_WINDOW_MARGIN)),
+        width,
+        height,
+        collapsed
+      };
+    }
+
+    function loadCombatWindowLayout() {
+      try {
+        const raw = localStorage.getItem(COMBAT_WINDOW_LAYOUT_KEY);
+        return normalizeCombatWindowLayout(raw ? JSON.parse(raw) : {});
+      } catch (error) {
+        console.warn("Could not load combat window layout.", error);
+        return normalizeCombatWindowLayout();
+      }
+    }
+
+    function persistCombatWindowLayout() {
+      try {
+        localStorage.setItem(COMBAT_WINDOW_LAYOUT_KEY, JSON.stringify(combatWindowLayout));
+      } catch (error) {
+        console.warn("Could not save combat window layout.", error);
+      }
+    }
+
+    function applyCombatWindowLayout({ persist = false } = {}) {
+      if (!turnActionsPanel) return;
+      combatWindowLayout = normalizeCombatWindowLayout(combatWindowLayout);
+      turnActionsPanel.style.left = `${combatWindowLayout.x}px`;
+      turnActionsPanel.style.top = `${combatWindowLayout.y}px`;
+      turnActionsPanel.style.width = `${combatWindowLayout.width}px`;
+      turnActionsPanel.style.height = combatWindowLayout.collapsed ? "auto" : `${combatWindowLayout.height}px`;
+      turnActionsPanel.classList.toggle("is-collapsed", combatWindowLayout.collapsed);
+      if (turnActionsCollapse) {
+        const label = t(combatWindowLayout.collapsed ? "turn.expandWindow" : "turn.collapseWindow");
+        turnActionsCollapse.textContent = combatWindowLayout.collapsed ? "+" : "−";
+        turnActionsCollapse.title = label;
+        turnActionsCollapse.setAttribute("aria-label", label);
+        turnActionsCollapse.setAttribute("aria-expanded", String(!combatWindowLayout.collapsed));
+      }
+      if (persist) persistCombatWindowLayout();
+    }
+
+    function toggleTurnActionsPanelCollapsed() {
+      combatWindowLayout = { ...combatWindowLayout, collapsed: !combatWindowLayout.collapsed };
+      applyCombatWindowLayout({ persist: true });
+    }
+
+    function startCombatWindowMove(event) {
+      if (event.button !== 0 || event.target?.closest?.("button, input, select, textarea, a")) return;
+      if (!turnActionsBackdrop?.classList.contains("visible")) return;
+      combatWindowPointerAction = {
+        kind: "move",
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startX: combatWindowLayout.x,
+        startY: combatWindowLayout.y
+      };
+      turnActionsPanel?.classList.add("is-interacting");
+      document.addEventListener("pointermove", handleCombatWindowPointerMove);
+      document.addEventListener("pointerup", stopCombatWindowPointerAction);
+      document.addEventListener("pointercancel", stopCombatWindowPointerAction);
+      event.preventDefault();
+    }
+
+    function startCombatWindowResize(event, edge = "corner") {
+      if (event.button !== 0 || combatWindowLayout.collapsed) return;
+      combatWindowPointerAction = {
+        kind: "resize",
+        edge,
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startWidth: combatWindowLayout.width,
+        startHeight: combatWindowLayout.height
+      };
+      turnActionsPanel?.classList.add("is-interacting");
+      document.addEventListener("pointermove", handleCombatWindowPointerMove);
+      document.addEventListener("pointerup", stopCombatWindowPointerAction);
+      document.addEventListener("pointercancel", stopCombatWindowPointerAction);
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function handleCombatWindowPointerMove(event) {
+      const action = combatWindowPointerAction;
+      if (!action || action.pointerId !== event.pointerId) return;
+      const deltaX = event.clientX - action.startClientX;
+      const deltaY = event.clientY - action.startClientY;
+      if (action.kind === "move") {
+        combatWindowLayout = { ...combatWindowLayout, x: action.startX + deltaX, y: action.startY + deltaY };
+      } else {
+        const viewportWidth = window.innerWidth || 1200;
+        const viewportHeight = window.innerHeight || 800;
+        const availableWidth = Math.max(1, viewportWidth - COMBAT_WINDOW_MARGIN * 2);
+        const availableHeight = Math.max(1, viewportHeight - COMBAT_WINDOW_MARGIN * 2);
+        const minWidth = Math.min(COMBAT_WINDOW_MIN_WIDTH, availableWidth);
+        const minHeight = Math.min(COMBAT_WINDOW_MIN_HEIGHT, availableHeight);
+        combatWindowLayout = {
+          ...combatWindowLayout,
+          width: action.edge === "right" || action.edge === "corner"
+            ? viewportClamp(action.startWidth + deltaX, minWidth, Math.max(minWidth, viewportWidth - combatWindowLayout.x - COMBAT_WINDOW_MARGIN))
+            : combatWindowLayout.width,
+          height: action.edge === "bottom" || action.edge === "corner"
+            ? viewportClamp(action.startHeight + deltaY, minHeight, Math.max(minHeight, viewportHeight - combatWindowLayout.y - COMBAT_WINDOW_MARGIN))
+            : combatWindowLayout.height
+        };
+      }
+      applyCombatWindowLayout();
+      event.preventDefault();
+    }
+
+    function stopCombatWindowPointerAction(event = null) {
+      if (!combatWindowPointerAction) return;
+      if (event?.pointerId !== undefined && event.pointerId !== combatWindowPointerAction.pointerId) return;
+      combatWindowPointerAction = null;
+      turnActionsPanel?.classList.remove("is-interacting");
+      document.removeEventListener("pointermove", handleCombatWindowPointerMove);
+      document.removeEventListener("pointerup", stopCombatWindowPointerAction);
+      document.removeEventListener("pointercancel", stopCombatWindowPointerAction);
+      persistCombatWindowLayout();
+    }
+
     async function openTurnActionsPanel() {
       if (!turnActionsBackdrop) return;
+      applyCombatWindowLayout();
       turnActionsBackdrop.classList.add("visible");
       turnActionsBackdrop.setAttribute("aria-hidden", "false");
       if (!itemCatalogReady) {
@@ -7562,6 +8109,7 @@
 
     function closeTurnActionsPanel() {
       if (!turnActionsBackdrop) return;
+      stopCombatWindowPointerAction();
       turnActionsBackdrop.classList.remove("visible");
       turnActionsBackdrop.setAttribute("aria-hidden", "true");
     }
@@ -7581,12 +8129,12 @@
       });
     }
 
-    function pruneInvalidSpellSourceSelections() {
+    function pruneInvalidSpellSourceSelections(snapshot = null) {
       sheetSpellFieldElements().forEach((field) => {
         if (!field.value.trim() || isAutoGrantedSpellField(field)) return;
         const spell = findSpellByName(field.value);
         const level = Number(field.dataset.spellLevel);
-        if (spell && spellMatchesSelection(spell, level)) return;
+        if (spell && spellMatchesSelection(spell, level, snapshot)) return;
         field.value = "";
         syncFeatPreparedSpellCheckbox(field);
       });
@@ -7608,15 +8156,15 @@
       });
     }
 
-    function pruneOverLimitSpellSelections() {
-      if (isWizardCharacter() || isBardCharacter()) return;
+    function pruneOverLimitSpellSelections(snapshot = null) {
+      if (snapshot ? snapshot.isWizard || snapshot.isBard : isWizardCharacter() || isBardCharacter()) return;
       const usedByLevel = new Map();
       sheetSpellFieldElements().forEach((field) => {
         const level = Number(field.dataset.spellLevel);
         if (!field.value.trim()) return;
         if (isAutoGrantedSpellField(field)) return;
         const used = usedByLevel.get(level) || 0;
-        if (used >= getSpellLevelLimit(level)) {
+        if (used >= getSpellLevelLimit(level, snapshot)) {
           field.value = "";
           syncFeatPreparedSpellCheckbox(field);
           return;
@@ -7702,6 +8250,24 @@
       if (activeSelectField?.dataset.optionType === "class") {
         renderClassChoiceControls(option).forEach((control) => optionDescription.appendChild(control));
       }
+    }
+
+    let pendingOptionDescriptionRefresh = null;
+    let optionDescriptionRefreshScheduled = false;
+
+    function scheduleOptionDescriptionRefresh(option) {
+      pendingOptionDescriptionRefresh = option;
+      if (optionDescriptionRefreshScheduled) return;
+      optionDescriptionRefreshScheduled = true;
+      const refresh = () => {
+        optionDescriptionRefreshScheduled = false;
+        const pending = pendingOptionDescriptionRefresh;
+        pendingOptionDescriptionRefresh = null;
+        if (!pending || optionMenu.hidden) return;
+        setOptionDescription(pending);
+      };
+      if (typeof runAfterNextPaint === "function") runAfterNextPaint(refresh);
+      else setTimeout(refresh, 0);
     }
 
     function filterListRows(rows, query, emptyNode = null) {
@@ -7797,13 +8363,23 @@
           appendCollapsibleSection(parent, title, {
             collapsed: level !== 1,
             stateKey: `${statePrefix}:level-${level}`,
-            renderContent: (target) => appendSearchableList(
-              target,
-              levelSpells
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(rowFactory),
-              `${searchPrefix} nivel ${level}...`
-            )
+            renderContent: (target) => {
+              const metricStart = "spell-picker-level-render:start";
+              const metricEnd = "spell-picker-level-render:end";
+              globalThis.performance?.clearMarks?.(metricStart);
+              globalThis.performance?.clearMarks?.(metricEnd);
+              globalThis.performance?.clearMeasures?.("spell-picker-level-render");
+              globalThis.performance?.mark?.(metricStart);
+              appendSearchableList(
+                target,
+                levelSpells
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(rowFactory),
+                `${searchPrefix} nivel ${level}...`
+              );
+              globalThis.performance?.mark?.(metricEnd);
+              globalThis.performance?.measure?.("spell-picker-level-render", metricStart, metricEnd);
+            }
           });
         });
     }
@@ -7901,7 +8477,7 @@
             (field.dataset.optionType === "background" && findBackgroundChoicesForOption(option).length)
             || (field.dataset.optionType === "race" && findRaceChoicesForOption(option).length)
           ) {
-            setOptionDescription(option);
+            scheduleOptionDescriptionRefresh(option);
             return;
           }
           closeOptionMenu();
@@ -8277,8 +8853,10 @@
       const picker = document.createElement("div");
       picker.className = `status-picker${open ? " visible" : ""}`;
       const pickerHeader = document.createElement("div");
-      pickerHeader.className = "status-picker-header";
+      pickerHeader.className = "status-picker-header floating-sheet-window-header";
+      pickerHeader.dataset.floatingWindowHeader = "";
       const pickerCopy = document.createElement("div");
+      pickerCopy.className = "floating-sheet-window-heading";
       const pickerTitle = document.createElement("div");
       pickerTitle.className = "status-picker-title";
       pickerTitle.textContent = t("status.characterStatuses");
@@ -8286,7 +8864,24 @@
       pickerSubtitle.className = "status-picker-subtitle";
       pickerSubtitle.textContent = "Hover para ver la descripcion completa";
       pickerCopy.append(pickerTitle, pickerSubtitle);
-      pickerHeader.appendChild(pickerCopy);
+      const pickerControls = document.createElement("div");
+      pickerControls.className = "floating-sheet-window-controls";
+      const pickerCollapse = document.createElement("button");
+      pickerCollapse.type = "button";
+      pickerCollapse.className = "status-picker-collapse floating-sheet-window-collapse";
+      pickerCollapse.dataset.floatingWindowCollapse = "";
+      const pickerClose = document.createElement("button");
+      pickerClose.type = "button";
+      pickerClose.className = "status-picker-close floating-sheet-window-close";
+      pickerClose.textContent = "X";
+      pickerClose.title = t("common.close");
+      pickerClose.setAttribute("aria-label", t("common.close"));
+      pickerClose.addEventListener("click", () => {
+        statusDock.dataset.menuOpen = "false";
+        renderStatusDock();
+      });
+      pickerControls.append(pickerCollapse, pickerClose);
+      pickerHeader.append(pickerCopy, pickerControls);
       const pickerSearch = document.createElement("input");
       pickerSearch.type = "search";
       pickerSearch.className = "status-picker-search";
@@ -8309,8 +8904,29 @@
         empty.textContent = "No encontre estados con ese texto.";
         pickerList.appendChild(empty);
       }
-      picker.append(pickerHeader, pickerSearch, pickerList);
+      const resizeRight = document.createElement("span");
+      resizeRight.className = "floating-sheet-window-resize floating-sheet-window-resize-right";
+      resizeRight.dataset.floatingWindowResize = "right";
+      resizeRight.setAttribute("aria-hidden", "true");
+      const resizeBottom = document.createElement("span");
+      resizeBottom.className = "floating-sheet-window-resize floating-sheet-window-resize-bottom";
+      resizeBottom.dataset.floatingWindowResize = "bottom";
+      resizeBottom.setAttribute("aria-hidden", "true");
+      const resizeCorner = document.createElement("span");
+      resizeCorner.className = "floating-sheet-window-resize floating-sheet-window-resize-corner app-resize-corner";
+      resizeCorner.dataset.floatingWindowResize = "corner";
+      resizeCorner.setAttribute("aria-hidden", "true");
+      picker.append(pickerHeader, pickerSearch, pickerList, resizeRight, resizeBottom, resizeCorner);
       launcherRow.appendChild(picker);
+      const statusWindow = attachFloatingSheetWindow("character-statuses", picker, {
+        storageKey: "dnd-character-sheet-status-window-v1",
+        defaultWidth: 390,
+        defaultHeight: 620,
+        minWidth: 320,
+        minHeight: 300,
+        defaultX: ({ viewportWidth, width }) => viewportWidth - width - 12,
+        defaultY: 70
+      });
 
       const activeList = document.createElement("div");
       activeList.className = "status-active-list";
@@ -8318,7 +8934,7 @@
 
       stack.append(launcherRow, activeList);
       statusDock.appendChild(stack);
-      if (open && statusDock.dataset.focusSearch === "true") {
+      if (open && !statusWindow?.isCollapsed() && statusDock.dataset.focusSearch === "true") {
         statusDock.dataset.focusSearch = "false";
         queueMicrotask(() => {
           pickerSearch.focus();
@@ -8337,13 +8953,6 @@
       document.body.appendChild(statusDock);
       renderStatusDock();
     }
-
-    document.addEventListener("pointerdown", (event) => {
-      if (!statusDock || statusDock.dataset.menuOpen !== "true") return;
-      if (statusDock.contains(event.target)) return;
-      statusDock.dataset.menuOpen = "false";
-      renderStatusDock();
-    });
 
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape" || !statusDock || statusDock.dataset.menuOpen !== "true") return;
@@ -9025,12 +9634,13 @@
       showStatus(t("import.imported"));
     }
 
+    const STATUS_VISIBLE_MS = 5000;
     let statusTimer;
     function showStatus(text) {
       status.textContent = translateDynamicText(text, text);
       status.classList.add("visible");
       clearTimeout(statusTimer);
-      statusTimer = setTimeout(() => status.classList.remove("visible"), 900);
+      statusTimer = setTimeout(() => status.classList.remove("visible"), STATUS_VISIBLE_MS);
     }
 
     function ensureActiveStatusIds() {
@@ -9878,45 +10488,46 @@
     }
 
     function commitSpellSelection(field, spellName) {
-      if (!field || !spellName) return;
-      if (field.dataset.optionType === "spell" && !ensureCanModifySpells()) return;
+      if (!field || !spellName) return false;
+      if (field.dataset.optionType === "spell" && !ensureCanModifySpells()) return false;
       if (isAutoGrantedSpellField(field)) {
         showStatus("Esta magia la otorga tu personaje y no se puede reemplazar.");
-        return;
+        return false;
       }
       if (isSpellAlreadySelected(spellName, field)) {
         showStatus("Esa magia ya esta seleccionada");
-        return;
+        return false;
       }
       const level = Number(field.dataset.spellLevel);
       if (!field.value.trim() && getSelectedSpellCount(level, field) >= getSpellLevelLimit(level)) {
         showStatus(level === 0 ? "Limite de cantrips alcanzado" : `Limite de spells nivel ${level} alcanzado`);
-        return;
+        return false;
       }
       if (isBardCharacter() && level > 0 && !field.value.trim() && selectedKnownSpellNames().length >= bardKnownSpellLimit()) {
         showStatus(`Limite de spells conocidas: ${bardKnownSpellLimit()}`);
-        return;
+        return false;
       }
       if (isBardCharacter() && level > 0 && !bardCanLearnSpell(spellName)) {
         showStatus("Esa spell no esta disponible para Bard.");
-        return;
+        return false;
       }
       if (!isWizardCharacter() && !isBardCharacter() && level > 0 && !field.value.trim()) {
         const managedLimit = managedPreparedSpellLimit();
         if (managedLimit != null && selectedManagedSpellCount(field) >= managedLimit) {
           showStatus(`Limite de spells preparadas: ${managedLimit}`);
-          return;
+          return false;
         }
       }
       if (isWizardCharacter() && level > 0 && !wizardSpellbookSet().has(normalizeName(spellName))) {
         showStatus("Primero agregala al spellbook.");
-        return;
+        return false;
       }
       field.value = spellName;
       syncFeatPreparedSpellCheckbox(field);
       scheduleSheetChoiceRefresh();
       showStatus(`${spellName} seleccionada`);
       scheduleSpellSelectionDrawerRefresh(field, findSpellByName(spellName));
+      return true;
     }
 
     function clearSpellSelection(field) {
@@ -9979,6 +10590,14 @@
       return toolbar;
     }
 
+    function showOptimisticSpellPickerState(row, button, { active = true, label = "Actualizando..." } = {}) {
+      row?.classList.toggle("active", active);
+      if (!button) return;
+      button.textContent = label;
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+    }
+
     function spellPickerRow(field, spell, detailBody, selectedSpell) {
       const row = document.createElement("div");
       row.className = `spell-picker-row ${normalizeName(field.value || "") === normalizeName(spell.name) ? "active" : ""}`;
@@ -10005,16 +10624,19 @@
       chooseButton.className = "spell-picker-button";
       chooseButton.textContent = normalizeName(field.value || "") === normalizeName(spell.name) ? "Elegida" : "Elegir";
       chooseButton.disabled = isAutoGrantedSpellField(field) || normalizeName(field.value || "") === normalizeName(spell.name);
-      chooseButton.addEventListener("click", () => commitSpellSelection(field, spell.name));
+      chooseButton.addEventListener("click", () => {
+        if (!commitSpellSelection(field, spell.name)) return;
+        showOptimisticSpellPickerState(row, chooseButton, { label: "Elegida" });
+      });
 
       actions.append(chooseButton);
       row.append(nameButton, meta, actions);
       return row;
     }
 
-    function wizardSpellListRow(field, spell, detailBody) {
-      const known = wizardSpellbookSet().has(normalizeName(spell.name));
-      const atCapacity = !known && wizardSpellbookNames().length >= wizardMaxSpellbookSpells();
+    function wizardSpellListRow(field, spell, detailBody, snapshot) {
+      const known = snapshot.wizardSpellbookSet.has(normalizeName(spell.name));
+      const atCapacity = !known && snapshot.wizardSpellbookNames.length >= snapshot.wizardSpellbookLimit;
       const row = document.createElement("div");
       row.className = `spell-picker-row ${known ? "active" : ""}`;
       row.addEventListener("click", (event) => {
@@ -10048,6 +10670,7 @@
       bookButton.addEventListener("click", () => {
         if (known) removeWizardSpellbookSpell(spell.name);
         else if (!addWizardSpellbookSpell(spell.name)) return;
+        showOptimisticSpellPickerState(row, bookButton, { active: !known });
         showStatus(known ? `${spell.name} quitada del spellbook` : `${spell.name} agregada al spellbook`);
         scheduleSpellSelectionDrawerRefresh(field, spell);
       });
@@ -10057,10 +10680,8 @@
       return row;
     }
 
-    function wizardSpellbookManagerRow(field, spell, detailBody) {
-      const sheetField = wizardFieldForSpell(spell.name);
-      const checkbox = getFieldByKey(sheetField?.dataset?.preparedKey || "");
-      const prepared = Boolean(checkbox?.checked);
+    function wizardSpellbookManagerRow(field, spell, detailBody, snapshot) {
+      const prepared = snapshot.wizardPreparedSet.has(normalizeName(spell.name));
       const row = document.createElement("div");
       row.className = `spell-picker-row ${prepared ? "active" : ""}`;
       row.addEventListener("click", (event) => {
@@ -10092,7 +10713,9 @@
       prepareButton.textContent = prepared ? "Despreparar" : "Preparar";
       prepareButton.disabled = !canModifySpells();
       prepareButton.addEventListener("click", () => {
-        if (setWizardPreparedSpell(spell.name, !prepared)) scheduleSpellSelectionDrawerRefresh(field, spell);
+        if (!setWizardPreparedSpell(spell.name, !prepared)) return;
+        showOptimisticSpellPickerState(row, prepareButton, { active: !prepared });
+        scheduleSpellSelectionDrawerRefresh(field, spell);
       });
 
       const removeButton = document.createElement("button");
@@ -10147,9 +10770,9 @@
       return row;
     }
 
-    function bardLearnSpellRow(field, spell, detailBody) {
-      const known = selectedKnownSpellSet().has(normalizeName(spell.name));
-      const atCapacity = !known && selectedKnownSpellNames().length >= bardKnownSpellLimit();
+    function bardLearnSpellRow(field, spell, detailBody, snapshot) {
+      const known = snapshot.selectedKnownSpellSet.has(normalizeName(spell.name));
+      const atCapacity = !known && snapshot.selectedKnownSpellNames.length >= snapshot.bardKnownLimit;
       const row = document.createElement("div");
       row.className = `spell-picker-row ${known ? "active" : ""}`;
       row.addEventListener("click", (event) => {
@@ -10189,6 +10812,7 @@
           return;
         }
         if (!assignKnownSpellToSheet(spell.name)) return;
+        showOptimisticSpellPickerState(row, learnButton, { label: t("spell.known") });
         scheduleSheetChoiceRefresh();
         showStatus(`${spell.name} aprendida`);
         scheduleSpellSelectionDrawerRefresh(field, spell);
@@ -10199,25 +10823,25 @@
       return row;
     }
 
-    function getAllWizardAccessibleSpellOptions() {
-      const autoPrepared = new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
-      const maxLevel = maxSpellLevelForCharacter();
+    function getAllWizardAccessibleSpellOptions(snapshot = null) {
+      const autoPrepared = snapshot?.autoAlwaysPreparedSet || new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
+      const maxLevel = snapshot?.maxSpellLevel ?? maxSpellLevelForCharacter();
       return spells.filter((spell) => spell.level > 0
         && spell.level <= maxLevel
         && spell.classes?.some((name) => normalizeName(name) === "wizard")
         && !autoPrepared.has(normalizeName(spell.name)));
     }
 
-    function getAccessibleCantripOptions() {
-      const autoCantrips = new Set(autoCantripNames().map(normalizeName));
+    function getAccessibleCantripOptions(snapshot = null) {
+      const autoCantrips = snapshot?.autoCantripSet || new Set(autoCantripNames().map(normalizeName));
       return spells.filter((spell) => spell.level === 0
-        && spellMatchesSelection(spell, 0)
+        && spellMatchesSelection(spell, 0, snapshot)
         && !autoCantrips.has(normalizeName(spell.name)));
     }
 
-    function cantripManagerRow(spell, detailBody, managerField) {
-      const selected = selectedCantripSet().has(normalizeName(spell.name));
-      const atCapacity = !selected && selectedCantripNames().length >= cantripsKnownForCharacter();
+    function cantripManagerRow(spell, detailBody, managerField, snapshot) {
+      const selected = snapshot.selectedCantripSet.has(normalizeName(spell.name));
+      const atCapacity = !selected && snapshot.selectedCantripNames.length >= snapshot.cantripLimit;
       const row = document.createElement("div");
       row.className = `spell-picker-row ${selected ? "active" : ""}`;
       row.addEventListener("click", (event) => {
@@ -10249,12 +10873,17 @@
       toggleButton.textContent = selected ? t("spell.remove") : t("spell.learn");
       toggleButton.disabled = !canModifySpells() || atCapacity;
       toggleButton.addEventListener("click", () => {
+        let changed = false;
         if (selected) {
           removeCantripFromSheet(spell.name);
+          changed = true;
           showStatus(`${spell.name} quitado`);
         } else if (assignCantripToSheet(spell.name)) {
+          changed = true;
           showStatus(`${spell.name} aprendido`);
         }
+        if (!changed) return;
+        showOptimisticSpellPickerState(row, toggleButton, { active: !selected });
         scheduleSpellSelectionDrawerRefresh(managerField, spell);
       });
 
@@ -10263,14 +10892,7 @@
       return row;
     }
 
-    function selectedCantripSpellEntries() {
-      return selectedCantripNames()
-        .map(findSpellByName)
-        .filter(Boolean)
-        .sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    function appendKnownCantripsSection(parent, knownCantrips, detailBody, field, stateKey) {
+    function appendKnownCantripsSection(parent, knownCantrips, detailBody, field, stateKey, snapshot) {
       const body = appendCollapsibleSection(parent, "Cantrips conocidos", {
         collapsed: false,
         stateKey
@@ -10281,13 +10903,13 @@
       }
       appendSearchableList(
         body,
-        knownCantrips.map((spell) => cantripManagerRow(spell, detailBody, field)),
+        knownCantrips.map((spell) => cantripManagerRow(spell, detailBody, field, snapshot)),
         t("spell.searchKnownCantrip")
       );
       return body;
     }
 
-    function buildWizardSpellbookDrawerContent(field, selectedSpell = null) {
+    function buildWizardSpellbookDrawerContent(field, selectedSpell = null, snapshot = createSpellSelectionSnapshot()) {
       const root = document.createElement("div");
       root.className = "spell-picker";
       const currentSpell = selectedSpell || findSpellByName(field.value || "");
@@ -10319,29 +10941,31 @@
       appendText(
         summary,
         "item-section-body",
-        `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spellbook ${wizardSpellbookNames().length}/${wizardMaxSpellbookSpells()} - Prepared ${selectedWizardPreparedSpellCount()}/${wizardPreparedSpellLimit()}`,
+        `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spellbook ${snapshot.wizardSpellbookNames.length}/${snapshot.wizardSpellbookLimit} - Prepared ${snapshot.wizardPreparedCount}/${snapshot.wizardPreparedLimit}`,
         "p"
       );
       main.appendChild(summary);
 
-      const knownCantrips = selectedCantripSpellEntries();
-      appendKnownCantripsSection(main, knownCantrips, detailBody, field, "wizard:known-cantrips");
+      const knownCantrips = snapshot.selectedCantripNames
+        .map(findSpellByName)
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      appendKnownCantripsSection(main, knownCantrips, detailBody, field, "wizard:known-cantrips", snapshot);
 
       appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "wizard:learn-cantrips",
         renderContent: (target) => appendSearchableList(
           target,
-          getAccessibleCantripOptions()
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((spell) => cantripManagerRow(spell, detailBody, field)),
+          snapshot.accessibleCantrips
+            .map((spell) => cantripManagerRow(spell, detailBody, field, snapshot)),
           t("spell.searchCantrip")
         )
       });
 
       const spellbookBody = appendCollapsibleSection(main, "Spellbook", { collapsed: false, stateKey: "wizard:spellbook" });
 
-      const knownSpells = wizardSpellbookNames()
+      const knownSpells = snapshot.wizardSpellbookNames
         .map(findSpellByName)
         .filter(Boolean)
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
@@ -10351,7 +10975,7 @@
         appendSpellLevelGroups(
           spellbookBody,
           knownSpells,
-          (spell) => wizardSpellbookManagerRow(field, spell, detailBody),
+          (spell) => wizardSpellbookManagerRow(field, spell, detailBody, snapshot),
           "wizard:spellbook",
           t("spell.searchSpellbook")
         );
@@ -10362,19 +10986,19 @@
         stateKey: "wizard:learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
           target,
-          getAllWizardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
-          (spell) => wizardSpellListRow(field, spell, detailBody),
+          snapshot.accessibleSpells,
+          (spell) => wizardSpellListRow(field, spell, detailBody, snapshot),
           "wizard:learn-spells",
           t("spell.searchSpell")
         )
       });
 
-      showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || getAccessibleCantripOptions()[0] || getAllWizardAccessibleSpellOptions()[0] || null);
+      showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || snapshot.accessibleCantrips[0] || snapshot.accessibleSpells[0] || null);
       root.append(main, detail);
       return root;
     }
 
-    function buildBardSpellsDrawerContent(field, selectedSpell = null) {
+    function buildBardSpellsDrawerContent(field, selectedSpell = null, snapshot = createSpellSelectionSnapshot()) {
       const root = document.createElement("div");
       root.className = "spell-picker";
       const currentSpell = selectedSpell || findSpellByName(field.value || "");
@@ -10406,27 +11030,29 @@
       appendText(
         summary,
         "item-section-body",
-        `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells conocidos ${selectedKnownSpellNames().length}/${bardKnownSpellLimit()}`,
+        `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spells conocidos ${snapshot.selectedKnownSpellNames.length}/${snapshot.bardKnownLimit}`,
         "p"
       );
       main.appendChild(summary);
 
-      const knownCantrips = selectedCantripSpellEntries();
-      appendKnownCantripsSection(main, knownCantrips, detailBody, field, "bard:known-cantrips");
+      const knownCantrips = snapshot.selectedCantripNames
+        .map(findSpellByName)
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      appendKnownCantripsSection(main, knownCantrips, detailBody, field, "bard:known-cantrips", snapshot);
 
       appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "bard:learn-cantrips",
         renderContent: (target) => appendSearchableList(
           target,
-          getAccessibleCantripOptions()
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((spell) => cantripManagerRow(spell, detailBody, field)),
+          snapshot.accessibleCantrips
+            .map((spell) => cantripManagerRow(spell, detailBody, field, snapshot)),
           t("spell.searchCantrip")
         )
       });
 
-      const knownSpells = selectedKnownSpellNames()
+      const knownSpells = snapshot.selectedKnownSpellNames
         .map(findSpellByName)
         .filter(Boolean)
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
@@ -10448,14 +11074,14 @@
         stateKey: "bard:learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
           target,
-          getAllBardAccessibleSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
-          (spell) => bardLearnSpellRow(field, spell, detailBody),
+          snapshot.accessibleSpells,
+          (spell) => bardLearnSpellRow(field, spell, detailBody, snapshot),
           "bard:learn-spells",
           t("spell.searchSpell")
         )
       });
 
-      showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || getAccessibleCantripOptions()[0] || getAllBardAccessibleSpellOptions()[0] || null);
+      showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || snapshot.accessibleCantrips[0] || snapshot.accessibleSpells[0] || null);
       root.append(main, detail);
       return root;
     }
@@ -10490,12 +11116,12 @@
       return field;
     }
 
-    function getAllManagedSpellOptions() {
-      const autoPrepared = new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
-      const maxLevel = maxSpellLevelForCharacter();
+    function getAllManagedSpellOptions(snapshot = null) {
+      const autoPrepared = snapshot?.autoAlwaysPreparedSet || new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
+      const maxLevel = snapshot?.maxSpellLevel ?? maxSpellLevelForCharacter();
       return spells.filter((spell) => spell.level > 0
         && spell.level <= maxLevel
-        && spellMatchesSelection(spell, spell.level)
+        && spellMatchesSelection(spell, spell.level, snapshot)
         && !autoPrepared.has(normalizeName(spell.name)));
     }
 
@@ -10535,12 +11161,12 @@
       return row;
     }
 
-    function managedLearnSpellRow(field, spell, detailBody) {
-      const selected = selectedKnownSpellSet().has(normalizeName(spell.name));
-      const totalLimit = managedPreparedSpellLimit();
-      const totalUsed = selectedManagedSpellCount();
-      const limit = getSpellLevelLimit(spell.level);
-      const used = getSelectedSpellCount(spell.level);
+    function managedLearnSpellRow(field, spell, detailBody, snapshot) {
+      const selected = snapshot.selectedKnownSpellSet.has(normalizeName(spell.name));
+      const totalLimit = snapshot.managedPreparedLimit;
+      const totalUsed = snapshot.selectedManagedSpellCount;
+      const limit = snapshot.spellLevelLimits.get(spell.level) ?? Infinity;
+      const used = snapshot.selectedSpellCounts.get(spell.level) || 0;
       const atCapacity = !selected && ((totalLimit != null && totalUsed >= totalLimit) || used >= limit);
       const row = document.createElement("div");
       row.className = `spell-picker-row ${selected ? "active" : ""}`;
@@ -10579,6 +11205,7 @@
       learnButton.disabled = !canModifySpells() || selected || atCapacity;
       learnButton.addEventListener("click", () => {
         if (!assignManagedSpellToSheet(spell.name)) return;
+        showOptimisticSpellPickerState(row, learnButton, { label: t("spell.selected") });
         showStatus(`${spell.name} aprendida`);
         scheduleSpellSelectionDrawerRefresh(field, spell);
       });
@@ -10588,7 +11215,7 @@
       return row;
     }
 
-    function buildManagedSpellsDrawerContent(field, selectedSpell = null) {
+    function buildManagedSpellsDrawerContent(field, selectedSpell = null, snapshot = createSpellSelectionSnapshot()) {
       const root = document.createElement("div");
       root.className = "spell-picker";
       const currentSpell = selectedSpell || findSpellByName(field.value || "");
@@ -10617,33 +11244,35 @@
       const summary = document.createElement("section");
       summary.className = "spell-picker-current";
       appendText(summary, "item-section-title", "Spells");
-      const preparedLimit = managedPreparedSpellLimit();
+      const preparedLimit = snapshot.managedPreparedLimit;
       appendText(
         summary,
         "item-section-body",
         preparedLimit != null
-          ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells preparadas ${selectedManagedSpellCount()}/${preparedLimit}`
-          : `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
+          ? `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spells preparadas ${snapshot.selectedManagedSpellCount}/${preparedLimit}`
+          : `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spells seleccionadas ${snapshot.selectedKnownSpellNames.length}`,
         "p"
       );
       main.appendChild(summary);
 
-      const knownCantrips = selectedCantripSpellEntries();
-      appendKnownCantripsSection(main, knownCantrips, detailBody, field, "managed:known-cantrips");
+      const knownCantrips = snapshot.selectedCantripNames
+        .map(findSpellByName)
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      appendKnownCantripsSection(main, knownCantrips, detailBody, field, "managed:known-cantrips", snapshot);
 
       appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "managed:learn-cantrips",
         renderContent: (target) => appendSearchableList(
           target,
-          getAccessibleCantripOptions()
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((spell) => cantripManagerRow(spell, detailBody, field)),
+          snapshot.accessibleCantrips
+            .map((spell) => cantripManagerRow(spell, detailBody, field, snapshot)),
           t("spell.searchCantrip")
         )
       });
 
-      const knownSpells = selectedKnownSpellNames()
+      const knownSpells = snapshot.selectedKnownSpellNames
         .map(findSpellByName)
         .filter(Boolean)
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
@@ -10665,39 +11294,48 @@
         stateKey: "managed:learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
           target,
-          getAllManagedSpellOptions().sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)),
-          (spell) => managedLearnSpellRow(field, spell, detailBody),
+          snapshot.accessibleSpells,
+          (spell) => managedLearnSpellRow(field, spell, detailBody, snapshot),
           "managed:learn-spells",
           t("spell.searchSpell")
         )
       });
 
-      showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || getAccessibleCantripOptions()[0] || getAllManagedSpellOptions()[0] || null);
+      showSpellPickerDetail(detailBody, currentSpell || knownCantrips[0] || knownSpells[0] || snapshot.accessibleCantrips[0] || snapshot.accessibleSpells[0] || null);
       root.append(main, detail);
       return root;
     }
 
-    function buildSpellSelectionDrawerContent(field, selectedSpell = null) {
-      if (isWizardCharacter()) return buildWizardSpellbookDrawerContent(field, selectedSpell);
-      if (isBardCharacter()) return buildBardSpellsDrawerContent(field, selectedSpell);
-      return buildManagedSpellsDrawerContent(field, selectedSpell);
+    function buildSpellSelectionDrawerContent(field, selectedSpell = null, snapshot = createSpellSelectionSnapshot()) {
+      if (snapshot.isWizard) return buildWizardSpellbookDrawerContent(field, selectedSpell, snapshot);
+      if (snapshot.isBard) return buildBardSpellsDrawerContent(field, selectedSpell, snapshot);
+      return buildManagedSpellsDrawerContent(field, selectedSpell, snapshot);
     }
 
     function showSpellSelectionDrawer(field, selectedSpell = null) {
-      const isWizardSpellbook = isWizardCharacter();
+      const metricStart = "spell-picker-open:start";
+      const metricEnd = "spell-picker-open:end";
+      globalThis.performance?.clearMarks?.(metricStart);
+      globalThis.performance?.clearMarks?.(metricEnd);
+      globalThis.performance?.clearMeasures?.("spell-picker-open");
+      globalThis.performance?.mark?.(metricStart);
+      const snapshot = createSpellSelectionSnapshot();
+      const isWizardSpellbook = snapshot.isWizard;
       showDrawer(
-        isWizardSpellbook ? "Wizard spellbook" : isBardCharacter() ? "Bard spells" : "Spells",
+        isWizardSpellbook ? "Wizard spellbook" : snapshot.isBard ? "Bard spells" : "Spells",
         isWizardSpellbook
-          ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spellbook ${wizardSpellbookNames().length}/${wizardMaxSpellbookSpells()} - Prepared ${selectedWizardPreparedSpellCount()}/${wizardPreparedSpellLimit()}`
-          : isBardCharacter()
-            ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells conocidos ${selectedKnownSpellNames().length}/${bardKnownSpellLimit()}`
-          : managedPreparedSpellLimit() != null
-            ? `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells preparadas ${selectedManagedSpellCount()}/${managedPreparedSpellLimit()}`
-            : `Cantrips ${selectedCantripNames().length}/${cantripsKnownForCharacter()} - Spells seleccionadas ${selectedKnownSpellNames().length}`,
-        buildSpellSelectionDrawerContent(field, selectedSpell)
+          ? `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spellbook ${snapshot.wizardSpellbookNames.length}/${snapshot.wizardSpellbookLimit} - Prepared ${snapshot.wizardPreparedCount}/${snapshot.wizardPreparedLimit}`
+          : snapshot.isBard
+            ? `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spells conocidos ${snapshot.selectedKnownSpellNames.length}/${snapshot.bardKnownLimit}`
+          : snapshot.managedPreparedLimit != null
+            ? `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spells preparadas ${snapshot.selectedManagedSpellCount}/${snapshot.managedPreparedLimit}`
+            : `Cantrips ${snapshot.selectedCantripNames.length}/${snapshot.cantripLimit} - Spells seleccionadas ${snapshot.selectedKnownSpellNames.length}`,
+        buildSpellSelectionDrawerContent(field, selectedSpell, snapshot)
       );
       itemDrawer.classList.add("spell-picker-drawer");
       itemDrawer.classList.toggle("wizard-spellbook-drawer", isWizardSpellbook);
+      globalThis.performance?.mark?.(metricEnd);
+      globalThis.performance?.measure?.("spell-picker-open", metricStart, metricEnd);
     }
 
     function itemDrawerDescriptionText(item) {
@@ -11136,8 +11774,7 @@
       }
       if (next.length) sheetMeta.featureChoices[key] = next;
       else delete sheetMeta.featureChoices[key];
-      updateDerivedStats();
-      scheduleSheetChoiceRefresh({ prepared: false });
+      scheduleDerivedChoiceRefresh();
     }
 
     function isWeaponMasteryChoiceSpec(spec) {
@@ -12025,7 +12662,7 @@
       }
       setSelectedFeatureChoices(key, [...current, ...picked]);
       if (isAbilityScoreImprovementFeature(feature) || isMagicInitiateFeat(feature?.feat || feature)) {
-        rerenderFeatureChoiceDrawer(feature);
+        scheduleFeatureChoiceDrawerRefresh(feature);
         return;
       }
       refreshFeatureChoiceSectionState(section, key, spec);
@@ -12145,6 +12782,24 @@
 
     function featureUsesChoicePicker(feature) {
       return featureChoiceSpecs(feature).some((spec) => (spec.options || []).length > 10);
+    }
+
+    let pendingFeatureChoiceDrawerRefresh = null;
+    let featureChoiceDrawerRefreshScheduled = false;
+
+    function scheduleFeatureChoiceDrawerRefresh(feature) {
+      pendingFeatureChoiceDrawerRefresh = feature;
+      if (featureChoiceDrawerRefreshScheduled) return;
+      featureChoiceDrawerRefreshScheduled = true;
+      const refresh = () => {
+        featureChoiceDrawerRefreshScheduled = false;
+        const pending = pendingFeatureChoiceDrawerRefresh;
+        pendingFeatureChoiceDrawerRefresh = null;
+        if (!pending || !itemDrawer?.classList.contains("visible")) return;
+        rerenderFeatureChoiceDrawer(pending);
+      };
+      if (typeof runAfterNextPaint === "function") runAfterNextPaint(refresh);
+      else setTimeout(refresh, 0);
     }
 
     function rerenderFeatureChoiceDrawer(feature) {
@@ -12707,6 +13362,15 @@
       else itemDrawerBody.textContent = body || "Sin descripcion disponible.";
       itemDrawer.classList.add("visible");
       itemDrawer.setAttribute("aria-hidden", "false");
+      attachFloatingSheetWindow("item-drawer", itemDrawer, {
+        storageKey: "dnd-character-sheet-drawer-window-v1",
+        defaultWidth: 760,
+        defaultHeight: 720,
+        minWidth: 340,
+        minHeight: 260,
+        defaultX: 12,
+        defaultY: 70
+      })?.bringToFront();
     }
 
     function showItemDrawer(entry, item) {
@@ -12895,6 +13559,7 @@
     function updateEquipmentPanel() {
       if (!equipmentPanel) return;
       pruneEquippedItems();
+      if (deferPanelRefreshUntilVisible(equipmentPanel, updateEquipmentPanel)) return;
       const list = equipmentPanel.querySelector(".equipment-list");
       if (!list) return;
       list.textContent = "";
@@ -12982,9 +13647,7 @@
 
     function setSelectedChoice(key, value, { statusMessage = "Eleccion guardada" } = {}) {
       sheetMeta.choices[key] = value;
-      updateDerivedStats();
-      scheduleSave();
-      renderAlertsPanel();
+      scheduleDerivedChoiceRefresh();
       if (statusMessage) showStatus(statusMessage);
     }
 
@@ -14044,7 +14707,7 @@
           input.checked = selectedValues.includes(item.value);
           input.disabled = disabled;
           input.addEventListener("change", () => {
-            if (activeSelectField?.dataset.optionType === "background") {
+            if (activeSelectField?.dataset.optionType === "background" && activeSelectField.value !== optionName(option)) {
               activeSelectField.value = optionName(option);
               activeSelectField.dispatchEvent(new Event("input", { bubbles: true }));
               activeSelectField.dispatchEvent(new Event("change", { bubbles: true }));
@@ -14054,7 +14717,7 @@
             } else {
               setSelectedChoice(choice.key, item.value);
             }
-            setOptionDescription(option);
+            scheduleOptionDescriptionRefresh(option);
           });
 
           const text = document.createElement("span");
@@ -14098,7 +14761,7 @@
             input.checked = selected.includes(item.value);
             input.disabled = disabled;
             input.addEventListener("change", () => {
-              if (activeSelectField?.dataset.optionType === "class") {
+              if (activeSelectField?.dataset.optionType === "class" && activeSelectField.value !== optionName(option)) {
                 activeSelectField.value = optionName(option);
                 activeSelectField.dispatchEvent(new Event("input", { bubbles: true }));
                 activeSelectField.dispatchEvent(new Event("change", { bubbles: true }));
@@ -14111,7 +14774,7 @@
                 showStatus(`Maximo ${spec.count} opcion(es)`);
               }
               setSelectedFeatureChoices(key, [...current, ...picked]);
-              setOptionDescription(option);
+              scheduleOptionDescriptionRefresh(option);
             });
 
             const text = document.createElement("span");
@@ -16227,12 +16890,15 @@
         return root;
       }
       root.appendChild(renderSingleRaceChoiceControl(option, choice, () => {
-        updateDerivedStats();
-        const entries = generatedFeaturesAndTraitsEntries();
-        const refreshed = findSelectedRaceChoices().find((item) => item.key === choice.key) || choice;
-        const body = buildRaceChoiceDrawerContent(refreshed);
-        appendFeatureBackButton(body, entries);
-        showDrawer(`Race Choice: ${refreshed.sectionLabel}`, isBackgroundChoiceComplete(refreshed) ? "Selected race choice" : "Pending race choice", body);
+        const refresh = () => {
+          const entries = generatedFeaturesAndTraitsEntries();
+          const refreshed = findSelectedRaceChoices().find((item) => item.key === choice.key) || choice;
+          const body = buildRaceChoiceDrawerContent(refreshed);
+          appendFeatureBackButton(body, entries);
+          showDrawer(`Race Choice: ${refreshed.sectionLabel}`, isBackgroundChoiceComplete(refreshed) ? "Selected race choice" : "Pending race choice", body);
+        };
+        if (typeof runAfterNextPaint === "function") runAfterNextPaint(refresh);
+        else setTimeout(refresh, 0);
       }));
       return root;
     }
@@ -17070,45 +17736,50 @@
 
     function updateDerivedStats() {
       invalidateCombatActionCache("derived-stats");
-      ensureCurrencyDefaults();
-      applySelectedBackgroundChoices();
-      applySelectedClassEquipment();
-      applyRaceAbilityAdjustments();
-      updateClassSkillProficiencies();
-      updateBackgroundSkillProficiencies();
-      updateRaceSkillProficiencies();
-      updateFeatSkillProficiencies();
-      updateSavingThrowProficiencies();
-      updateProficiencyBonus();
-      Object.entries(DERIVED_STAT_FIELDS).forEach(([ability, config]) => {
-        const abilityField = getFieldByKey(ability);
-        const modifier = abilityModifier(abilityField?.value || "");
-        const formatted = formatModifier(modifier);
-        setFieldValue(config.modifier, formatted);
-        config.saves.forEach((target) => {
-          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, false);
-          setFieldValue(target.field, formatModifier(value));
+      return withCombatCollectionMemo(() => {
+        ensureCurrencyDefaults();
+        applySelectedBackgroundChoices();
+        applySelectedClassEquipment();
+        applyRaceAbilityAdjustments();
+        updateClassSkillProficiencies();
+        updateBackgroundSkillProficiencies();
+        updateRaceSkillProficiencies();
+        updateFeatSkillProficiencies();
+        updateSavingThrowProficiencies();
+        updateProficiencyBonus();
+        Object.entries(DERIVED_STAT_FIELDS).forEach(([ability, config]) => {
+          const abilityField = getFieldByKey(ability);
+          const modifier = abilityModifier(abilityField?.value || "");
+          const formatted = formatModifier(modifier);
+          setFieldValue(config.modifier, formatted);
+          config.saves.forEach((target) => {
+            const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, false);
+            setFieldValue(target.field, formatModifier(value));
+          });
+          config.skills.forEach((target) => {
+            const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, true, target.field);
+            setFieldValue(target.field, formatModifier(value));
+          });
         });
-        config.skills.forEach((target) => {
-          const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, true, target.field);
-          setFieldValue(target.field, formatModifier(value));
-        });
+        updateInitiative();
+        updateHitPointMaximumFromFeats();
+        updatePassiveWisdomPerception();
+        updateSpellcastingFields();
+        updateArmorClass();
+        updateSpeed();
+        updateHeightFromRaceSize();
+        updateOtherProficienciesAndLanguages();
+        updateBackgroundFeatTraits();
+        const spellValidationSnapshot = createSpellValidationSnapshot();
+        syncAutoCantrips(spellValidationSnapshot);
+        pruneInvalidSpellSourceSelections(spellValidationSnapshot);
+        pruneDuplicateSpellSelections();
+        pruneOverLimitSpellSelections(spellValidationSnapshot);
+        if (typeof scheduleEquipmentPanelRefresh === "function") scheduleEquipmentPanelRefresh();
+        else updateEquipmentPanel();
+        if (typeof schedulePreparedSpellsPanelRefresh === "function") schedulePreparedSpellsPanelRefresh();
+        else updatePreparedSpellsPanel();
       });
-      updateInitiative();
-      updateHitPointMaximumFromFeats();
-      updatePassiveWisdomPerception();
-      updateSpellcastingFields();
-      updateArmorClass();
-      updateSpeed();
-      updateHeightFromRaceSize();
-      updateOtherProficienciesAndLanguages();
-      updateBackgroundFeatTraits();
-      syncAutoCantrips();
-      pruneInvalidSpellSourceSelections();
-      pruneDuplicateSpellSelections();
-      pruneOverLimitSpellSelections();
-      updateEquipmentPanel();
-      updatePreparedSpellsPanel();
     }
 
     function updateSpellSlots() {

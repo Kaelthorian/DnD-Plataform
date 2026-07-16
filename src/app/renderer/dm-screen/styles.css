@@ -40,3 +40,26 @@
     transform: translate(-50%, -50%) scale(1.22);
   }
 }
+
+.app-resize-corner {
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-right: 4px solid rgba(245, 158, 11, 0.82);
+  border-bottom: 4px solid rgba(245, 158, 11, 0.82);
+  background: transparent;
+  opacity: 0.88;
+  cursor: nwse-resize;
+  transition: border-color 120ms ease, background 120ms ease, opacity 120ms ease;
+}
+
+.app-resize-corner:hover,
+.app-resize-corner:focus {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, transparent 58%, rgba(245, 158, 11, 0.16) 58%);
+  opacity: 1;
+  outline: none;
+  box-shadow: none;
+}

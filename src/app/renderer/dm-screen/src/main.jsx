@@ -4162,13 +4162,13 @@ function InteractiveRulesText({ text, context, onRoll }) {
   return <>{parts}</>;
 }
 
-function MonsterRollPanel({ note, onToggle, onResizeCorner = null, className = "relative border-t border-neutral-700 bg-neutral-950" }) {
+function MonsterRollPanel({ note, onToggle, className = "relative border-t border-neutral-700 bg-neutral-950" }) {
   const latest = note.rolls?.[0];
 
   return (
     <section className={className}>
       <button
-        className="flex w-full items-center justify-between bg-black px-3 py-1.5 pr-9 text-left text-sm text-neutral-100 hover:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-sky-300"
+        className="flex w-full items-center justify-between bg-black px-3 py-1.5 text-left text-sm text-neutral-100 hover:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-sky-300"
         type="button"
         onPointerDown={(event) => event.stopPropagation()}
         onClick={() => onToggle(note.id)}
@@ -4176,14 +4176,6 @@ function MonsterRollPanel({ note, onToggle, onResizeCorner = null, className = "
         <span>Dice Roller</span>
         <span className="text-lg leading-none">{note.dicePanelOpen ? "x" : "^"}</span>
       </button>
-      {onResizeCorner ? (
-        <button
-          className="absolute right-1 top-1 z-20 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 transition hover:bg-amber-500/80 focus:bg-amber-500/80 focus:outline-none focus:ring-1 focus:ring-sky-300"
-          type="button"
-          aria-label="Resize note"
-          onPointerDown={(event) => onResizeCorner(event, "corner")}
-        />
-      ) : null}
       {note.dicePanelOpen ? (
         <div className="flex min-h-0 flex-1 flex-col gap-2 px-3 py-3 text-xs text-neutral-300">
           <div className="shrink-0 rounded-sm bg-neutral-900 p-2">
@@ -4433,6 +4425,32 @@ function MapTokenImage({ token, className = "" }) {
   }
   if (token?.kind === "character") return <CharacterTokenImage character={token.character} className={className} />;
   return <MonsterTokenImage monster={token?.monsterCustom || token?.monster} className={className} />;
+}
+
+function mapTokenHpRatio(token) {
+  const current = Number.parseFloat(String(token?.hpCurrent ?? "").replace(",", "."));
+  const max = Number.parseFloat(String(token?.hpMax ?? "").replace(",", "."));
+  if (!Number.isFinite(current) || !Number.isFinite(max) || max <= 0) return null;
+  return clamp(current / max, 0, 1);
+}
+
+function MapTokenHealthRing({ token }) {
+  const hpRatio = mapTokenHpRatio(token);
+  if (hpRatio === null) return null;
+  const healthColor = hpRatio <= 0.25 ? "#ef4444" : (hpRatio <= 0.5 ? "#f59e0b" : "#22c55e");
+  const healthAngle = hpRatio * 360;
+  return (
+    <span
+      className="pointer-events-none absolute -inset-1 z-20 rounded-full"
+      data-token-health-ring="true"
+      aria-hidden="true"
+      style={{
+        background: `conic-gradient(from -90deg, ${healthColor} 0deg ${healthAngle}deg, rgba(15, 23, 42, 0.88) ${healthAngle}deg 360deg)`,
+        WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px))",
+        mask: "radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px))"
+      }}
+    />
+  );
 }
 
 const TOKEN_CROP_PREVIEW_SIZE = 280;
@@ -5111,9 +5129,12 @@ function MonsterStatBlockBody({
 }
 
 function ResizeHandle({ edge, className, onResizeStart }) {
+  const edgeInteractionClassName = edge === "corner"
+    ? ""
+    : "bg-amber-500/0 transition hover:bg-amber-500/35 focus:bg-amber-500/35 focus:outline-none";
   return (
     <button
-      className={`absolute z-10 bg-amber-500/0 transition hover:bg-amber-500/35 focus:bg-amber-500/35 focus:outline-none ${className}`}
+      className={`absolute z-10 ${edgeInteractionClassName} ${className}`}
       type="button"
       aria-label={`Resize ${edge}`}
       onPointerDown={(event) => onResizeStart(event, edge)}
@@ -5581,7 +5602,7 @@ function MonsterNote({
       )}
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
-      <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="app-resize-corner bottom-0 right-0" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -5793,9 +5814,10 @@ function ResourceNote({
           </>
         )}
       </div>
-      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <MonsterRollPanel note={note} onToggle={onToggleDice} />
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="app-resize-corner bottom-0 right-0" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -5933,7 +5955,7 @@ function TextNote({
       />
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
-      <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="app-resize-corner bottom-0 right-0" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -7802,6 +7824,7 @@ function MapNote({
                   onContextMenu={(event) => onMapTokenContextMenu?.(event, noteActionId, activePage.id, token.id)}
                 >
                   <MapTokenImage token={token} className="h-full w-full border-0" />
+                  <MapTokenHealthRing token={token} />
                   <span
                     className="pointer-events-none absolute left-1/2 top-full mt-1 max-w-28 -translate-x-1/2 truncate border border-neutral-700 bg-neutral-950/90 px-1.5 py-0.5 text-[10px] font-bold text-neutral-100 shadow"
                     style={{ transform: `translateX(-50%) scale(${fixedOverlayScale})`, transformOrigin: "top center" }}
@@ -8025,7 +8048,7 @@ function MapNote({
       </div>
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
-      <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="app-resize-corner bottom-0 right-0" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -8581,9 +8604,10 @@ function CharacterNote({
         ))}
       </div>
 
-      <MonsterRollPanel note={note} onToggle={onToggleDice} onResizeCorner={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <MonsterRollPanel note={note} onToggle={onToggleDice} />
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="app-resize-corner bottom-0 right-0" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -10091,7 +10115,7 @@ function ObsidianNote({
       </div>
       <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
       <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
-      <ResizeHandle edge="corner" className="bottom-1 right-1 h-5 w-5 cursor-nwse-resize border border-amber-400 bg-amber-500/50 hover:bg-amber-500/80 focus:bg-amber-500/80" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="app-resize-corner bottom-0 right-0" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
     </article>
   );
 }
@@ -12826,7 +12850,7 @@ function DmScreenApp() {
     const body = findMapBodyElement(mapNoteId);
     if (!body) return null;
     return Array.from(body.querySelectorAll(`[data-${dataKey}]`)).find((element) => (
-      element.dataset.pageId === String(pageId || "")
+      element.dataset.mapPageId === String(pageId || "")
       && element.dataset[dataKey.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] === String(entryId || "")
     )) || null;
   }
