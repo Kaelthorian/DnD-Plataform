@@ -13122,27 +13122,46 @@
       return Boolean(main?.item && (hasItemProperty(main.item, "2H") || main.record.twoHanded));
     }
 
+    function notifyEquipmentCombatStateChanged(reason = "equipment-change") {
+      invalidateCombatActionCache(reason);
+      if (typeof scheduleTurnActionsPanelRefresh === "function") scheduleTurnActionsPanelRefresh();
+      else refreshTurnActionsPanelIfVisible();
+      if (typeof scheduleCombatActionCacheWarmup === "function") scheduleCombatActionCacheWarmup();
+    }
+
     function pruneEquippedItems() {
       if (!itemCatalogReady) return;
       const quantities = new Map(equipmentEntries().map((entry) => [equipmentItemKey(entry), entry.quantity]));
+      let changed = false;
       Object.keys(equippedItems()).forEach((key) => {
         const quantity = quantities.get(key) || 0;
         const entry = equipmentEntries().find((item) => equipmentItemKey(item) === key);
         const item = entry ? findItemData(entry.displayName) : null;
         if (quantity <= 0) {
           delete equippedItems()[key];
+          changed = true;
           return;
         }
         if (!itemEquipKind(item)) {
           delete equippedItems()[key];
+          changed = true;
           return;
         }
         const record = equippedRecord(key);
         if (record?.slot === "legacy") return;
         const slots = recordSlots(record).slice(0, quantity);
-        if (!slots.length) delete equippedItems()[key];
-        else equippedItems()[key] = { ...record, slots, slot: undefined, twoHanded: record.twoHanded && slots.includes("mainHand") };
+        if (!slots.length) {
+          delete equippedItems()[key];
+          changed = true;
+          return;
+        }
+        const twoHanded = Boolean(record.twoHanded && slots.includes("mainHand"));
+        if (record.slot !== undefined || recordSlots(record).length !== slots.length || Boolean(record.twoHanded) !== twoHanded) {
+          equippedItems()[key] = { ...record, slots, slot: undefined, twoHanded };
+          changed = true;
+        }
       });
+      if (changed) notifyEquipmentCombatStateChanged("equipment-pruned");
     }
 
     function combinedProficiencyText() {
@@ -13297,6 +13316,7 @@
       const key = equipmentItemKey(entry);
       if (!slot) {
         delete equippedItems()[key];
+        notifyEquipmentCombatStateChanged("equipment-unequipped");
         return true;
       }
       const check = canEquipToSlot(entry, item, slot);
@@ -13308,6 +13328,7 @@
       const slots = current && current.slot !== "legacy" ? recordSlots(current) : [];
       if (!slots.includes(slot)) slots.push(slot);
       equippedItems()[key] = { slots, proficient: hasEquipmentProficiency(item) };
+      notifyEquipmentCombatStateChanged("equipment-equipped");
       return true;
     }
 
@@ -13320,6 +13341,7 @@
         return false;
       }
       equippedItems()[key] = { ...current, slots: ["mainHand"], twoHanded: true, proficient: hasEquipmentProficiency(item) };
+      notifyEquipmentCombatStateChanged("equipment-versatile");
       return true;
     }
 

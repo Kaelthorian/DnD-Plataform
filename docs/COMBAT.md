@@ -46,7 +46,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 
 - `renderer.js` construye `itemLookupByName` una vez al recibir el catálogo. `findItemData()` debe resolver por `Map`, nunca con `items.filter(...)`.
 - `collectCurrentTurnActions()` conserva una fotografía por `combatActionCacheRevision`; dentro de una pasada, `combatMemoValue()` comparte entradas de equipo, spells, features, feats, estados y Extra Attack.
-- `updateDerivedStats()`, cambios de campos, recursos, estados, inicio/fin de turno y commits invalidan la fotografía. Abrir/cerrar sin cambios reutiliza el resultado.
+- `updateDerivedStats()`, cambios de campos, recursos, estados, inicio/fin de turno, commits y mutaciones de `__sheetMeta.equippedItems` invalidan la fotografía. `notifyEquipmentCombatStateChanged()` refresca Start Combat si está abierto y recalienta la caché si está cerrado; abrir/cerrar sin cambios reutiliza el resultado.
 - Los refrescos derivados se agrupan con `scheduleTurnActionsPanelRefresh()`/`requestAnimationFrame`. Confirmar una acción actualiza solo paneles afectados y no ejecuta el pipeline global de stats.
 - `globalThis.dndCombatPerformance.samples()` expone las últimas muestras `collect`/`render` para diagnóstico desde DevTools; no se persisten.
 - El primer acceso espera `itemCatalogReadyPromise` solo si la carga de fondo aún no terminó y muestra un estado explícito.
@@ -61,7 +61,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 
 ## Prueba manual
 
-1. Abrir una hoja con arma equipada y pulsar las espadas. Confirmar los cinco recursos y `End Turn`; mover, redimensionar y colapsar la ventana, cerrarla y volver a abrirla para verificar persistencia.
+1. Abrir una hoja con el arma A equipada y pulsar las espadas. Con Start Combat abierto, desequipar A y equipar el arma B; confirmar que las acciones cambian inmediatamente. Cerrar la ventana, volver a equipar A y reabrirla; confirmar que muestra A y no conserva B. Verificar además los cinco recursos y `End Turn`, y mover, redimensionar y colapsar la ventana para comprobar la persistencia de geometría.
 2. Abrir un arma, indicar target/AC, tirar Hit y verificar que Damage estaba bloqueado antes. Probar natural 1/20 cuando sea posible y cancelar otra acción.
 3. En un Fighter con Extra Attack, confirmar dos ataques: la primera confirmación consume Action y la segunda no.
 4. Probar un spell attack, un spell con save (por ejemplo Fireball/Sacred Flame), Magic Missile y un healing spell. Cancelar antes de confirmar y comprobar el slot.
@@ -69,4 +69,4 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 6. Probar Movement, Difficult Terrain, Stand Up, Drop Prone, Dash, un consumible y un arma con ammo registrada.
 7. Guardar/cambiar de slot/volver. Confirmar que turno y combat log corresponden al slot.
 
-Validación automática: `node tests/engine/combat.test.js`, `node tests/renderer/combat-ui.test.js`, `node tests/renderer/combat-performance.test.js`, `node tests/services/data-loader-cache.test.js`, `npm test` y `git diff --check`.
+Validación automática: `node tests/engine/combat.test.js`, `node tests/renderer/combat-ui.test.js`, `node tests/renderer/combat-performance.test.js`, `node tests/renderer/combat-equipment-refresh.test.js`, `node tests/services/data-loader-cache.test.js`, `npm test` y `git diff --check`.
