@@ -1,20 +1,43 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://dnd-plataform.local/schemas/spell.schema.json",
-  "title": "AppSpell",
+  "title": "NormalizedSpellRecord",
+  "description": "A rich canonical spell or a backwards-compatible normalized legacy spell.",
   "type": "object",
   "additionalProperties": true,
-  "required": ["id", "name", "source", "level"],
+  "required": [
+    "id",
+    "name",
+    "source",
+    "level",
+    "school",
+    "classes",
+    "description",
+    "concentration",
+    "ritual",
+    "materialComponent",
+    "icon",
+    "iconFallback",
+    "canonical"
+  ],
   "properties": {
     "id": {
       "type": "string",
-      "description": "Stable app-owned spell id, usually kebab-case."
+      "minLength": 1,
+      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?--[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$",
+      "description": "Stable app-owned identity derived from the punctuation-preserving name/source pair."
     },
     "name": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "source": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
+    },
+    "page": {
+      "type": "number",
+      "minimum": 0
     },
     "level": {
       "type": "integer",
@@ -22,32 +45,601 @@
       "maximum": 9
     },
     "school": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "classes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+      "$ref": "#/definitions/nameArray"
+    },
+    "classSources": {
+      "$ref": "#/definitions/classSources"
+    },
+    "subclasses": {
+      "$ref": "#/definitions/nameArray"
     },
     "races": {
+      "$ref": "#/definitions/nameArray"
+    },
+    "raceSources": {
       "type": "array",
       "items": {
-        "type": "string"
+        "$ref": "#/definitions/sourceReference"
       }
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
+    },
+    "time": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/castingTime"
+      }
+    },
+    "range": {
+      "$ref": "#/definitions/range"
+    },
+    "components": {
+      "$ref": "#/definitions/components"
+    },
+    "duration": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/duration"
+      }
     },
     "entries": {
       "type": "array",
+      "minItems": 1,
       "items": {
-        "type": ["string", "object"]
+        "$ref": "#/definitions/entry"
       }
+    },
+    "entriesHigherLevel": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/entry"
+      }
+    },
+    "concentration": {
+      "type": "boolean"
+    },
+    "ritual": {
+      "type": "boolean"
+    },
+    "materialComponent": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/definitions/materialComponent"
+        }
+      ]
+    },
+    "icon": {
+      "type": "string",
+      "anyOf": [
+        {
+          "maxLength": 0
+        },
+        {
+          "pattern": "^https://"
+        }
+      ]
+    },
+    "iconFallback": {
+      "type": "string",
+      "pattern": "^school:[a-z0-9-]+$"
+    },
+    "canonical": {
+      "type": "boolean"
+    },
+    "damageInflict": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "damageResist": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "damageImmune": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "damageVulnerable": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "savingThrow": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "abilityCheck": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "spellAttack": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "conditionInflict": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "conditionImmune": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "areaTags": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "miscTags": {
+      "$ref": "#/definitions/tagArray"
+    },
+    "scalingLevelDice": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/scalingProfile"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/scalingProfile"
+          }
+        }
+      ]
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "ritual": {
+          "type": "boolean"
+        }
+      }
+    },
+    "foundryImg": {
+      "type": "string",
+      "pattern": "^https://"
     },
     "handler": {
       "type": "string",
+      "minLength": 1,
       "description": "Optional handler id registered in src/engine/spell-registry.js."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "canonical": {
+            "const": true
+          }
+        },
+        "required": [
+          "canonical"
+        ]
+      },
+      "then": {
+        "required": [
+          "time",
+          "range",
+          "components",
+          "duration",
+          "entries",
+          "classSources",
+          "subclasses"
+        ],
+        "properties": {
+          "school": {
+            "enum": [
+              "A",
+              "BM",
+              "C",
+              "D",
+              "E",
+              "I",
+              "N",
+              "T",
+              "V"
+            ]
+          },
+          "classes": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "canonical": {
+            "const": true
+          }
+        },
+        "required": [
+          "canonical",
+          "raceSources"
+        ]
+      },
+      "then": {
+        "required": [
+          "races"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "canonical": {
+            "const": true
+          }
+        },
+        "required": [
+          "canonical",
+          "races"
+        ]
+      },
+      "then": {
+        "required": [
+          "raceSources"
+        ]
+      }
+    }
+  ],
+  "definitions": {
+    "nameArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "tagArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "sourceReference": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "name",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definedInSource": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "subclassReference": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "class",
+        "subclass"
+      ],
+      "properties": {
+        "class": {
+          "$ref": "#/definitions/sourceReference"
+        },
+        "subclass": {
+          "$ref": "#/definitions/sourceReference"
+        }
+      }
+    },
+    "classSources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fromClassList": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/sourceReference"
+          }
+        },
+        "fromClassListVariant": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/sourceReference"
+          }
+        },
+        "fromSubclass": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/subclassReference"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "fromClassList"
+          ]
+        },
+        {
+          "required": [
+            "fromClassListVariant"
+          ]
+        }
+      ]
+    },
+    "castingTime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "number",
+        "unit"
+      ],
+      "properties": {
+        "number": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "distance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "distance": {
+          "$ref": "#/definitions/distance"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "type": {
+                  "const": "special"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "distance"
+            ]
+          }
+        }
+      ]
+    },
+    "rawMaterialComponent": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cost": {
+          "type": "number",
+          "minimum": 0
+        },
+        "consume": {
+          "enum": [
+            true,
+            false,
+            "optional"
+          ]
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "v": {
+          "type": "boolean"
+        },
+        "s": {
+          "type": "boolean"
+        },
+        "r": {
+          "type": "boolean"
+        },
+        "m": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "$ref": "#/definitions/rawMaterialComponent"
+            }
+          ]
+        }
+      }
+    },
+    "timedDuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "amount"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amount": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "upTo": {
+          "type": "boolean"
+        }
+      }
+    },
+    "duration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration": {
+          "$ref": "#/definitions/timedDuration"
+        },
+        "concentration": {
+          "type": "boolean"
+        },
+        "ends": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "timed"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "duration"
+            ]
+          }
+        }
+      ]
+    },
+    "entry": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/entry"
+          }
+        }
+      ]
+    },
+    "materialComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "cost",
+        "consume"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "cost": {
+          "type": "number",
+          "minimum": 0
+        },
+        "consume": {
+          "enum": [
+            true,
+            false,
+            "optional"
+          ]
+        }
+      }
+    },
+    "scalingProfile": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "label",
+        "scaling"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scaling": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   }
 }

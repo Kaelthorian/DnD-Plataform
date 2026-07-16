@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file: data: blob:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' file:; img-src 'self' file: data: blob:; connect-src 'self' ws: http: https: file:; font-src 'self' data: file:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file: data: blob:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' file:; img-src 'self' file: data: blob: https://raw.githubusercontent.com; connect-src 'self' ws: http: https: file:; font-src 'self' data: file:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-src 'none'">
   <title data-i18n="app.title">DnD Character Sheet</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
@@ -304,6 +304,7 @@
 
   <script src="../../engine/conditions/statuses.js"></script>
   <script src="../../engine/actions/action-advisor.js"></script>
+  <script src="../../engine/spells/spell-data.js"></script>
   <script src="../../engine/combat/turn-economy.js"></script>
   <script src="../../engine/combat/action-definitions.js"></script>
   <script src="../../engine/combat/resolution-engine.js"></script>
@@ -319,6 +320,27 @@
     "use strict";
 
     // INLINE SPELL/REST MECHANICS: spell slots, prepared/known spells, and spell availability remain here for now.
+    const {
+      cantripScalingExpression,
+      formatCastingTime,
+      formatComponents,
+      formatDuration,
+      formatRange,
+      directSelfTemporaryHitPointsExpression,
+      spellBehaviorProfile,
+      spellClassNames: structuredSpellClassNames,
+      spellDescriptionBody,
+      spellHasDeferredAttackDamage,
+      spellHasEmbeddedWeaponAttack,
+      spellHasClass: structuredSpellHasClass,
+      spellHasRace: structuredSpellHasRace,
+      spellIsConcentration,
+      spellIsRitual,
+      spellMaterialComponent,
+      spellRaceNames: structuredSpellRaceNames,
+      spellSchoolLabel: structuredSpellSchoolLabel,
+      spellSource: structuredSpellSource
+    } = globalThis.dndSpellDataEngine;
     const {
       computeLongRestRecovery,
       computeSpellSlotFieldUpdates,
@@ -779,6 +801,7 @@
     const FIND_FAMILIAR_OPTION_BY_KEY = new Map(FIND_FAMILIAR_OPTIONS.map((option) => [option.key, option]));
     const SUMMON_DRACONIC_SPIRIT_NAMES = new Set(["summon dragon", "summon draconic spirit"]);
     let pendingFindFamiliarSpell = null;
+    let pendingFindFamiliarOptions = {};
     let selectedFindFamiliarKey = "owl";
     let familiarNotes = [];
     let familiarNoteZ = 80;
@@ -1047,7 +1070,7 @@
       const classKey = normalizeName(className);
       return spells
         .filter((spell) => spell.level === level)
-        .filter((spell) => spell.classes?.some((name) => normalizeName(name) === classKey))
+        .filter((spell) => structuredSpellHasClass(spell, classKey))
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((spell) => ({
           value: magicInitiateSpellValue(spell),
@@ -1114,7 +1137,7 @@
         .map(findSpellByName)
         .filter(Boolean)
         .filter((spell) => spell.level === 0 || spell.level === 1)
-        .filter((spell) => spell.classes?.some((name) => normalizeName(name) === classKey))
+        .filter((spell) => structuredSpellHasClass(spell, classKey))
         .map((spell) => ({
           spellName: spell.name,
           level: spell.level,
@@ -1219,7 +1242,7 @@
         if (grant.level !== level) return false;
         if (grant.spellName) return normalizeName(grant.spellName) === normalizeName(spell.name);
         if (!grant.className) return true;
-        return spell.classes?.some((name) => normalizeName(name) === normalizeName(grant.className));
+        return structuredSpellHasClass(spell, grant.className);
       });
     }
 
@@ -1509,6 +1532,8 @@
         return;
       }
       if (result.mode === "instant") {
+        endActiveConcentration({ quiet: true, deferUi: true, deferSave: true });
+        clearActiveSpellAttackEffects();
         applyLongRestRecovery(result.recovery);
         sheetMeta.shortRestActive = false;
         sheetMeta.longRestActive = false;
@@ -1520,6 +1545,8 @@
       sheetMeta.longRestActive = result.nextLongRestActive;
       if (sheetMeta.longRestActive) sheetMeta.shortRestActive = false;
       if (result.recovery) {
+        endActiveConcentration({ quiet: true, deferUi: true, deferSave: true });
+        clearActiveSpellAttackEffects();
         applyLongRestRecovery(result.recovery);
         sheetMeta.restState = normalizeRestState({});
       } else if (sheetMeta.longRestActive) {
@@ -1716,11 +1743,17 @@
       sheetMeta.restState = normalizeRestState({ ...sheetMeta.restState, lastHitPoints: current });
     }
 
-    function isSpellAlreadySelected(spellName, exceptField = null) {
-      const normalized = normalizeName(spellName);
+    function isSpellAlreadySelected(spellOrName, exceptField = null) {
+      const spell = typeof spellOrName === "object" ? spellOrName : null;
+      const normalized = normalizeName(spell?.name || spellOrName || "");
       if (!normalized) return false;
       return sheetSpellFieldElements()
-        .some((field) => field !== exceptField && normalizeName(field.value || "") === normalized);
+        .some((field) => {
+          if (field === exceptField || normalizeName(field.value || "") !== normalized) return false;
+          const selected = spellForField(field);
+          if (spell?.id && selected?.id) return normalizeName(spell.id) === normalizeName(selected.id);
+          return true;
+        });
     }
 
     function isWizardCharacter() {
@@ -1731,10 +1764,15 @@
       return normalizeName(getMainClassName() || getSelectedClassName()) === "bard";
     }
 
-    function selectedKnownSpellNames() {
+    function selectedKnownSpells() {
       return wizardSpellFields()
         .filter((field) => field.value.trim() && !isAutoGrantedSpellField(field))
-        .map((field) => field.value.trim());
+        .map((field) => spellForField(field))
+        .filter(Boolean);
+    }
+
+    function selectedKnownSpellNames() {
+      return selectedKnownSpells().map((spell) => spell.name);
     }
 
     function selectedKnownSpellSet() {
@@ -1790,7 +1828,7 @@
     function bardCanLearnSpell(spellOrName, snapshot = null) {
       const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
       if (!spell || spell.level <= 0 || !canUseSpellLevel(spell.level, snapshot)) return false;
-      if (spell.classes?.some((name) => normalizeName(name) === "bard")) return true;
+      if (structuredSpellHasClass(spell, "bard")) return true;
       return featGrantsSpell(spell, spell.level, snapshot?.featSpellGrants);
     }
 
@@ -1857,11 +1895,11 @@
       }
     }
 
-    function assignKnownSpellToSheet(spellName) {
+    function assignKnownSpellToSheet(spellOrName) {
       if (!ensureCanModifySpells()) return null;
-      const spell = findSpellByName(spellName);
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
       if (!spell) return null;
-      const existing = knownSpellFieldForSpell(spell.name);
+      const existing = wizardFieldForSpell(spell);
       if (existing) return existing;
       const field = firstEmptyWizardFieldForLevel(spell.level);
       if (!field) {
@@ -1869,15 +1907,21 @@
         return null;
       }
       field.value = spell.name;
+      rememberSpellReference(field, spell);
       return field;
     }
 
-    function removeKnownSpellFromSheet(spellName) {
+    function removeKnownSpellFromSheet(spellOrName) {
       if (!ensureCanModifySpells()) return;
+      const spell = typeof spellOrName === "object" ? spellOrName : null;
+      const spellName = spell?.name || String(spellOrName || "");
       const normalized = normalizeName(spellName);
       wizardSpellFields().forEach((field) => {
         if (normalizeName(field.value || "") !== normalized || isAutoGrantedSpellField(field)) return;
+        const selected = spellForField(field);
+        if (spell?.id && selected?.id && normalizeName(spell.id) !== normalizeName(selected.id)) return;
         field.value = "";
+        clearSpellReference(field);
         const checkbox = getFieldByKey(field.dataset.preparedKey || "");
         if (checkbox) checkbox.checked = false;
       });
@@ -1912,10 +1956,10 @@
         .length;
     }
 
-    function wizardCanLearnSpell(spellName) {
-      const spell = findSpellByName(spellName);
+    function wizardCanLearnSpell(spellOrName) {
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
       if (!spell || spell.level <= 0) return false;
-      return canUseSpellLevel(spell.level) && spell.classes?.some((name) => normalizeName(name) === "wizard");
+      return canUseSpellLevel(spell.level) && structuredSpellHasClass(spell, "wizard");
     }
 
     function wizardSpellbookNames() {
@@ -1923,15 +1967,61 @@
       return sheetMeta.wizardSpellbook.filter(Boolean);
     }
 
+    function wizardSpellbookReferences() {
+      if (!Array.isArray(sheetMeta.wizardSpellbookReferences)) sheetMeta.wizardSpellbookReferences = [];
+      sheetMeta.wizardSpellbookReferences = sheetMeta.wizardSpellbookReferences.filter(
+        (reference) => reference && typeof reference === "object"
+      );
+      const referencedNames = new Set(sheetMeta.wizardSpellbookReferences.map((reference) => normalizeName(reference.name || "")));
+      wizardSpellbookNames().forEach((name) => {
+        const normalized = normalizeName(name);
+        if (!normalized || referencedNames.has(normalized)) return;
+        const spell = findSpellByName(name);
+        if (!spell) return;
+        sheetMeta.wizardSpellbookReferences.push({
+          id: spell.id || "",
+          name: spell.name,
+          source: spell.source || "",
+          level: spell.level
+        });
+        referencedNames.add(normalized);
+      });
+      return sheetMeta.wizardSpellbookReferences;
+    }
+
+    function wizardSpellbookHasSpell(spellOrName) {
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
+      const name = spell?.name || String(spellOrName || "");
+      const matchingReferences = wizardSpellbookReferences().filter((reference) => normalizeName(reference.name || "") === normalizeName(name));
+      if (spell?.id && matchingReferences.length) {
+        return matchingReferences.some((reference) => normalizeName(reference.id || "") === normalizeName(spell.id));
+      }
+      return wizardSpellbookSet().has(normalizeName(name));
+    }
+
+    function wizardSpellbookSpells() {
+      const referenced = wizardSpellbookReferences()
+        .map((reference) => findSpellById(reference.id) || findSpellByName(reference.name, reference.level, reference.source))
+        .filter(Boolean);
+      const referencedNames = new Set(referenced.map((spell) => normalizeName(spell.name)));
+      const legacy = wizardSpellbookNames()
+        .filter((name) => !referencedNames.has(normalizeName(name)))
+        .map((name) => findSpellByName(name))
+        .filter(Boolean);
+      return [...referenced, ...legacy];
+    }
+
     function wizardSpellbookSet() {
       return new Set(wizardSpellbookNames().map(normalizeName));
     }
 
-    function addWizardSpellbookSpell(spellName) {
+    function addWizardSpellbookSpell(spellOrName) {
       if (!ensureCanModifySpells()) return false;
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
+      const spellName = spell?.name || String(spellOrName || "");
       if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
-      if (wizardSpellbookSet().has(normalizeName(spellName))) return true;
-      if (!wizardCanLearnSpell(spellName)) {
+      if (wizardSpellbookHasSpell(spell || spellName)) return true;
+      if (!spell || !wizardCanLearnSpell(spell)) {
         showStatus("Esa magia no esta disponible para este Wizard.");
         return false;
       }
@@ -1940,38 +2030,51 @@
         return false;
       }
       sheetMeta.wizardSpellbook.push(spellName);
-      assignWizardSpellToSheet(spellName);
+      wizardSpellbookReferences().push({ id: spell.id || "", name: spell.name, source: spell.source || "", level: spell.level });
+      assignWizardSpellToSheet(spell);
       scheduleSheetChoiceRefresh();
       return true;
     }
 
-    function removeWizardSpellbookSpell(spellName) {
+    function removeWizardSpellbookSpell(spellOrName) {
       if (!ensureCanModifySpells()) return;
       if (!Array.isArray(sheetMeta.wizardSpellbook)) return;
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
+      const spellName = spell?.name || String(spellOrName || "");
       const normalized = normalizeName(spellName);
-      sheetMeta.wizardSpellbook = sheetMeta.wizardSpellbook.filter((name) => normalizeName(name) !== normalized);
-      clearWizardSpellFromSheet(spellName);
+      let removedName = false;
+      sheetMeta.wizardSpellbook = sheetMeta.wizardSpellbook.filter((name) => {
+        if (!removedName && normalizeName(name) === normalized) {
+          removedName = true;
+          return false;
+        }
+        return true;
+      });
+      sheetMeta.wizardSpellbookReferences = wizardSpellbookReferences().filter((reference) => (
+        spell?.id
+          ? normalizeName(reference.id || "") !== normalizeName(spell.id)
+          : normalizeName(reference.name || "") !== normalized
+      ));
+      clearWizardSpellFromSheet(spellName, spell?.id || "");
       scheduleSheetChoiceRefresh();
     }
 
     function syncPreparedWizardSpellsToSpellbook() {
       if (!isWizardCharacter()) return;
       sheetSpellFieldElements()
-        .map((field) => field.value.trim())
-        .filter(Boolean)
-        .map(findSpellByName)
-        .filter((spell) => spell?.level > 0 && spell.classes?.some((name) => normalizeName(name) === "wizard"))
-        .forEach((spell) => addWizardSpellbookSpell(spell.name));
+        .map((field) => spellForField(field))
+        .filter((spell) => spell?.level > 0 && structuredSpellHasClass(spell, "wizard"))
+        .forEach((spell) => addWizardSpellbookSpell(spell));
     }
 
     function pruneWizardSpellSelectionsFromSpellbook() {
       if (!isWizardCharacter()) return;
-      const known = wizardSpellbookSet();
       sheetSpellFieldElements().forEach((field) => {
         const level = Number(field.dataset.spellLevel);
         if (level <= 0 || !field.value.trim() || isAutoGrantedSpellField(field)) return;
-        if (known.has(normalizeName(field.value))) return;
+        if (wizardSpellbookHasSpell(spellForField(field) || field.value)) return;
         field.value = "";
+        clearSpellReference(field);
         const checkbox = getFieldByKey(field.dataset.preparedKey || "");
         if (checkbox) checkbox.checked = false;
       });
@@ -1990,12 +2093,12 @@
       showStatus(`Limite de prepared spells: ${limit}`);
     }
 
-    function setWizardPreparedSpell(spellName, prepared) {
+    function setWizardPreparedSpell(spellOrName, prepared) {
       if (!ensureCanModifySpells()) return false;
-      const spell = findSpellByName(spellName);
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
       if (!spell || spell.level <= 0) return false;
-      if (!wizardSpellbookSet().has(normalizeName(spell.name)) && !addWizardSpellbookSpell(spell.name)) return false;
-      const field = assignWizardSpellToSheet(spell.name);
+      if (!wizardSpellbookHasSpell(spell) && !addWizardSpellbookSpell(spell)) return false;
+      const field = assignWizardSpellToSheet(spell);
       if (!field) return false;
       const checkbox = getFieldByKey(field.dataset.preparedKey || "");
       if (!checkbox) {
@@ -2017,8 +2120,8 @@
       if (!canUseSpellLevel(level, snapshot)) return false;
       const className = snapshot?.className ?? normalizeName(getSelectedClassName());
       const raceName = snapshot?.raceName ?? normalizeName(selectedRaceBaseName());
-      const classMatches = className && spell.classes?.some((name) => normalizeName(name) === className);
-      const raceMatches = raceName && spell.races?.some((name) => normalizeName(name) === raceName);
+      const classMatches = className && structuredSpellHasClass(spell, className);
+      const raceMatches = raceName && structuredSpellHasRace(spell, raceName);
       const featSpellGrants = snapshot?.featSpellGrants || activeFeatSpellGrants();
       const featMatches = featGrantsSpell(spell, level, featSpellGrants);
       const subclassGrants = snapshot?.subclassSpellGrants || activeSubclassSpellGrants();
@@ -2026,7 +2129,7 @@
         if (grant.level !== level) return false;
         if (grant.spellName) return normalizeName(grant.spellName) === normalizeName(spell.name);
         if (!grant.className) return true;
-        return spell.classes?.some((name) => normalizeName(name) === normalizeName(grant.className));
+        return structuredSpellHasClass(spell, grant.className);
       });
       if (className || raceName || featSpellGrants.length || subclassGrants.length) return Boolean(classMatches || raceMatches || featMatches || subclassMatches);
       return true;
@@ -2036,8 +2139,8 @@
       const autoPrepared = new Set(autoAlwaysPreparedSpellNames().map(normalizeName));
       return spells.filter((spell) => spellMatchesSelection(spell, level)
         && !autoPrepared.has(normalizeName(spell.name))
-        && (!isWizardCharacter() || level === 0 || wizardSpellbookSet().has(normalizeName(spell.name)) || normalizeName(field?.value || "") === normalizeName(spell.name))
-        && !isSpellAlreadySelected(spell.name, field));
+        && (!isWizardCharacter() || level === 0 || wizardSpellbookHasSpell(spell) || normalizeName(field?.value || "") === normalizeName(spell.name))
+        && !isSpellAlreadySelected(spell, field));
     }
 
     function getWizardAccessibleSpellOptions(level) {
@@ -2045,7 +2148,7 @@
       return spells.filter((spell) => spell.level === level
         && level > 0
         && canUseSpellLevel(level)
-        && spell.classes?.some((name) => normalizeName(name) === "wizard")
+        && structuredSpellHasClass(spell, "wizard")
         && !autoPrepared.has(normalizeName(spell.name)));
     }
 
@@ -2079,10 +2182,13 @@
       const { featSpellGrants, subclassSpellGrants, isWizard, isBard } = validationSnapshot;
       const selectedCantripNamesSnapshot = selectedCantripNames();
       const selectedKnownSpellNamesSnapshot = selectedKnownSpellNames();
+      const selectedKnownSpellsSnapshot = selectedKnownSpells();
       const wizardSpellbookNamesSnapshot = isWizard ? wizardSpellbookNames() : [];
+      const wizardSpellbookSpellsSnapshot = isWizard ? wizardSpellbookSpells() : [];
       const spellFields = sheetSpellFieldElements();
       const selectedSpellCounts = new Map();
       const wizardPreparedSet = new Set();
+      const wizardPreparedIdSet = new Set();
       let wizardPreparedCount = 0;
 
       spellFields.forEach((field) => {
@@ -2096,6 +2202,8 @@
         if (checkbox?.checked) {
           wizardPreparedCount += 1;
           wizardPreparedSet.add(normalizeName(field.value));
+          const selectedSpell = spellForField(field);
+          if (selectedSpell?.id) wizardPreparedIdSet.add(normalizeName(selectedSpell.id));
         }
       });
 
@@ -2106,14 +2214,19 @@
         selectedCantripNames: selectedCantripNamesSnapshot,
         selectedCantripSet: new Set(selectedCantripNamesSnapshot.map(normalizeName)),
         selectedKnownSpellNames: selectedKnownSpellNamesSnapshot,
+        selectedKnownSpells: selectedKnownSpellsSnapshot,
         selectedKnownSpellSet: new Set(selectedKnownSpellNamesSnapshot.map(normalizeName)),
+        selectedKnownSpellIdSet: new Set(selectedKnownSpellsSnapshot.map((spell) => normalizeName(spell.id || "")).filter(Boolean)),
         selectedManagedSpellCount: selectedKnownSpellNamesSnapshot.length,
         selectedSpellCounts,
         spellLevelLimits: new Map(),
         wizardSpellbookNames: wizardSpellbookNamesSnapshot,
         wizardSpellbookSet: new Set(wizardSpellbookNamesSnapshot.map(normalizeName)),
+        wizardSpellbookSpells: wizardSpellbookSpellsSnapshot,
+        wizardSpellbookIdSet: new Set(wizardSpellbookSpellsSnapshot.map((spell) => normalizeName(spell.id || "")).filter(Boolean)),
         wizardSpellbookLimit: isWizard ? wizardMaxSpellbookSpells() : 0,
         wizardPreparedSet,
+        wizardPreparedIdSet,
         wizardPreparedCount,
         wizardPreparedLimit: isWizard ? wizardPreparedSpellLimit() : 0,
         bardKnownLimit: isBard ? bardKnownSpellLimit(featSpellGrants) : 0,
@@ -2153,9 +2266,14 @@
         .filter((field) => Number(field.dataset.spellLevel) === 0);
     }
 
-    function wizardFieldForSpell(spellName) {
-      const normalized = normalizeName(spellName);
-      return wizardSpellFields().find((field) => normalizeName(field.value || "") === normalized) || null;
+    function wizardFieldForSpell(spellOrName) {
+      const spell = typeof spellOrName === "object" ? spellOrName : null;
+      const normalized = normalizeName(spell?.name || spellOrName || "");
+      return wizardSpellFields().find((field) => {
+        if (normalizeName(field.value || "") !== normalized) return false;
+        const selected = spellForField(field);
+        return spell?.id && selected?.id ? normalizeName(spell.id) === normalizeName(selected.id) : true;
+      }) || null;
     }
 
     function cantripFieldForSpell(spellName) {
@@ -2172,11 +2290,11 @@
       return cantripFields().find((field) => !field.value.trim() && !isAutoGrantedSpellField(field)) || null;
     }
 
-    function assignWizardSpellToSheet(spellName) {
+    function assignWizardSpellToSheet(spellOrName) {
       if (!ensureCanModifySpells()) return null;
-      const spell = findSpellByName(spellName);
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
       if (!spell) return null;
-      const existing = wizardFieldForSpell(spell.name);
+      const existing = wizardFieldForSpell(spell);
       if (existing) return existing;
       const field = firstEmptyWizardFieldForLevel(spell.level);
       if (!field) {
@@ -2184,6 +2302,7 @@
         return null;
       }
       field.value = spell.name;
+      rememberSpellReference(field, spell);
       return field;
     }
 
@@ -2223,6 +2342,7 @@
         return null;
       }
       field.value = spell.name;
+      rememberSpellReference(field, spell);
       scheduleSheetChoiceRefresh();
       return field;
     }
@@ -2233,15 +2353,19 @@
       cantripFields().forEach((field) => {
         if (normalizeName(field.value || "") !== normalized || isAutoGrantedSpellField(field)) return;
         field.value = "";
+        clearSpellReference(field);
       });
       scheduleSheetChoiceRefresh();
     }
 
-    function clearWizardSpellFromSheet(spellName) {
+    function clearWizardSpellFromSheet(spellName, spellId = "") {
       const normalized = normalizeName(spellName);
       wizardSpellFields().forEach((field) => {
         if (normalizeName(field.value || "") !== normalized) return;
+        const selected = spellForField(field);
+        if (spellId && selected?.id && normalizeName(selected.id) !== normalizeName(spellId)) return;
         field.value = "";
+        clearSpellReference(field);
         const checkbox = getFieldByKey(field.dataset.preparedKey || "");
         if (checkbox) checkbox.checked = false;
       });
@@ -2376,14 +2500,14 @@
     }
 
     function featPreparedSpellMatches(field) {
-      const spell = findSpellByName(field?.value || "");
+      const spell = spellForField(field);
       if (!spell) return false;
       const level = Number(field.dataset.spellLevel);
       return activeFeatSpellGrants().some((grant) => {
         if (!grant.prepared || grant.level !== level) return false;
         if (grant.spellName) return normalizeName(grant.spellName) === normalizeName(spell.name);
         if (!grant.className) return true;
-        return spell.classes?.some((name) => normalizeName(name) === normalizeName(grant.className));
+        return structuredSpellHasClass(spell, grant.className);
       });
     }
 
@@ -2413,9 +2537,10 @@
 
       fields.forEach((field) => {
         if (!field.value.trim()) return;
-        const spell = findSpellByName(field.value);
+        const spell = spellForField(field);
         if (spell?.level === 0 || !preparedSet.has(normalizeName(field.value))) return;
         field.value = "";
+        clearSpellReference(field);
         delete field.dataset.autoGrantedSpell;
         syncAutoPreparedSpellCheckbox(field, preparedSet);
         syncFeatPreparedSpellCheckbox(field);
@@ -2430,6 +2555,7 @@
         if (!isAutoGrantedSpellField(field)) return;
         if (!nextSet.has(normalizeName(field.value))) {
           field.value = "";
+          clearSpellReference(field);
           syncAutoPreparedSpellCheckbox(field, preparedSet);
           delete field.dataset.autoGrantedSpell;
         }
@@ -2441,6 +2567,7 @@
         const reusable = fields.find((field) => Number(field.dataset.spellLevel) === spell?.level && !field.value.trim());
         if (!reusable) return;
         reusable.value = name;
+        rememberSpellReference(reusable, spell);
         reusable.dataset.autoGrantedSpell = "true";
         syncAutoPreparedSpellCheckbox(reusable, preparedSet);
       });
@@ -2596,8 +2723,9 @@
       if (selectedFindFamiliarKey === "other") familiarPickerOtherInput?.focus();
     }
 
-    function openFindFamiliarPicker(spell) {
+    function openFindFamiliarPicker(spell, options = {}) {
       pendingFindFamiliarSpell = spell;
+      pendingFindFamiliarOptions = { ...options };
       selectedFindFamiliarKey = "owl";
       if (familiarPickerOtherInput) familiarPickerOtherInput.value = "";
       renderFindFamiliarOptions();
@@ -2609,6 +2737,7 @@
 
     function closeFindFamiliarPicker() {
       pendingFindFamiliarSpell = null;
+      pendingFindFamiliarOptions = {};
       familiarPickerBackdrop?.classList.remove("visible");
       familiarPickerBackdrop?.setAttribute("aria-hidden", "true");
       familiarPickerBackdrop?.setAttribute("hidden", "");
@@ -2629,8 +2758,9 @@
       const spell = pendingFindFamiliarSpell;
       if (!spell) return;
       const familiar = selectedFindFamiliar();
+      const options = { ...pendingFindFamiliarOptions, findFamiliar: familiar };
       closeFindFamiliarPicker();
-      castPreparedSpell(spell, { findFamiliar: familiar });
+      castPreparedSpell(spell, options);
     }
 
     function familiarRootNoteId(noteId, notes = familiarNotes) {
@@ -3584,21 +3714,78 @@
 
     let spellLookupSource = null;
     let spellLookupByName = new Map();
+    let spellLookupById = new Map();
 
     function spellLookup() {
       if (spellLookupSource === spells) return spellLookupByName;
       spellLookupSource = spells;
       spellLookupByName = new Map();
+      spellLookupById = new Map();
       (Array.isArray(spells) ? spells : []).forEach((spell) => {
         const key = normalizeName(spell?.name || "");
-        if (key && !spellLookupByName.has(key)) spellLookupByName.set(key, spell);
+        if (key) {
+          if (!spellLookupByName.has(key)) spellLookupByName.set(key, []);
+          spellLookupByName.get(key).push(spell);
+        }
+        const id = normalizeName(spell?.id || "");
+        if (id && !spellLookupById.has(id)) spellLookupById.set(id, spell);
       });
       return spellLookupByName;
     }
 
-    function findSpellByName(name) {
+    function findSpellById(id) {
+      spellLookup();
+      return spellLookupById.get(normalizeName(id || "")) || null;
+    }
+
+    function findSpellByName(name, level = null, source = "") {
       const normalized = normalizeName(name);
-      return spellLookup().get(normalized) || null;
+      const candidates = spellLookup().get(normalized) || [];
+      const sourceKey = normalizeName(source || "");
+      const levelNumber = level == null ? null : Number(level);
+      return candidates.find((spell) => (
+        (!sourceKey || normalizeName(spell?.source || "") === sourceKey)
+        && (levelNumber == null || Number(spell?.level) === levelNumber)
+      )) || candidates.find((spell) => levelNumber != null && Number(spell?.level) === levelNumber) || candidates[0] || null;
+    }
+
+    function ensureSpellReferenceState() {
+      if (!sheetMeta.spellReferences || typeof sheetMeta.spellReferences !== "object") sheetMeta.spellReferences = {};
+      return sheetMeta.spellReferences;
+    }
+
+    function spellReferenceKey(field) {
+      return String(field?.dataset?.key || "").trim();
+    }
+
+    function rememberSpellReference(field, spell) {
+      const key = spellReferenceKey(field);
+      if (!key || !spell) return;
+      ensureSpellReferenceState()[key] = {
+        id: spell.id || "",
+        name: spell.name || "",
+        source: spell.source || "",
+        level: Number(spell.level) || 0
+      };
+    }
+
+    function clearSpellReference(field) {
+      const key = spellReferenceKey(field);
+      if (key) delete ensureSpellReferenceState()[key];
+    }
+
+    function spellForField(field) {
+      if (!field?.value?.trim()) return null;
+      const reference = ensureSpellReferenceState()[spellReferenceKey(field)] || {};
+      const referencedSpell = findSpellById(reference.id);
+      const validReferencedSpell = referencedSpell
+        && normalizeName(referencedSpell.name || "") === normalizeName(field.value)
+        && Number(referencedSpell.level) === Number(field.dataset.spellLevel)
+        ? referencedSpell
+        : null;
+      return validReferencedSpell
+        || findSpellByName(field.value, reference.level ?? Number(field.dataset.spellLevel), reference.source)
+        || findSpellByName(field.value, Number(field.dataset.spellLevel));
     }
 
     function parseSignedNumber(value) {
@@ -3863,13 +4050,12 @@
     }
 
     function spellCastLevelStateKey(spell, baseLevelOverride = null) {
-      return normalizeName(`${spell?.sourceName || spell?.name || ""}|${baseLevelOverride ?? spell?.level ?? 0}`);
+      return normalizeName(`${spell?.id || spell?.sourceName || spell?.name || ""}|${spell?.source || ""}|${baseLevelOverride ?? spell?.level ?? 0}`);
     }
 
     function castLevelOptionsForSpell(spell, baseLevelOverride = null) {
       const baseLevel = baseLevelOverride ?? spell?.level ?? 0;
       if (!spell || baseLevel <= 0) return [baseLevel];
-      if (!higherLevelScalingForSpell(spell)) return [baseLevel];
       const maxLevel = maxSpellLevelForCharacter();
       const options = [];
       for (let level = baseLevel; level <= maxLevel; level += 1) {
@@ -3907,6 +4093,12 @@
         const diceCount = trueStrikeExtraDiceCount();
         return diceCount ? `${diceCount}d6` : null;
       }
+      const behavior = spellBehaviorProfile(spell);
+      if (spell.canonical && !behavior.damageTypes.length && !behavior.healing && !behavior.temporaryHitPoints) return null;
+      if (spell.level === 0) {
+        const structuredScaling = cantripScalingExpression(spell, getCharacterLevel());
+        if (structuredScaling) return normalizeDiceExpression(structuredScaling);
+      }
       const description = spellBaseDamageDescription(spell);
       const rollPattern = ROLL_EXPRESSION_PATTERN;
       const hitMatch = description.match(new RegExp(`on a hit[^.]*?takes?\\s+(${rollPattern})`, "i"));
@@ -3928,6 +4120,10 @@
 
     function damageTypeForSpell(spell) {
       if (!spell?.description) return "";
+      const behavior = spellBehaviorProfile(spell);
+      if (behavior.damageTypes.length) return behavior.damageTypes[0];
+      if (behavior.healing) return "healing";
+      if (behavior.temporaryHitPoints) return "temporary hit points";
       const typedAfterDice = spell.description.match(new RegExp(`${DICE_EXPRESSION_PATTERN}\\s+([a-z]+)\\s+damage`, "i"));
       if (typedAfterDice?.[1]) return typedAfterDice[1].toLowerCase();
       const typedDamage = spell.description.match(/\b(acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder)\s+damage\b/i);
@@ -3969,27 +4165,146 @@
       return labels;
     }
 
-    function spellAttackSelections(spellName, levelOverride = null) {
-      const spell = findSpellByName(spellName);
+    function spellScalingExpressionForLabel(spell, labelPattern, characterLevel = getCharacterLevel()) {
+      const profiles = Array.isArray(spell?.scalingLevelDice)
+        ? spell.scalingLevelDice
+        : spell?.scalingLevelDice ? [spell.scalingLevelDice] : [];
+      const profile = profiles.find((entry) => labelPattern.test(String(entry?.label || "")));
+      const scaling = profile?.scaling;
+      if (!scaling || typeof scaling !== "object") return "";
+      const threshold = Object.keys(scaling)
+        .map(Number)
+        .filter((level) => Number.isFinite(level) && level <= characterLevel)
+        .sort((left, right) => right - left)[0];
+      if (threshold == null) return "";
+      return normalizeDiceExpression(String(scaling[threshold] || "").replace(/\{\{spellcasting_mod\}\}/g, ""));
+    }
+
+    function embeddedWeaponOnHitDamage(spell) {
+      const spellName = normalizeName(spell?.name || "");
+      return spellScalingExpressionForLabel(
+        spell,
+        spellName === "true strike" ? /\bextra\b.*\bdamage\b/i : /\bdamage on hit\b/i
+      );
+    }
+
+    function combineDamageExpressions(...expressions) {
+      return expressions
+        .map((expression) => String(expression || "").trim().replace(/^\+/, ""))
+        .filter(Boolean)
+        .join("+");
+    }
+
+    function embeddedWeaponRowsForSpell(spell, base, spellAttackBonus) {
+      if (!spellHasEmbeddedWeaponAttack(spell)) return null;
+      const spellName = spell?.name || base.sourceName || base.name;
+      const normalizedSpellName = normalizeName(spellName);
+      const trueStrike = normalizedSpellName === "true strike";
+      const bladeCantrip = ["booming blade", "green-flame blade"].includes(normalizedSpellName);
+      const weapons = equippedWeaponAttackSelections()
+        .filter((weapon) => weapon.item)
+        .filter((weapon) => !bladeCantrip || (itemTypeAbbreviation(weapon.item) !== "R" && weapon.attackMode !== "thrown"))
+        .filter((weapon) => !trueStrike || weapon.proficient);
+      if (!weapons.length) {
+        return [{
+          ...base,
+          name: spellName,
+          embeddedWeaponAttack: true,
+          embeddedWeaponMissing: true,
+          noAttackRoll: true,
+          damage: null,
+          damageLabel: null,
+          attackLabel: t("spell.equipWeapon")
+        }];
+      }
+      const extraDamage = embeddedWeaponOnHitDamage(spell);
+      const proficiency = parseSignedNumber(getFieldValueByNormalizedKey("profbonus"));
+      const spellcastingModifier = spellAttackBonus - proficiency;
+      const spellDamageTypes = spellBehaviorProfile(spell).damageTypes;
+      return weapons.map((weapon) => {
+        const weaponExpression = trueStrike
+          ? `${weapon.baseDamageDice || "1d4"}${spellcastingModifier + (weapon.styleDamageBonus || 0) ? formatModifier(spellcastingModifier + (weapon.styleDamageBonus || 0)) : ""}`
+          : weapon.damage;
+        const damage = combineDamageExpressions(weaponExpression, extraDamage);
+        const rolledDamageTypes = [
+          weapon.damageType,
+          ...(extraDamage ? spellDamageTypes : [])
+        ].filter(Boolean);
+        const damageType = trueStrike
+          ? [weapon.damageType, "radiant"].filter(Boolean).join(" or ")
+          : [...new Set(rolledDamageTypes)].join(" + ");
+        return {
+          ...weapon,
+          ...base,
+          name: `${spellName} - ${weapon.name}`,
+          sourceName: spellName,
+          weaponName: weapon.name,
+          embeddedWeaponAttack: true,
+          embeddedWeaponMissing: false,
+          noAttackRoll: false,
+          attackBonus: trueStrike ? spellAttackBonus + (weapon.attackStyleBonus || 0) : weapon.attackBonus,
+          attackLabel: trueStrike
+            ? ["weapon attack using spellcasting ability", weapon.attackLabel].filter(Boolean).join(", ")
+            : weapon.attackLabel,
+          damage,
+          damageLabel: damage,
+          damageType,
+          damageTypes: [...new Set(trueStrike ? [weapon.damageType, "radiant"].filter(Boolean) : rolledDamageTypes)],
+          description: `${base.description}\n\nWeapon used in casting: ${weapon.name}.`,
+          item: weapon.item,
+          ammoEntry: weapon.ammoEntry || null,
+          ammoName: weapon.ammoName || ""
+        };
+      });
+    }
+
+    function spellAttackSelections(spellOrName, levelOverride = null) {
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName, levelOverride);
+      const spellName = spell?.name || String(spellOrName || "");
       const level = levelOverride ?? spell?.level ?? 1;
-      const castLevel = level > 0 ? selectedCastLevelForSpell({ ...spell, sourceName: spellName }, level) : level;
-      const castLevelOptions = level > 0 ? castLevelOptionsForSpell({ ...spell, sourceName: spellName }, level) : [];
+      const castSpell = { ...spell, sourceName: spellName };
+      const castLevel = level > 0 ? selectedCastLevelForSpell(castSpell, level) : level;
+      const castLevelOptions = level > 0 ? castLevelOptionsForSpell(castSpell, level) : [];
       const magicInitiateGrant = magicInitiateGrantForSpell(spellName);
       const magicInitiateAbility = magicInitiateGrant?.ability || "";
       const attackBonus = magicInitiateAbility ? spellAttackBonusForAbilityKey(magicInitiateAbility) : getSpellAttackBonus();
       const abilityNote = magicInitiateAbility
         ? `\n\nMagic Initiate: usa ${magicInitiateAbility} como spellcasting ability. Spell save DC ${8 + parseSignedNumber(getFieldValueByNormalizedKey("profbonus")) + abilityModifierByKey(magicInitiateAbility)}, spell attack ${formatModifier(attackBonus)}.`
         : "";
+      const behavior = spellBehaviorProfile(spell);
+      const directTemporaryHitPointsFormula = directSelfTemporaryHitPointsExpression(spell);
+      const hasAttackRoll = spell?.canonical
+        ? behavior.attacks.length > 0
+        : /\b(?:melee|ranged) spell attack\b/i.test(cleanSpellDescription(spell));
       const base = {
         kind: "spell",
+        spell,
+        spellId: spell?.id || "",
+        source: spell?.source || "",
+        sourceName: spellName,
         damageType: damageTypeForSpell(spell),
         description: `${descriptionForSpell(spell)}${abilityNote}`,
         attackBonus,
         attackLabel: magicInitiateAbility ? `Magic Initiate spell attack (${magicInitiateAbility})` : "spell attack",
+        noAttackRoll: !hasAttackRoll,
+        attacks: behavior.attacks,
+        savingThrows: behavior.savingThrows,
+        conditions: behavior.conditions,
+        areaTags: behavior.areaTags,
+        concentration: behavior.concentration,
+        deferredAttackDamage: spellHasDeferredAttackDamage(spell),
+        ritual: behavior.ritual,
+        material: behavior.material,
+        healing: behavior.healing,
+        temporaryHitPoints: behavior.temporaryHitPoints,
+        applyTemporaryHitPointsToSheet: Boolean(directTemporaryHitPointsFormula),
+        temporaryHitPointsFormula: directTemporaryHitPointsFormula,
         level,
         castLevel,
         castLevelOptions
       };
+      const embeddedRows = embeddedWeaponRowsForSpell(spell, base, attackBonus);
+      if (embeddedRows) return embeddedRows;
       if (normalizeName(spellName) !== "eldritch blast") {
         const damage = damageDiceForSpell(spell, castLevel);
         const trueStrikeDice = normalizeName(spellName) === "true strike" ? trueStrikeExtraDiceCount() : null;
@@ -4082,14 +4397,11 @@
     };
 
     function spellSourceLabel(spell) {
-      const match = spell?.description?.match(/\bSource:\s*([A-Za-z0-9' .&-]+)/i);
-      return match?.[1]?.replace(/\.$/, "").trim() || "";
+      return structuredSpellSource(spell);
     }
 
     function spellSchoolLabel(spell) {
-      const match = spell?.description?.match(/\bSchool:\s*([A-Z][A-Za-z]*)\b/i);
-      const code = match?.[1]?.toUpperCase() || "";
-      return SPELL_SCHOOL_LABELS[code] || match?.[1] || "";
+      return structuredSpellSchoolLabel(spell);
     }
 
     function spellLevelLabel(level) {
@@ -4099,15 +4411,21 @@
     }
 
     function cleanSpellDescription(spell) {
-      return String(spell?.description || "")
-        .replace(/\bSource:\s*[A-Za-z0-9' .&-]+\.\s*/i, "")
-        .replace(/\bLevel:\s*(?:Cantrip|\d+)\.\s*/i, "")
-        .replace(/\bSchool:\s*[A-Z][A-Za-z]*\.\s*/i, "")
-        .trim();
+      return spellDescriptionBody(spell);
+    }
+
+    function spellDescriptionChecksum(spell) {
+      const text = cleanSpellDescription(spell);
+      let hash = 2166136261;
+      for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+      }
+      return (hash >>> 0).toString(36);
     }
 
     function spellTranslationKey(spell) {
-      return [spell?.name || "", spellSourceLabel(spell), spell?.level ?? ""]
+      return [spell?.id || spell?.name || "", spellSourceLabel(spell), spell?.level ?? "", spellDescriptionChecksum(spell)]
         .map((item) => normalizeName(String(item)))
         .join("|");
     }
@@ -4372,7 +4690,10 @@
       const record = equippedRecord(equipmentItemKey(entry));
       const thrownAttack = isThrownRangedAttack(item, attackMode);
       const offHandAbilityBonus = slot === "offHand" && hasFightingStyle("two-weapon fighting") ? ability : 0;
-      const damageBonus = (slot === "offHand" ? offHandAbilityBonus : ability) + fightingStyleDamageBonus(item, slot, record, attackMode);
+      const abilityDamageBonus = slot === "offHand" ? offHandAbilityBonus : ability;
+      const styleDamageBonus = fightingStyleDamageBonus(item, slot, record, attackMode);
+      const attackStyleBonus = fightingStyleAttackBonus(item);
+      const damageBonus = abilityDamageBonus + styleDamageBonus;
       const damageDice = record?.twoHanded && item.dmg2 ? item.dmg2 : item.dmg1 || "1d4";
       const damageExpression = `${damageDice}${damageBonus ? formatModifier(damageBonus) : ""}`;
       const nameParts = [];
@@ -4388,6 +4709,12 @@
       return {
         name: `${item.name || entry.displayName}${nameParts.length ? ` (${nameParts.join(", ")})` : ""}`,
         item,
+        slot,
+        attackMode,
+        baseDamageDice: damageDice,
+        abilityDamageBonus,
+        styleDamageBonus,
+        attackStyleBonus,
         damage: damageExpression,
         damageLabel: damageExpression,
         damageType: (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase(),
@@ -4401,7 +4728,7 @@
         ammoRemaining: ammoEntry?.quantity ?? (ammoName ? 0 : null),
         actionType: slot === "offHand" ? ACTION_TYPES.bonus : ACTION_TYPES.action,
         actionCostLabel: slot === "offHand" ? "Consume: Accion Bonus (two-weapon fighting)." : "Consume: Accion.",
-        attackBonus: ability + prof + fightingStyleAttackBonus(item),
+        attackBonus: ability + prof + attackStyleBonus,
         damageRollOptions: {
           greatWeaponFighting: greatWeaponFightingApplies(item, slot, record, attackMode)
         },
@@ -4864,8 +5191,149 @@
       scheduleSave();
     }
 
+    function ensureActiveSpellAttackEffects() {
+      if (!Array.isArray(sheetMeta.activeSpellAttackEffects)) sheetMeta.activeSpellAttackEffects = [];
+      sheetMeta.activeSpellAttackEffects = sheetMeta.activeSpellAttackEffects
+        .filter((effect) => effect && typeof effect === "object" && effect.id && effect.damage)
+        .map((effect) => ({ ...effect }));
+      return sheetMeta.activeSpellAttackEffects;
+    }
+
+    function spellDurationInTurns(spell = {}) {
+      const duration = (Array.isArray(spell.duration) ? spell.duration : [])
+        .find((entry) => String(entry?.type || "").toLowerCase() === "timed");
+      if (!duration) return null;
+      const amount = Math.max(1, Number(duration.duration?.amount) || 1);
+      const unit = String(duration.duration?.type || "round").toLowerCase();
+      if (unit === "round") return amount;
+      if (unit === "minute") return amount * 10;
+      if (unit === "hour") return amount * 600;
+      if (unit === "day") return amount * 14400;
+      return null;
+    }
+
+    function clearActiveSpellAttackEffects({ concentrationOnly = false } = {}) {
+      const current = ensureActiveSpellAttackEffects();
+      const next = concentrationOnly ? current.filter((effect) => !effect.concentration) : [];
+      const changed = next.length !== current.length;
+      sheetMeta.activeSpellAttackEffects = next;
+      if (changed) invalidateCombatActionCache("spell-attack-effects-cleared");
+      return changed;
+    }
+
+    function registerDeferredSpellAttackEffect(spellRow) {
+      const sourceSpell = spellRow?.spell || spellRow;
+      const description = String(sourceSpell?.description || spellRow?.description || "");
+      if (!spellHasDeferredAttackDamage(sourceSpell)) return false;
+      if (!/\b(?:extra|additional)\b[^.]{0,120}\bdamage\b/i.test(description)) return false;
+      const damage = String(spellRow?.damage || damageDiceForSpell(sourceSpell, spellRow?.castLevel) || "").trim();
+      if (!damage) return false;
+      const identity = String(sourceSpell?.id || `${normalizeName(sourceSpell?.name || spellRow?.sourceName || spellRow?.name)}--${normalizeName(sourceSpell?.source || spellRow?.source || "legacy")}`);
+      const behavior = spellBehaviorProfile(sourceSpell);
+      const current = ensureActiveSpellAttackEffects();
+      const withoutPrevious = current.filter((effect) => effect.id !== identity && (!spellRow?.concentration || !effect.concentration));
+      withoutPrevious.push({
+        id: identity,
+        name: spellRow?.sourceName || sourceSpell?.name || spellRow?.name || "Spell",
+        source: sourceSpell?.source || spellRow?.source || "",
+        damage,
+        damageType: behavior.damageTypes.join(" / ") || spellRow?.damageType || "",
+        description,
+        concentration: Boolean(spellRow?.concentration),
+        remainingTurns: spellDurationInTurns(sourceSpell),
+        consumeOnUse: /\bonce before the spell ends\b|\bthe next time you hit\b/i.test(description),
+        startedAt: new Date().toISOString()
+      });
+      sheetMeta.activeSpellAttackEffects = withoutPrevious;
+      return true;
+    }
+
+    function ageActiveSpellAttackEffects() {
+      const current = ensureActiveSpellAttackEffects();
+      const next = current
+        .map((effect) => Number.isFinite(effect.remainingTurns)
+          ? { ...effect, remainingTurns: effect.remainingTurns - 1 }
+          : effect)
+        .filter((effect) => !Number.isFinite(effect.remainingTurns) || effect.remainingTurns > 0);
+      const changed = next.length !== current.length || next.some((effect, index) => effect.remainingTurns !== current[index]?.remainingTurns);
+      sheetMeta.activeSpellAttackEffects = next;
+      if (changed) invalidateCombatActionCache("spell-attack-effects-aged");
+      return changed;
+    }
+
+    function consumeActiveSpellAttackEffects(choices = []) {
+      const consumedIds = new Set((Array.isArray(choices) ? choices : [])
+        .filter((choice) => choice?.consumeOnUse && choice?.activeSpellEffectId)
+        .map((choice) => choice.activeSpellEffectId));
+      if (!consumedIds.size) return false;
+      const current = ensureActiveSpellAttackEffects();
+      sheetMeta.activeSpellAttackEffects = current.filter((effect) => !consumedIds.has(effect.id));
+      invalidateCombatActionCache("spell-attack-effect-consumed");
+      return true;
+    }
+
+    let pendingDirectConcentrationReplacement = null;
+
+    function endActiveConcentration({ quiet = false, deferUi = false, deferSave = false } = {}) {
+      if (!sheetMeta?.combatTurn?.concentration) return false;
+      const state = combatTurnState();
+      const current = state.concentration;
+      if (!current) return false;
+      state.concentration = null;
+      clearActiveSpellAttackEffects({ concentrationOnly: true });
+      pendingDirectConcentrationReplacement = null;
+      invalidateCombatActionCache("concentration-ended");
+      if (!deferUi) {
+        updatePreparedSpellsPanel();
+        renderAlertsPanel();
+        scheduleTurnActionsPanelRefresh();
+      }
+      if (!deferSave) scheduleSave();
+      if (!quiet) showStatus(t("spell.concentrationEnded", { name: current.name || t("spell.unknownConcentration") }));
+      return true;
+    }
+
+    function concentrationIdentity(concentration = {}) {
+      return normalizeName(`${concentration.id || ""}|${concentration.name || ""}|${concentration.source || ""}`);
+    }
+
+    function confirmDirectConcentrationReplacement(spell, options = {}) {
+      if (!spell?.concentration || options.concentrationReplacementConfirmed) return true;
+      const current = combatTurnState().concentration;
+      if (!current) return true;
+      const currentIdentity = concentrationIdentity(current);
+      const nextIdentity = concentrationIdentity({
+        id: spell.spellId || spell.spell?.id || "",
+        name: spell.sourceName || spell.name,
+        source: spell.source || spell.spell?.source || ""
+      });
+      const now = Date.now();
+      if (pendingDirectConcentrationReplacement
+        && pendingDirectConcentrationReplacement.currentIdentity === currentIdentity
+        && pendingDirectConcentrationReplacement.nextIdentity === nextIdentity
+        && pendingDirectConcentrationReplacement.expiresAt >= now) {
+        pendingDirectConcentrationReplacement = null;
+        return true;
+      }
+      pendingDirectConcentrationReplacement = {
+        currentIdentity,
+        nextIdentity,
+        expiresAt: now + 10000
+      };
+      showStatus(t("spell.replaceConcentrationConfirm", {
+        current: current.name || t("spell.unknownConcentration"),
+        next: spell.sourceName || spell.name
+      }));
+      return false;
+    }
+
     function castPreparedSpell(spell, options = {}) {
       if (!spell || spell.kind !== "spell") return false;
+      if (options.ritual && (!spell.ritual || spell.level <= 0)) {
+        showStatus(t("spell.ritualUnavailable", { name: spell.name }));
+        return false;
+      }
+      if (!confirmDirectConcentrationReplacement(spell, options)) return false;
       if (spell.level > 0) interruptActiveRest("spell");
       const turnState = combatTurnState();
       if (spell.level > 0 && !options.quickened && turnState.quickenedSpellUsed) {
@@ -4874,8 +5342,15 @@
       }
       const familiar = options.findFamiliar || summonedFamiliarForSpell(spell);
       if (isFindFamiliarSpell(spell) && !familiar) {
-        openFindFamiliarPicker(spell);
+        openFindFamiliarPicker(spell, options);
         return false;
+      }
+      if (options.ritual) {
+        const statusResult = activateSpellStatuses(spell.sourceName || spell.name, spell.name);
+        if (familiar) showFamiliarNote(familiar);
+        showStatus(t("spell.ritualSuccess", { name: spell.name }));
+        recordSuccessfulSpellCast(spell, { ...options, statusChanged: statusResult.activated });
+        return true;
       }
       if (spell.level <= 0) {
         const statusResult = activateSpellStatuses(spell.sourceName || spell.name, spell.name);
@@ -4917,7 +5392,18 @@
 
     function recordSuccessfulSpellCast(spell, options = {}) {
       const state = combatTurnState();
-      if (spell?.level > 0) state.levelOnePlusSpellCast = true;
+      pendingDirectConcentrationReplacement = null;
+      if (spell?.level > 0 && !options.ritual) state.levelOnePlusSpellCast = true;
+      if (spell?.concentration) {
+        clearActiveSpellAttackEffects({ concentrationOnly: true });
+        state.concentration = {
+          id: spell.spellId || spell.spell?.id || "",
+          name: spell.sourceName || spell.name,
+          source: spell.source || spell.spell?.source || "",
+          startedAt: new Date().toISOString()
+        };
+      }
+      registerDeferredSpellAttackEffect(spell);
       if (options.quickened) {
         state.quickenedSpellUsed = true;
         state.bonusActionsRemaining = Math.max(0, (Number.parseInt(state.bonusActionsRemaining || 0, 10) || 0) - 1);
@@ -5579,8 +6065,17 @@
       const bonusTerms = roll.terms.filter((term) => term.type === "bonus");
       const diceTotal = diceTerms.reduce((sum, term) => sum + term.subtotal, 0);
       const bonusTotal = bonusTerms.reduce((sum, term) => sum + term.value, 0);
+      const applyTemporaryHitPointsToSheet = Boolean(row?.applyTemporaryHitPointsToSheet);
+      if (applyTemporaryHitPointsToSheet) {
+        const temporaryHitPoints = getTemporaryHitPointsField();
+        const current = Math.max(0, Number.parseInt(temporaryHitPoints?.value || "0", 10) || 0);
+        if (temporaryHitPoints && roll.total > current) {
+          temporaryHitPoints.value = String(roll.total);
+          scheduleSave();
+        }
+      }
       updatePreparedSpellsPanel();
-      showDiceTray(`${attackName}: ${t("dice.damage")}`, String(roll.total), formatDiceLines([
+      showDiceTray(`${attackName}: ${applyTemporaryHitPointsToSheet ? t("spell.temporaryHitPoints") : row?.healing ? t("spell.healing") : t("dice.damage")}`, String(roll.total), formatDiceLines([
         isCriticalHit ? t("dice.criticalExpression", { base: damageExpression, final: finalExpression }) : t("dice.dice", { label: damageExpression }),
         isCriticalHit ? "Efecto: tiras todos los damage dice dos veces y luego sumas los modificadores." : "",
         damageRollOptions.greatWeaponFighting ? "Great Weapon Fighting: cada 1 o 2 en los damage dice base cuenta como 3." : "",
@@ -5591,7 +6086,8 @@
         )),
         ...bonusTerms.map((term) => `Bonus fijo: ${formatModifier(term.value)}`),
         `Total: ${diceTotal}${bonusTotal ? ` ${formatModifier(bonusTotal)}` : ""} = ${roll.total}`,
-        resolvedDamageType ? `Tipo: ${resolvedDamageType}` : ""
+        resolvedDamageType ? `Tipo: ${resolvedDamageType}` : "",
+        applyTemporaryHitPointsToSheet ? t("spell.temporaryHitPointsNonstack") : ""
       ]));
     }
 
@@ -5627,7 +6123,7 @@
     }
 
     function quickenedSpellCastRow(spellEntry) {
-      return spellAttackSelections(spellEntry.name, spellEntry.level)[0] || null;
+      return spellAttackSelections(spellEntry.spell || spellEntry.name, spellEntry.level)[0] || null;
     }
 
     function quickenedSpellAvailability(spellEntry) {
@@ -5710,7 +6206,7 @@
         .filter(isSpellReadyForAttackPanel)
         .flatMap((field) => {
           const spellName = field.value.trim();
-          return spellAttackSelections(spellName, Number(field.dataset.spellLevel));
+          return spellAttackSelections(spellForField(field) || spellName, Number(field.dataset.spellLevel));
         });
       const preparedSpellNames = new Set(sheetSpellFieldElements()
         .map((field) => field.value.trim())
@@ -5720,7 +6216,7 @@
         .filter((spellName) => !preparedSpellNames.has(normalizeName(spellName)))
         .flatMap((spellName) => {
           const spell = findSpellByName(spellName);
-          return spellAttackSelections(spellName, spell?.level ?? 1);
+          return spellAttackSelections(spell || spellName, spell?.level ?? 1);
         });
       const allPreparedSpells = [...preparedSpells, ...autoPreparedSpells]
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
@@ -5743,7 +6239,7 @@
         return;
       }
       if (row.kind === "spell") {
-        showSpellDrawer(row.sourceName || row.name);
+        showSpellDrawer(row.spell || findSpellById(row.spellId) || row.sourceName || row.name);
         return;
       }
       if (row.sourceEntry) {
@@ -5843,6 +6339,18 @@
           `Spell Slots nivel ${level}: ${spellSlotRemaining(level)}/${maximum}`
         );
       });
+
+      const activeConcentration = sheetMeta?.combatTurn?.concentration || null;
+      if (activeConcentration) {
+        appendPreparedResourceCounter(
+          t("spell.concentrationShort"),
+          1,
+          1,
+          t("spell.concentrationActive"),
+          t("spell.endConcentration", { name: activeConcentration.name || t("spell.unknownConcentration") }),
+          () => endActiveConcentration()
+        );
+      }
 
       const sorceryPoints = sorceryPointsResourceInfo();
       if (sorceryPoints?.info) {
@@ -6000,7 +6508,20 @@
         else if (!spell.damage) damageButton.disabled = true;
         else damageButton.addEventListener("click", () => rollDamage(spell));
 
-        row.append(name, damageType, levelButton, castButton, attackButton, damageButton);
+        const ritualButton = document.createElement("button");
+        ritualButton.type = "button";
+        ritualButton.className = "dice-button";
+        if (spell.kind === "spell" && spell.ritual && spell.level > 0) {
+          ritualButton.textContent = t("spell.ritual");
+          ritualButton.title = t("spell.castRitual", { name: spell.name });
+          ritualButton.addEventListener("click", () => castPreparedSpell(spell, { ritual: true }));
+        } else {
+          ritualButton.textContent = "-";
+          ritualButton.title = t("spell.notRitual");
+          ritualButton.disabled = true;
+        }
+
+        row.append(name, damageType, levelButton, castButton, ritualButton, attackButton, damageButton);
         preparedSpellsPanel.appendChild(row);
       });
       if (refreshCombat) refreshTurnActionsPanelIfVisible();
@@ -6089,14 +6610,10 @@
     function castableSpellFieldSelections() {
       return sheetSpellFieldElements()
         .filter((field) => field.value.trim())
-        .filter((field) => {
-          if (Number(field.dataset.spellLevel) === 0) return true;
-          const checkbox = getFieldByKey(field.dataset.preparedKey);
-          return checkbox ? checkbox.checked : true;
-        })
+        .filter(isSpellReadyForAttackPanel)
         .map((field) => {
           const spellName = field.value.trim();
-          const spell = findSpellByName(spellName);
+          const spell = spellForField(field);
           return {
             name: spellName,
             spell: spell || { name: spellName, level: Number(field.dataset.spellLevel) || 0, time: [] },
@@ -6108,10 +6625,10 @@
     function castableSpellSelections() {
       return combatMemoValue("castable-spell-selections", () => {
         const selected = castableSpellFieldSelections();
-        const seen = new Set(selected.map((entry) => normalizeName(entry.name)));
+        const seen = new Set(selected.map((entry) => normalizeName(entry.spell?.id || entry.name)));
         autoAlwaysPreparedSpellNames().forEach((spellName) => {
-          if (seen.has(normalizeName(spellName))) return;
           const spell = findSpellByName(spellName);
+          if (seen.has(normalizeName(spell?.id || spellName))) return;
           selected.push({
             name: spellName,
             spell: spell || { name: spellName, level: 1, time: [] },
@@ -6121,7 +6638,7 @@
         const deduped = [];
         const emitted = new Set();
         selected.forEach((entry) => {
-          const key = normalizeName(entry.name);
+          const key = normalizeName(entry.spell?.id || entry.name);
           if (!key || emitted.has(key)) return;
           emitted.add(key);
           deduped.push(entry);
@@ -6144,26 +6661,28 @@
         return { available: true, shortLabel: "cantrip", detail: "Cantrip" };
       }
       const spellName = spellEntry?.spell?.name || spellEntry?.name || "";
+      const selected = spellAttackSelections(spellEntry.spell || spellEntry.name, spellEntry.level)[0];
+      const castLevel = selected?.castLevel || spellEntry.level;
       const freeUse = freeSpellUseInfo(spellName);
-      if (freeUse?.remaining > 0) {
+      if (castLevel === spellEntry.level && freeUse?.remaining > 0) {
         return {
           available: true,
           shortLabel: "uso gratis",
           detail: `${freeUse.sourceLabel}: uso gratis ${freeUse.remaining}/${freeUse.max}`
         };
       }
-      const remaining = spellSlotRemaining(spellEntry.level);
-      const total = spellSlotTotal(spellEntry.level);
-      if (remaining <= 0) return { available: false, reason: `No spell slot level ${spellEntry.level} remaining.` };
+      const remaining = spellSlotRemaining(castLevel);
+      const total = spellSlotTotal(castLevel);
+      if (remaining <= 0) return { available: false, reason: `No spell slot level ${castLevel} remaining.` };
       return {
         available: true,
-        shortLabel: `slot nivel ${spellEntry.level}`,
-        detail: `Slot nivel ${spellEntry.level}: ${remaining}/${total}`
+        shortLabel: `slot nivel ${castLevel}`,
+        detail: `Slot nivel ${castLevel}: ${remaining}/${total}`
       };
     }
 
     function spellActionCombatDetail(spellEntry) {
-      const rows = spellAttackSelections(spellEntry.name, spellEntry.level);
+      const rows = spellAttackSelections(spellEntry.spell || spellEntry.name, spellEntry.level);
       if (!rows.length) return "";
       const first = rows[0];
       const parts = [];
@@ -6272,7 +6791,7 @@
     }
 
     function combatOptionalDamageChoices() {
-      return featureGrantedAttackSelections()
+      const featureChoices = featureGrantedAttackSelections()
         .filter((row) => normalizeName(row.name).includes("sneak attack") && row.damage)
         .map((row) => ({
           key: "sneak-attack",
@@ -6281,6 +6800,17 @@
           oncePerTurnKey: "sneak-attack",
           description: row.description || "Apply only when Sneak Attack requirements are satisfied."
         }));
+      const spellChoices = ensureActiveSpellAttackEffects().map((effect) => ({
+        key: `spell-effect:${effect.id}`,
+        name: effect.name,
+        damage: effect.damage,
+        damageType: effect.damageType,
+        oncePerTurnKey: "",
+        activeSpellEffectId: effect.id,
+        consumeOnUse: Boolean(effect.consumeOnUse),
+        description: effect.description || `Apply ${effect.name} only when its target and attack requirements are satisfied.`
+      }));
+      return [...featureChoices, ...spellChoices];
     }
 
     function currentSorceryPointData() {
@@ -7116,6 +7646,7 @@
 
     function startNewCombatTurn() {
       const state = combatTurnState();
+      ageActiveSpellAttackEffects();
       sheetMeta.activeStatuses = ensureActiveStatusIds().filter((id) => id !== "dodging");
       renderStatusDock();
       const effects = activeStatusEffects();
@@ -7352,6 +7883,7 @@
         .filter((choice) => activeCombatResolution.results.variant?.optionalDamageKeys?.includes(choice.key))
         .map((choice) => choice.damage)
         .filter(Boolean);
+      const optionalDamageKeys = [...(activeCombatResolution.results.variant?.optionalDamageKeys || [])];
       const expression = [action.damageFormula, ...optionalDamage].filter(Boolean).join("+");
       if (!expression) {
         showStatus(t("turn.noDamageRoll"));
@@ -7379,6 +7911,7 @@
         appliedTotal,
         dice: roll.terms.filter((term) => term.type === "dice").flatMap((term) => term.rolls),
         expression: finalExpression,
+        optionalDamageKeys,
         detail
       });
       showDiceTray(`${action.title}: ${action.healing ? "Healing" : "Damage"}`, String(appliedTotal), detail);
@@ -7448,9 +7981,9 @@
         actionPatch.readyAction = { action: variant.preparedAction || "", trigger: variant.trigger || "", createdAt: new Date().toISOString() };
       }
       const selectedOptionalDamage = activeCombatResolution.results.variant?.optionalDamageKeys || [];
-      if (activeCombatResolution.action.optionalDamageChoices?.some((choice) => choice.oncePerTurnKey && selectedOptionalDamage.includes(choice.key))) {
-        actionPatch.oncePerTurnKey = activeCombatResolution.action.optionalDamageChoices.find((choice) => selectedOptionalDamage.includes(choice.key))?.oncePerTurnKey || "";
-      }
+      const selectedOncePerTurnChoice = activeCombatResolution.action.optionalDamageChoices
+        ?.find((choice) => choice.oncePerTurnKey && selectedOptionalDamage.includes(choice.key));
+      if (selectedOncePerTurnChoice) actionPatch.oncePerTurnKey = selectedOncePerTurnChoice.oncePerTurnKey;
       const committed = confirmCombatResolution(activeCombatResolution, actionPatch);
       if (!committed.ok) {
         showStatus(committed.reason);
@@ -7458,7 +7991,10 @@
       }
       const action = committed.session.action;
       if (action.category === ACTION_CATEGORIES.spells && action.attack?.kind === "spell") {
-        if (!castPreparedSpell(action.attack, { deferUi: true })) {
+        if (!castPreparedSpell(action.attack, {
+          deferUi: true,
+          concentrationReplacementConfirmed: Boolean(committed.session.results.concentrationReplacementConfirmed)
+        })) {
           showStatus(t("turn.spellCommitFailed"));
           return;
         }
@@ -7481,9 +8017,10 @@
       sheetMeta.combatTurn = committed.economy;
       if (action.effect === "executeReady") sheetMeta.combatTurn.readyAction = null;
       const effectsApplied = applyCombatActionSideEffects(action);
-      (action.optionalDamageChoices || [])
-        .filter((choice) => activeCombatResolution.results.variant?.optionalDamageKeys?.includes(choice.key))
-        .forEach((choice) => effectsApplied.push(choice.name));
+      const appliedOptionalDamageChoices = (action.optionalDamageChoices || [])
+        .filter((choice) => selectedOptionalDamage.includes(choice.key));
+      appliedOptionalDamageChoices.forEach((choice) => effectsApplied.push(choice.name));
+      consumeActiveSpellAttackEffects(appliedOptionalDamageChoices);
       if (action.effect === "endTurn") sheetMeta.combatTurn = endTurn(sheetMeta.combatTurn);
       addCombatLogEvent({ ...committed.session, action, results: activeCombatResolution.results }, combatResourcesConsumed(action), effectsApplied);
       activeCombatResolution = null;
@@ -7614,7 +8151,10 @@
             const keys = new Set(activeCombatResolution.results.variant?.optionalDamageKeys || []);
             if (input.checked) keys.add(choice.key);
             else keys.delete(choice.key);
-            setCombatSessionResults({ variant: { ...(activeCombatResolution.results.variant || {}), optionalDamageKeys: [...keys] } });
+            setCombatSessionResults({
+              variant: { ...(activeCombatResolution.results.variant || {}), optionalDamageKeys: [...keys] },
+              damageRoll: null
+            });
           });
           label.appendChild(input);
           fields.appendChild(label);
@@ -8157,6 +8697,7 @@
         if (isAutoGrantedSpellField(field)) return;
         if (!field.value.trim() || canUseSpellLevel(level)) return;
         field.value = "";
+        clearSpellReference(field);
         syncFeatPreparedSpellCheckbox(field);
       });
     }
@@ -8164,10 +8705,11 @@
     function pruneInvalidSpellSourceSelections(snapshot = null) {
       sheetSpellFieldElements().forEach((field) => {
         if (!field.value.trim() || isAutoGrantedSpellField(field)) return;
-        const spell = findSpellByName(field.value);
+        const spell = spellForField(field);
         const level = Number(field.dataset.spellLevel);
         if (spell && spellMatchesSelection(spell, level, snapshot)) return;
         field.value = "";
+        clearSpellReference(field);
         syncFeatPreparedSpellCheckbox(field);
       });
     }
@@ -8177,14 +8719,16 @@
       sheetSpellFieldElements()
         .sort((a, b) => Number(isAutoGrantedSpellField(b)) - Number(isAutoGrantedSpellField(a)))
         .forEach((field) => {
-        const normalized = normalizeName(field.value || "");
-        if (!normalized) return;
-        if (!seen.has(normalized)) {
-          seen.add(normalized);
+        const selectedSpell = spellForField(field);
+        const identity = normalizeName(selectedSpell?.id || field.value || "");
+        if (!identity) return;
+        if (!seen.has(identity)) {
+          seen.add(identity);
           return;
         }
         if (isAutoGrantedSpellField(field)) return;
         field.value = "";
+        clearSpellReference(field);
       });
     }
 
@@ -8198,6 +8742,7 @@
         const used = usedByLevel.get(level) || 0;
         if (used >= getSpellLevelLimit(level, snapshot)) {
           field.value = "";
+          clearSpellReference(field);
           syncFeatPreparedSpellCheckbox(field);
           return;
         }
@@ -8500,7 +9045,7 @@
           if (field.dataset.optionType === "spell") {
             syncFeatPreparedSpellCheckbox(field);
             scheduleSheetChoiceRefresh();
-            scheduleSpellSelectionDrawerRefresh(field, findSpellByName(field.value || ""));
+            scheduleSpellSelectionDrawerRefresh(field, spellForField(field));
           } else {
             field.dispatchEvent(new Event("input", { bubbles: true }));
             field.dispatchEvent(new Event("change", { bubbles: true }));
@@ -8617,6 +9162,7 @@
               return;
             }
             element.value = "";
+            clearSpellReference(element);
             syncFeatPreparedSpellCheckbox(element);
             if (element.dataset.optionType === "spell") {
               scheduleSheetChoiceRefresh();
@@ -9101,6 +9647,7 @@
             return;
           }
           element.value = "";
+          clearSpellReference(element);
           element.dispatchEvent(new Event("input", { bubbles: true }));
           element.dispatchEvent(new Event("change", { bubbles: true }));
           closeOptionMenu();
@@ -9368,7 +9915,10 @@
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
       if (!Array.isArray(sheetMeta.activeStatuses)) sheetMeta.activeStatuses = [];
       if (!Array.isArray(sheetMeta.wizardSpellbook)) sheetMeta.wizardSpellbook = [];
+      if (!Array.isArray(sheetMeta.wizardSpellbookReferences)) sheetMeta.wizardSpellbookReferences = [];
+      wizardSpellbookReferences();
       if (!sheetMeta.spellCastLevels || typeof sheetMeta.spellCastLevels !== "object") sheetMeta.spellCastLevels = {};
+      if (!sheetMeta.spellReferences || typeof sheetMeta.spellReferences !== "object") sheetMeta.spellReferences = {};
       if (!sheetMeta.spellDescriptionTranslations || typeof sheetMeta.spellDescriptionTranslations !== "object") sheetMeta.spellDescriptionTranslations = {};
       if (!["en", "es"].includes(sheetMeta.spellDescriptionsLanguage)) sheetMeta.spellDescriptionsLanguage = "en";
       if (!sheetMeta.generatedSkillProficiencies || typeof sheetMeta.generatedSkillProficiencies !== "object") sheetMeta.generatedSkillProficiencies = {};
@@ -9381,6 +9931,11 @@
         const value = data[key];
         if (element.type === "checkbox") element.checked = Boolean(value);
         else if (typeof value === "string" || typeof value === "number") element.value = value;
+      });
+      sheetSpellFieldElements().forEach((field) => {
+        const spell = spellForField(field);
+        if (spell) rememberSpellReference(field, spell);
+        else if (!field.value.trim()) clearSpellReference(field);
       });
       normalizeRestSheetState();
       sheetMeta.temporarySpellSlots = ensureTemporarySpellSlots(sheetMeta.temporarySpellSlots);
@@ -10469,28 +11024,60 @@
       root.className = "item-sheet";
 
       if (!spell) {
-        appendItemSection(root, "Spell", "No encontre esta magia en los datos locales.");
+        appendItemSection(root, "Spell", t("spell.missingData"));
         return root;
       }
 
       appendText(root, "item-sheet-title", spell.name, "h2");
       appendText(root, "item-sheet-subtitle", [spellSourceLabel(spell), spellLevelLabel(spell.level), spellSchoolLabel(spell)].filter(Boolean).join(" - "));
 
+      const icon = document.createElement("div");
+      icon.className = "spell-school-icon";
+      const fallbackIcon = document.createElement("span");
+      fallbackIcon.textContent = String(spell.school || "?").toUpperCase().slice(0, 2);
+      fallbackIcon.title = t("spell.iconFallback", { school: spellSchoolLabel(spell) || t("spell.unknownSchool") });
+      icon.appendChild(fallbackIcon);
+      if (spell.icon) {
+        const image = document.createElement("img");
+        image.src = spell.icon;
+        image.alt = t("spell.iconAlt", { name: spell.name });
+        image.addEventListener("load", () => { fallbackIcon.hidden = true; });
+        image.addEventListener("error", () => { image.hidden = true; fallbackIcon.hidden = false; });
+        icon.prepend(image);
+      }
+      root.appendChild(icon);
+
       const stats = document.createElement("div");
       stats.className = "item-stat-grid";
-      appendItemStat(stats, "Nivel", spellLevelLabel(spell.level));
-      appendItemStat(stats, "Escuela", spellSchoolLabel(spell));
-      appendItemStat(stats, "Clases", (spell.classes || []).join(", "));
-      appendItemStat(stats, "Razas", (spell.races || []).join(", "));
-        appendItemStat(stats, t("item.damageDetected"), damageDiceForSpell(spell));
-        appendItemStat(stats, t("item.damageType"), damageTypeForSpell(spell));
+      const behavior = spellBehaviorProfile(spell);
+      appendItemStat(stats, t("spell.stat.level"), spellLevelLabel(spell.level));
+      appendItemStat(stats, t("spell.stat.school"), spellSchoolLabel(spell));
+      appendItemStat(stats, t("spell.stat.castingTime"), formatCastingTime(spell));
+      appendItemStat(stats, t("spell.stat.range"), formatRange(spell));
+      appendItemStat(stats, t("spell.stat.components"), formatComponents(spell));
+      appendItemStat(stats, t("spell.stat.duration"), formatDuration(spell));
+      appendItemStat(stats, t("spell.stat.classes"), structuredSpellClassNames(spell).join(", "));
+      appendItemStat(stats, t("spell.stat.races"), structuredSpellRaceNames(spell).join(", "));
+      appendItemStat(stats, t("spell.stat.attack"), behavior.attacks.join(", "));
+      appendItemStat(stats, t("spell.stat.savingThrow"), behavior.savingThrows.join(", "));
+      appendItemStat(stats, t("item.damageDetected"), damageDiceForSpell(spell));
+      appendItemStat(stats, t("item.damageType"), behavior.damageTypes.join(", ") || damageTypeForSpell(spell));
+      appendItemStat(stats, t("spell.stat.conditions"), behavior.conditions.join(", "));
+      appendItemStat(stats, t("spell.stat.area"), behavior.areaTags.join(", "));
       root.appendChild(stats);
 
       const chips = document.createElement("div");
       chips.className = "item-chip-list";
-      [spellSourceLabel(spell), spell.level === 0 ? "Cantrip" : `Level ${spell.level}`, spellSchoolLabel(spell)]
+      [spellSourceLabel(spell), spell.level === 0 ? t("spell.cantrip") : t("spell.levelChip", { level: spell.level }), spellSchoolLabel(spell)]
         .filter(Boolean)
         .forEach((value) => appendText(chips, "item-chip", value, "span"));
+      if (behavior.concentration) appendText(chips, "item-chip", t("spell.concentration"), "span");
+      if (behavior.ritual) appendText(chips, "item-chip", t("spell.ritual"), "span");
+      if (behavior.healing) appendText(chips, "item-chip", t("spell.healing"), "span");
+      if (behavior.temporaryHitPoints) appendText(chips, "item-chip", t("spell.temporaryHitPoints"), "span");
+      const material = spellMaterialComponent(spell);
+      if (material?.cost) appendText(chips, "item-chip", t("spell.costlyMaterial"), "span");
+      if (material?.consume) appendText(chips, "item-chip", t("spell.consumedMaterial"), "span");
       if (chips.childElementCount) root.appendChild(chips);
 
       const description = cleanSpellDescription(spell);
@@ -10504,13 +11091,13 @@
           description,
           detailBody: descriptionContainer,
           renderOriginal: renderSpellDescription,
-          labelText: "La traduccion aplica solo a la spell examinada.",
+          labelText: t("spell.translationScope"),
           translateDescription: () => translateSpellDescription(spell, description)
         });
         if (translationToolbar) root.appendChild(translationToolbar);
       }
       root.appendChild(descriptionContainer);
-      appendText(root, "item-source", spellSourceLabel(spell) ? `Source: ${spellSourceLabel(spell)}.` : "");
+      appendText(root, "item-source", spellSourceLabel(spell) ? t("spell.sourceLabel", { source: spellSourceLabel(spell) }) : "");
       return root;
     }
 
@@ -10523,14 +11110,18 @@
       );
     }
 
-    function commitSpellSelection(field, spellName) {
+    function commitSpellSelection(field, spellOrName) {
+      const spell = typeof spellOrName === "object"
+        ? spellOrName
+        : findSpellByName(spellOrName, Number(field?.dataset?.spellLevel));
+      const spellName = spell?.name || String(spellOrName || "");
       if (!field || !spellName) return false;
       if (field.dataset.optionType === "spell" && !ensureCanModifySpells()) return false;
       if (isAutoGrantedSpellField(field)) {
         showStatus("Esta magia la otorga tu personaje y no se puede reemplazar.");
         return false;
       }
-      if (isSpellAlreadySelected(spellName, field)) {
+      if (isSpellAlreadySelected(spell || spellName, field)) {
         showStatus("Esa magia ya esta seleccionada");
         return false;
       }
@@ -10554,15 +11145,17 @@
           return false;
         }
       }
-      if (isWizardCharacter() && level > 0 && !wizardSpellbookSet().has(normalizeName(spellName))) {
+      if (isWizardCharacter() && level > 0 && !wizardSpellbookHasSpell(spell || spellName)) {
         showStatus("Primero agregala al spellbook.");
         return false;
       }
       field.value = spellName;
+      if (spell) rememberSpellReference(field, spell);
+      else clearSpellReference(field);
       syncFeatPreparedSpellCheckbox(field);
       scheduleSheetChoiceRefresh();
       showStatus(`${spellName} seleccionada`);
-      scheduleSpellSelectionDrawerRefresh(field, findSpellByName(spellName));
+      scheduleSpellSelectionDrawerRefresh(field, spell || findSpellByName(spellName, level));
       return true;
     }
 
@@ -10570,6 +11163,7 @@
       if (!field || isAutoGrantedSpellField(field)) return;
       if (field.dataset.optionType === "spell" && !ensureCanModifySpells()) return;
       field.value = "";
+      clearSpellReference(field);
       syncFeatPreparedSpellCheckbox(field);
       scheduleSheetChoiceRefresh();
       showStatus("Magia quitada");
@@ -10580,6 +11174,7 @@
       const detail = detailBody?.closest(".spell-picker-detail");
       if (!detailBody || !detail) return;
       detailBody.dataset.currentSpellName = spell?.name || "";
+      detailBody.dataset.currentSpellId = spell?.id || "";
       detailBody.dataset.currentSpellTranslated = translated ? "true" : "false";
       detailBody.textContent = "";
       const translatedDescription = translated && spell ? ensureSpellTranslationCache()[spellTranslationKey(spell)] || "" : "";
@@ -10606,7 +11201,9 @@
       button.dataset.spellTranslationButton = "true";
       button.textContent = "Traducir examinada";
       button.addEventListener("click", () => {
-        const visibleSpell = findSpellByName(detailBody?.dataset?.currentSpellName || "") || currentSpell;
+        const visibleSpell = findSpellById(detailBody?.dataset?.currentSpellId || "")
+          || findSpellByName(detailBody?.dataset?.currentSpellName || "")
+          || currentSpell;
         if (!visibleSpell) return;
         if (detailBody.dataset.currentSpellTranslated === "true") {
           showSpellPickerDetail(detailBody, visibleSpell);
@@ -10635,8 +11232,14 @@
     }
 
     function spellPickerRow(field, spell, detailBody, selectedSpell) {
+      const selected = spellForField(field) || selectedSpell;
+      const isSelected = Boolean(selected && spell && (
+        selected.id && spell.id
+          ? normalizeName(selected.id) === normalizeName(spell.id)
+          : normalizeName(selected.name || "") === normalizeName(spell.name || "") && Number(selected.level) === Number(spell.level)
+      ));
       const row = document.createElement("div");
-      row.className = `spell-picker-row ${normalizeName(field.value || "") === normalizeName(spell.name) ? "active" : ""}`;
+      row.className = `spell-picker-row ${isSelected ? "active" : ""}`;
       row.addEventListener("click", (event) => {
         if (event.target.closest("button")) return;
         showSpellPickerDetail(detailBody, spell);
@@ -10658,10 +11261,10 @@
       const chooseButton = document.createElement("button");
       chooseButton.type = "button";
       chooseButton.className = "spell-picker-button";
-      chooseButton.textContent = normalizeName(field.value || "") === normalizeName(spell.name) ? "Elegida" : "Elegir";
-      chooseButton.disabled = isAutoGrantedSpellField(field) || normalizeName(field.value || "") === normalizeName(spell.name);
+      chooseButton.textContent = isSelected ? "Elegida" : "Elegir";
+      chooseButton.disabled = isAutoGrantedSpellField(field) || isSelected;
       chooseButton.addEventListener("click", () => {
-        if (!commitSpellSelection(field, spell.name)) return;
+        if (!commitSpellSelection(field, spell)) return;
         showOptimisticSpellPickerState(row, chooseButton, { label: "Elegida" });
       });
 
@@ -10671,7 +11274,7 @@
     }
 
     function wizardSpellListRow(field, spell, detailBody, snapshot) {
-      const known = snapshot.wizardSpellbookSet.has(normalizeName(spell.name));
+      const known = wizardSpellbookHasSpell(spell);
       const atCapacity = !known && snapshot.wizardSpellbookNames.length >= snapshot.wizardSpellbookLimit;
       const row = document.createElement("div");
       row.className = `spell-picker-row ${known ? "active" : ""}`;
@@ -10702,10 +11305,16 @@
       bookButton.type = "button";
       bookButton.className = "spell-picker-button";
       bookButton.textContent = known ? t("spell.removeFromBook") : t("spell.addToBook");
-      bookButton.disabled = !canModifySpells() || normalizeName(field.value || "") === normalizeName(spell.name) || atCapacity;
+      const fieldSpell = spellForField(field);
+      const fieldHasSpell = Boolean(fieldSpell && (
+        fieldSpell.id && spell.id
+          ? normalizeName(fieldSpell.id) === normalizeName(spell.id)
+          : normalizeName(fieldSpell.name || "") === normalizeName(spell.name) && Number(fieldSpell.level) === Number(spell.level)
+      ));
+      bookButton.disabled = !canModifySpells() || fieldHasSpell || atCapacity;
       bookButton.addEventListener("click", () => {
-        if (known) removeWizardSpellbookSpell(spell.name);
-        else if (!addWizardSpellbookSpell(spell.name)) return;
+        if (known) removeWizardSpellbookSpell(spell);
+        else if (!addWizardSpellbookSpell(spell)) return;
         showOptimisticSpellPickerState(row, bookButton, { active: !known });
         showStatus(known ? `${spell.name} quitada del spellbook` : `${spell.name} agregada al spellbook`);
         scheduleSpellSelectionDrawerRefresh(field, spell);
@@ -10717,7 +11326,9 @@
     }
 
     function wizardSpellbookManagerRow(field, spell, detailBody, snapshot) {
-      const prepared = snapshot.wizardPreparedSet.has(normalizeName(spell.name));
+      const prepared = spell.id
+        ? snapshot.wizardPreparedIdSet.has(normalizeName(spell.id))
+        : snapshot.wizardPreparedSet.has(normalizeName(spell.name));
       const row = document.createElement("div");
       row.className = `spell-picker-row ${prepared ? "active" : ""}`;
       row.addEventListener("click", (event) => {
@@ -10749,7 +11360,7 @@
       prepareButton.textContent = prepared ? "Despreparar" : "Preparar";
       prepareButton.disabled = !canModifySpells();
       prepareButton.addEventListener("click", () => {
-        if (!setWizardPreparedSpell(spell.name, !prepared)) return;
+        if (!setWizardPreparedSpell(spell, !prepared)) return;
         showOptimisticSpellPickerState(row, prepareButton, { active: !prepared });
         scheduleSpellSelectionDrawerRefresh(field, spell);
       });
@@ -10760,12 +11371,23 @@
       removeButton.textContent = "Quitar";
       removeButton.disabled = !canModifySpells();
       removeButton.addEventListener("click", () => {
-        removeWizardSpellbookSpell(spell.name);
+        removeWizardSpellbookSpell(spell);
         showStatus(`${spell.name} quitada del spellbook`);
         scheduleSpellSelectionDrawerRefresh(field);
       });
 
-      actions.append(prepareButton, removeButton);
+      const ritualButton = document.createElement("button");
+      ritualButton.type = "button";
+      ritualButton.className = "spell-picker-button secondary";
+      ritualButton.textContent = t("spell.ritual");
+      ritualButton.title = spell.ritual ? t("spell.castRitual", { name: spell.name }) : t("spell.notRitual");
+      ritualButton.disabled = !spell.ritual;
+      ritualButton.addEventListener("click", () => {
+        const row = spellAttackSelections(spell, spell.level)[0];
+        if (row) castPreparedSpell(row, { ritual: true });
+      });
+
+      actions.append(prepareButton, ritualButton, removeButton);
       row.append(nameButton, meta, actions);
       return row;
     }
@@ -10796,7 +11418,7 @@
       removeButton.textContent = "Quitar";
       removeButton.disabled = !canModifySpells();
       removeButton.addEventListener("click", () => {
-        removeKnownSpellFromSheet(spell.name);
+        removeKnownSpellFromSheet(spell);
         showStatus(`${spell.name} quitada`);
         scheduleSpellSelectionDrawerRefresh(field);
       });
@@ -10807,7 +11429,9 @@
     }
 
     function bardLearnSpellRow(field, spell, detailBody, snapshot) {
-      const known = snapshot.selectedKnownSpellSet.has(normalizeName(spell.name));
+      const known = spell.id
+        ? snapshot.selectedKnownSpellIdSet.has(normalizeName(spell.id))
+        : snapshot.selectedKnownSpellSet.has(normalizeName(spell.name));
       const atCapacity = !known && snapshot.selectedKnownSpellNames.length >= snapshot.bardKnownLimit;
       const row = document.createElement("div");
       row.className = `spell-picker-row ${known ? "active" : ""}`;
@@ -10839,7 +11463,7 @@
       learnButton.textContent = known ? t("spell.known") : t("spell.learn");
       learnButton.disabled = !canModifySpells() || known || atCapacity;
       learnButton.addEventListener("click", () => {
-        if (!bardCanLearnSpell(spell.name)) {
+        if (!bardCanLearnSpell(spell)) {
           showStatus("Esa spell no esta disponible para Bard.");
           return;
         }
@@ -10847,7 +11471,7 @@
           showStatus(`Limite de spells conocidas: ${bardKnownSpellLimit()}`);
           return;
         }
-        if (!assignKnownSpellToSheet(spell.name)) return;
+        if (!assignKnownSpellToSheet(spell)) return;
         showOptimisticSpellPickerState(row, learnButton, { label: t("spell.known") });
         scheduleSheetChoiceRefresh();
         showStatus(`${spell.name} aprendida`);
@@ -10864,7 +11488,7 @@
       const maxLevel = snapshot?.maxSpellLevel ?? maxSpellLevelForCharacter();
       return spells.filter((spell) => spell.level > 0
         && spell.level <= maxLevel
-        && spell.classes?.some((name) => normalizeName(name) === "wizard")
+        && structuredSpellHasClass(spell, "wizard")
         && !autoPrepared.has(normalizeName(spell.name)));
     }
 
@@ -10948,7 +11572,7 @@
     function buildWizardSpellbookDrawerContent(field, selectedSpell = null, snapshot = createSpellSelectionSnapshot()) {
       const root = document.createElement("div");
       root.className = "spell-picker";
-      const currentSpell = selectedSpell || findSpellByName(field.value || "");
+      const currentSpell = selectedSpell || spellForField(field);
 
       const main = document.createElement("div");
       main.className = "spell-picker-main";
@@ -11001,9 +11625,7 @@
 
       const spellbookBody = appendCollapsibleSection(main, "Spellbook", { collapsed: false, stateKey: "wizard:spellbook" });
 
-      const knownSpells = snapshot.wizardSpellbookNames
-        .map(findSpellByName)
-        .filter(Boolean)
+      const knownSpells = snapshot.wizardSpellbookSpells
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
       if (!knownSpells.length) {
         appendItemSection(spellbookBody, "Sin spells en el libro", "Agrega spells desde la lista de Wizard. Nivel 1 permite 6 spells en el spellbook.");
@@ -11037,7 +11659,7 @@
     function buildBardSpellsDrawerContent(field, selectedSpell = null, snapshot = createSpellSelectionSnapshot()) {
       const root = document.createElement("div");
       root.className = "spell-picker";
-      const currentSpell = selectedSpell || findSpellByName(field.value || "");
+      const currentSpell = selectedSpell || spellForField(field);
 
       const main = document.createElement("div");
       main.className = "spell-picker-main";
@@ -11088,9 +11710,7 @@
         )
       });
 
-      const knownSpells = snapshot.selectedKnownSpellNames
-        .map(findSpellByName)
-        .filter(Boolean)
+      const knownSpells = snapshot.selectedKnownSpells
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
       const knownBody = appendCollapsibleSection(main, "Spells conocidos", { collapsed: false, stateKey: "bard:known-spells" });
       if (!knownSpells.length) {
@@ -11122,11 +11742,11 @@
       return root;
     }
 
-    function assignManagedSpellToSheet(spellName) {
+    function assignManagedSpellToSheet(spellOrName) {
       if (!ensureCanModifySpells()) return null;
-      const spell = findSpellByName(spellName);
+      const spell = typeof spellOrName === "object" ? spellOrName : findSpellByName(spellOrName);
       if (!spell || spell.level <= 0) return null;
-      const existing = knownSpellFieldForSpell(spell.name);
+      const existing = wizardFieldForSpell(spell);
       if (existing) return existing;
       const managedLimit = managedPreparedSpellLimit();
       if (managedLimit != null && selectedManagedSpellCount() >= managedLimit) {
@@ -11147,6 +11767,7 @@
         return null;
       }
       field.value = spell.name;
+      rememberSpellReference(field, spell);
       syncFeatPreparedSpellCheckbox(field);
       scheduleSheetChoiceRefresh();
       return field;
@@ -11187,7 +11808,7 @@
       removeButton.textContent = "Quitar";
       removeButton.disabled = !canModifySpells();
       removeButton.addEventListener("click", () => {
-        removeKnownSpellFromSheet(spell.name);
+        removeKnownSpellFromSheet(spell);
         showStatus(`${spell.name} quitada`);
         scheduleSpellSelectionDrawerRefresh(field);
       });
@@ -11198,7 +11819,9 @@
     }
 
     function managedLearnSpellRow(field, spell, detailBody, snapshot) {
-      const selected = snapshot.selectedKnownSpellSet.has(normalizeName(spell.name));
+      const selected = spell.id
+        ? snapshot.selectedKnownSpellIdSet.has(normalizeName(spell.id))
+        : snapshot.selectedKnownSpellSet.has(normalizeName(spell.name));
       const totalLimit = snapshot.managedPreparedLimit;
       const totalUsed = snapshot.selectedManagedSpellCount;
       const limit = snapshot.spellLevelLimits.get(spell.level) ?? Infinity;
@@ -11240,7 +11863,7 @@
       learnButton.textContent = selected ? t("spell.selected") : t("spell.learn");
       learnButton.disabled = !canModifySpells() || selected || atCapacity;
       learnButton.addEventListener("click", () => {
-        if (!assignManagedSpellToSheet(spell.name)) return;
+        if (!assignManagedSpellToSheet(spell)) return;
         showOptimisticSpellPickerState(row, learnButton, { label: t("spell.selected") });
         showStatus(`${spell.name} aprendida`);
         scheduleSpellSelectionDrawerRefresh(field, spell);
@@ -11254,7 +11877,7 @@
     function buildManagedSpellsDrawerContent(field, selectedSpell = null, snapshot = createSpellSelectionSnapshot()) {
       const root = document.createElement("div");
       root.className = "spell-picker";
-      const currentSpell = selectedSpell || findSpellByName(field.value || "");
+      const currentSpell = selectedSpell || spellForField(field);
 
       const main = document.createElement("div");
       main.className = "spell-picker-main";
@@ -11308,9 +11931,7 @@
         )
       });
 
-      const knownSpells = snapshot.selectedKnownSpellNames
-        .map(findSpellByName)
-        .filter(Boolean)
+      const knownSpells = snapshot.selectedKnownSpells
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
       const knownBody = appendCollapsibleSection(main, "Spells seleccionadas", { collapsed: false, stateKey: "managed:known-spells" });
       if (!knownSpells.length) {
@@ -12088,7 +12709,7 @@
       const classKey = normalizeName(className);
       const options = spells
         .filter((spell) => spell.level === 0)
-        .filter((spell) => !classKey || spell.classes?.some((name) => normalizeName(name) === classKey))
+        .filter((spell) => !classKey || structuredSpellHasClass(spell, classKey))
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((spell) => ({
           value: `spell:${spell.name}`,
@@ -18182,29 +18803,39 @@
               const armorBlocksCasting = equippedArmorWithoutProficiency();
               if (!types.length) return [];
               const detail = [availability.detail, spellActionCombatDetail(spellEntry)].filter(Boolean).join(" | ");
-              const row = spellAttackSelections(spellEntry.name, spellEntry.level)[0] || {
+              const rows = spellAttackSelections(spellEntry.spell || spellEntry.name, spellEntry.level);
+              const providerRows = rows.some((row) => row.embeddedWeaponAttack) ? rows : rows.slice(0, 1);
+              const resolvedRows = providerRows.length ? providerRows : [{
                 name: spellEntry.name,
                 kind: "spell",
                 level: spellEntry.level,
                 castLevel: spellEntry.level,
                 noAttackRoll: true,
                 description: spellEntry.spell?.description || ""
-              };
-              return types.map((type) => ({
-                ...createSpellActionDefinition(spellEntry, row, {
-                  id: `spell:${type}:${normalizeName(spellEntry.name)}`,
-                  name: `Cast ${spellEntry.name}`,
-                  allowOutsideTurn: type === ACTION_TYPES.reaction
-                }),
-                type,
-                disabledReason: armorBlocksCasting
-                  ? "Armor or shield without proficiency prevents spellcasting."
-                  : availability.available
-                  ? ""
-                  : availability.reason || "No valid spell resource available.",
-                detail: [detail, spellEntry.spell?.description].filter(Boolean).join("\n"),
-                source: "spells"
-              }));
+              }];
+              return types.flatMap((type) => resolvedRows.map((row) => ({
+                  ...createSpellActionDefinition(spellEntry, row, {
+                    id: row.embeddedWeaponAttack
+                      ? `spell:${type}:${normalizeName(row.weaponName || "missing-weapon")}:${normalizeName(spellEntry.name)}`
+                      : `spell:${type}:${normalizeName(spellEntry.name)}`,
+                    name: row.embeddedWeaponAttack ? `Cast ${row.name}` : `Cast ${spellEntry.name}`,
+                    allowOutsideTurn: type === ACTION_TYPES.reaction
+                  }),
+                  type,
+                  disabledReason: armorBlocksCasting
+                    ? "Armor or shield without proficiency prevents spellcasting."
+                    : row.embeddedWeaponMissing
+                    ? t("spell.equipWeapon")
+                    : row.ammoName && !row.ammoEntry
+                    ? `No ${row.ammoName} ammunition remaining.`
+                    : availability.available
+                    ? ""
+                    : availability.reason || "No valid spell resource available.",
+                  ammoEntry: row.ammoEntry ? { ...row.ammoEntry } : null,
+                  optionalDamageChoices: row.noAttackRoll ? [] : combatOptionalDamageChoices(),
+                  detail: [detail, row.weaponName ? `Weapon: ${row.weaponName}` : "", spellEntry.spell?.description].filter(Boolean).join("\n"),
+                  source: "spells"
+                })));
             })
           };
         }

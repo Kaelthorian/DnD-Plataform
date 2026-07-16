@@ -1,9 +1,14 @@
 (function createCombatActionDefinitionsModule(globalScope, factory) {
-  const api = factory();
+  const spellData = typeof require === "function"
+    ? require("../spells/spell-data.js")
+    : globalScope.dndSpellDataEngine;
+  const api = factory(spellData);
   if (typeof module === "object" && module.exports) module.exports = api;
   globalScope.dndCombatActionDefinitions = api;
-})(typeof globalThis !== "undefined" ? globalThis : this, function combatActionDefinitionsFactory() {
+})(typeof globalThis !== "undefined" ? globalThis : this, function combatActionDefinitionsFactory(spellData) {
   "use strict";
+
+  spellData = spellData || {};
 
   const RESOLUTION_STEPS = Object.freeze({
     selectTarget: "selectTarget",
@@ -103,16 +108,217 @@
     return match ? match[1].slice(0, 3).toUpperCase() : "";
   }
 
+  function cleanStringList(values = []) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : [])
+      .map((value) => String(value || "").trim())
+      .filter((value) => {
+        const key = value.toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function materialComponentForSpell(spell = {}) {
+    if (typeof spellData.spellMaterialComponent === "function") {
+      return spellData.spellMaterialComponent(spell);
+    }
+    const material = spell.materialComponent || spell.components?.m;
+    if (!material) return null;
+    if (typeof material === "string") return { text: material, cost: 0, consume: false };
+    return {
+      text: String(material.text || "").trim(),
+      cost: Math.max(0, Number(material.cost) || 0),
+      consume: Boolean(material.consume)
+    };
+  }
+
+  function spellProfile(spell = {}) {
+    if (typeof spellData.spellBehaviorProfile === "function") {
+      return spellData.spellBehaviorProfile(spell);
+    }
+    const abilityCodes = {
+      strength: "STR",
+      dexterity: "DEX",
+      constitution: "CON",
+      intelligence: "INT",
+      wisdom: "WIS",
+      charisma: "CHA"
+    };
+    const miscTags = Array.isArray(spell.miscTags) ? spell.miscTags : [];
+    return {
+      attacks: cleanStringList(spell.spellAttack),
+      savingThrows: cleanStringList(spell.savingThrow).map((ability) => abilityCodes[ability.toLowerCase()] || ability.slice(0, 3).toUpperCase()),
+      damageTypes: cleanStringList(spell.damageInflict),
+      conditions: cleanStringList(spell.conditionInflict),
+      areaTags: cleanStringList(spell.areaTags),
+      concentration: typeof spell.concentration === "boolean"
+        ? spell.concentration
+        : (Array.isArray(spell.duration) ? spell.duration : []).some((duration) => Boolean(duration?.concentration)),
+      ritual: typeof spell.ritual === "boolean" ? spell.ritual : Boolean(spell.meta?.ritual),
+      material: materialComponentForSpell(spell),
+      healing: miscTags.includes("HL"),
+      temporaryHitPoints: miscTags.includes("THP"),
+      range: spell.range || null,
+      duration: spell.duration || null
+    };
+  }
+
+  function owns(spell, key) {
+    return Boolean(spell) && Object.prototype.hasOwnProperty.call(spell, key);
+  }
+
+  function legacySpellSource(spell = {}) {
+    return String(spell.source || spell.description?.match(/\bSource:\s*([^.]+)/i)?.[1] || "").trim();
+  }
+
+  function spellIdPart(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "spell";
+  }
+
+  function spellIdentity(spellEntry, spell, spellName) {
+    const explicitId = String(spell?.id || spellEntry?.id || "").trim();
+    if (explicitId) return { id: explicitId, stable: true };
+    const source = legacySpellSource(spell) || String(spellEntry?.source || "").trim();
+    if (source) {
+      const id = typeof spellData.createSpellId === "function"
+        ? spellData.createSpellId(spellName, source)
+        : `${spellIdPart(spellName)}--${spellIdPart(source)}`;
+      return { id, stable: true };
+    }
+    return { id: spellIdPart(spellName), stable: false };
+  }
+
+  function sourceAwareSpellActionId(requestedId, identity, spellName) {
+    const fallback = `spell:${spellIdPart(spellName)}`;
+    const requested = String(requestedId || "").trim();
+    if (!identity.stable) return requested || fallback;
+    if (!requested) return `spell:${identity.id}`;
+    if (requested === `spell:${identity.id}` || requested.endsWith(`:${identity.id}`)) return requested;
+    const segments = requested.split(":");
+    if (segments[0] === "spell" && segments.length > 1) {
+      segments[segments.length - 1] = identity.id;
+      return segments.join(":");
+    }
+    return `${requested}:${identity.id}`;
+  }
+
+  function rangeIsSelf(range) {
+    if (typeof range === "string") return /\bself\b/i.test(range);
+    if (!range || typeof range !== "object") return false;
+    const type = String(range.type || "point").toLowerCase();
+    const distanceType = String(range.distance?.type || "").toLowerCase();
+    if (distanceType === "self") return true;
+    return ["cone", "cube", "cylinder", "emanation", "line", "radius", "sphere"].includes(type);
+  }
+
+  function rangeIsArea(range) {
+    if (!range || typeof range !== "object") return false;
+    return ["cone", "cube", "cylinder", "emanation", "line", "radius", "sphere"].includes(String(range.type || "").toLowerCase());
+  }
+
+  function hasEmbeddedWeaponAttack(spell = {}, description = "") {
+    if (typeof spellData.spellHasEmbeddedWeaponAttack === "function") {
+      return spellData.spellHasEmbeddedWeaponAttack(spell);
+    }
+    if (!Array.isArray(spell.miscTags) || !spell.miscTags.includes("AAD")) return false;
+    return /\bbrandish\b[^.]{0,160}\bweapon\b[^.]{0,160}\bmake (?:a|one) (?:melee |ranged )?attack\b/i.test(description)
+      || /\bmake (?:a|one) (?:melee |ranged )?attack with the weapon used in the spell(?:'|\u2019)s casting\b/i.test(description);
+  }
+
+  function hasDeferredAttackDamage(spell = {}, description = "", embeddedWeaponAttack = false) {
+    if (embeddedWeaponAttack) return false;
+    if (typeof spellData.spellHasDeferredAttackDamage === "function") {
+      return spellData.spellHasDeferredAttackDamage(spell);
+    }
+    if (!Array.isArray(spell.miscTags) || !spell.miscTags.includes("AAD")) return false;
+    const castingCondition = String(spell.time?.[0]?.condition || "");
+    if (/\bimmediately after hitting\b/i.test(castingCondition)) return false;
+    return (Array.isArray(spell.duration) ? spell.duration : [])
+      .some((duration) => String(duration?.type || "").toLowerCase() !== "instant");
+  }
+
+  function hasGuidedMultiModeResolution(saveAbilities = [], attackTypes = [], description = "") {
+    if (saveAbilities.length < 2) return false;
+    if (attackTypes.length > 0) return true;
+    return /\b(?:roll (?:on|a d\d+)|consult(?:ing)?|choose (?:one of|which effect)|following effects?|different effects?|mischievous surge|prismatic rays?|layers?)\b/i.test(description)
+      || /\b(?:at the start of each of your later turns|as a bonus action(?: on your later turns)?|until the spell ends, you can use your action|you can use a bonus action)\b/i.test(description);
+  }
+
   function createSpellActionDefinition(spellEntry = {}, row = {}, overrides = {}) {
     const spell = spellEntry.spell || spellEntry;
+    const spellName = spellEntry.name || spell?.name || row.name || "Spell";
     const description = String(spell?.description || row.description || "");
-    const saveAbility = savingThrowAbility(description);
-    const healing = /\bregains?\b[^.]{0,80}\bHit Points?\b|\bhealing\b/i.test(description);
+    const profile = spellProfile(spell);
+    const canonical = spell?.canonical === true;
+    const attackMetadataKnown = canonical || owns(spell, "spellAttack");
+    const saveMetadataKnown = canonical || owns(spell, "savingThrow");
+    const damageMetadataKnown = canonical || owns(spell, "damageInflict");
+    const conditionMetadataKnown = canonical || owns(spell, "conditionInflict");
+    const areaMetadataKnown = canonical || owns(spell, "areaTags");
+    const miscMetadataKnown = canonical || owns(spell, "miscTags");
+    const concentrationMetadataKnown = canonical || owns(spell, "concentration") || Array.isArray(spell?.duration);
+    const ritualMetadataKnown = canonical || owns(spell, "ritual") || owns(spell?.meta, "ritual");
+    const materialMetadataKnown = canonical || owns(spell, "materialComponent") || owns(spell?.components, "m");
+    const proseSaveAbility = savingThrowAbility(description);
+    const saveAbilities = saveMetadataKnown
+      ? cleanStringList(profile.savingThrows)
+      : proseSaveAbility ? [proseSaveAbility] : [];
+    const saveAbility = proseSaveAbility && saveAbilities.includes(proseSaveAbility)
+      ? proseSaveAbility
+      : saveAbilities[0] || "";
+    const healing = miscMetadataKnown
+      ? Boolean(profile.healing)
+      : /\bregains?\b[^.]{0,80}\bHit Points?\b|\bhealing\b/i.test(description);
+    const temporaryHitPoints = miscMetadataKnown
+      ? Boolean(profile.temporaryHitPoints)
+      : /\btemporary hit points?\b/i.test(description);
     const explicitlyUsesAttackRoll = /\b(?:make|makes) (?:a|an) (?:melee |ranged )?spell attack\b|\bspell attack roll\b|\bmake an attack roll\b/i.test(description);
-    const hasAttackRoll = !saveAbility && !healing && !row.noAttackRoll && explicitlyUsesAttackRoll && Number.isFinite(Number(row.attackBonus));
-    const hasDamage = Boolean(row.damage && row.damage !== "--");
-    const automaticDamage = hasDamage && !hasAttackRoll && !saveAbility;
-    const requiresConcentration = Boolean(spell?.concentration) || /\bConcentration\b/i.test(description);
+    const embeddedWeaponAttack = Boolean(row.embeddedWeaponAttack) || hasEmbeddedWeaponAttack(spell, description);
+    const attackTypes = attackMetadataKnown ? cleanStringList(profile.attacks) : [];
+    const guidedMultiMode = hasGuidedMultiModeResolution(saveAbilities, attackTypes, description);
+    const hasAttackEvidence = embeddedWeaponAttack || (attackMetadataKnown ? attackTypes.length > 0 : explicitlyUsesAttackRoll);
+    const deferredAttackDamage = hasDeferredAttackDamage(spell, description, embeddedWeaponAttack);
+    const hasAttackRoll = !guidedMultiMode
+      && !deferredAttackDamage
+      && !row.noAttackRoll
+      && hasAttackEvidence
+      && Number.isFinite(Number(row.attackBonus))
+      && (attackMetadataKnown || (!saveAbility && !healing));
+    const rowDamageTypes = cleanStringList([
+      ...(Array.isArray(row.damageTypes) ? row.damageTypes : row.damageTypes ? [row.damageTypes] : []),
+      ...(row.damageType ? [row.damageType] : [])
+    ]);
+    const damageTypes = embeddedWeaponAttack && rowDamageTypes.length
+      ? rowDamageTypes
+      : damageMetadataKnown
+        ? cleanStringList(profile.damageTypes)
+        : rowDamageTypes;
+    const damageFormula = row.damage && row.damage !== "--" ? row.damage : "";
+    const structuredRollEffect = damageTypes.length > 0 || healing || temporaryHitPoints;
+    const hasStructuredRollMetadata = damageMetadataKnown || miscMetadataKnown;
+    const hasDamageRoll = !guidedMultiMode
+      && !deferredAttackDamage
+      && Boolean(damageFormula)
+      && (hasStructuredRollMetadata ? structuredRollEffect : true);
+    const automaticDamage = hasDamageRoll && damageTypes.length > 0 && !hasAttackRoll && !saveAbility && !healing && !temporaryHitPoints;
+    const requiresConcentration = concentrationMetadataKnown
+      ? Boolean(profile.concentration)
+      : /\bConcentration\b/i.test(description);
+    const ritual = ritualMetadataKnown ? Boolean(profile.ritual) : /\bRitual\b/i.test(description);
+    const materialComponent = materialMetadataKnown ? profile.material || null : materialComponentForSpell(spell);
+    const conditions = conditionMetadataKnown ? cleanStringList(profile.conditions) : [];
+    const areaTags = areaMetadataKnown ? cleanStringList(profile.areaTags) : [];
+    const range = profile.range || spell?.range || null;
+    const duration = profile.duration || spell?.duration || null;
+    const areaOfEffect = areaTags.length || rangeIsArea(range) ? { tags: areaTags, range } : null;
     const saveDamageRule = saveAbility
       ? /half as much damage on a successful/i.test(description)
         ? "half"
@@ -124,31 +330,69 @@
     const cost = timeUnit === "bonus" ? "bonusAction" : timeUnit === "reaction" ? "reaction" : "action";
     const steps = [RESOLUTION_STEPS.selectTarget];
     if (hasAttackRoll) steps.push(RESOLUTION_STEPS.attackRoll);
-    if (saveAbility) steps.push(RESOLUTION_STEPS.savingThrow);
-    if (hasDamage || healing) steps.push(RESOLUTION_STEPS.damageRoll);
+    if (saveAbility && !guidedMultiMode && !deferredAttackDamage) steps.push(RESOLUTION_STEPS.savingThrow);
+    if (hasDamageRoll) steps.push(RESOLUTION_STEPS.damageRoll);
     steps.push(RESOLUTION_STEPS.applyEffect, RESOLUTION_STEPS.confirmResult);
+    const identity = spellIdentity(spellEntry, spell, spellName);
+    const source = legacySpellSource(spell) || String(spellEntry.source || "").trim();
+    const { id: requestedId, name: requestedName, ...definitionOverrides } = overrides;
+    const actionId = sourceAwareSpellActionId(requestedId, identity, spellName);
+    const actionName = requestedName || spellName;
     return definition({
-      id: overrides.id || `spell:${String(spellEntry.name || spell?.name || row.name || "spell").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-      name: overrides.name || spellEntry.name || spell?.name || row.name || "Spell",
+      id: actionId,
+      name: actionName,
       category: ACTION_CATEGORIES.spells,
       cost,
       steps,
       spell: { ...spellEntry },
-      targetRequired: !/\bRange:\s*Self\b|\byourself\b/i.test(description),
+      spellId: identity.stable ? identity.id : "",
+      spellSource: source,
+      targetRequired: embeddedWeaponAttack ? true : range ? !rangeIsSelf(range) : !/\bRange:\s*Self\b|\byourself\b/i.test(description),
       attack: { ...row },
+      attackTypes,
       saveAbility,
+      saveAbilities,
       healing,
+      temporaryHitPoints,
+      embeddedWeaponAttack,
+      deferredAttackDamage,
+      guidedMultiMode,
       automaticDamage,
       requiresConcentration,
-      concentration: requiresConcentration ? { name: overrides.name || spellEntry.name || spell?.name || row.name || "Spell" } : null,
+      concentration: requiresConcentration ? { id: identity.stable ? identity.id : "", name: spellName, source } : null,
       saveDamageRule,
       formula: hasAttackRoll ? `d20${Number(row.attackBonus) >= 0 ? "+" : ""}${Number(row.attackBonus)}` : "",
-      damageFormula: row.damage || "",
-      damageType: row.damageType || "",
-      range: spell?.range || null,
+      damageFormula,
+      damageType: damageTypes[0] || "",
+      damageTypes,
+      conditions,
+      areaTags,
+      areaOfEffect,
+      range,
+      duration,
       components: spell?.components || null,
+      ritual,
+      materialComponent,
+      spellBehavior: {
+        ...profile,
+        attacks: attackTypes,
+        savingThrows: saveAbilities,
+        damageTypes,
+        conditions,
+        areaTags,
+        concentration: requiresConcentration,
+        ritual,
+        material: materialComponent,
+        healing,
+        temporaryHitPoints,
+        embeddedWeaponAttack,
+        deferredAttackDamage,
+        guidedMultiMode,
+        range,
+        duration
+      },
       description,
-      ...overrides
+      ...definitionOverrides
     });
   }
 

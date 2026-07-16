@@ -15,6 +15,7 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - `src/app/preload`: API mínima expuesta como `window.dndSheet`.
 - `src/services`: disco, red local, traducción externa y vault de Obsidian.
 - `src/engine`: reglas aisladas y comprobables sin DOM.
+- `src/engine/spells`: normalización y perfiles genéricos del catálogo de hechizos; sigue sus instrucciones locales y no supongas un handler por hechizo.
 - `src/engine/combat`: economía de turno, acciones declarativas, resolución transaccional y combat log. Las tiradas y adaptadores de sheet permanecen en `src/app/renderer/index.html`.
 - `src/app/renderer`: hoja de personaje y DM Screen. Ambos contienen monolitos; extraer por subsistema, con pruebas, no mediante reescritura total.
 - `src/data`: datos propios declarativos.
@@ -38,6 +39,8 @@ Requiere Node `^20.19.0 || >=22.12.0`. En este checkout existe un Node portable 
 npm ci
 npm start
 npm test
+node scripts/validate-spells.js
+node tests/engine/spell-data.test.js
 npm run build:dm-screen
 npm run dist
 npm run dist:portable
@@ -51,7 +54,8 @@ No hay scripts de lint ni typecheck. `npm run publish:win` publica una release r
 - Motor/ventana de combate: `node tests/engine/combat.test.js`, `node tests/renderer/combat-ui.test.js` y el smoke test de `docs/COMBAT.md`.
 - DM Screen: además `npm run build:dm-screen` y smoke test manual cuando cambie interacción o persistencia.
 - Datos de backgrounds: `node scripts/diagnose-backgrounds.js`.
+- Datos o runtime de spells: `node scripts/validate-spells.js` y `node tests/engine/spell-data.test.js`; si cambia la UI o combate, ejecutar también las pruebas específicas y `npm test`.
 - Texto visible del jugador: `npm run test:i18n`; no aumentes las advertencias de hardcoded strings.
 - Empaquetado: verificar por separado; no publicar ni borrar salidas existentes.
 
-No modificar casualmente `Tokens/`, `vendor/`, `src/data/bestiary/bestiary-sublist-data.json`, los assets PDF/PNG, el `dist` versionado del DM Screen ni archivos de usuario. Consulta `docs/TESTING.md` y `docs/CODE_AUDIT.md` para límites conocidos.
+No modificar casualmente `Tokens/`, `vendor/`, `src/data/bestiary/bestiary-sublist-data.json`, los assets PDF/PNG, el `dist` generado/ignorado del DM Screen ni archivos de usuario. Consulta `docs/TESTING.md` y `docs/CODE_AUDIT.md` para límites conocidos.

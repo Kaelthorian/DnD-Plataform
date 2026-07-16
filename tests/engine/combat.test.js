@@ -92,6 +92,283 @@ const missile = actions.createSpellActionDefinition({ name: "Magic Missile", spe
 assert.equal(missile.automaticDamage, true);
 assert.deepEqual(missile.resolutionSteps.filter((step) => ["attackRoll", "savingThrow"].includes(step)), []);
 
+// Structured spell fields take precedence over contradictory prose and expose effect metadata.
+const structuredSpell = actions.createSpellActionDefinition({
+  name: "Structured Ward",
+  spell: {
+    id: "structured-ward--xphb",
+    name: "Structured Ward",
+    source: "XPHB",
+    canonical: true,
+    time: [{ number: 1, unit: "reaction" }],
+    range: { type: "point", distance: { type: "self" } },
+    components: { v: true, s: true, m: { text: "diamond dust", cost: 100, consume: true } },
+    duration: [{ type: "timed", duration: { type: "minute", amount: 1 }, concentration: true }],
+    spellAttack: [],
+    savingThrow: ["dexterity", "wisdom"],
+    damageInflict: ["fire", "radiant"],
+    conditionInflict: ["blinded"],
+    areaTags: ["S"],
+    miscTags: ["HL", "THP"],
+    meta: { ritual: true },
+    description: "Make a ranged spell attack. The target makes a Wisdom saving throw and takes 4d6 Cold damage."
+  }
+}, {
+  name: "Structured Ward",
+  attackBonus: 8,
+  damage: "4d6",
+  damageType: "cold"
+}, {
+  id: "spell:reaction:structured-ward",
+  name: "Cast Structured Ward"
+});
+assert.equal(structuredSpell.id, "spell:reaction:structured-ward--xphb");
+assert.equal(structuredSpell.spellId, "structured-ward--xphb");
+assert.equal(structuredSpell.spellSource, "XPHB");
+assert.deepEqual(structuredSpell.actionCost, [{ type: "reaction", amount: 1 }]);
+assert.equal(structuredSpell.targetRequired, false);
+assert.equal(structuredSpell.resolutionSteps.includes("attackRoll"), false);
+assert.equal(structuredSpell.resolutionSteps.includes("savingThrow"), true);
+assert.equal(structuredSpell.resolutionSteps.includes("damageRoll"), true);
+assert.equal(structuredSpell.saveAbility, "WIS");
+assert.deepEqual(structuredSpell.saveAbilities, ["DEX", "WIS"]);
+assert.equal(structuredSpell.damageType, "fire");
+assert.deepEqual(structuredSpell.damageTypes, ["fire", "radiant"]);
+assert.deepEqual(structuredSpell.conditions, ["blinded"]);
+assert.deepEqual(structuredSpell.areaTags, ["S"]);
+assert.deepEqual(structuredSpell.areaOfEffect, { tags: ["S"], range: { type: "point", distance: { type: "self" } } });
+assert.equal(structuredSpell.requiresConcentration, true);
+assert.deepEqual(structuredSpell.concentration, { id: "structured-ward--xphb", name: "Structured Ward", source: "XPHB" });
+assert.equal(structuredSpell.ritual, true);
+assert.deepEqual(structuredSpell.materialComponent, { text: "diamond dust", cost: 100, consume: true });
+assert.equal(structuredSpell.healing, true);
+assert.equal(structuredSpell.temporaryHitPoints, true);
+
+// Fixed/manual healing metadata must not create an impossible required roll.
+const fixedHealing = actions.createSpellActionDefinition({
+  name: "Aid",
+  spell: {
+    canonical: true,
+    name: "Aid",
+    source: "XPHB",
+    time: [{ number: 1, unit: "action" }],
+    duration: [{ type: "instant" }],
+    miscTags: ["HL"],
+    damageInflict: [],
+    savingThrow: [],
+    spellAttack: [],
+    description: "Each target's Hit Point maximum and current Hit Points increase by 5."
+  }
+}, { name: "Aid", noAttackRoll: true, damage: "" });
+assert.equal(fixedHealing.healing, true);
+assert.equal(fixedHealing.resolutionSteps.includes("damageRoll"), false);
+
+// Additional-attack-damage buffs are effects at cast time, not immediate damage.
+const deferredHex = actions.createSpellActionDefinition({
+  name: "Hex",
+  spell: {
+    canonical: true,
+    name: "Hex",
+    source: "XPHB",
+    time: [{ number: 1, unit: "bonus" }],
+    duration: [{ type: "timed", duration: { type: "hour", amount: 1 }, concentration: true }],
+    miscTags: ["AAD"],
+    damageInflict: ["necrotic"],
+    savingThrow: [],
+    spellAttack: [],
+    description: "Until the spell ends, you deal an extra 1d6 Necrotic damage whenever you hit the target with an attack roll."
+  }
+}, { name: "Hex", noAttackRoll: true, damage: "1d6", damageType: "necrotic" });
+assert.equal(deferredHex.deferredAttackDamage, true);
+assert.equal(deferredHex.embeddedWeaponAttack, false);
+assert.equal(deferredHex.automaticDamage, false);
+assert.equal(deferredHex.resolutionSteps.includes("attackRoll"), false);
+assert.equal(deferredHex.resolutionSteps.includes("damageRoll"), false);
+
+const deferredSaveRider = actions.createSpellActionDefinition({
+  name: "Fount of Moonlight",
+  spell: {
+    canonical: true,
+    name: "Fount of Moonlight",
+    source: "XPHB",
+    time: [{ number: 1, unit: "action" }],
+    duration: [{ type: "timed", duration: { type: "minute", amount: 10 }, concentration: true }],
+    miscTags: ["AAD"],
+    damageInflict: ["radiant"],
+    savingThrow: ["constitution"],
+    spellAttack: [],
+    description: "Until the spell ends, your attacks deal extra Radiant damage; a creature hit later makes a Constitution saving throw."
+  }
+}, { name: "Fount of Moonlight", noAttackRoll: true, damage: "2d6", damageType: "radiant" });
+assert.equal(deferredSaveRider.deferredAttackDamage, true);
+assert.equal(deferredSaveRider.embeddedWeaponAttack, false);
+assert.equal(deferredSaveRider.resolutionSteps.includes("savingThrow"), false);
+assert.equal(deferredSaveRider.resolutionSteps.includes("attackRoll"), false);
+assert.equal(deferredSaveRider.resolutionSteps.includes("damageRoll"), false);
+
+// Weapon-attack cantrips resolve the combined weapon row immediately.
+function embeddedWeaponCantrip(name, source, description, damageInflict, row = {}) {
+  return actions.createSpellActionDefinition({
+    name,
+    spell: {
+      canonical: true,
+      name,
+      source,
+      level: 0,
+      time: [{ number: 1, unit: "action" }],
+      duration: [{ type: "instant" }],
+      miscTags: ["AAD"],
+      damageInflict,
+      savingThrow: [],
+      spellAttack: name === "True Strike" ? [] : ["M"],
+      description
+    }
+  }, {
+    name,
+    noAttackRoll: false,
+    attackBonus: 7,
+    damage: "1d8+4+1d6",
+    damageType: "slashing",
+    damageTypes: ["slashing", ...damageInflict],
+    ...row
+  });
+}
+
+const boomingBlade = embeddedWeaponCantrip(
+  "Booming Blade",
+  "TCE",
+  "You brandish the weapon used in the spell's casting and make a melee attack with it against one creature within 5 feet of you.",
+  ["thunder"]
+);
+const greenFlameBlade = embeddedWeaponCantrip(
+  "Green-Flame Blade",
+  "TCE",
+  "You brandish the weapon used in the spell's casting and make a melee attack with it against one creature within 5 feet of you.",
+  ["fire"]
+);
+const trueStrike = embeddedWeaponCantrip(
+  "True Strike",
+  "XPHB",
+  "You make one attack with the weapon used in the spell's casting.",
+  ["radiant"]
+);
+
+[boomingBlade, greenFlameBlade, trueStrike].forEach((spellAction) => {
+  assert.equal(spellAction.embeddedWeaponAttack, true);
+  assert.equal(spellAction.targetRequired, true);
+  assert.equal(spellAction.spellBehavior.embeddedWeaponAttack, true);
+  assert.equal(spellAction.deferredAttackDamage, false);
+  assert.equal(spellAction.spellBehavior.deferredAttackDamage, false);
+  assert.equal(spellAction.resolutionSteps.includes("attackRoll"), true);
+  assert.equal(spellAction.resolutionSteps.includes("damageRoll"), true);
+  assert.equal(spellAction.damageType, "slashing");
+  assert.equal(spellAction.damageTypes.includes("slashing"), true);
+});
+assert.deepEqual(boomingBlade.damageTypes, ["slashing", "thunder"]);
+assert.deepEqual(greenFlameBlade.damageTypes, ["slashing", "fire"]);
+assert.deepEqual(trueStrike.damageTypes, ["slashing", "radiant"]);
+
+const embeddedOverride = actions.createSpellActionDefinition({
+  name: "Custom Weapon Spell",
+  spell: {
+    canonical: true,
+    name: "Custom Weapon Spell",
+    source: "HB",
+    level: 0,
+    time: [{ number: 1, unit: "action" }],
+    duration: [{ type: "instant" }],
+    miscTags: ["AAD"],
+    damageInflict: ["force"],
+    savingThrow: [],
+    spellAttack: [],
+    description: "Resolve the weapon attack described by this spell."
+  }
+}, {
+  name: "Custom Weapon Spell",
+  embeddedWeaponAttack: true,
+  noAttackRoll: false,
+  attackBonus: 7,
+  damage: "1d8+4",
+  damageType: "piercing"
+});
+assert.equal(embeddedOverride.embeddedWeaponAttack, true);
+assert.equal(embeddedOverride.resolutionSteps.includes("attackRoll"), true);
+assert.equal(embeddedOverride.resolutionSteps.includes("damageRoll"), true);
+assert.deepEqual(embeddedOverride.damageTypes, ["piercing"]);
+
+// Multi-save metadata uses the first actual save in prose as the cast-time save.
+const multiSave = actions.createSpellActionDefinition({
+  name: "Harrowing Ballad",
+  spell: {
+    canonical: true,
+    name: "Harrowing Ballad",
+    source: "CrookedMoon24",
+    time: [{ number: 1, unit: "action" }],
+    duration: [{ type: "timed", duration: { type: "minute", amount: 1 } }],
+    miscTags: [],
+    damageInflict: ["psychic"],
+    savingThrow: ["constitution", "intelligence"],
+    spellAttack: [],
+    description: "The target makes an Intelligence saving throw. Later it has Disadvantage on Constitution saving throws made to maintain Concentration."
+  }
+}, { name: "Harrowing Ballad", noAttackRoll: true, damage: "1d6", damageType: "psychic" });
+assert.equal(multiSave.saveAbility, "INT");
+assert.deepEqual(multiSave.saveAbilities, ["CON", "INT"]);
+
+// Mutually exclusive multi-mode spells remain guided instead of forcing every attack/save/damage branch at once.
+const guidedMultiMode = actions.createSpellActionDefinition({
+  name: "Bigby's Hand",
+  spell: {
+    canonical: true,
+    name: "Bigby's Hand",
+    source: "XPHB",
+    time: [{ number: 1, unit: "action" }],
+    duration: [{ type: "timed", duration: { type: "minute", amount: 1 }, concentration: true }],
+    spellAttack: ["M"],
+    savingThrow: ["dexterity", "strength"],
+    damageInflict: ["force", "bludgeoning"],
+    description: "When you cast the spell and as a Bonus Action on your later turns, choose one of the following effects: Clenched Fist makes a melee spell attack; Grasping Hand requires a Strength saving throw."
+  }
+}, { name: "Bigby's Hand", attackBonus: 8, damage: "5d8", damageType: "force" });
+assert.equal(guidedMultiMode.guidedMultiMode, true);
+assert.deepEqual(guidedMultiMode.saveAbilities, ["DEX", "STR"]);
+assert.equal(guidedMultiMode.resolutionSteps.includes("attackRoll"), false);
+assert.equal(guidedMultiMode.resolutionSteps.includes("savingThrow"), false);
+assert.equal(guidedMultiMode.resolutionSteps.includes("damageRoll"), false);
+
+[
+  ["Symbol", "Choose which effect the symbol creates; different effects require Constitution, Wisdom, or Intelligence saving throws."],
+  ["Illusory Dragon", "As a Bonus Action, breathe on creatures that make an Intelligence saving throw; its appearance first requires a Wisdom saving throw."],
+  ["Octarine Spray", "Each creature makes a Constitution saving throw, then roll a d8 to determine a ray that might require a Wisdom saving throw."]
+].forEach(([name, description]) => {
+  const action = actions.createSpellActionDefinition({
+    name,
+    spell: {
+      canonical: true,
+      name,
+      source: "TEST",
+      time: [{ number: 1, unit: "action" }],
+      duration: [{ type: "timed", duration: { type: "minute", amount: 1 } }],
+      spellAttack: [],
+      savingThrow: ["constitution", "wisdom", "intelligence"],
+      damageInflict: ["force"],
+      description
+    }
+  }, { name, noAttackRoll: true, damage: "4d6", damageType: "force" });
+  assert.equal(action.guidedMultiMode, true, `${name} must remain guided`);
+  assert.equal(action.resolutionSteps.includes("savingThrow"), false);
+  assert.equal(action.resolutionSteps.includes("damageRoll"), false);
+});
+
+// Legacy spell records still derive combat behavior from prose.
+const legacyRay = actions.createSpellActionDefinition({
+  name: "Legacy Ray",
+  spell: { name: "Legacy Ray", time: [{ unit: "action" }], description: "Make a ranged spell attack. On a hit, the target takes 2d6 Force damage." }
+}, { name: "Legacy Ray", attackBonus: 7, damage: "2d6", damageType: "force" });
+assert.equal(legacyRay.id, "spell:legacy-ray");
+assert.equal(legacyRay.resolutionSteps.includes("attackRoll"), true);
+assert.equal(legacyRay.damageType, "force");
+
 // 11. Dash adds current Speed to remaining movement on commit.
 const dash = actions.createUniversalActionDefinitions({ speed: 30 }).find((entry) => entry.id === "core:dash");
 const dashResult = resolution.confirmResolution(resolution.createResolution(dash, base));
@@ -174,7 +451,14 @@ const concentrationAction = action({ requiresConcentration: true, concentration:
 let concentrationSession = resolution.createResolution(concentrationAction, concentrating);
 assert.match(resolution.confirmResolution(concentrationSession).reason, /requires confirmation/i);
 concentrationSession = resolution.confirmConcentrationReplacement(concentrationSession, true);
-assert.equal(resolution.confirmResolution(concentrationSession).economy.concentration.name, "Fly");
+const concentrationCommit = resolution.confirmResolution(concentrationSession);
+assert.equal(concentrationCommit.economy.concentration.name, "Fly");
+
+// Concentration survives turn rollover unless the caller explicitly clears it.
+const nextConcentrationTurn = economyEngine.startTurn(concentrationCommit.economy);
+assert.deepEqual(nextConcentrationTurn.concentration, { name: "Fly" });
+assert.notStrictEqual(nextConcentrationTurn.concentration, concentrationCommit.economy.concentration);
+assert.equal(economyEngine.startTurn(concentrationCommit.economy, { concentration: null }).concentration, null);
 
 // 25. Combat log preserves exact roll/resource breakdown fields.
 const event = combatLog.createCombatLogEvent({

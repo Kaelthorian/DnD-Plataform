@@ -23,7 +23,7 @@ npm ci
 npm start
 ```
 
-`prestart` reconstruye el DM Screen solo si falta o está desactualizado. `scripts/ensure-dm-screen-build.js` compara el CSS con sus fuentes Tailwind y el JavaScript con sus fuentes Vite de forma independiente; no vuelvas a usar la fecha más antigua de ambos outputs como una sola señal porque causa un rebuild en cada arranque. No cambies npm ni regeneres `package-lock.json` sin revisar el diff; el lockfile actual es versión 1.
+`prestart` reconstruye el DM Screen solo si falta o está desactualizado. `scripts/ensure-dm-screen-build.js` compara el CSS con sus fuentes Tailwind y el JavaScript con `main.jsx`, la configuración Vite y sus imports estáticos de datos/helpers; también exige todos los chunks declarados (`spells.js`, bestiary e items). CSS y JS se evalúan por separado: no vuelvas a usar la fecha más antigua de ambos pipelines como una sola señal porque causa un rebuild en cada arranque. No cambies npm ni regeneres `package-lock.json` sin revisar el diff; el lockfile actual es versión 1.
 
 ## Variables de entorno
 
@@ -36,7 +36,7 @@ No hay variables requeridas para desarrollo normal.
 ## Flujos comunes
 
 - Character Sheet: modifica source directo; `npm start` carga `index.html`.
-- DM Screen: modifica `dm-screen/src/main.jsx` y ejecuta `npm run build:dm-screen`; el `dist` resultante es parte del runtime versionado.
+- DM Screen: modifica `dm-screen/src/main.jsx` y ejecuta `npm run build:dm-screen`; `dm-screen/dist/` es un runtime generado e ignorado por Git que `prestart`/`predist` reconstruyen cuando corresponde.
 - Backgrounds: ejecuta `node scripts/diagnose-backgrounds.js` además de pruebas.
 - i18n del jugador: actualiza EN y ES juntos en `i18n.js` y ejecuta `npm run test:i18n`.
 - Save/protocolo: añade pruebas de migración o payload antes de tocar UI.

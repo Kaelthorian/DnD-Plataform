@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "canonicalSource": "spells-sublist-data.json",
+  "canonicalSha256": "beeea04339d229400235edb6b4ef9d938e4def022db07663492501a3e2613ff0",
+  "inputFileSha256": "98de7a2d132ea2faaed87b817e7c9b3caf2fb2ab3a96217492904d2be8de100d",
+  "reference": {
+    "sha256": "d2a4958964fb12f1e031b1a2eb1e3958000c93e62f6d989c100d79ce7824976b",
+    "headings": 809,
+    "uniqueNormalizedNames": 805
+  },
+  "audit": {
+    "previousRecords": 622,
+    "canonicalRecords": 809,
+    "canonicalUniqueNames": 805,
+    "existingNamesUpdated": 597,
+    "newCanonicalNames": 208,
+    "additionalCanonicalVariants": 4,
+    "exactExistingRecords": 587,
+    "newCanonicalRecords": 212,
+    "localOnlyPreserved": 25,
+    "totalRecords": 834
+  },
+  "levels": {
+    "0": 80,
+    "1": 122,
+    "2": 132,
+    "3": 130,
+    "4": 93,
+    "5": 88,
+    "6": 64,
+    "7": 40,
+    "8": 33,
+    "9": 27
+  },
+  "behavior": {
+    "spellAttack": 71,
+    "savingThrow": 367,
+    "damage": 344,
+    "concentration": 356,
+    "area": 358,
+    "material": 461,
+    "costlyMaterial": 129,
+    "consumedMaterial": 65,
+    "optionalMaterial": 2,
+    "ritual": 41,
+    "healing": 55,
+    "temporaryHitPoints": 35,
+    "conditionInflict": 165,
+    "scaling": 374,
+    "foundryIcon": 131,
+    "fallbackIcon": 678
+  },
+  "duplicateNames": [
+    [
+      {
+        "name": "Acid Rain",
+        "source": "GuideDrakkenheim",
+        "level": 5
+      },
+      {
+        "name": "Acid Rain",
+        "source": "HelianasGuidetoMonsterHunting",
+        "level": 3
+      }
+    ],
+    [
+      {
+        "name": "Preserve",
+        "source": "GrimHollowPG24",
+        "level": 0
+      },
+      {
+        "name": "Preserve",
+        "source": "HelianasGuidetoMonsterHunting",
+        "level": 2
+      }
+    ],
+    [
+      {
+        "name": "Purge Contamination",
+        "source": "DungeonsDrakkenheim",
+        "level": 3
+      },
+      {
+        "name": "Purge Contamination",
+        "source": "GuideDrakkenheim",
+        "level": 3
+      },
+      {
+        "name": "Purge Contamination",
+        "source": "MonstersOfDrakkenheim",
+        "level": 3
+      }
+    ]
+  ]
+}

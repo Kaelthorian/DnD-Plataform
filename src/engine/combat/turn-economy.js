@@ -96,6 +96,7 @@
       objectInteractionsRemaining: finiteNonNegative(options.objectInteractions, 1),
       maxAttacksPerAttackAction: options.maxAttacksPerAttackAction,
       prone: Boolean(options.prone),
+      concentration: options.concentration && typeof options.concentration === "object" ? { ...options.concentration } : null,
       effects: Array.isArray(options.activeEffects) ? options.activeEffects : [],
       oncePerTurnUses: {},
       reservations: {},
@@ -113,7 +114,10 @@
       speed: options.speed ?? normalized.movementTotal,
       reactions: options.reactionAvailable === false ? 0 : (options.reactions ?? normalized.reactionsTotal),
       maxAttacksPerAttackAction: options.maxAttacksPerAttackAction ?? normalized.maxAttacksPerAttackAction,
-      prone: options.prone ?? normalized.prone
+      prone: options.prone ?? normalized.prone,
+      concentration: Object.prototype.hasOwnProperty.call(options, "concentration")
+        ? options.concentration
+        : normalized.concentration
     });
   }
 

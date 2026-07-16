@@ -2275,8 +2275,8 @@
     }
 
     async function loadSpellOptions() {
-      if (desktopStore?.loadSpells) return dedupeModernByName(await desktopStore.loadSpells(), (spell) => spell?.name || "", (spell) => spell?.source || "");
-      return dedupeModernByName(await fetchLocalResource("../../data/spells/spells.json"), (spell) => spell?.name || "", (spell) => spell?.source || "");
+      if (desktopStore?.loadSpells) return dedupeSpellsByIdentity(await desktopStore.loadSpells());
+      return dedupeSpellsByIdentity(await fetchLocalResource("../../data/spells/spells.json"));
     }
 
     async function loadSpellActionMetadata() {
@@ -2307,7 +2307,7 @@
           if (!detailsByName.has(nameKey)) detailsByName.set(nameKey, []);
           detailsByName.get(nameKey).push(spell);
         });
-      return dedupeModernByName(spellOptions, (spell) => spell?.name || "", (spell) => spell?.source || "")
+      return dedupeSpellsByIdentity(spellOptions)
         .map((spell) => {
           const detail = detailsByKey.get(spellMetadataKey(spell))
             || detailsByName.get(normalizeName(spell?.name || ""))?.find((candidate) => {
@@ -2319,14 +2319,21 @@
           if (!detail) return spell;
           return {
             ...spell,
-            time: detail.time || spell.time,
-            duration: detail.duration || spell.duration,
-            range: detail.range || spell.range,
-            components: detail.components || spell.components,
-            savingThrow: detail.savingThrow || spell.savingThrow,
-            miscTags: detail.miscTags || spell.miscTags,
-            areaTags: detail.areaTags || spell.areaTags,
-            concentration: Array.isArray(detail.duration) && detail.duration.some((duration) => duration?.concentration)
+            time: spell.time || detail.time,
+            duration: spell.duration || detail.duration,
+            range: spell.range || detail.range,
+            components: spell.components || detail.components,
+            savingThrow: spell.savingThrow || detail.savingThrow,
+            spellAttack: spell.spellAttack || detail.spellAttack,
+            damageInflict: spell.damageInflict || detail.damageInflict,
+            conditionInflict: spell.conditionInflict || detail.conditionInflict,
+            miscTags: spell.miscTags || detail.miscTags,
+            areaTags: spell.areaTags || detail.areaTags,
+            entriesHigherLevel: spell.entriesHigherLevel || detail.entriesHigherLevel,
+            scalingLevelDice: spell.scalingLevelDice || detail.scalingLevelDice,
+            concentration: typeof spell.concentration === "boolean"
+              ? spell.concentration
+              : Array.isArray(detail.duration) && detail.duration.some((duration) => duration?.concentration)
           };
         });
     }
@@ -2458,6 +2465,24 @@
         byName.set(key, preferModernEntry(byName.get(key), item, sourceGetter));
       });
       return [...byName.values()];
+    }
+
+    function spellIdentityKey(spell) {
+      const explicitId = normalizeName(spell?.id || "");
+      if (explicitId) return explicitId;
+      return [spell?.name || "", spell?.source || optionSource(spell) || "legacy", spell?.level ?? ""]
+        .map((value) => normalizeName(String(value)))
+        .join("|");
+    }
+
+    function dedupeSpellsByIdentity(itemsList = []) {
+      const byIdentity = new Map();
+      (Array.isArray(itemsList) ? itemsList : []).filter(Boolean).forEach((spell) => {
+        const key = spellIdentityKey(spell);
+        if (!key || byIdentity.has(key)) return;
+        byIdentity.set(key, spell);
+      });
+      return [...byIdentity.values()];
     }
 
     function dedupeBackgroundOptions(itemsList = []) {

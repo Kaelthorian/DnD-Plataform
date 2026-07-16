@@ -1,6 +1,21 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
+import "../../../../engine/spells/spell-data.js";
+
+const {
+  formatCastingTime: formatCanonicalSpellCastingTime,
+  formatComponents: formatCanonicalSpellComponents,
+  formatDuration: formatCanonicalSpellDuration,
+  formatRange: formatCanonicalSpellRange,
+  spellClassNames: canonicalSpellClassNames,
+  spellDescriptionBody: canonicalSpellDescriptionBody,
+  spellRaceNames: canonicalSpellRaceNames,
+  spellSchoolCode: canonicalSpellSchoolCode,
+  spellSchoolLabel: canonicalSpellSchoolLabel,
+  spellSource: canonicalSpellSource,
+  spellSubclassNames: canonicalSpellSubclassNames
+} = globalThis.dndSpellDataEngine;
 
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 const SIZE_LABELS = {
@@ -334,16 +349,15 @@ function createFreeDiceSelection() {
 }
 
 function spellSource(spell) {
-  return String(spell?.description || "").match(/\bSource:\s*([^.]+)/i)?.[1]?.trim() || "Unknown";
+  return canonicalSpellSource(spell) || "Unknown";
 }
 
 function spellSchool(spell) {
-  return String(spell?.description || "").match(/\bSchool:\s*([^.]+)/i)?.[1]?.trim() || "";
+  return canonicalSpellSchoolCode(spell);
 }
 
 function spellSchoolLabel(spell) {
-  const school = spellSchool(spell);
-  return SPELL_SCHOOL_LABELS[school] || titleCase(school);
+  return canonicalSpellSchoolLabel(spell) || titleCase(spellSchool(spell));
 }
 
 function abbreviateSourceLabel(source) {
@@ -394,16 +408,15 @@ function extractSpellTaggedField(spell, label) {
 
 function spellMetadataRows(spell) {
   return [
-    ["Casting Time", formatSpellDataValue(spell?.castingTime ?? spell?.time) || extractSpellTaggedField(spell, "Casting Time")],
-    ["Range", formatSpellDataValue(spell?.range) || extractSpellTaggedField(spell, "Range")],
-    ["Components", formatSpellDataValue(spell?.components) || extractSpellTaggedField(spell, "Components")],
-    ["Duration", formatSpellDataValue(spell?.duration) || extractSpellTaggedField(spell, "Duration")]
+    ["Casting Time", formatCanonicalSpellCastingTime(spell) || extractSpellTaggedField(spell, "Casting Time")],
+    ["Range", formatCanonicalSpellRange(spell) || extractSpellTaggedField(spell, "Range")],
+    ["Components", formatCanonicalSpellComponents(spell) || extractSpellTaggedField(spell, "Components")],
+    ["Duration", formatCanonicalSpellDuration(spell) || extractSpellTaggedField(spell, "Duration")]
   ].filter(([, value]) => value);
 }
 
 function spellDescriptionBody(spell) {
-  return cleanRulesText(spell?.description || "")
-    .replace(/^Source:\s*[^.]+\.?\s*Level:\s*[^.]+\.?\s*School:\s*[^.]+\.?\s*/i, "")
+  return cleanRulesText(canonicalSpellDescriptionBody(spell))
     .replace(/^\d+\s*Appendix\s+[A-Z]\s*\|\s*Spells/i, "")
     .trim();
 }
@@ -824,7 +837,7 @@ function compareLibraryIndexEntries(left, right, kind, sortField) {
 }
 
 function libraryEntrySearchText(entry, kind) {
-  if (kind === "spell") return [entry.name, formatSpellLevel(entry), spellSource(entry), spellSchool(entry), entry.classes?.join(" ")].map(normalizeSearch).join(" ");
+  if (kind === "spell") return [entry.name, formatSpellLevel(entry), spellSource(entry), spellSchool(entry), canonicalSpellClassNames(entry).join(" ")].map(normalizeSearch).join(" ");
   return [entry.name, itemRarity(entry), itemSource(entry), entry.type, renderEntryText(entry.entries)].map(normalizeSearch).join(" ");
 }
 
@@ -912,8 +925,24 @@ function resourceNameVariants(value) {
   return variants.filter(Boolean);
 }
 
-function findResourceEntry(kind, name) {
+function findResourceEntry(kind, resource) {
   const entries = kind === "spell" ? spells : ITEM_LIBRARY;
+  const reference = resource && typeof resource === "object" ? resource : null;
+  const name = reference?.name || resource;
+  if (kind === "spell" && reference?.id) {
+    const exactId = normalizeSearch(reference.id);
+    const byId = entries.find((entry) => normalizeSearch(entry?.id) === exactId);
+    if (byId) return byId;
+  }
+  if (kind === "spell" && reference?.source) {
+    const exactName = normalizeResourceName(name);
+    const exactSource = normalizeSearch(reference.source);
+    const bySource = entries.find((entry) => (
+      normalizeResourceName(entry?.name) === exactName
+      && normalizeSearch(entry?.source) === exactSource
+    ));
+    if (bySource) return bySource;
+  }
   const variants = resourceNameVariants(name);
   if (!variants.length) return null;
   return entries.find((entry) => variants.includes(normalizeResourceName(entry.name)))
@@ -3431,10 +3460,24 @@ function characterSpellSlots(data) {
 }
 
 function characterSpells(data) {
+  const spellReferences = isPlainObject(data?.__sheetMeta?.spellReferences)
+    ? data.__sheetMeta.spellReferences
+    : {};
   return Object.entries(data || {})
     .filter(([key, value]) => /^Spells\s+\d+$/i.test(key) && String(value || "").trim())
     .sort(([left], [right]) => parseCharacterNumber(left) - parseCharacterNumber(right))
-    .map(([key, value]) => ({ key, name: String(value).trim() }));
+    .map(([key, value]) => {
+      const name = String(value).trim();
+      const reference = isPlainObject(spellReferences[key]) ? spellReferences[key] : {};
+      const referenceMatches = !reference.name || normalizeResourceName(reference.name) === normalizeResourceName(name);
+      return {
+        key,
+        name,
+        id: referenceMatches ? String(reference.id || "") : "",
+        source: referenceMatches ? String(reference.source || "") : "",
+        level: referenceMatches && Number.isFinite(Number(reference.level)) ? Number(reference.level) : null
+      };
+    });
 }
 
 function characterSkills(data) {
@@ -5624,16 +5667,18 @@ function ResourceNote({
   onRestore,
   onDuplicate
 }) {
+  const [spellIconFailed, setSpellIconFailed] = useState(false);
   const entry = note.entry;
+  useEffect(() => setSpellIconFailed(false), [entry?.icon]);
   const isSpell = note.kind === "spell";
   const source = isSpell ? spellSource(entry) : itemSource(entry);
   const spellSourceText = isSpell ? spellSourceLabel(entry) : "";
   const spellSubtitle = isSpell ? formatSpellSubtitle(entry) : "";
   const spellMeta = isSpell ? spellMetadataRows(entry) : [];
   const spellParagraphs = isSpell ? spellBodyParagraphs(entry) : [];
-  const spellClasses = isSpell && Array.isArray(entry.classes) ? entry.classes.filter(Boolean).join(", ") : "";
-  const spellSubclasses = isSpell && Array.isArray(entry.subclasses) ? entry.subclasses.filter(Boolean).join(", ") : "";
-  const spellRaces = isSpell && Array.isArray(entry.races) ? entry.races.filter(Boolean).join(", ") : "";
+  const spellClasses = isSpell ? canonicalSpellClassNames(entry).join(", ") : "";
+  const spellSubclasses = isSpell ? canonicalSpellSubclassNames(entry).join(", ") : "";
+  const spellRaces = isSpell ? canonicalSpellRaceNames(entry).join(", ") : "";
   const itemSourceText = isSpell ? "" : itemSourceLabel(entry);
   const itemPageText = !isSpell && entry?.page ? `P${entry.page}` : "";
   const subtitle = isSpell
@@ -5718,6 +5763,13 @@ function ResourceNote({
           {!isSpell && itemCategoryLine ? <p className="mt-1 text-sm text-neutral-500">{itemCategoryLine}</p> : null}
         </div>
         <div className="flex items-start gap-3">
+          {isSpell ? (
+            <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded border border-amber-500 bg-neutral-950 text-xs font-bold text-amber-500">
+              {entry.icon && !spellIconFailed
+                ? <img className="h-full w-full object-cover" src={entry.icon} alt={`${entry.name} icon`} onError={() => setSpellIconFailed(true)} />
+                : <span title={entry.iconFallback || `${spellSchool(entry)} fallback icon`}>{String(entry.school || "?").toUpperCase().slice(0, 2)}</span>}
+            </div>
+          ) : null}
           <div className="text-right">
             <div className="font-serif text-xl uppercase leading-none text-amber-500">{isSpell ? spellSourceText : itemSourceText}</div>
             {!isSpell && itemPageText ? <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">{itemPageText}</div> : null}
@@ -8558,7 +8610,7 @@ function CharacterNote({
                     type="button"
                     title={`Agregar nota de spell: ${spell.name}`}
                     onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => onOpenResource?.("spell", spell.name, note, event)}
+                    onClick={(event) => onOpenResource?.("spell", spell, note, event)}
                   >
                     {spell.name}
                   </button>
@@ -12183,15 +12235,16 @@ function DmScreenApp() {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  function addCharacterResourceNote(kind, label, sourceNote, event) {
+  function addCharacterResourceNote(kind, resource, sourceNote, event) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     if (!librariesReady) return;
+    const label = typeof resource === "object" ? resource?.name : resource;
     const spawnPoint = clampBoardPoint({
       x: (sourceNote?.x || 96) + 36,
       y: (sourceNote?.y || 96) + 36
     }, NOTE_MIN_WIDTH, NOTE_MIN_HEIGHT);
-    const entry = findResourceEntry(kind, label);
+    const entry = findResourceEntry(kind, resource);
     if (entry) {
       addResourceNote(kind, entry, spawnPoint);
       return;

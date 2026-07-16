@@ -7,7 +7,7 @@ This is the high-signal map for future agents.
 | System | Data | Behavior | UI | Saved State | Tests |
 | --- | --- | --- | --- | --- | --- |
 | Feats | `src/data/feats` | `src/engine/feat-registry.js`, `src/engine/feats` | `src/ui/sheet`, `src/ui/skills`, `src/ui/attacks`, temporary renderer code | `src/services/save-service.js` stores full sheet state | `tests/engine/feat-registry.test.js` and future feat handler tests |
-| Spells | `src/data/spells` | `src/engine/spell-registry.js`, `src/engine/spells` | `src/ui/sheet`, `src/ui/selectors`, temporary renderer code | `src/services/save-service.js` stores full sheet state | `tests/engine/spell-registry.test.js` and future spell handler tests |
+| Spells | `src/data/spells/spells.json`, `spell.schema.json`, `spells.manifest.json`; sync/validation in `scripts/` | `src/engine/spells/spell-data.js` provides source-aware normalization, generic profiles, embedded-weapon and deferred-rider classification; `spell-registry.js` is only a legacy extension point | selection/preparation/sheet/combat in `index.html`; loading/identity in `renderer.js`; DM library in `dm-screen/src/main.jsx` | full sheet save plus source-aware `__sheetMeta.spellReferences` and temporary `activeSpellAttackEffects`; legacy name/level fallback remains | `scripts/validate-spells.js`, `tests/engine/spell-data.test.js`, registry/renderer/combat tests, DM build |
 | Classes | `src/data/classes` | `src/engine/characters`, `src/engine/resources` | `src/ui/sheet`, `src/ui/selectors` | `src/services/save-service.js` | Future tests in `tests/engine` |
 | Races | `src/data/races` | `src/engine/characters`, `src/engine/proficiencies` | `src/ui/sheet`, `src/ui/selectors` | `src/services/save-service.js` | Future tests in `tests/engine` |
 | Items | `src/data/items`, vendor item data loaded by service | `src/engine/attacks`, `src/engine/resources` | `src/ui/inventory`, `src/ui/attacks` | `src/services/save-service.js` | Future tests in `tests/engine` |
@@ -17,3 +17,5 @@ This is the high-signal map for future agents.
 ## Large File
 
 `src/app/renderer/index.html` still contains extracted-candidate code for all systems. Do not read it first unless the smaller files do not answer the task.
+
+Spell presence in the catalog does not mean full rules automation. Structured profiles drive reusable attack/save/damage/healing/resource/concentration flows; target geometry, private enemy state, material inventory, summons, transformations, and open-ended choices remain guided/manual unless another implemented subsystem owns them. See [`ADDING_SPELLS.md`](./ADDING_SPELLS.md) and [`COMBAT.md`](./COMBAT.md).
