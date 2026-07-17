@@ -45,6 +45,16 @@ assert.match(styles, /\.spell-category-learn-cantrips[\s\S]*?#22d3ee/, "learnabl
 assert.match(styles, /\.spell-category-known-spells[\s\S]*?#4ade80/, "known spells use a green accent");
 assert.match(styles, /\.spell-category-learn-spells[\s\S]*?#60a5fa/, "learnable spells use a blue accent");
 assert.match(styles, /\.spell-category-spellbook[\s\S]*?var\(--dm-amber\)/, "the Wizard spellbook uses the amber accent");
+assert.match(styles, /\.dice-button\s*\{[\s\S]*?min-height:\s*16px[\s\S]*?height:\s*auto[\s\S]*?border:\s*1px solid #525252[\s\S]*?background:\s*#262626[\s\S]*?color:\s*#d4d4d4[\s\S]*?overflow-wrap:\s*anywhere[\s\S]*?white-space:\s*normal/, "Attacks and Spellcasting buttons should use the Equipment control style and wrap long labels");
+assert.match(styles, /\.dice-button\.active\s*\{[\s\S]*?border-color:\s*#f59e0b[\s\S]*?background:\s*#f59e0b[\s\S]*?color:\s*#0a0a0a/, "active Attacks and Spellcasting buttons should match equipped Equipment controls");
+assert.match(styles, /\.prepared-spell-name\s*\{[\s\S]*?overflow-wrap:\s*anywhere[\s\S]*?white-space:\s*normal/, "spell names on the sheet should wrap instead of being truncated");
+assert.match(html, /const DAMAGE_TYPE_ICON_PATHS\s*=\s*\{[\s\S]*?bludgeoning:[\s\S]*?fire:[\s\S]*?slashing:/, "prepared spells should define minimal damage-type icon paths");
+assert.match(html, /function damageTypeIcon\(type\)[\s\S]*?createElementNS\("http:\/\/www\.w3\.org\/2000\/svg", "svg"\)/, "prepared spells should render damage types as inline SVG icons");
+assert.match(html, /damageType\.appendChild\(damageTypeIcon\(spell\.damageType\)\)/, "prepared spell rows should use the damage-type icon instead of text abbreviations");
+assert.match(styles, /\.prepared-spell-damage-type\s*\{[\s\S]*?min-width:\s*24px[\s\S]*?height:\s*24px[\s\S]*?border-radius:\s*50%[\s\S]*?background:\s*#262626/, "damage-type indicators should be fixed-size dark circles");
+assert.match(styles, /\.damage-type-icon\s*\{[\s\S]*?width:\s*15px[\s\S]*?height:\s*15px[\s\S]*?stroke:\s*currentColor/, "damage-type icons should use the compact sheet icon treatment");
+assert.match(styles, /\.prepared-resource-counters\s*\{[\s\S]*?position:\s*sticky[\s\S]*?top:\s*-4px/, "Attacks and Spellcasting resource counters should stay pinned while scrolling");
+assert.match(styles, /\.prepared-resource-orb\s*\{[\s\S]*?min-width:\s*25px[\s\S]*?max-width:\s*25px[\s\S]*?flex:\s*0 0 25px/, "prepared resource orbs should keep a fixed size");
 assert.ok(/result\.mode === "instant"[\s\S]*endActiveConcentration[\s\S]*applyLongRestRecovery/.test(html), "a completed instant long rest ends concentration before refreshing recovered state");
 assert.ok(/if \(result\.recovery\)[\s\S]*endActiveConcentration[\s\S]*applyLongRestRecovery/.test(html), "a completed timed long rest ends concentration while an interrupted rest does not");
 assert.ok(html.includes("getTemporaryHitPointsField()"), "temporary-HP spell rolls reuse the sheet field");

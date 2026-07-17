@@ -42,7 +42,9 @@ assert.match(createPanel, /equipment-panel dm-equipment-panel/, "the sheet inven
 assert.match(styles, /\.item-picker\s*\{[\s\S]*?grid-template-columns:\s*minmax\(360px, 420px\) minmax\(0, 1fr\)/, "the picker should use the DM-style two-pane layout");
 assert.match(styles, /\.item-picker-title\s*\{[\s\S]*?color:\s*#f59e0b/, "the picker title should use the amber DM accent");
 assert.match(styles, /\.item-picker-add\s*\{[\s\S]*?background:\s*#f59e0b/, "the add action should use the amber DM treatment");
-assert.match(styles, /\.equipment-panel\s*\{[\s\S]*?background:\s*rgba\(10, 10, 10, 0\.94\)/, "the inventory list should use a dark DM surface");
+assert.match(styles, /\.equipment-panel\s*\{[\s\S]*?background:\s*transparent[\s\S]*?box-shadow:\s*none/, "the inventory list should preserve the sheet background");
+assert.match(styles, /\.equipment-list\s*\{[\s\S]*?background:\s*transparent/, "the inventory rows should not restore an opaque list surface");
+assert.match(styles, /\.equipment-name\s*\{[\s\S]*?overflow-wrap:\s*anywhere[\s\S]*?white-space:\s*normal/, "equipment names should wrap instead of being truncated");
 assert.match(styles, /\.equipment-equip\.equipped\s*\{[\s\S]*?background:\s*#f59e0b/, "equipped items should have a visible amber state");
 assert.match(styles, /\.add-equipment-button\s*\{[\s\S]*?color:\s*#f59e0b/, "the item launcher should match the DM accent");
 

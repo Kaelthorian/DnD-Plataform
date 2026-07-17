@@ -18,5 +18,12 @@ assert.match(rendererSource, /\.live-vtt-combat-card\[data-active="true"\][\s\S]
 assert.match(rendererSource, /nodes\.push\(divider, \.\.\.participants\.map/);
 assert.match(serverSource, /function sanitizeVttCombat\(combat\)/);
 assert.match(serverSource, /combat: sanitizeVttCombat\(payload\.combat\)/);
+assert.match(rendererSource, /publicData\.__liveStatuses\s*=\s*Array\.isArray\(data\?\.__sheetMeta\?\.activeStatuses\)/, "the Live Sheet payload should expose only active status ids, not all private metadata");
+assert.match(rendererSource, /payload\?\.type === "dm:sheet:patch"/, "the player should keep using the existing DM sheet-patch channel");
+assert.match(dmScreenSource, /function CharacterStatusBlock\(/, "live character notes should render a dedicated status section");
+assert.match(dmScreenSource, /<CharacterDetailSection title=\{`Status/, "the status list should use the existing collapsible character-note surface");
+assert.match(dmScreenSource, /function updateLiveCharacterStatuses\(noteId, statusIds\)/, "the DM should be able to update a connected character's statuses");
+assert.match(dmScreenSource, /LIVE_STATUS_FIELD\s*=\s*"__liveStatuses"/, "the DM status editor should use the constrained Live Sheet status field");
+assert.match(serverSource, /normalizedKey === "__liveStatuses"/, "the server should validate the structured status patch separately from sheet fields");
 
 console.log("Live VTT combat timeline wiring verified.");

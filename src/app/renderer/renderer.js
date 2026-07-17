@@ -269,6 +269,9 @@
     function liveSheetPublicData() {
       const data = typeof collectData === "function" ? collectData() : {};
       const publicData = { ...data };
+      publicData.__liveStatuses = Array.isArray(data?.__sheetMeta?.activeStatuses)
+        ? [...data.__sheetMeta.activeStatuses]
+        : [];
       delete publicData.__sheetMeta;
       return publicData;
     }

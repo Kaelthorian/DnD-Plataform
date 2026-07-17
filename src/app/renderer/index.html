@@ -4360,8 +4360,48 @@
       healing: "HEAL"
     };
 
+    const DAMAGE_TYPE_ICON_PATHS = {
+      acid: ["M12 3s-5 5.7-5 9a5 5 0 0 0 10 0c0-3.3-5-9-5-9Z"],
+      bludgeoning: ["M6 4h12v4H6z", "M12 8v12", "M9 20h6"],
+      cold: ["M12 3v18", "M4.2 7.5 19.8 16.5", "M4.2 16.5 19.8 7.5", "M8 5l4 2 4-2", "M8 19l4-2 4 2"],
+      fire: ["M12 3c1.8 3.7 5 5.2 5 9a5 5 0 0 1-10 0c0-2.1 1.1-4 3.1-5.8.2 1.8 1 2.6 1.9 3.3C13 7 12.7 5.2 12 3Z"],
+      force: ["M12 3.5 14 9l5.5 2-5.5 2-2 5.5-2-5.5-5.5-2 5.5-2 2-5.5Z"],
+      lightning: ["M13.5 2 5 13h6l-.8 9L19 10h-6l.5-8Z"],
+      necrotic: ["M8 8.5a4 4 0 0 1 8 0v6a4 4 0 0 1-8 0Z", "M9 13h2v2H9zm4 0h2v2h-2z", "M10 18h4"],
+      piercing: ["M4 20 20 4", "M12 4h8v8", "M7 17l-2-2", "M9 15l-2-2"],
+      poison: ["M9 3h6", "M10 3v6l-4 7a4 4 0 0 0 3.5 5h5a4 4 0 0 0 3.5-5l-4-7V3", "M8 16h8"],
+      psychic: ["M8 6a3 3 0 0 1 5-2 3 3 0 0 1 3 5 3 3 0 0 1-2 5H9a4 4 0 0 1-1-8Z", "M9 9h.01M13 7h.01M15 12h.01M11 14h.01"],
+      radiant: ["M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z", "M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"],
+      slashing: ["M5 19 19 5", "M7 17l-2 2", "M8 14l-3-3", "M10 12l-3-3", "M14 8l-3-3"],
+      thunder: ["M13.5 2 5 13h6l-.8 9L19 10h-6l.5-8Z"],
+      healing: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z", "M12 7v10M7 12h10"],
+      unknown: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z", "M9 9a3 3 0 1 1 5 2c-1.2.7-2 1.1-2 2.5", "M12 17h.01"]
+    };
+
+    function damageTypeKey(type) {
+      const value = String(type || "").trim().toLowerCase();
+      if (DAMAGE_TYPE_ICON_PATHS[value]) return value;
+      const first = value.split(/\s*(?:\/|\+|,|\bor\b)\s*/i)[0];
+      return DAMAGE_TYPE_ICON_PATHS[first] ? first : "unknown";
+    }
+
+    function damageTypeIcon(type) {
+      const key = damageTypeKey(type);
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.classList.add("damage-type-icon");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("aria-hidden", "true");
+      icon.setAttribute("focusable", "false");
+      (DAMAGE_TYPE_ICON_PATHS[key] || []).forEach((d) => {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", d);
+        icon.appendChild(path);
+      });
+      return icon;
+    }
+
     function damageTypeSymbol(type) {
-      return DAMAGE_TYPE_SYMBOLS[type] || "?";
+      return DAMAGE_TYPE_SYMBOLS[damageTypeKey(type)] || "?";
     }
 
     function showDamageTooltip(anchor, type) {
@@ -6400,11 +6440,12 @@
           openPreparedAttackDetail(spell);
         });
 
-        const damageType = document.createElement("div");
-        damageType.className = "prepared-spell-damage-type";
-        damageType.tabIndex = 0;
-        damageType.textContent = damageTypeSymbol(spell.damageType);
-        damageType.setAttribute("aria-label", spell.damageType || t("dice.noDamageType"));
+      const damageType = document.createElement("div");
+      damageType.className = "prepared-spell-damage-type";
+      damageType.tabIndex = 0;
+      damageType.dataset.damageType = damageTypeKey(spell.damageType) || "unknown";
+      damageType.appendChild(damageTypeIcon(spell.damageType));
+      damageType.setAttribute("aria-label", spell.damageType || t("dice.noDamageType"));
         damageType.addEventListener("mouseenter", () => showDamageTooltip(damageType, spell.damageType));
         damageType.addEventListener("mouseleave", hideDamageTooltip);
         damageType.addEventListener("focus", () => showDamageTooltip(damageType, spell.damageType));
@@ -10186,6 +10227,15 @@
       let changed = false;
       isApplyingLiveSheetPatch = true;
       try {
+        if (Array.isArray(patch.__liveStatuses)) {
+          const nextStatusIds = normalizeStatusIds(patch.__liveStatuses);
+          sheetMeta.activeStatuses = nextStatusIds;
+          if (!nextStatusIds.includes("exhaustion")) sheetMeta.exhaustionLevel = 0;
+          else if (!(Number(sheetMeta.exhaustionLevel) > 0)) sheetMeta.exhaustionLevel = 1;
+          ensureActiveStatusIds();
+          renderStatusDock();
+          changed = true;
+        }
         document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
         if (!key || !(key in patch)) return;

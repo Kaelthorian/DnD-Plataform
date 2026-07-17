@@ -64,11 +64,11 @@ No guardar el catalogo en `localStorage`: es sincrono, tiene cuota limitada y bl
 
 1. El DM inicia `LiveSheetServer` desde el DM Screen.
 2. Main escucha WebSocket en `0.0.0.0` y aplica límites de payload, sanitización y token opcional.
-3. El jugador envía `player:hello`, `sheet:update`, tiradas, pings o estado de mano.
+3. El jugador envía `player:hello`, `sheet:update`, tiradas, pings o estado de mano. El snapshot sigue excluyendo `__sheetMeta`, salvo `__liveStatuses`: una lista limitada de IDs de estados activos que permite al DM verlos y modificarlos desde la nota del personaje.
 4. El servidor mantiene jugadores/VTT en memoria y emite snapshots por IPC al DM Screen.
 5. Los datos remotos no se escriben automáticamente en slots locales.
 
-Las tiradas del stepper de combate usan el mensaje existente `roll:event`. La economía y aplicación de efectos siguen siendo autoritativas sólo en modo local; todavía no existe un protocolo host/DM de solicitud-confirmación para mutaciones de combate. No presentar el estado `__sheetMeta.combatTurn` del cliente como autoridad multijugador.
+Las tiradas del stepper de combate usan el mensaje existente `roll:event`. Los cambios de status del DM usan el patch existente `dm:sheet:patch`; el cliente normaliza los IDs, actualiza su `__sheetMeta.activeStatuses`, guarda y devuelve un snapshot. La economía y aplicación de efectos siguen siendo autoritativas sólo en modo local; todavía no existe un protocolo host/DM de solicitud-confirmación para mutaciones de combate. No presentar el estado `__sheetMeta.combatTurn` del cliente como autoridad multijugador.
 
 No hay TLS, cuentas, relay ni persistencia de sesión. La frontera prevista es LAN privada o Tailscale.
 

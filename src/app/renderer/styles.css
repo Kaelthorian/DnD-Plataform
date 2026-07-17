@@ -152,11 +152,11 @@
       position: absolute;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      border: 1px solid rgba(82, 82, 82, 0.95);
+      border: 1px solid rgba(38, 38, 38, 0.38);
       border-radius: 4px;
-      background: rgba(10, 10, 10, 0.94);
-      color: #d4d4d4;
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+      background: transparent;
+      color: #262626;
+      box-shadow: none;
       font: 9px/1.2 "Segoe UI", Arial, sans-serif;
       overflow: hidden;
     }
@@ -173,8 +173,8 @@
       min-height: 18px;
       padding: 3px 4px;
       border-bottom: 2px solid #f59e0b;
-      background: #0a0a0a;
-      color: #a3a3a3;
+      background: transparent;
+      color: #525252;
       font-size: 7px;
       font-weight: 700;
       letter-spacing: 0.045em;
@@ -184,19 +184,20 @@
     .equipment-list {
       overflow-y: auto;
       overscroll-behavior: contain;
-      scrollbar-color: #525252 #171717;
-      background: rgba(23, 23, 23, 0.96);
+      scrollbar-color: #737373 transparent;
+      background: transparent;
     }
 
     .equipment-row {
       min-height: 23px;
       padding: 3px 4px;
-      border-bottom: 1px solid #262626;
+      border-bottom: 1px solid rgba(38, 38, 38, 0.16);
+      background: transparent;
       transition: background 120ms ease;
     }
 
     .equipment-row:hover {
-      background: #262626;
+      background: rgba(245, 158, 11, 0.14);
     }
 
     .equipment-qty,
@@ -212,7 +213,7 @@
     }
 
     .equipment-value {
-      color: #a3a3a3;
+      color: #525252;
       font-size: 8px;
     }
 
@@ -221,13 +222,14 @@
       padding: 0;
       border: 0;
       background: transparent;
-      color: #e5e5e5;
+      color: #171717;
       font: inherit;
       font-weight: 600;
       text-align: left;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+      white-space: normal;
       cursor: pointer;
     }
 
@@ -3336,12 +3338,18 @@
     }
 
     .prepared-resource-counters {
+      position: sticky;
+      top: -4px;
+      z-index: 2;
       display: flex;
       flex-wrap: wrap;
       gap: 5px;
       align-items: center;
+      flex: 0 0 auto;
       min-height: 28px;
-      padding: 2px;
+      padding: 4px 2px 5px;
+      background: rgba(248, 245, 237, 0.94);
+      box-shadow: 0 1px 0 rgba(61, 39, 24, 0.22);
       color: #3d2718;
       font-weight: 700;
     }
@@ -3361,10 +3369,15 @@
 
     .prepared-resource-orb {
       width: 25px;
+      min-width: 25px;
+      max-width: 25px;
       height: 25px;
+      min-height: 25px;
+      max-height: 25px;
       flex: 0 0 25px;
       display: inline-grid;
       place-items: center;
+      overflow: hidden;
       border: 1px solid #3d2718;
       border-radius: 50%;
       background: #3d2718;
@@ -3453,17 +3466,18 @@
 
     .prepared-spell-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 20px 30px 38px 38px 34px 34px;
+      grid-template-columns: minmax(0, 1fr) 24px 30px 38px 38px 34px 34px;
       gap: 3px;
       align-items: center;
-      min-height: 18px;
+      min-height: 20px;
     }
 
     .prepared-spell-name {
       min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      padding: 2px 0;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+      white-space: normal;
       cursor: pointer;
       border-radius: 3px;
     }
@@ -3477,43 +3491,66 @@
     .prepared-spell-damage-type {
       display: inline-grid;
       width: 24px;
-      height: 18px;
+      min-width: 24px;
+      max-width: 24px;
+      height: 24px;
+      min-height: 24px;
+      max-height: 24px;
       place-items: center;
-      border: 1px solid rgba(0, 0, 0, 0.3);
+      box-sizing: border-box;
+      border: 1px solid #525252;
       border-radius: 50%;
-      background: #fff;
-      color: #111;
-      font: 700 8px/1 "Segoe UI", Arial, sans-serif;
+      background: #262626;
+      color: #f59e0b;
       cursor: default;
     }
 
+    .damage-type-icon {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.6;
+    }
+
+    .damage-type-icon path {
+      vector-effect: non-scaling-stroke;
+    }
+
     .dice-button {
-      display: inline-grid;
-      min-width: 22px;
-      height: 18px;
-      place-items: center;
-      justify-content: center;
-      align-content: center;
-      padding: 0;
-      border: 1px solid rgba(0, 0, 0, 0.36);
-      border-radius: 3px;
-      background: #f7f7f7;
-      color: #111;
-      font: 700 9px/1 "Segoe UI", Arial, sans-serif;
+      display: block;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 16px;
+      height: auto;
+      box-sizing: border-box;
+      padding: 2px 3px;
+      border: 1px solid #525252;
+      border-radius: 2px;
+      background: #262626;
+      color: #d4d4d4;
+      font: 700 8px/1.05 "Segoe UI", Arial, sans-serif;
       text-align: center;
+      overflow-wrap: anywhere;
+      white-space: normal;
       cursor: pointer;
     }
 
     .dice-button:hover,
     .dice-button:focus {
-      background: #111;
-      color: #fff;
+      border-color: #f59e0b;
+      background: #262626;
+      color: #fbbf24;
       outline: none;
     }
 
     .dice-button.active {
-      background: #2f6f3e;
-      color: #fff;
+      border-color: #f59e0b;
+      background: #f59e0b;
+      color: #0a0a0a;
     }
 
     .dice-button:disabled {
@@ -5157,6 +5194,7 @@
 
     .turn-actions-counter {
       gap: 6px;
+      flex: 0 0 auto;
       color: #a3a3a3;
       font-size: 10px;
       letter-spacing: 0.05em;
@@ -5165,7 +5203,12 @@
 
     .turn-actions-orb {
       width: 34px;
+      min-width: 34px;
+      max-width: 34px;
       height: 34px;
+      min-height: 34px;
+      max-height: 34px;
+      flex: 0 0 34px;
       border-color: var(--dm-amber);
       background: #0a0a0a;
       color: #fde68a;
@@ -5173,7 +5216,10 @@
     }
 
     .turn-actions-orb.wide {
+      width: 48px;
       min-width: 48px;
+      max-width: 48px;
+      flex-basis: 48px;
       border-radius: 999px;
     }
 

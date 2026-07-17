@@ -14,6 +14,7 @@ const MAX_VTT_TOKENS = 200;
 const MAX_VTT_MARKERS = 200;
 const MAX_VTT_PING_AGE_MS = 5000;
 const MAX_HAND_QUEUE = 40;
+const MAX_LIVE_STATUS_IDS = 48;
 const VTT_ANONYMOUS_MONSTER_NAME = "???";
 
 function isPlainObject(value) {
@@ -96,12 +97,32 @@ function sanitizeRollEvent(roll) {
   };
 }
 
+function sanitizeLiveStatusIds(value) {
+  const seen = new Set();
+  return (Array.isArray(value) ? value : [])
+    .map((statusId) => sanitizeText(statusId, 80).toLowerCase())
+    .filter((statusId) => /^[a-z0-9][a-z0-9-]{0,79}$/.test(statusId) && !seen.has(statusId) && seen.add(statusId))
+    .slice(0, MAX_LIVE_STATUS_IDS);
+}
+
+function sanitizeLiveSheetData(data) {
+  const sanitized = { ...(data || {}) };
+  if (Object.prototype.hasOwnProperty.call(sanitized, "__liveStatuses")) {
+    sanitized.__liveStatuses = sanitizeLiveStatusIds(sanitized.__liveStatuses);
+  }
+  return sanitized;
+}
+
 function sanitizeSheetPatch(patch) {
   if (!isPlainObject(patch)) return null;
   const sanitized = {};
   Object.entries(patch).forEach(([key, value]) => {
     const normalizedKey = sanitizeText(key, 120);
     if (!normalizedKey || normalizedKey === "__proto__" || normalizedKey === "constructor" || normalizedKey === "prototype") return;
+    if (normalizedKey === "__liveStatuses") {
+      sanitized[normalizedKey] = sanitizeLiveStatusIds(value);
+      return;
+    }
     if (typeof value === "boolean") {
       sanitized[normalizedKey] = value;
       return;
@@ -1018,7 +1039,7 @@ class LiveSheetServer extends EventEmitter {
       playerId,
       playerName: sanitizeText(payload.playerName) || "Jugador",
       sessionToken: sanitizeText(payload.sessionToken, 128),
-      data: payload.type === "sheet:update" ? payload.data : null,
+      data: payload.type === "sheet:update" ? sanitizeLiveSheetData(payload.data) : null,
       roll,
       ping,
       handRaised: payload.type === "player:hand" ? sanitizeHandRaised(payload.raised ?? payload.handRaised) : false

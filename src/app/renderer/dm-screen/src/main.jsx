@@ -2,6 +2,7 @@ import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "r
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import "../../../../engine/spells/spell-data.js";
+import "../../../../engine/conditions/statuses.js";
 
 const {
   formatCastingTime: formatCanonicalSpellCastingTime,
@@ -16,6 +17,9 @@ const {
   spellSource: canonicalSpellSource,
   spellSubclassNames: canonicalSpellSubclassNames
 } = globalThis.dndSpellDataEngine;
+
+const LIVE_STATUS_FIELD = "__liveStatuses";
+const statusEngine = globalThis.dndConditionEngine;
 
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 const SIZE_LABELS = {
@@ -3564,9 +3568,40 @@ function characterFromSheetData(data) {
     money: ["CP", "SP", "EP", "GP", "PP"]
       .map((key) => [key, characterText(data, key)])
       .filter(([, value]) => value),
+    statuses: liveStatusDefinitions(data),
     sections: characterFeatureSections(data),
     rawData: data
   };
+}
+
+function sanitizeLiveStatusIds(ids) {
+  const seen = new Set();
+  return (Array.isArray(ids) ? ids : [])
+    .map((id) => String(id || "").trim())
+    .filter((id) => /^[a-z0-9][a-z0-9-]{0,79}$/i.test(id) && !seen.has(id) && seen.add(id))
+    .slice(0, 48);
+}
+
+function statusDefinitionForLiveSheet(id) {
+  const definition = statusEngine?.findStatusDefinition?.(id);
+  if (definition) return definition;
+  return {
+    id,
+    name: String(id || "status").replace(/-/g, " "),
+    symbol: "STS",
+    tone: "negative",
+    description: "Status received from the connected character."
+  };
+}
+
+function liveStatusDefinitions(data) {
+  return sanitizeLiveStatusIds(data?.[LIVE_STATUS_FIELD]).map(statusDefinitionForLiveSheet);
+}
+
+function availableLiveStatusDefinitions() {
+  return (statusEngine?.getStatusDefinitions?.() || [])
+    .filter((definition) => definition?.id)
+    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), undefined, { sensitivity: "base" }));
 }
 
 function characterStatBlockEntity(character) {
@@ -3613,18 +3648,21 @@ async function loadDmScreenLibraries() {
     import("../../../../data/bestiary/bestiary-sublist-data.json"),
     import("../../../../data/spells/spells.json"),
     import("../../../../../vendor/5etools-src-main/data/items.json"),
-    import("../../../../../vendor/5etools-src-main/data/items-base.json")
-  ]).then(([bestiaryModule, spellsModule, itemsModule, baseItemsModule]) => {
+    import("../../../../../vendor/5etools-src-main/data/items-base.json"),
+    import("../../../../../vendor/5etools-src-main/data/conditionsdiseases.json")
+  ]).then(([bestiaryModule, spellsModule, itemsModule, baseItemsModule, conditionsModule]) => {
     const loadedBestiary = bestiaryModule.default || bestiaryModule;
     const loadedSpells = spellsModule.default || spellsModule;
     const loadedItemsData = itemsModule.default || itemsModule;
     const loadedBaseItemsData = baseItemsModule.default || baseItemsModule;
+    const loadedConditions = conditionsModule.default || conditionsModule;
     bestiary = Array.isArray(loadedBestiary) ? loadedBestiary : [];
     spells = Array.isArray(loadedSpells) ? loadedSpells : [];
     ITEM_LIBRARY = [...(loadedItemsData.item || []), ...(loadedBaseItemsData.baseitem || [])];
     ITEM_PROPERTY_LOOKUP = new Map((loadedBaseItemsData.itemProperty || []).map((property) => [`${property.abbreviation}|${property.source}`, property]));
     ITEM_TYPE_LOOKUP = new Map((loadedBaseItemsData.itemType || []).map((type) => [`${type.abbreviation}|${type.source}`, type]));
     ITEM_MASTERY_LOOKUP = new Map((loadedBaseItemsData.itemMastery || []).map((mastery) => [`${mastery.name}|${mastery.source}`, mastery]));
+    statusEngine?.setExternalConditionEntries?.(loadedConditions);
     MONSTER_SEARCH_INDEX = buildMonsterSearchIndex(bestiary);
     SPELL_SEARCH_INDEX = buildLibrarySearchIndex(spells, "spell");
     ITEM_SEARCH_INDEX = buildLibrarySearchIndex(ITEM_LIBRARY, "item");
@@ -8290,6 +8328,79 @@ function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onCh
   );
 }
 
+function CharacterStatusBlock({ statuses = [], canEdit = false, onChange = null }) {
+  const activeIds = sanitizeLiveStatusIds(statuses.map((status) => status?.id));
+  const displayedStatuses = activeIds.map(statusDefinitionForLiveSheet);
+  const available = availableLiveStatusDefinitions().filter((status) => !activeIds.includes(status.id));
+  const [selectedStatusId, setSelectedStatusId] = useState("");
+  const selectableStatusId = available.some((status) => status.id === selectedStatusId)
+    ? selectedStatusId
+    : (available[0]?.id || "");
+
+  return (
+    <div className="grid gap-2">
+      {canEdit ? (
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <select
+            className="min-w-0 border border-neutral-700 bg-neutral-950 px-2 py-2 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
+            value={selectableStatusId}
+            disabled={!available.length}
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => setSelectedStatusId(event.target.value)}
+          >
+            {available.length ? available.map((status) => (
+              <option key={status.id} value={status.id}>{status.name}</option>
+            )) : <option value="">All statuses active</option>}
+          </select>
+          <button
+            className="border border-amber-500/70 bg-amber-950/70 px-3 text-xs font-bold uppercase text-amber-100 hover:bg-amber-900 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+            type="button"
+            disabled={!selectableStatusId}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => {
+              if (!selectableStatusId) return;
+              onChange?.([...activeIds, selectableStatusId]);
+              setSelectedStatusId("");
+            }}
+          >
+            + Add status
+          </button>
+        </div>
+      ) : null}
+      {displayedStatuses.length ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {displayedStatuses.map((status) => {
+            const positive = status.tone === "positive";
+            return (
+              <div key={status.id} className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border px-2 py-2 ${positive ? "border-emerald-700/70 bg-emerald-950/25" : "border-red-900/70 bg-red-950/20"}`}>
+                <span className={`min-w-9 rounded-sm border px-1 py-1 text-center text-[10px] font-bold ${positive ? "border-emerald-600/70 text-emerald-200" : "border-red-700/70 text-red-200"}`}>{status.symbol || "STS"}</span>
+                <span className="min-w-0">
+                  <span className="block break-words font-bold text-neutral-100">{status.name}</span>
+                  <span className="block text-[11px] text-neutral-400">{positive ? "Buff" : "Debuff"}</span>
+                </span>
+                {canEdit ? (
+                  <button
+                    className="h-7 w-7 border border-neutral-700 bg-neutral-950 text-xs font-bold text-neutral-400 hover:border-red-500 hover:bg-red-950/50 hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-400/50"
+                    type="button"
+                    title={`Remove ${status.name}`}
+                    aria-label={`Remove ${status.name}`}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={() => onChange?.(activeIds.filter((id) => id !== status.id))}
+                  >
+                    X
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-neutral-500">No active statuses.</p>
+      )}
+    </div>
+  );
+}
+
 function CharacterMoneyEditor({ character, noteId, onCharacterFieldChange }) {
   const moneyByKey = new Map(character.money || []);
   if (!onCharacterFieldChange && !moneyByKey.size) return null;
@@ -8432,6 +8543,7 @@ function CharacterNote({
   onDuplicate,
   onHpChange,
   onCharacterFieldChange,
+  onStatusChange,
   onOpenResource,
   onChooseEquipmentItem
 }) {
@@ -8589,6 +8701,14 @@ function CharacterNote({
           onHpChange={onHpChange}
           onCharacterFieldChange={canEditRemoteSheet ? onCharacterFieldChange : null}
         />
+
+        <CharacterDetailSection title={`Status${character.statuses.length ? ` (${character.statuses.length})` : ""}`} defaultOpen={character.statuses.length > 0}>
+          <CharacterStatusBlock
+            statuses={character.statuses}
+            canEdit={canEditRemoteSheet}
+            onChange={(statusIds) => onStatusChange?.(noteActionId, statusIds)}
+          />
+        </CharacterDetailSection>
 
         {character.actions.length ? (
           <CharacterDetailSection title="Actions" defaultOpen>
@@ -12527,7 +12647,11 @@ function DmScreenApp() {
   function normalizeLiveSheetPatch(patch) {
     if (!patch || typeof patch !== "object" || Array.isArray(patch)) return {};
     return Object.fromEntries(Object.entries(patch)
-      .map(([key, value]) => [String(key || "").trim(), value == null ? "" : String(value)])
+      .map(([key, value]) => {
+        const normalizedKey = String(key || "").trim();
+        if (normalizedKey === LIVE_STATUS_FIELD) return [normalizedKey, sanitizeLiveStatusIds(value)];
+        return [normalizedKey, value == null ? "" : String(value)];
+      })
       .filter(([key]) => key && key !== "__proto__" && key !== "constructor" && key !== "prototype"));
   }
 
@@ -12551,6 +12675,27 @@ function DmScreenApp() {
   function updateLiveCharacterField(noteId, fieldKey, value) {
     const patch = normalizeLiveSheetPatch({ [fieldKey]: value });
     if (!Object.keys(patch).length) return false;
+    const note = monsterNotesRef.current.find((entry) => entry.id === noteId);
+    if (!note?.livePlayerId || note.liveConnected === false) return false;
+
+    setMonsterNotes((notes) => {
+      const nextNotes = notes.map((entry) => (
+        entry.id === noteId ? applyLivePatchToNote(entry, patch) : entry
+      ));
+      return persistLinkedTokenNotesInCollection(nextNotes, [noteId]);
+    });
+
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet?.updatePlayerSheet) return true;
+    liveSheet.updatePlayerSheet(note.livePlayerId, patch).catch((error) => {
+      console.error(error);
+    });
+    return true;
+  }
+
+  function updateLiveCharacterStatuses(noteId, statusIds) {
+    const patch = normalizeLiveSheetPatch({ [LIVE_STATUS_FIELD]: statusIds });
+    if (!Array.isArray(patch[LIVE_STATUS_FIELD])) return false;
     const note = monsterNotesRef.current.find((entry) => entry.id === noteId);
     if (!note?.livePlayerId || note.liveConnected === false) return false;
 
@@ -15706,6 +15851,7 @@ function DmScreenApp() {
               {...sharedProps}
               onHpChange={updateNoteHp}
               onCharacterFieldChange={updateLiveCharacterField}
+              onStatusChange={updateLiveCharacterStatuses}
               onOpenResource={addCharacterResourceNote}
               onChooseEquipmentItem={openLiveCharacterEquipmentPicker}
             />

@@ -147,6 +147,18 @@ async function testTokenAcceptanceAndProtocol() {
     assert.deepStrictEqual(patch.patch, { HPCurrent: "7", AC: "16" });
     assert.strictEqual(server.getPlayers()[0].data.HPCurrent, "7");
     assert.deepStrictEqual(sanitizeSheetPatch({ Equipment: "1 Rope\n1 Torch" }), { Equipment: "1 Rope\n1 Torch" });
+    assert.deepStrictEqual(
+      sanitizeSheetPatch({ __liveStatuses: ["blessed", "prone", "blessed", "not valid"] }),
+      { __liveStatuses: ["blessed", "prone"] },
+      "the Live Sheet status patch should keep only bounded, unique status ids"
+    );
+
+    const statusPatchPromise = nextMessage(socket);
+    const statusPatchResult = server.updatePlayerSheet("player-1", { __liveStatuses: ["blessed", "prone"] });
+    assert.strictEqual(statusPatchResult.ok, true);
+    const statusPatch = await statusPatchPromise;
+    assert.deepStrictEqual(statusPatch.patch, { __liveStatuses: ["blessed", "prone"] });
+    assert.deepStrictEqual(server.getPlayers()[0].data.__liveStatuses, ["blessed", "prone"]);
 
     const rollPromise = new Promise((resolve) => server.once("player-roll", resolve));
     send(socket, {

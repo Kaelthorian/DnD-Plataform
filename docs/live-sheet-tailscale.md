@@ -64,7 +64,7 @@ El panel muestra:
 5. Pegar el session token si esta activado.
 6. Tocar **Connect**.
 
-El cliente manda `player:hello` y enseguida un `sheet:update` completo. Cuando el servidor confirma la planilla, el jugador ve **Synced with DM** y el DM ve la sheet inmediatamente.
+El cliente manda `player:hello` y enseguida un `sheet:update` completo. Cuando el servidor confirma la planilla, el jugador ve **Synced with DM** y el DM ve la sheet inmediatamente. La nota del jugador en el DM Screen incluye una lista colapsable **Status**: muestra buffs/debuffs activos y permite agregarlos o quitarlos; solo se comparten los IDs validados de esos estados, no el resto de `__sheetMeta`.
 
 ## Si falla
 

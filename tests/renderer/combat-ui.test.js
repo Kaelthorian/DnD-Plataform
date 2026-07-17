@@ -95,6 +95,7 @@ assert.ok(styles.includes(".combat-log-entry"), "combat log styles missing");
 assert.ok(styles.includes(".turn-actions-panel.is-collapsed"), "combat collapsed styles missing");
 assert.ok(styles.includes(".turn-actions-translate"), "combat translation styles missing");
 assert.ok(styles.includes("var(--dm-amber)"), "DM Screen visual language is missing");
+assert.match(styles, /\.turn-actions-orb\s*\{[\s\S]*?min-width:\s*34px[\s\S]*?max-width:\s*34px[\s\S]*?flex:\s*0 0 34px/, "top combat orbs should keep a fixed size");
 
 const equipmentProviderStart = html.indexOf('id: "equipment:attacks"');
 const equipmentProviderEnd = html.indexOf('id: "inventory:consumables"', equipmentProviderStart);
