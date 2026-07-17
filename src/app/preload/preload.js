@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld("dndSheet", {
   loadStore: () => ipcRenderer.invoke("sheet:store:load"),
   saveStore: (store) => ipcRenderer.invoke("sheet:store:save", store),
   clearSlot: (slotId) => ipcRenderer.invoke("sheet:slot:clear", slotId),
+  loadDmSoundLinks: () => ipcRenderer.invoke("dm-sound-links:load"),
+  saveDmSoundLinks: (links) => ipcRenderer.invoke("dm-sound-links:save", links),
   openDmScreen: () => ipcRenderer.invoke("app:navigate", "dm-screen"),
   openCharacterSheet: () => ipcRenderer.invoke("app:navigate", "character-sheet"),
   updater: {

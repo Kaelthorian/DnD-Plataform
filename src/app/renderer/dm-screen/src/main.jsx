@@ -146,6 +146,8 @@ const DM_MAP_IMAGE_DB_NAME = "dnd-dm-screen-map-images-v1";
 const DM_MAP_IMAGE_STORE_NAME = "map-images";
 const DM_SOUND_DB_NAME = "dnd-dm-screen-sounds-v1";
 const DM_SOUND_STORE_NAME = "sounds";
+const YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com";
+const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 const DM_BOARD_SAVE_DEBOUNCE_MS = 700;
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
 const MAP_TOKEN_SIZE = 56;
@@ -979,6 +981,7 @@ function noteDisplayName(note) {
   if (note?.kind === "obsidian") return note?.obsidian?.title || note?.obsidian?.fileName || "Obsidian Note";
   if (note?.kind === "text") return note?.textTitle || "Text Note";
   if (note?.kind === "map") return note?.titleOverride || note?.mapImage?.name || "VTT Map";
+  if (note?.kind === "youtube") return note?.youtubeName || "YouTube";
   return note?.entry?.name || (note?.kind === "spell" ? "Spell" : note?.kind === "item" ? "Item" : "Note");
 }
 
@@ -1315,10 +1318,14 @@ function openSoundDatabase() {
 
 function soundRecordSnapshot(record) {
   if (!record?.id) return null;
+  const kind = record.kind === "youtube" ? "youtube" : "file";
   return {
     id: String(record.id),
     name: String(record.name || record.fileName || "Audio"),
     fileName: String(record.fileName || record.name || "audio"),
+    kind,
+    url: kind === "youtube" ? String(record.url || "") : "",
+    videoId: kind === "youtube" ? String(record.videoId || "") : "",
     type: String(record.type || record.blob?.type || ""),
     size: Number(record.size || record.blob?.size) || 0,
     updatedAt: String(record.updatedAt || "")
@@ -1397,6 +1404,98 @@ function soundNameFromFile(file) {
   return String(file?.name || "Audio").replace(/\.[^.]+$/, "").trim() || "Audio";
 }
 
+function normalizeYoutubeVideoId(value) {
+  const videoId = String(value || "").trim();
+  return YOUTUBE_VIDEO_ID_PATTERN.test(videoId) ? videoId : "";
+}
+
+function youtubeVideoIdFromLink(value) {
+  const rawUrl = String(value || "").trim();
+  if (!rawUrl) return "";
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") return "";
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtu.be") return normalizeYoutubeVideoId(parsed.pathname.split("/").filter(Boolean)[0]);
+    if (!["youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com"].includes(host)) return "";
+    if (parsed.pathname === "/watch") return normalizeYoutubeVideoId(parsed.searchParams.get("v"));
+    const matched = parsed.pathname.match(/^\/(?:embed|shorts|live)\/([^/?#]+)/i);
+    return normalizeYoutubeVideoId(matched?.[1]);
+  } catch (_error) {
+    return "";
+  }
+}
+
+function sortSoundButtons(sounds) {
+  const seen = new Set();
+  return (Array.isArray(sounds) ? sounds : [])
+    .map(soundRecordSnapshot)
+    .filter((sound) => {
+      if (!sound || seen.has(sound.id)) return false;
+      seen.add(sound.id);
+      return true;
+    })
+    .sort((left, right) => String(left.name).localeCompare(String(right.name), undefined, { sensitivity: "base" }));
+}
+
+async function loadPersistedSoundLinks() {
+  try {
+    const links = await window.dndSheet?.loadDmSoundLinks?.();
+    if (!Array.isArray(links)) throw new Error("Invalid sound-link response");
+    return sortSoundButtons(links.filter((link) => link?.kind === "youtube"));
+  } catch (error) {
+    if (/No handler registered for 'dm-sound-links:load'/i.test(String(error?.message || error))) {
+      throw new Error("El proceso principal esta desactualizado. Cerra todas las ventanas de la app y ejecuta npm start otra vez.");
+    }
+    throw new Error(`No se pudo cargar los enlaces de musica: ${error?.message || error}`);
+  }
+}
+
+async function savePersistedSoundLinks(links) {
+  try {
+    const saved = await window.dndSheet?.saveDmSoundLinks?.(sortSoundButtons(links));
+    if (!Array.isArray(saved)) throw new Error("Invalid sound-link response");
+    return sortSoundButtons(saved);
+  } catch (error) {
+    if (/No handler registered for 'dm-sound-links:save'/i.test(String(error?.message || error))) {
+      throw new Error("El proceso principal esta desactualizado. Cerra todas las ventanas de la app y ejecuta npm start otra vez.");
+    }
+    throw new Error(`No se pudo guardar el enlace de musica: ${error?.message || error}`);
+  }
+}
+
+async function listSoundButtons() {
+  const [filesResult, linksResult] = await Promise.allSettled([
+    listSoundAssets(),
+    loadPersistedSoundLinks()
+  ]);
+  const files = filesResult.status === "fulfilled" ? filesResult.value : [];
+  if (filesResult.status === "rejected") console.warn("No se pudo cargar la biblioteca local de audio.", filesResult.reason);
+  if (linksResult.status === "rejected") throw linksResult.reason;
+  const links = linksResult.value;
+  return sortSoundButtons([...files, ...links]);
+}
+
+function youtubeEmbedUrl(videoId, autoplay = false, controls = false) {
+  const normalizedId = normalizeYoutubeVideoId(videoId);
+  if (!normalizedId) return "";
+  const params = new URLSearchParams({
+    enablejsapi: "1",
+    autoplay: autoplay ? "1" : "0",
+    controls: controls ? "1" : "0",
+    playsinline: "1",
+    rel: "0"
+  });
+  return `${YOUTUBE_EMBED_ORIGIN}/embed/${normalizedId}?${params.toString()}`;
+}
+
+function sendYoutubePlayerCommand(frame, command, args = []) {
+  if (!frame?.contentWindow || !command) return;
+  // The iframe starts as file:// before Chromium commits the remote navigation.
+  // Commands contain no user data; inbound events remain restricted to YouTube's origin.
+  frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: command, args }), "*");
+}
+
 async function readAudioFileAsSoundAsset(file) {
   if (!isAudioFile(file)) throw new Error("Elegi un archivo de audio.");
   const id = `sound-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -1411,6 +1510,26 @@ async function readAudioFileAsSoundAsset(file) {
     blob: file
   };
   await putSoundAsset(record);
+  return soundRecordSnapshot(record);
+}
+
+async function readYoutubeLinkAsSoundAsset(value) {
+  const rawUrl = String(value || "").trim();
+  const videoId = youtubeVideoIdFromLink(rawUrl);
+  if (!videoId) throw new Error("Pega un enlace valido de YouTube.");
+  const id = `sound-youtube-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const updatedAt = new Date().toISOString();
+  const record = {
+    id,
+    kind: "youtube",
+    name: `YouTube: ${videoId}`,
+    fileName: "YouTube",
+    url: rawUrl,
+    videoId,
+    type: "video/youtube",
+    size: 0,
+    updatedAt
+  };
   return soundRecordSnapshot(record);
 }
 
@@ -2662,6 +2781,10 @@ function noteStorageSnapshot(note) {
     textTitle: note.kind === "text" ? note.textTitle || "" : "",
     textContent: note.kind === "text" ? note.textContent || "" : "",
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(storedImageSnapshot).filter(Boolean) : [],
+    youtubeSoundId: note.kind === "youtube" ? String(note.youtubeSoundId || "") : "",
+    youtubeVideoId: note.kind === "youtube" ? normalizeYoutubeVideoId(note.youtubeVideoId) : "",
+    youtubeUrl: note.kind === "youtube" ? String(note.youtubeUrl || "") : "",
+    youtubeName: note.kind === "youtube" ? String(note.youtubeName || "YouTube") : "",
     mapImage: activeMapPage?.mapImage ? mapImageStorageSnapshot(activeMapPage.mapImage) : null,
     mapTokens: activeMapPage ? activeMapPage.mapTokens.map(mapTokenSnapshot).filter(Boolean) : [],
     mapTokenGroups: activeMapPage ? mapTokenGroupsSnapshot(activeMapPage.mapTokenGroups) : [],
@@ -2740,10 +2863,12 @@ function restoreStoredNote(note) {
       vaultName: String(note.obsidian.vaultName || "")
     }
     : null;
+  const youtubeVideoId = note.kind === "youtube" ? normalizeYoutubeVideoId(note.youtubeVideoId) : "";
   if (note.kind === "monster" && !monster) return null;
   if ((note.kind === "spell" || note.kind === "item") && !entry) return null;
   if (note.kind === "character" && !character) return null;
   if (note.kind === "obsidian" && !obsidian) return null;
+  if (note.kind === "youtube" && !youtubeVideoId) return null;
   const width = clamp(Number(note.width) || NOTE_DEFAULT_WIDTH, NOTE_MIN_WIDTH, BOARD_WIDTH - BOARD_PADDING * 2);
   const height = clamp(Number(note.height) || NOTE_DEFAULT_HEIGHT, NOTE_MIN_HEIGHT, BOARD_HEIGHT - BOARD_PADDING * 2);
   const point = clampBoardPoint({
@@ -2769,6 +2894,10 @@ function restoreStoredNote(note) {
     textTitle: typeof note.textTitle === "string" ? note.textTitle : "",
     textContent: typeof note.textContent === "string" ? note.textContent : "",
     textImages: note.kind === "text" && Array.isArray(note.textImages) ? note.textImages.map(restoreStoredImage).filter(Boolean) : [],
+    youtubeSoundId: note.kind === "youtube" ? String(note.youtubeSoundId || "") : "",
+    youtubeVideoId,
+    youtubeUrl: note.kind === "youtube" ? String(note.youtubeUrl || "") : "",
+    youtubeName: note.kind === "youtube" ? String(note.youtubeName || "YouTube") : "",
     mapImage: activeMapPage?.mapImage || mapImage,
     mapTokens: activeMapPage?.mapTokens || mapTokens,
     mapTokenGroups: activeMapPage?.mapTokenGroups || mapTokenGroups,
@@ -6050,6 +6179,121 @@ function TextNote({
   );
 }
 
+function YoutubeNote({
+  note,
+  shellNote = null,
+  actionNoteId = null,
+  tabBar = null,
+  isDropTarget = false,
+  isActive = false,
+  playback = "idle",
+  playerRef = null,
+  onPlayerLoad,
+  onRename,
+  onClose,
+  onDragStart,
+  onFocus,
+  onResizeStart,
+  onMinimize,
+  onRestore
+}) {
+  const frameNote = shellNote || note;
+  const frameNoteId = frameNote.id;
+  const noteActionId = actionNoteId || note.id;
+  const title = noteDisplayName(note);
+  const videoId = normalizeYoutubeVideoId(note.youtubeVideoId);
+
+  if (frameNote.minimized) {
+    return (
+      <article
+        className={`absolute flex h-11 cursor-move items-center justify-between gap-3 overflow-hidden border bg-neutral-900 px-3 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-amber-500"}`}
+        data-dm-note="true"
+        data-note-kind="youtube"
+        style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: clamp(frameNote.width, 220, 340) }}
+        onPointerDown={onFocus}
+      >
+        <button
+          className="min-w-0 flex-1 text-left"
+          type="button"
+          onPointerDown={(event) => onDragStart(event, frameNoteId)}
+          onClick={() => onRestore(frameNoteId)}
+          title={`Restaurar ${title}`}
+        >
+          <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{title}</span>
+          <span className="block truncate text-[11px] text-neutral-500">YouTube</span>
+        </button>
+        <button
+          className="h-7 w-7 shrink-0 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700"
+          type="button"
+          aria-label={`Cerrar ${title}`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => onClose(noteActionId, event)}
+        >
+          X
+        </button>
+      </article>
+    );
+  }
+
+  return (
+    <article
+      className={`absolute flex overflow-hidden border bg-neutral-900 text-neutral-300 shadow-2xl ${isDropTarget ? "border-sky-300 ring-2 ring-sky-300/60" : "border-neutral-950"}`}
+      data-dm-note="true"
+      data-note-kind="youtube"
+      data-note-action-id={noteActionId}
+      style={{ left: frameNote.x, top: frameNote.y, zIndex: frameNote.z, width: frameNote.width, height: frameNote.height, flexDirection: "column" }}
+      onPointerDown={onFocus}
+    >
+      <header
+        className="flex cursor-move items-start justify-between gap-3 border-b-2 border-amber-500 bg-neutral-900 px-3 py-2"
+        onPointerDown={(event) => onDragStart(event, frameNoteId)}
+      >
+        <div className="min-w-0">
+          <EditableNoteTitle
+            title={title}
+            className="block max-w-full truncate font-serif text-left text-xl font-bold uppercase leading-none tracking-wide text-amber-500"
+            inputClassName="w-full border border-amber-500 bg-neutral-950 px-2 py-1 font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500 focus:outline-none"
+            onRename={(value) => onRename?.(noteActionId, value)}
+          />
+          <p className="mt-2 text-sm italic text-neutral-500">
+            {isActive && playback === "paused" ? "YouTube | pausado" : isActive ? "YouTube | reproduciendo" : "YouTube | listo"}
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
+          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+        </div>
+      </header>
+      {tabBar}
+      <div
+        className="flex min-h-[200px] flex-1 items-center justify-center bg-black p-2"
+        data-board-control="true"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        {videoId ? (
+          <iframe
+            ref={isActive ? playerRef : null}
+            className="h-full min-h-[200px] w-full border-0 bg-black"
+            src={youtubeEmbedUrl(videoId, isActive, true)}
+            title={`YouTube: ${title}`}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+            onLoad={(event) => {
+              if (isActive) onPlayerLoad?.(event.currentTarget);
+            }}
+          />
+        ) : (
+          <p className="px-4 text-center text-sm text-red-300">El enlace de YouTube ya no es valido.</p>
+        )}
+      </div>
+      <ResizeHandle edge="right" className="right-0 top-8 h-[calc(100%-40px)] w-2 cursor-ew-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="bottom" className="bottom-0 left-0 h-2 w-[calc(100%-8px)] cursor-ns-resize" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+      <ResizeHandle edge="corner" className="app-resize-corner bottom-0 right-0" onResizeStart={(event, edge) => onResizeStart(event, frameNoteId, edge)} />
+    </article>
+  );
+}
+
 function MapTokenTracker({
   mapNoteId = "",
   activePageId = "",
@@ -8923,6 +9167,14 @@ function UploadIcon({ className = "" }) {
   );
 }
 
+function LinkIcon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="m9.5 14.5 5-5m-7.9 7.9-1.1 1.1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0m5 5a3.5 3.5 0 0 1-5 0m8-8 1.1-1.1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function TrashIcon({ className = "" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -9218,8 +9470,10 @@ function formatFileSize(bytes) {
   return `${size} B`;
 }
 
-function SoundButtonRow({ sound, busy, active, onRename, onPlay, onPause, onDelete }) {
+function SoundButtonRow({ sound, busy, active, paused, onRename, onPlay, onPause, onDelete }) {
   const [draftName, setDraftName] = useState(sound.name || "Audio");
+  const isYoutube = sound.kind === "youtube";
+  const playLabel = paused ? "Reanudar" : "Reproducir";
 
   useEffect(() => {
     setDraftName(sound.name || "Audio");
@@ -9236,9 +9490,9 @@ function SoundButtonRow({ sound, busy, active, onRename, onPlay, onPause, onDele
       <button
         className="flex h-9 w-9 items-center justify-center border border-amber-500/60 bg-amber-500 text-neutral-950 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 disabled:cursor-wait disabled:opacity-60"
         type="button"
-        aria-label={`Reproducir ${sound.name || "audio"}`}
-        title="Reproducir para jugadores"
-        disabled={busy}
+        aria-label={`${playLabel} ${sound.name || "audio"}`}
+        title={`${playLabel} para jugadores`}
+        disabled={busy || active}
         onClick={() => onPlay(sound.id)}
       >
         <PlayIcon className="h-4 w-4" />
@@ -9258,7 +9512,9 @@ function SoundButtonRow({ sound, busy, active, onRename, onPlay, onPause, onDele
             }
           }}
         />
-        <p className="truncate px-1 text-[11px] text-neutral-500">{formatFileSize(sound.size)} {sound.type ? `| ${sound.type}` : ""}</p>
+        <p className="truncate px-1 text-[11px] text-neutral-500" title={isYoutube ? sound.url : ""}>
+          {isYoutube ? "YouTube | enlace guardado" : `${formatFileSize(sound.size)} ${sound.type ? `| ${sound.type}` : ""}`}
+        </p>
       </div>
       <button
         className={`flex h-8 w-8 items-center justify-center border bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-sky-500 text-sky-200 hover:bg-sky-950/40" : "border-neutral-700 text-neutral-500"}`}
@@ -9284,17 +9540,62 @@ function SoundButtonRow({ sound, busy, active, onRename, onPlay, onPause, onDele
   );
 }
 
+function SoundLinkForm({ busy, onSave, onCancel }) {
+  const [url, setUrl] = useState("");
+
+  async function submit(event) {
+    event.preventDefault();
+    const saved = await onSave(url);
+    if (saved) setUrl("");
+  }
+
+  return (
+    <form className="grid gap-2 border-b border-neutral-700 bg-neutral-950/70 p-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center" onSubmit={submit}>
+      <input
+        className="h-9 min-w-0 border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-amber-500"
+        type="url"
+        value={url}
+        placeholder="Enlace de YouTube"
+        spellCheck="false"
+        autoFocus
+        required
+        onChange={(event) => setUrl(event.target.value)}
+      />
+      <button
+        className="h-9 border border-amber-500 bg-amber-500 px-3 text-xs font-bold uppercase text-neutral-950 hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60"
+        type="submit"
+        disabled={busy}
+      >
+        Guardar enlace
+      </button>
+      <button
+        className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-xs font-bold uppercase text-neutral-300 hover:border-neutral-500"
+        type="button"
+        disabled={busy}
+        onClick={onCancel}
+      >
+        Cancelar
+      </button>
+    </form>
+  );
+}
+
 function SoundBarPanel({
   sounds,
   collapsed,
   error,
   busyId,
   activeSoundIds,
+  pausedSoundIds,
   connectedPlayerCount,
   fileInputRef,
+  linkFormOpen,
   onToggleCollapsed,
   onPickFiles,
   onFilesSelected,
+  onOpenLinkForm,
+  onSaveLink,
+  onCancelLink,
   onRename,
   onPlay,
   onPause,
@@ -9356,6 +9657,14 @@ function SoundBarPanel({
             <span>Subir</span>
           </button>
           <button
+            className="flex h-8 items-center gap-2 border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold uppercase text-sky-300 hover:border-sky-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+            type="button"
+            onClick={onOpenLinkForm}
+          >
+            <LinkIcon className="h-4 w-4" />
+            <span>Enlace</span>
+          </button>
+          <button
             className="h-8 w-8 border border-neutral-700 bg-neutral-950 text-sm font-bold text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
             type="button"
             onClick={onToggleCollapsed}
@@ -9367,6 +9676,7 @@ function SoundBarPanel({
         </div>
       </header>
       {error ? <p className="border-b border-red-500/30 bg-red-950/40 px-3 py-2 text-xs text-red-200">{error}</p> : null}
+      {linkFormOpen ? <SoundLinkForm busy={Boolean(busyId)} onSave={onSaveLink} onCancel={onCancelLink} /> : null}
       <div className="min-h-0 overflow-auto p-3">
         {sounds.length ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2">
@@ -9376,6 +9686,7 @@ function SoundBarPanel({
                 sound={sound}
                 busy={Boolean(busyId)}
                 active={activeSoundIds.includes(sound.id)}
+                paused={pausedSoundIds.includes(sound.id)}
                 onRename={onRename}
                 onPlay={onPlay}
                 onPause={onPause}
@@ -10947,10 +11258,13 @@ function DmScreenApp() {
   const [soundButtons, setSoundButtons] = useState([]);
   const [soundBarError, setSoundBarError] = useState("");
   const [soundBarBusyId, setSoundBarBusyId] = useState("");
+  const [soundLinkFormOpen, setSoundLinkFormOpen] = useState(false);
   const [tokenImportQueue, setTokenImportQueue] = useState([]);
   const [tokenImportIndex, setTokenImportIndex] = useState(0);
   const [tokenImportError, setTokenImportError] = useState("");
   const [activeSoundIds, setActiveSoundIds] = useState([]);
+  const [pausedSoundIds, setPausedSoundIds] = useState([]);
+  const [youtubeDmSound, setYoutubeDmSound] = useState(null);
   const [sharedVttMap, setSharedVttMap] = useState(null);
   const [vttPings, setVttPings] = useState([]);
   const [dropTargetNoteId, setDropTargetNoteId] = useState(null);
@@ -10973,6 +11287,7 @@ function DmScreenApp() {
   const tokenImportInputRef = useRef(null);
   const dmSoundAudioPlayersRef = useRef([]);
   const dmSoundAudioPlayersByIdRef = useRef(new Map());
+  const youtubeDmPlayerRef = useRef(null);
   const tokenContextPointerRef = useRef(null);
   const boardViewRef = useRef(boardView);
   const handleBoardWheelRef = useRef(null);
@@ -11308,8 +11623,39 @@ function DmScreenApp() {
   }, [soundBarCollapsed]);
 
   useEffect(() => {
+    if (!youtubeDmSound?.videoId) return undefined;
+    const timer = window.setTimeout(() => {
+      sendYoutubePlayerCommand(youtubeDmPlayerRef.current, "setVolume", [Math.round((Number(youtubeDmSound.volume) || 1) * 100)]);
+      if (youtubeDmSound.playback === "paused") sendYoutubePlayerCommand(youtubeDmPlayerRef.current, "pauseVideo");
+      if (youtubeDmSound.playback === "playing") sendYoutubePlayerCommand(youtubeDmPlayerRef.current, "playVideo");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [youtubeDmSound]);
+
+  useEffect(() => {
+    if (!youtubeDmSound?.id) return undefined;
+    function onYoutubePlayerMessage(event) {
+      if (event.origin !== YOUTUBE_EMBED_ORIGIN) return;
+      let payload = event.data;
+      if (typeof payload === "string") {
+        try {
+          payload = JSON.parse(payload);
+        } catch (_error) {
+          return;
+        }
+      }
+      if (payload?.event !== "onStateChange" || Number(payload.info) !== 0) return;
+      setActiveSoundIds((ids) => ids.filter((id) => id !== youtubeDmSound.id));
+      setPausedSoundIds((ids) => ids.filter((id) => id !== youtubeDmSound.id));
+      setYoutubeDmSound((sound) => (sound?.id === youtubeDmSound.id ? { ...sound, playback: "ended" } : sound));
+    }
+    window.addEventListener("message", onYoutubePlayerMessage);
+    return () => window.removeEventListener("message", onYoutubePlayerMessage);
+  }, [youtubeDmSound?.id]);
+
+  useEffect(() => {
     let cancelled = false;
-    listSoundAssets()
+    listSoundButtons()
       .then((sounds) => {
         if (!cancelled) setSoundButtons(sounds);
       })
@@ -11615,7 +11961,7 @@ function DmScreenApp() {
   }
 
   async function refreshSoundButtons() {
-    const sounds = await listSoundAssets();
+    const sounds = await listSoundButtons();
     setSoundButtons(sounds);
     return sounds;
   }
@@ -11642,6 +11988,31 @@ function DmScreenApp() {
       console.error(error);
       setSoundBarError(error?.message || "No se pudo subir el audio.");
       refreshSoundButtons().catch(console.error);
+    } finally {
+      setSoundBarBusyId("");
+    }
+  }
+
+  async function addSoundLink(url) {
+    setSoundBarError("");
+    setSoundBarBusyId("link");
+    try {
+      const imported = await readYoutubeLinkAsSoundAsset(url);
+      const savedLinks = await savePersistedSoundLinks([
+        ...soundButtons.filter((sound) => sound.kind === "youtube"),
+        imported
+      ]);
+      setSoundButtons((sounds) => sortSoundButtons([
+        ...sounds.filter((sound) => sound.kind !== "youtube"),
+        ...savedLinks
+      ]));
+      setSoundLinkFormOpen(false);
+      setSoundBarCollapsed(false);
+      return true;
+    } catch (error) {
+      console.error(error);
+      setSoundBarError(error?.message || "No se pudo guardar el enlace de YouTube.");
+      return false;
     } finally {
       setSoundBarBusyId("");
     }
@@ -11695,6 +12066,32 @@ function DmScreenApp() {
     if (!soundId) return;
     setSoundBarError("");
     try {
+      const linkedSound = soundButtons.find((sound) => sound.id === soundId && sound.kind === "youtube");
+      if (linkedSound) {
+        const nextName = sanitizeDisplayText(name, linkedSound.name || "YouTube audio").slice(0, 80);
+        const renamedLink = {
+          ...linkedSound,
+          name: nextName,
+          updatedAt: new Date().toISOString()
+        };
+        const savedLinks = await savePersistedSoundLinks(soundButtons
+          .filter((sound) => sound.kind === "youtube")
+          .map((sound) => (sound.id === soundId ? renamedLink : sound)));
+        setSoundButtons((sounds) => sortSoundButtons([
+          ...sounds.filter((sound) => sound.kind !== "youtube"),
+          ...savedLinks
+        ]));
+        setMonsterNotes((notes) => notes.map((note) => (
+          note.kind === "youtube" && note.youtubeSoundId === soundId
+            ? {
+              ...note,
+              youtubeName: nextName,
+              titleOverride: !note.titleOverride || note.titleOverride === linkedSound.name ? nextName : note.titleOverride
+            }
+            : note
+        )));
+        return;
+      }
       const renamed = await renameSoundAsset(soundId, name);
       setSoundButtons((sounds) => sounds
         .map((sound) => (sound.id === soundId ? renamed : sound))
@@ -11712,6 +12109,27 @@ function DmScreenApp() {
     setSoundBarError("");
     setSoundBarBusyId(soundId);
     try {
+      if (soundButtons.some((sound) => sound.id === soundId && sound.kind === "youtube")) {
+        if (youtubeDmSound?.id === soundId) await pauseSoundButton(soundId);
+        const savedLinks = await savePersistedSoundLinks(soundButtons
+          .filter((sound) => sound.kind === "youtube" && sound.id !== soundId));
+        setSoundButtons((sounds) => sortSoundButtons([
+          ...sounds.filter((sound) => sound.kind !== "youtube"),
+          ...savedLinks
+        ]));
+        setMonsterNotes((notes) => {
+          const linkedNoteIds = notes
+            .filter((note) => note.kind === "youtube" && note.youtubeSoundId === soundId)
+            .map((note) => note.id);
+          return linkedNoteIds.reduce((nextNotes, noteId) => closeSingleNoteInCollection(nextNotes, noteId), notes);
+        });
+        if (youtubeDmSound?.id === soundId) {
+          setYoutubeDmSound(null);
+          setActiveSoundIds((ids) => ids.filter((id) => id !== soundId));
+          setPausedSoundIds((ids) => ids.filter((id) => id !== soundId));
+        }
+        return;
+      }
       await deleteSoundAsset(soundId);
       setSoundButtons((sounds) => sounds.filter((sound) => sound.id !== soundId));
     } catch (error) {
@@ -11739,6 +12157,7 @@ function DmScreenApp() {
           if (!entries.size) {
             dmSoundAudioPlayersByIdRef.current.delete(soundId);
             setActiveSoundIds((ids) => ids.filter((id) => id !== soundId));
+            setPausedSoundIds((ids) => ids.filter((id) => id !== soundId));
           }
         }
         URL.revokeObjectURL(objectUrl);
@@ -11750,6 +12169,7 @@ function DmScreenApp() {
         if (!dmSoundAudioPlayersByIdRef.current.has(soundId)) dmSoundAudioPlayersByIdRef.current.set(soundId, new Set());
         dmSoundAudioPlayersByIdRef.current.get(soundId).add(audio);
         setActiveSoundIds((ids) => (ids.includes(soundId) ? ids : [...ids, soundId]));
+        setPausedSoundIds((ids) => ids.filter((id) => id !== soundId));
       }
       while (dmSoundAudioPlayersRef.current.length > 8) {
         const staleAudio = dmSoundAudioPlayersRef.current.shift();
@@ -11776,6 +12196,10 @@ function DmScreenApp() {
 
   function pauseLocalDmSound(soundId) {
     const normalizedId = String(soundId || "");
+    const pausesYoutube = Boolean(normalizedId && youtubeDmSound?.id === normalizedId);
+    if (pausesYoutube) {
+      setYoutubeDmSound((sound) => (sound ? { ...sound, playback: "paused" } : sound));
+    }
     const targets = normalizedId
       ? [...(dmSoundAudioPlayersByIdRef.current.get(normalizedId) || [])]
       : [...dmSoundAudioPlayersRef.current];
@@ -11788,12 +12212,44 @@ function DmScreenApp() {
     });
     if (normalizedId) setActiveSoundIds((ids) => ids.filter((id) => id !== normalizedId));
     else setActiveSoundIds([]);
+    if (normalizedId && (pausesYoutube || targets.length)) {
+      setPausedSoundIds((ids) => (ids.includes(normalizedId) ? ids : [...ids, normalizedId]));
+    }
+    return pausesYoutube || Boolean(targets.length);
+  }
+
+  function resumeLocalDmSound(soundId) {
+    const normalizedId = String(soundId || "");
+    const resumesYoutube = Boolean(normalizedId && youtubeDmSound?.id === normalizedId);
+    if (resumesYoutube) {
+      const linkedNote = monsterNotesRef.current.find((note) => (
+        note.kind === "youtube" && note.youtubeSoundId === normalizedId
+      ));
+      if (linkedNote) restoreNote(linkedNote.id);
+      setYoutubeDmSound((sound) => (sound ? { ...sound, playback: "playing" } : sound));
+    }
+    const targets = normalizedId
+      ? [...(dmSoundAudioPlayersByIdRef.current.get(normalizedId) || [])]
+      : [...dmSoundAudioPlayersRef.current];
+    targets.forEach((audio) => {
+      try {
+        const playPromise = audio.play();
+        if (playPromise?.catch) playPromise.catch(console.error);
+      } catch (error) {
+        console.error(error);
+      }
+    });
+    if (normalizedId && (resumesYoutube || targets.length)) {
+      setActiveSoundIds((ids) => (ids.includes(normalizedId) ? ids : [...ids, normalizedId]));
+      setPausedSoundIds((ids) => ids.filter((id) => id !== normalizedId));
+    }
+    return resumesYoutube || Boolean(targets.length);
   }
 
   async function pauseSoundButton(soundId) {
     if (!soundId) return;
     setSoundBarError("");
-    pauseLocalDmSound(soundId);
+    if (!pauseLocalDmSound(soundId)) return;
     try {
       const result = await window.dndSheet?.liveSheet?.publishDmAudioControl?.({
         id: soundId,
@@ -11807,6 +12263,23 @@ function DmScreenApp() {
     }
   }
 
+  async function resumeSoundButton(soundId) {
+    if (!soundId) return;
+    setSoundBarError("");
+    if (!resumeLocalDmSound(soundId)) return;
+    try {
+      const result = await window.dndSheet?.liveSheet?.publishDmAudioControl?.({
+        id: soundId,
+        action: "resume",
+        sentAt: new Date().toISOString()
+      });
+      if (result && !result.ok) throw new Error(result.error || "No se pudo reanudar el audio.");
+    } catch (error) {
+      console.error(error);
+      setSoundBarError(error?.message || "No se pudo reanudar el audio.");
+    }
+  }
+
   async function playSoundButton(soundId) {
     if (!soundId) return;
     const liveSheet = window.dndSheet?.liveSheet;
@@ -11814,21 +12287,75 @@ function DmScreenApp() {
       setSoundBarError("Live sheet API unavailable in this renderer.");
       return;
     }
+    if (pausedSoundIds.includes(soundId)) {
+      await resumeSoundButton(soundId);
+      return;
+    }
     setSoundBarError("");
     setSoundBarBusyId(soundId);
     try {
-      const record = await getSoundAsset(soundId);
-      if (!record?.blob) throw new Error("Audio no encontrado.");
-      playLocalDmSound(record);
-      const dataUrl = await blobToDataUrl(record.blob);
-      const result = await liveSheet.publishDmAudio({
-        id: record.id,
-        name: record.name || record.fileName || "Audio",
-        type: record.type || record.blob.type || "",
-        dataUrl,
-        volume: 1,
-        playedAt: new Date().toISOString()
-      });
+      const linkedSound = soundButtons.find((sound) => sound.id === soundId && sound.kind === "youtube");
+      const record = linkedSound || await getSoundAsset(soundId);
+      if (!record) throw new Error("Audio no encontrado.");
+      let payload;
+      if (record.kind === "youtube") {
+        if (!normalizeYoutubeVideoId(record.videoId)) throw new Error("El enlace guardado de YouTube no es valido.");
+        const existingNote = monsterNotesRef.current.find((note) => (
+          note.kind === "youtube" && note.youtubeSoundId === record.id
+        ));
+        if (existingNote) {
+          restoreNote(existingNote.id);
+          setMonsterNotes((notes) => notes.map((note) => (
+            note.id === existingNote.id
+              ? {
+                ...note,
+                youtubeVideoId: record.videoId,
+                youtubeUrl: record.url || note.youtubeUrl,
+                youtubeName: record.name || note.youtubeName || "YouTube audio"
+              }
+              : note
+          )));
+        } else {
+          addBoardNote({
+            kind: "youtube",
+            youtubeSoundId: record.id,
+            youtubeVideoId: record.videoId,
+            youtubeUrl: record.url || "",
+            youtubeName: record.name || "YouTube audio",
+            titleOverride: record.name || "YouTube audio",
+            width: 560,
+            height: 410
+          });
+        }
+        const previousYoutubeId = youtubeDmSound?.id;
+        if (previousYoutubeId && previousYoutubeId !== record.id) {
+          setActiveSoundIds((ids) => ids.filter((id) => id !== previousYoutubeId));
+          setPausedSoundIds((ids) => ids.filter((id) => id !== previousYoutubeId));
+        }
+        setYoutubeDmSound({ id: record.id, videoId: record.videoId, volume: 1, playback: "playing" });
+        setActiveSoundIds((ids) => (ids.includes(record.id) ? ids : [...ids, record.id]));
+        setPausedSoundIds((ids) => ids.filter((id) => id !== record.id));
+        payload = {
+          id: record.id,
+          name: record.name || "YouTube audio",
+          kind: "youtube",
+          videoId: record.videoId,
+          volume: 1,
+          playedAt: new Date().toISOString()
+        };
+      } else {
+        if (!record.blob) throw new Error("Audio no encontrado.");
+        playLocalDmSound(record);
+        payload = {
+          id: record.id,
+          name: record.name || record.fileName || "Audio",
+          type: record.type || record.blob.type || "",
+          dataUrl: await blobToDataUrl(record.blob),
+          volume: 1,
+          playedAt: new Date().toISOString()
+        };
+      }
+      const result = await liveSheet.publishDmAudio(payload);
       if (!result?.ok) throw new Error(result?.error || "No se pudo enviar el audio.");
     } catch (error) {
       console.error(error);
@@ -12771,6 +13298,10 @@ function DmScreenApp() {
         textTitle: payload.textTitle || "",
         textContent: payload.textContent || "",
         textImages: Array.isArray(payload.textImages) ? payload.textImages.map(storedImageSnapshot).filter(Boolean) : [],
+        youtubeSoundId: payload.kind === "youtube" ? String(payload.youtubeSoundId || "") : "",
+        youtubeVideoId: payload.kind === "youtube" ? normalizeYoutubeVideoId(payload.youtubeVideoId) : "",
+        youtubeUrl: payload.kind === "youtube" ? String(payload.youtubeUrl || "") : "",
+        youtubeName: payload.kind === "youtube" ? String(payload.youtubeName || "YouTube") : "",
         mapImage: activeMapPage?.mapImage || mapImage,
         mapTokens: activeMapPage?.mapTokens || mapTokens,
         mapTokenGroups: activeMapPage?.mapTokenGroups || mapTokenGroups,
@@ -12836,6 +13367,10 @@ function DmScreenApp() {
       textTitle: source.textTitle,
       textContent: source.textContent,
       textImages: Array.isArray(source.textImages) ? source.textImages.map((image) => ({ ...image })) : [],
+      youtubeSoundId: source.youtubeSoundId,
+      youtubeVideoId: source.youtubeVideoId,
+      youtubeUrl: source.youtubeUrl,
+      youtubeName: source.youtubeName,
       mapImage: source.mapImage ? mapImageWithoutObjectUrl(source.mapImage) : null,
       mapTokens: Array.isArray(source.mapTokens)
         ? source.mapTokens.map((token) => ({
@@ -15693,11 +16228,20 @@ function DmScreenApp() {
         error={soundBarError}
         busyId={soundBarBusyId}
         activeSoundIds={activeSoundIds}
+        pausedSoundIds={pausedSoundIds}
         connectedPlayerCount={livePlayers.filter((player) => player.connected).length}
         fileInputRef={soundFileInputRef}
+        linkFormOpen={soundLinkFormOpen}
         onToggleCollapsed={() => setSoundBarCollapsed((value) => !value)}
         onPickFiles={pickSoundFiles}
         onFilesSelected={addSoundFiles}
+        onOpenLinkForm={() => {
+          setSoundBarError("");
+          setSoundLinkFormOpen(true);
+          setSoundBarCollapsed(false);
+        }}
+        onSaveLink={addSoundLink}
+        onCancelLink={() => setSoundLinkFormOpen(false)}
         onRename={renameSoundButton}
         onPlay={playSoundButton}
         onPause={pauseSoundButton}
@@ -15861,6 +16405,36 @@ function DmScreenApp() {
               onTextChange={updateTextNote}
               onTextImagePaste={addTextNoteImage}
               onTextImageRemove={removeTextNoteImage}
+            />
+          ) : activeNote.kind === "youtube" ? (
+            <YoutubeNote
+              {...sharedProps}
+              isActive={youtubeDmSound?.id === activeNote.youtubeSoundId}
+              playback={youtubeDmSound?.id === activeNote.youtubeSoundId ? youtubeDmSound.playback : "idle"}
+              playerRef={youtubeDmPlayerRef}
+              onRename={(noteId, value) => {
+                renameNote(noteId, value);
+                renameSoundButton(activeNote.youtubeSoundId, value);
+              }}
+              onPlayerLoad={(frame) => {
+                youtubeDmPlayerRef.current = frame;
+                sendYoutubePlayerCommand(frame, "setVolume", [Math.round((Number(youtubeDmSound?.volume) || 1) * 100)]);
+                if (youtubeDmSound?.playback === "paused") sendYoutubePlayerCommand(frame, "pauseVideo");
+                if (youtubeDmSound?.playback === "playing") sendYoutubePlayerCommand(frame, "playVideo");
+              }}
+              onMinimize={(noteId) => {
+                if (youtubeDmSound?.id === activeNote.youtubeSoundId) pauseSoundButton(activeNote.youtubeSoundId);
+                minimizeNote(noteId);
+              }}
+              onClose={(noteId, event) => {
+                if (youtubeDmSound?.id === activeNote.youtubeSoundId) {
+                  pauseSoundButton(activeNote.youtubeSoundId);
+                  setYoutubeDmSound(null);
+                  setActiveSoundIds((ids) => ids.filter((id) => id !== activeNote.youtubeSoundId));
+                  setPausedSoundIds((ids) => ids.filter((id) => id !== activeNote.youtubeSoundId));
+                }
+                handleNoteClose(noteId, event);
+              }}
             />
           ) : activeNote.kind === "map" ? (
             <MapNote

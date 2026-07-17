@@ -50,7 +50,7 @@ No guardar el catalogo en `localStorage`: es sincrono, tiene cuota limitada y bl
 
 ### DM Screen
 
-`src/app/renderer/dm-screen/src/main.jsx` contiene el tablero React, bibliotecas, stat blocks, mapas/VTT, audio, jugadores en vivo, importación de personajes y Obsidian. Vite genera `dm-screen/dist/`, que está versionado porque Electron lo carga directamente. El estado ligero del tablero usa `localStorage`; imágenes de mapas y audio usan IndexedDB.
+`src/app/renderer/dm-screen/src/main.jsx` contiene el tablero React, bibliotecas, stat blocks, mapas/VTT, audio, jugadores en vivo, importación de personajes y Obsidian. El Sound Bar guarda archivos locales en IndexedDB y enlaces YouTube como JSON atómico mediante `src/services/dm-sound-link-service.js`, a través de IPC; así los enlaces no dependen del perfil de caché de Chromium. Los enlaces persisten con nombre editable y Play abre un `YoutubeNote` visible, persistente, móvil y redimensionable; el iframe transmite el video sin extraer ni descargar previamente todo su contenido. Vite genera `dm-screen/dist/`, que es runtime generado e ignorado y debe regenerarse después de cambiar el source. El estado ligero del tablero usa `localStorage`; imágenes de mapas y audio usan IndexedDB.
 
 ## Datos y estado
 
@@ -67,6 +67,8 @@ No guardar el catalogo en `localStorage`: es sincrono, tiene cuota limitada y bl
 3. El jugador envía `player:hello`, `sheet:update`, tiradas, pings o estado de mano. El snapshot sigue excluyendo `__sheetMeta`, salvo `__liveStatuses`: una lista limitada de IDs de estados activos que permite al DM verlos y modificarlos desde la nota del personaje.
 4. El servidor mantiene jugadores/VTT en memoria y emite snapshots por IPC al DM Screen.
 5. Los datos remotos no se escriben automáticamente en slots locales.
+
+El audio local del Sound Bar se transmite como un `data:` URL limitado. Un enlace YouTube se valida en el DM Screen y el servidor solo acepta/transmite su video ID de once caracteres, nombre y volumen; el DM lo carga dentro de `YoutubeNote` y cada cliente conectado muestra un reproductor compacto visible desde `youtube-nocookie.com`. Pausa y reanudar usan el mismo control Live Sheet. Ambos renderers permiten exclusivamente ese origen en `frame-src` de su CSP. Los comandos salientes del player usan `postMessage(..., "*")` porque el iframe nace transitoriamente con origen `file://`; no contienen datos del usuario y los eventos entrantes siguen aceptándose solo desde `youtube-nocookie.com`. Como Chromium omite `Referer` al saltar desde `file://` a HTTPS, `configureYoutubeEmbedIdentity()` en main agrega únicamente a requests de `youtube-nocookie.com` el repositorio canónico como identidad HTTP; sin esa adaptación YouTube devuelve `Error 153`.
 
 Las tiradas del stepper de combate usan el mensaje existente `roll:event`. Los cambios de status del DM usan el patch existente `dm:sheet:patch`; el cliente normaliza los IDs, actualiza su `__sheetMeta.activeStatuses`, guarda y devuelve un snapshot. La economía y aplicación de efectos siguen siendo autoritativas sólo en modo local; todavía no existe un protocolo host/DM de solicitud-confirmación para mutaciones de combate. No presentar el estado `__sheetMeta.combatTurn` del cliente como autoridad multijugador.
 

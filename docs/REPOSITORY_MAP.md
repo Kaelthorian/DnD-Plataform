@@ -6,9 +6,10 @@ Mapa operativo para evitar búsquedas globales repetidas.
 | --- | --- | --- |
 | Arranque, ventanas, IPC, updater | `src/app/main/main.js` | `src/app/preload/preload.js` |
 | Hoja de personaje | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `i18n.js` |
-| DM Screen/tablero/VTT | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config |
+| DM Screen/tablero/VTT/audio | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config; los archivos locales usan IndexedDB y los enlaces YouTube usan IPC persistido |
 | Save slots/migración | `src/services/save-service.js` | helpers de slots en `index.html`, test de save service |
-| Live Sheet, estados y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js` (solo IDs públicos de status), roster visible para Start Combat y notas React del DM |
+| Live Sheet, estados, audio y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`; los archivos de audio viajan como data URL y YouTube solo como ID validado |
+| Enlaces de música YouTube | `src/services/dm-sound-link-service.js` | IPC `dm-sound-links:*` en main/preload; JSON atómico en `userData`; main identifica requests `youtube-nocookie.com` con el repositorio canónico como referente HTTP |
 | Obsidian | `src/services/obsidian-service.js` | IPC/preload y componentes React |
 | Traducción | `src/services/translation-service.js` | `i18n.js` y `translateTextToSpanish()` en `index.html` |
 | Backgrounds | `src/data/backgrounds/backgrounds.json` | `data-loader.js`, `renderer.js`, marcadores background en `index.html` |
@@ -27,7 +28,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 
 - `src/app/main`, `src/app/preload`: frontera privilegiada Electron.
 - `src/app/renderer`: dos aplicaciones de UI y assets.
-- `src/services`: IO y networking testeables sin UI.
+- `src/services`: IO y networking testeables sin UI. `dm-sound-link-service.js` guarda solo metadatos validados de enlaces YouTube y no debe almacenar audio ni credenciales.
 - `src/services/workers`: trabajo CPU/IO aislado del proceso main; actualmente parsea y cachea el catalogo grande de items. No accede al DOM ni al estado de hoja.
 - `src/engine`: módulos ya extraídos; varios subdirectorios solo contienen README.
 - `src/engine/spells`: subsistema implementado de normalización, formato, identidad y perfiles genéricos; tiene instrucciones locales en `src/engine/spells/AGENTS.md`. No ejecuta reglas dependientes del DOM o del estado privado del DM.
@@ -51,7 +52,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 - Equipment mantiene el campo PDF como almacenamiento, pero `createEquipmentPanel()` pinta una lista interactiva transparente sobre el fondo de la hoja; conserva controles oscuros y acento ámbar sin cubrir la superficie PDF. Los botones de Attacks and Spellcasting reutilizan ese mismo tratamiento oscuro/ámbar y permiten envolver etiquetas largas en varias líneas; sus indicadores de daño son círculos SVG de tamaño fijo con iconos minimalistas por tipo. El `+` abre el picker de dos paneles `item-picker`: resultados/filtros a la izquierda y `buildItemDrawerContent()` reutilizado como detalle a la derecha, con cantidad y `Sumar item` en el mismo modal. Agregar, quitar, equipar, cambiar agarre y consumir pasan por `scheduleEquipmentMutationRefresh()`; no emitir `input`+`change` sintéticos ni reconstruir paneles sincrónicamente. `globalThis.dndEquipmentPerformance` permite inspeccionar cola/duración. No volver a abrir `itemDrawer` al seleccionar una fila del picker ni crear otro catálogo de items.
 - Todas las ventanas redimensionables usan el contrato visual `app-resize-corner`: la hoja lo define en `src/app/renderer/styles.css` para Start Combat, ventanas `floating-sheet-window` y notas de compañero; el DM Screen lo define en `dm-screen/styles.css` y lo aplica mediante `ResizeHandle`. Los bordes derecho/inferior siguen siendo áreas funcionales invisibles. Textareas y formas del mapa quedan fuera de este patrón de ventanas.
 - La coleccion de combate usa una fotografia revisionada y memoizacion por pasada. Los cambios de campos/meta deben llamar `invalidateCombatActionCache(...)`; las mutaciones directas de `__sheetMeta.equippedItems` pasan por `notifyEquipmentCombatStateChanged()` y la transacción de Equipment para refrescar o recalentar Start Combat una sola vez. Las tarjetas de armas usan `turnActionWeaponSummary()` y no incluyen propiedades ni descripción completa. No reintroducir escaneos de `items` ni validaciones que llamen `combatTurnState()` por cada tarjeta.
-- `dm-screen/src/main.jsx`: buscar el componente o helper por concepto (`LivePlayersPanel`, `Map`, `Obsidian`, `Sound`, `characterFromSheetData`). Los tokens del mapa capturan sus propios eventos de puntero: actualizan la previsualización al arrastrar y persisten la posición al soltar.
+- `dm-screen/src/main.jsx`: buscar el componente o helper por concepto (`LivePlayersPanel`, `Map`, `Obsidian`, `Sound`, `characterFromSheetData`). `SoundBarPanel` conserva archivos locales en IndexedDB y enlaces YouTube mediante `dm-sound-link-service` (`readYoutubeLinkAsSoundAsset`); Play abre un `YoutubeNote` visible, persistente y redimensionable en el tablero. Live Sheet comparte solo un video ID validado y `renderer.js` presenta a cada jugador un reproductor compacto visible con controles. Los tokens del mapa capturan sus propios eventos de puntero: actualizan la previsualización al arrastrar y persisten la posición al soltar.
 - No editar manualmente `dm-screen/dist`; regenerar con `npm run build:dm-screen` después de cambiar source/config.
 - `npm start` ejecuta `scripts/ensure-dm-screen-build.js`: CSS y JS tienen comprobaciones de vigencia independientes; los imports JSON/helper y la presencia de todos los chunks Vite forman parte de la vigencia del bundle JS.
 

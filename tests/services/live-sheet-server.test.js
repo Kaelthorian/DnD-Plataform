@@ -491,6 +491,44 @@ async function testDmAudioBroadcast() {
   });
 }
 
+async function testYouTubeAudioBroadcastAndResume() {
+  await withServer({ tokenEnabled: false }, async (server, port) => {
+    const socket = await openSocket(port);
+    send(socket, { type: "player:hello" });
+    await nextMessages(socket, 2);
+
+    const playPromise = nextMessage(socket);
+    const result = server.publishDmAudio({
+      id: "ambience-youtube",
+      name: "Ambience",
+      kind: "youtube",
+      videoId: "dQw4w9WgXcQ",
+      volume: 0.45
+    });
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.audio.kind, "youtube");
+    assert.strictEqual(result.audio.videoId, "dQw4w9WgXcQ");
+    const playMessage = await playPromise;
+    assert.strictEqual(playMessage.type, "dm:audio:play");
+    assert.strictEqual(playMessage.audio.kind, "youtube");
+    assert.strictEqual(playMessage.audio.videoId, "dQw4w9WgXcQ");
+    assert.strictEqual(playMessage.audio.dataUrl, undefined);
+
+    const resumePromise = nextMessage(socket);
+    const resumeResult = server.publishDmAudioControl({
+      id: "ambience-youtube",
+      action: "resume"
+    });
+    assert.strictEqual(resumeResult.ok, true);
+    const resumeMessage = await resumePromise;
+    assert.strictEqual(resumeMessage.type, "dm:audio:control");
+    assert.strictEqual(resumeMessage.control.action, "resume");
+
+    assert.strictEqual(server.publishDmAudio({ kind: "youtube", videoId: "not-a-video-id" }).ok, false);
+    socket.close();
+  });
+}
+
 async function testRaisedHandQueue() {
   await withServer({ tokenEnabled: false }, async (server, port) => {
     const alice = await openSocket(port);
@@ -604,6 +642,7 @@ async function testRaisedHandQueue() {
   await testVttStateBroadcastAndWelcomeReplay();
   await testRollBroadcastToOtherPlayers();
   await testDmAudioBroadcast();
+  await testYouTubeAudioBroadcastAndResume();
   await testRaisedHandQueue();
   console.log("live-sheet-server tests passed");
 })().catch((error) => {

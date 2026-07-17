@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, shell, dialog, session } = require("electron");
 const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -10,6 +10,7 @@ const dataLoader = require("../../services/data-loader");
 const { liveSheetServer, listLocalAddresses } = require("../../services/live-sheet-server");
 const { ObsidianService } = require("../../services/obsidian-service");
 const saveService = require("../../services/save-service");
+const dmSoundLinkService = require("../../services/dm-sound-link-service");
 const { saveTokenLibraryImage } = require("../../services/token-library-service");
 const translationService = require("../../services/translation-service");
 
@@ -217,6 +218,22 @@ function configureChromiumStoragePaths() {
 }
 
 configureChromiumStoragePaths();
+
+const YOUTUBE_EMBED_APP_REFERER = "https://github.com/Kaelthorian/DnD-Plataform/";
+
+function configureYoutubeEmbedIdentity() {
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ["https://www.youtube-nocookie.com/*"] },
+    (details, callback) => {
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          Referer: YOUTUBE_EMBED_APP_REFERER
+        }
+      });
+    }
+  );
+}
 
 const WINDOW_ROUTES = {
   characterSheet: {
@@ -583,6 +600,7 @@ async function createWindow(routeName = "characterSheet") {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  configureYoutubeEmbedIdentity();
   getObsidianService().refreshWatchers().catch(() => {});
   return createWindow().then(() => {
     configureAutoUpdater();
@@ -624,6 +642,14 @@ ipcMain.handle("sheet:store:save", async (_event, store) => {
 
 ipcMain.handle("sheet:slot:clear", async (_event, slotId) => {
   return saveService.clearActiveSlot(app.getPath("userData"), slotId);
+});
+
+ipcMain.handle("dm-sound-links:load", async () => {
+  return dmSoundLinkService.loadSoundLinks(app.getPath("userData"));
+});
+
+ipcMain.handle("dm-sound-links:save", async (_event, links) => {
+  return dmSoundLinkService.saveSoundLinks(app.getPath("userData"), links);
 });
 
 ipcMain.handle("app:navigate", async (event, target) => {

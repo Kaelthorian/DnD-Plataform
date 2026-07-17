@@ -9,6 +9,7 @@ const MAX_NAME_LENGTH = 80;
 const MAX_ROLL_TEXT_LENGTH = 600;
 const MAX_VTT_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_DM_AUDIO_BYTES = 18 * 1024 * 1024;
+const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 const MAX_VTT_FOG_POINTS = 1200;
 const MAX_VTT_TOKENS = 200;
 const MAX_VTT_MARKERS = 200;
@@ -154,6 +155,11 @@ function sanitizeAudioDataUrl(value) {
   if (!/^data:audio\/(?:mpeg|mp3|wav|wave|ogg|opus|webm|mp4|aac|flac|x-wav);base64,/i.test(text)) return "";
   if (Buffer.byteLength(text, "utf8") > MAX_DM_AUDIO_BYTES) return "";
   return text;
+}
+
+function sanitizeYoutubeVideoId(value) {
+  const videoId = sanitizeText(value, 32);
+  return YOUTUBE_VIDEO_ID_PATTERN.test(videoId) ? videoId : "";
 }
 
 function sanitizeVttFog(fog) {
@@ -330,11 +336,25 @@ function sanitizeVttPing(ping) {
 
 function sanitizeDmAudio(payload) {
   if (!isPlainObject(payload)) return null;
+  const kind = sanitizeText(payload.kind || payload.audio?.kind, 32).toLowerCase();
+  if (kind === "youtube") {
+    const videoId = sanitizeYoutubeVideoId(payload.videoId || payload.audio?.videoId);
+    if (!videoId) return null;
+    return {
+      id: sanitizeText(payload.id, 120) || crypto.randomUUID?.() || `audio-${Date.now()}`,
+      name: sanitizeText(payload.name || payload.audio?.name, 140) || "YouTube audio",
+      kind: "youtube",
+      videoId,
+      volume: clampNumber(payload.volume, 0, 1, 1),
+      playedAt: sanitizeText(payload.playedAt, 80) || new Date().toISOString()
+    };
+  }
   const dataUrl = sanitizeAudioDataUrl(payload.dataUrl || payload.audio?.dataUrl);
   if (!dataUrl) return null;
   return {
     id: sanitizeText(payload.id, 120) || crypto.randomUUID?.() || `audio-${Date.now()}`,
     name: sanitizeText(payload.name || payload.audio?.name, 140) || "Audio",
+    kind: "file",
     type: sanitizeText(payload.type || payload.audio?.type, 80) || "",
     dataUrl,
     volume: clampNumber(payload.volume, 0, 1, 1),
@@ -345,7 +365,7 @@ function sanitizeDmAudio(payload) {
 function sanitizeDmAudioControl(payload) {
   if (!isPlainObject(payload)) return null;
   const action = sanitizeText(payload.action, 40).toLowerCase();
-  if (!["pause"].includes(action)) return null;
+  if (!["pause", "resume"].includes(action)) return null;
   return {
     id: sanitizeText(payload.id, 120),
     action,

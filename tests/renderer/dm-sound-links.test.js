@@ -1,0 +1,47 @@
+const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
+
+const dmScreenSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/dm-screen/src/main.jsx"), "utf8");
+const playerRendererSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/renderer.js"), "utf8");
+const mainSource = fs.readFileSync(path.join(__dirname, "../../src/app/main/main.js"), "utf8");
+const preloadSource = fs.readFileSync(path.join(__dirname, "../../src/app/preload/preload.js"), "utf8");
+const dmScreenHtml = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/dm-screen.html"), "utf8");
+const playerHtml = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/index.html"), "utf8");
+
+assert.match(dmScreenSource, /function youtubeVideoIdFromLink\(value\)/);
+assert.match(dmScreenSource, /function readYoutubeLinkAsSoundAsset\(value\)/);
+assert.match(dmScreenSource, /function savePersistedSoundLinks\(links\)/);
+assert.match(dmScreenSource, /window\.dndSheet\?\.saveDmSoundLinks\?\.\(sortSoundButtons\(links\)\)/);
+assert.match(dmScreenSource, /Promise\.allSettled\(\[\s*listSoundAssets\(\),\s*loadPersistedSoundLinks\(\)/);
+assert.match(dmScreenSource, /El proceso principal esta desactualizado/);
+assert.match(dmScreenSource, /contentWindow\.postMessage\(JSON\.stringify\([\s\S]*?\), "\*"\)/);
+assert.match(dmScreenSource, /kind: "youtube"/);
+assert.match(dmScreenSource, /function YoutubeNote\(/);
+assert.match(dmScreenSource, /data-note-kind="youtube"/);
+assert.match(dmScreenSource, /youtubeSoundId: note\.kind === "youtube"/);
+assert.match(dmScreenSource, /youtubeVideoId: note\.kind === "youtube"/);
+assert.match(dmScreenSource, /activeNote\.kind === "youtube"/);
+assert.match(dmScreenSource, /youtubeEmbedUrl\(videoId, isActive, true\)/);
+assert.doesNotMatch(dmScreenSource, /fixed -left-\[220px\].*opacity-0/);
+assert.match(dmScreenSource, /function SoundLinkForm\(/);
+assert.match(dmScreenSource, /Guardar enlace/);
+assert.match(dmScreenSource, /action: "resume"/);
+assert.match(dmScreenSource, /<SoundBarPanel[\s\S]*pausedSoundIds=/);
+assert.match(playerRendererSource, /function playLiveDmYoutubeAudio\(audioPayload\)/);
+assert.match(playerRendererSource, /\["pause", "resume"\]/);
+assert.match(playerRendererSource, /live-dm-youtube-panel/);
+assert.match(playerRendererSource, /youtubeEmbedUrl\(videoId, true, true\)/);
+assert.doesNotMatch(playerRendererSource, /left: "-220px"/);
+assert.match(playerRendererSource, /contentWindow\.postMessage\(JSON\.stringify\([\s\S]*?\), "\*"\)/);
+assert.match(mainSource, /ipcMain\.handle\("dm-sound-links:load"/);
+assert.match(mainSource, /ipcMain\.handle\("dm-sound-links:save"/);
+assert.match(mainSource, /function configureYoutubeEmbedIdentity\(\)/);
+assert.match(mainSource, /https:\/\/github\.com\/Kaelthorian\/DnD-Plataform\//);
+assert.match(mainSource, /Referer: YOUTUBE_EMBED_APP_REFERER/);
+assert.match(preloadSource, /loadDmSoundLinks: \(\) => ipcRenderer\.invoke\("dm-sound-links:load"\)/);
+assert.match(preloadSource, /saveDmSoundLinks: \(links\) => ipcRenderer\.invoke\("dm-sound-links:save", links\)/);
+assert.match(dmScreenHtml, /frame-src https:\/\/www\.youtube-nocookie\.com/);
+assert.match(playerHtml, /frame-src https:\/\/www\.youtube-nocookie\.com/);
+
+console.log("DM sound link wiring verified.");

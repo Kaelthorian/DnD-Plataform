@@ -161,6 +161,13 @@
     let liveVttHandQueue = [];
     let liveDmAudioPlayers = [];
     const liveDmAudioPlayersById = new Map();
+    let liveDmYoutubePanel = null;
+    let liveDmYoutubeTitle = null;
+    let liveDmYoutubePlayer = null;
+    let liveDmYoutubePlayerId = "";
+    let liveDmYoutubeVideoId = "";
+    const YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com";
+    const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
     const liveVttTokenImageCache = new Map();
     const LIVE_VTT_PING_TTL_MS = 5000;
     const LIVE_VTT_MIN_ZOOM = 1;
@@ -1460,7 +1467,87 @@
       }, timeout + 40);
     }
 
+    function youtubeEmbedUrl(videoId, autoplay = false, controls = false) {
+      if (!YOUTUBE_VIDEO_ID_PATTERN.test(String(videoId || ""))) return "";
+      const params = new URLSearchParams({
+        enablejsapi: "1",
+        autoplay: autoplay ? "1" : "0",
+        controls: controls ? "1" : "0",
+        playsinline: "1",
+        rel: "0"
+      });
+      return `${YOUTUBE_EMBED_ORIGIN}/embed/${videoId}?${params.toString()}`;
+    }
+
+    function sendYoutubePlayerCommand(frame, command, args = []) {
+      if (!frame?.contentWindow || !command) return;
+      // The iframe starts as file:// before Chromium commits the remote navigation.
+      // Commands contain no user data; inbound events remain restricted to YouTube's origin.
+      frame.contentWindow.postMessage(JSON.stringify({ event: "command", func: command, args }), "*");
+    }
+
+    function playLiveDmYoutubeAudio(audioPayload) {
+      const videoId = String(audioPayload?.videoId || "");
+      if (!YOUTUBE_VIDEO_ID_PATTERN.test(videoId)) return;
+      const audioId = String(audioPayload?.id || "");
+      const volume = Math.min(1, Math.max(0, Number(audioPayload?.volume) || 1));
+      const translate = (key) => window.dndPlayerI18n?.t?.(key) || key;
+      if (!liveDmYoutubePlayer) {
+        liveDmYoutubePanel = document.createElement("section");
+        liveDmYoutubePanel.className = "live-dm-youtube-panel";
+        liveDmYoutubePanel.setAttribute("aria-label", translate("live.dmMusic"));
+
+        const header = document.createElement("header");
+        header.className = "live-dm-youtube-header";
+        liveDmYoutubeTitle = document.createElement("strong");
+        liveDmYoutubeTitle.className = "live-dm-youtube-title";
+        liveDmYoutubeTitle.textContent = translate("live.dmMusicTitle");
+        const closeButton = document.createElement("button");
+        closeButton.className = "live-dm-youtube-close";
+        closeButton.type = "button";
+        closeButton.setAttribute("aria-label", translate("live.dmMusicClose"));
+        closeButton.textContent = "X";
+        closeButton.addEventListener("click", () => {
+          sendYoutubePlayerCommand(liveDmYoutubePlayer, "pauseVideo");
+          liveDmYoutubePanel?.remove();
+          liveDmYoutubePanel = null;
+          liveDmYoutubeTitle = null;
+          liveDmYoutubePlayer = null;
+          liveDmYoutubePlayerId = "";
+          liveDmYoutubeVideoId = "";
+        });
+        header.append(liveDmYoutubeTitle, closeButton);
+
+        liveDmYoutubePlayer = document.createElement("iframe");
+        liveDmYoutubePlayer.className = "live-dm-youtube-audio";
+        liveDmYoutubePlayer.title = translate("live.dmMusicPlayer");
+        liveDmYoutubePlayer.setAttribute("allow", "autoplay; encrypted-media; picture-in-picture");
+        liveDmYoutubePlayer.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+        liveDmYoutubePlayer.setAttribute("allowfullscreen", "");
+        liveDmYoutubePanel.append(header, liveDmYoutubePlayer);
+        document.body.appendChild(liveDmYoutubePanel);
+      }
+      if (liveDmYoutubeTitle) liveDmYoutubeTitle.textContent = String(audioPayload?.name || translate("live.dmMusicTitle"));
+      liveDmYoutubePlayerId = audioId;
+      const isNewVideo = liveDmYoutubeVideoId !== videoId;
+      liveDmYoutubeVideoId = videoId;
+      if (isNewVideo) {
+        liveDmYoutubePlayer.src = youtubeEmbedUrl(videoId, true, true);
+      } else {
+        sendYoutubePlayerCommand(liveDmYoutubePlayer, "setVolume", [Math.round(volume * 100)]);
+        sendYoutubePlayerCommand(liveDmYoutubePlayer, "playVideo");
+      }
+      liveDmYoutubePlayer.onload = () => {
+        sendYoutubePlayerCommand(liveDmYoutubePlayer, "setVolume", [Math.round(volume * 100)]);
+        sendYoutubePlayerCommand(liveDmYoutubePlayer, "playVideo");
+      };
+    }
+
     function playLiveDmAudio(audioPayload) {
+      if (audioPayload?.kind === "youtube") {
+        playLiveDmYoutubeAudio(audioPayload);
+        return;
+      }
       const dataUrl = String(audioPayload?.dataUrl || "");
       if (!dataUrl || !/^data:audio\//i.test(dataUrl)) return;
       const audioId = String(audioPayload?.id || "");
@@ -1507,14 +1594,21 @@
 
     function controlLiveDmAudio(control) {
       const action = String(control?.action || "").toLowerCase();
-      if (action !== "pause") return;
+      if (!["pause", "resume"].includes(action)) return;
       const audioId = String(control?.id || "");
+      if (liveDmYoutubePlayer && (!audioId || audioId === liveDmYoutubePlayerId)) {
+        sendYoutubePlayerCommand(liveDmYoutubePlayer, action === "pause" ? "pauseVideo" : "playVideo");
+      }
       const targets = audioId
         ? [...(liveDmAudioPlayersById.get(audioId) || [])]
         : [...liveDmAudioPlayers];
       targets.forEach((audio) => {
         try {
-          audio.pause();
+          if (action === "pause") audio.pause();
+          else {
+            const playPromise = audio.play();
+            if (playPromise?.catch) playPromise.catch(console.error);
+          }
         } catch (_error) {
           // Ignore pause errors from stale audio elements.
         }

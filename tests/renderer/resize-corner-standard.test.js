@@ -16,7 +16,7 @@ assert.ok(sheetHtml.includes("floating-sheet-window-resize-corner app-resize-cor
 assert.ok(sheetHtml.includes('resizeCorner.className = "floating-sheet-window-resize floating-sheet-window-resize-corner app-resize-corner"'), "dynamic status window does not use the standard corner");
 
 const dmCornerHandles = dmSource.match(/className="app-resize-corner bottom-0 right-0"/g) || [];
-assert.strictEqual(dmCornerHandles.length, 6, "every resizable DM Screen window should use the shared lower-right corner");
+assert.strictEqual(dmCornerHandles.length, 7, "every resizable DM Screen window should use the shared lower-right corner");
 assert.match(dmSource, /edge === "corner"\s*\? ""\s*:\s*"bg-amber-500\/0/);
 assert.doesNotMatch(dmSource, /onResizeCorner/);
 assert.doesNotMatch(dmSource, /bottom-1 right-1 h-5 w-5 cursor-nwse-resize/);
