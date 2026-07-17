@@ -48,6 +48,7 @@ assert.match(styles, /\.spell-category-spellbook[\s\S]*?var\(--dm-amber\)/, "the
 assert.match(styles, /\.dice-button\s*\{[\s\S]*?min-height:\s*16px[\s\S]*?height:\s*auto[\s\S]*?border:\s*1px solid #525252[\s\S]*?background:\s*#262626[\s\S]*?color:\s*#d4d4d4[\s\S]*?overflow-wrap:\s*anywhere[\s\S]*?white-space:\s*normal/, "Attacks and Spellcasting buttons should use the Equipment control style and wrap long labels");
 assert.match(styles, /\.dice-button\.active\s*\{[\s\S]*?border-color:\s*#f59e0b[\s\S]*?background:\s*#f59e0b[\s\S]*?color:\s*#0a0a0a/, "active Attacks and Spellcasting buttons should match equipped Equipment controls");
 assert.match(styles, /\.prepared-spell-name\s*\{[\s\S]*?overflow-wrap:\s*anywhere[\s\S]*?white-space:\s*normal/, "spell names on the sheet should wrap instead of being truncated");
+assert.match(styles, /\.prepared-spell-row\s*\{[\s\S]*?flex:\s*0 0 auto[\s\S]*?min-height:\s*20px/, "prepared spell rows should grow with wrapped content instead of shrinking into neighboring rows");
 assert.match(html, /const DAMAGE_TYPE_ICON_PATHS\s*=\s*\{[\s\S]*?bludgeoning:[\s\S]*?fire:[\s\S]*?slashing:/, "prepared spells should define minimal damage-type icon paths");
 assert.match(html, /function damageTypeIcon\(type\)[\s\S]*?createElementNS\("http:\/\/www\.w3\.org\/2000\/svg", "svg"\)/, "prepared spells should render damage types as inline SVG icons");
 assert.match(html, /damageType\.appendChild\(damageTypeIcon\(spell\.damageType\)\)/, "prepared spell rows should use the damage-type icon instead of text abbreviations");

@@ -3469,6 +3469,7 @@
       grid-template-columns: minmax(0, 1fr) 24px 30px 38px 38px 34px 34px;
       gap: 3px;
       align-items: center;
+      flex: 0 0 auto;
       min-height: 20px;
     }
 
