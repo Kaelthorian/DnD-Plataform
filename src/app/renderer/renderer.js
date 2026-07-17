@@ -48,6 +48,7 @@
     const turnActionsBackdrop = document.getElementById("turnActionsBackdrop");
     const turnActionsPanel = document.getElementById("turnActionsPanel");
     const turnActionsHeader = document.getElementById("turnActionsHeader");
+    const turnActionsTranslate = document.getElementById("turnActionsTranslate");
     const turnActionsCollapse = document.getElementById("turnActionsCollapse");
     const turnActionsResizeHandles = Array.from(document.querySelectorAll("[data-combat-resize-edge]"));
     const turnActionsClose = document.getElementById("turnActionsClose");
@@ -164,6 +165,36 @@
     const LIVE_VTT_PING_TTL_MS = 5000;
     const LIVE_VTT_MIN_ZOOM = 1;
     const LIVE_VTT_MAX_ZOOM = 4;
+
+    function liveVttCombatTargetRoster() {
+      const state = liveVttState;
+      const roster = { party: [], enemies: [] };
+      if (!state?.active) return roster;
+      const seen = {
+        party: new Set(),
+        enemies: new Set()
+      };
+      const addTarget = (group, participant) => {
+        const name = String(participant?.name || participant?.character?.name || "").trim();
+        if (!name) return;
+        const key = `${participant?.kind || group}:${name.toLocaleLowerCase()}`;
+        if (seen[group].has(key)) return;
+        seen[group].add(key);
+        roster[group].push({ id: String(participant?.id || key), name });
+      };
+
+      (Array.isArray(state.tokens) ? state.tokens : [])
+        .filter((token) => token?.kind === "character" && !token?.hidden && !token?.playerHidden)
+        .forEach((token) => addTarget("party", token));
+      if (!state.combat?.active) return roster;
+      (Array.isArray(state.combat.participants) ? state.combat.participants : [])
+        .filter((participant) => !participant?.hidden && !participant?.playerHidden)
+        .forEach((participant) => addTarget(participant?.kind === "character" ? "party" : "enemies", participant));
+      return roster;
+    }
+
+    // Public roster intentionally exposes visible names only; AC and HP stay DM-private.
+    globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster;
 
     async function openDmScreen() {
       setAppSettingsMenuOpen(false);
@@ -1940,6 +1971,7 @@
       if (typeof renderAlertsPanel === "function") renderAlertsPanel();
       if (typeof updateEquipmentPanel === "function") updateEquipmentPanel();
       if (typeof updatePreparedSpellsPanel === "function") updatePreparedSpellsPanel();
+      if (typeof syncTurnActionTranslationButton === "function") syncTurnActionTranslationButton();
       if (latestUpdaterState) renderUpdaterState(latestUpdaterState);
     }
 
@@ -2884,6 +2916,7 @@
         openTurnActionsPanel().catch(console.error);
       });
       turnActionsClose?.addEventListener("click", closeTurnActionsPanel);
+      turnActionsTranslate?.addEventListener("click", () => toggleTurnActionTranslations().catch(console.error));
       turnActionsCollapse?.addEventListener("click", toggleTurnActionsPanelCollapsed);
       turnActionsHeader?.addEventListener("pointerdown", startCombatWindowMove);
       turnActionsResizeHandles.forEach((handle) => {

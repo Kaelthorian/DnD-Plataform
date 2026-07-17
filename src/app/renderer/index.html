@@ -233,6 +233,7 @@
           <div class="turn-actions-subtitle" data-i18n="turn.subtitle">Available actions based on the character's current state.</div>
         </div>
         <div class="turn-actions-window-controls">
+          <button class="turn-actions-translate" id="turnActionsTranslate" type="button" data-i18n="translation.translateDescriptions">Translate descriptions</button>
           <button class="turn-actions-collapse" id="turnActionsCollapse" type="button" aria-label="Collapse combat window" title="Collapse combat window" data-i18n-aria-label="turn.collapseWindow" data-i18n-title="turn.collapseWindow" aria-expanded="true">−</button>
           <button class="turn-actions-close" id="turnActionsClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
         </div>
@@ -450,6 +451,8 @@
     let combatLogEntries = loadCombatLogEntries();
     let combatWindowLayout = loadCombatWindowLayout();
     let combatWindowPointerAction = null;
+    let turnActionDescriptionsTranslated = false;
+    let turnActionTranslationPending = false;
     let combatCollectionMemo = null;
     let combatActionCache = null;
     let combatActionCacheRevision = 0;
@@ -7757,6 +7760,32 @@
       return String(fieldValue("CharacterName") || fieldValue("CharacterName 2") || "Character").trim() || "Character";
     }
 
+    function combatTargetRoster() {
+      const remoteRoster = globalThis.dndLiveVttCombatTargetRoster?.() || {};
+      const party = Array.isArray(remoteRoster.party) ? remoteRoster.party.slice() : [];
+      const enemies = Array.isArray(remoteRoster.enemies) ? remoteRoster.enemies.slice() : [];
+      const selfName = characterCombatName();
+      if (!party.some((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfName.toLocaleLowerCase())) {
+        party.unshift({ id: "sheet:self", name: selfName });
+      }
+      return { party, enemies };
+    }
+
+    function appendCombatTargetOptions(select, targets, label) {
+      if (!targets.length) return;
+      const group = document.createElement("optgroup");
+      group.label = label;
+      targets.forEach((target) => {
+        const name = String(target?.name || "").trim();
+        if (!name) return;
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        group.appendChild(option);
+      });
+      if (group.children.length) select.appendChild(group);
+    }
+
     function addCombatLogEvent(session, resourcesConsumed = [], effectsApplied = []) {
       const state = combatTurnState();
       const attack = session.results.attackRoll;
@@ -8051,33 +8080,90 @@
       showStatus(t("turn.resolved", { title: action.title }));
     }
 
+    function combatResolutionStepCompleted(session, step) {
+      const results = session?.results || {};
+      if (step === RESOLUTION_STEPS.selectTarget) return !session.action.targetRequired || Boolean(results.target?.name);
+      if (step === RESOLUTION_STEPS.chooseVariant) return !session.action.variantRequired || Boolean(Object.keys(results.variant || {}).length);
+      if (step === RESOLUTION_STEPS.attackRoll) {
+        const needsResolvedHit = session.steps.includes(RESOLUTION_STEPS.damageRoll);
+        return Boolean(results.attackRoll && (!needsResolvedHit || results.attackRoll.hit != null));
+      }
+      if (step === RESOLUTION_STEPS.savingThrow) return Boolean(results.savingThrow && results.savingThrow.outcome !== "pending");
+      if (step === RESOLUTION_STEPS.abilityCheck) return !session.action.checkRequired || Boolean(results.abilityCheck);
+      if (step === RESOLUTION_STEPS.damageRoll) {
+        const missed = results.attackRoll?.hit === false && !session.action.rollDamageOnMiss;
+        const savedForNone = results.savingThrow?.outcome === "passed" && session.action.saveDamageRule === "none";
+        return missed || savedForNone || Boolean(results.damageRoll);
+      }
+      if (step === RESOLUTION_STEPS.applyEffect) {
+        const stepIndex = session.steps.indexOf(step);
+        return session.steps.slice(0, stepIndex).every((previousStep) => combatResolutionStepCompleted(session, previousStep));
+      }
+      if (step === RESOLUTION_STEPS.confirmResult) return Boolean(session.confirmed);
+      return Boolean(results[step]);
+    }
+
+    function combatResolutionStepLabel(step) {
+      return t(`turn.step.${step}`);
+    }
+
     function renderCombatResolution() {
       if (!combatResolution) return;
       combatResolution.textContent = "";
       combatResolution.hidden = !activeCombatResolution || activeCombatResolution.status !== "resolving";
+      turnActionsPanel?.classList.toggle("is-resolving", !combatResolution.hidden);
       if (combatResolution.hidden) return;
       const session = activeCombatResolution;
       const action = session.action;
 
       const header = document.createElement("div");
       header.className = "combat-resolution-header";
+      const heading = document.createElement("div");
+      heading.className = "combat-resolution-heading";
+      const eyebrow = document.createElement("div");
+      eyebrow.className = "combat-resolution-eyebrow";
+      eyebrow.textContent = t("turn.resolutionWorkspace");
       const title = document.createElement("div");
       title.className = "combat-resolution-title";
-      title.textContent = action.title;
+      renderTurnActionTranslatableText(title, action.title, "resolution-title", action.key || action.id || action.title);
+      const guide = document.createElement("div");
+      guide.className = "combat-resolution-guide";
+      guide.textContent = t("turn.resolutionGuide");
+      heading.append(eyebrow, title, guide);
       const cost = document.createElement("div");
+      cost.className = "combat-resolution-cost";
       cost.textContent = combatCostLabel(action);
-      header.append(title, cost);
+      header.append(heading, cost);
 
       const steps = document.createElement("div");
       steps.className = "combat-resolution-steps";
-      action.resolutionSteps.forEach((step) => {
-        const pill = document.createElement("span");
+      steps.setAttribute("role", "list");
+      const visibleResolutionSteps = action.resolutionSteps.filter((step) => step !== RESOLUTION_STEPS.applyEffect);
+      const completedSteps = visibleResolutionSteps.map((step) => combatResolutionStepCompleted(session, step));
+      const currentStepIndex = Math.max(0, completedSteps.findIndex((completed) => !completed));
+      visibleResolutionSteps.forEach((step, index) => {
+        const pill = document.createElement("div");
         pill.className = "combat-resolution-step";
-        const done = Boolean(session.results[step])
-          || step === RESOLUTION_STEPS.selectTarget && Boolean(session.results.target)
-          || step === RESOLUTION_STEPS.confirmResult && session.confirmed;
-        pill.classList.toggle("active", done);
-        pill.textContent = step.replace(/([A-Z])/g, " $1");
+        pill.setAttribute("role", "listitem");
+        const done = completedSteps[index];
+        const current = !done && index === currentStepIndex;
+        pill.classList.toggle("is-complete", done);
+        pill.classList.toggle("is-current", current);
+        const number = document.createElement("span");
+        number.className = "combat-resolution-step-number";
+        number.textContent = done ? "✓" : String(index + 1);
+        const copy = document.createElement("span");
+        copy.className = "combat-resolution-step-copy";
+        const name = document.createElement("strong");
+        name.textContent = combatResolutionStepLabel(step);
+        const status = document.createElement("small");
+        status.textContent = done
+          ? t("turn.stepComplete")
+          : current
+            ? t("turn.stepCurrent")
+            : t("turn.stepPending");
+        copy.append(name, status);
+        pill.append(number, copy);
         steps.appendChild(pill);
       });
 
@@ -8086,25 +8172,30 @@
       if (action.resolutionSteps.includes(RESOLUTION_STEPS.selectTarget)) {
         const targetLabel = document.createElement("label");
         targetLabel.textContent = t("turn.target");
-        const targetInput = document.createElement("input");
-        targetInput.value = session.results.target?.name || "";
-        targetInput.placeholder = t("turn.targetPlaceholder");
-        targetInput.addEventListener("input", () => {
-          activeCombatResolution = recordCombatTarget(activeCombatResolution, { name: targetInput.value, ac: session.results.target?.ac });
+        const targetSelect = document.createElement("select");
+        const selectedName = String(session.results.target?.name || "").trim();
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = t("turn.targetSelectPlaceholder");
+        targetSelect.appendChild(placeholder);
+        const roster = combatTargetRoster();
+        appendCombatTargetOptions(targetSelect, roster.party, t("turn.targetParty"));
+        appendCombatTargetOptions(targetSelect, roster.enemies, t("turn.targetEnemies"));
+        if (selectedName && ![...targetSelect.options].some((option) => option.value === selectedName)) {
+          const unavailable = document.createElement("option");
+          unavailable.value = selectedName;
+          unavailable.textContent = selectedName;
+          targetSelect.appendChild(unavailable);
+        }
+        targetSelect.value = selectedName;
+        targetSelect.disabled = targetSelect.options.length === 1;
+        targetSelect.title = targetSelect.disabled ? t("turn.targetNoOptions") : "";
+        targetSelect.addEventListener("change", () => {
+          activeCombatResolution = recordCombatTarget(activeCombatResolution, { name: targetSelect.value });
+          renderCombatResolution();
         });
-        targetLabel.appendChild(targetInput);
-        const acLabel = document.createElement("label");
-        acLabel.textContent = t("turn.knownAc");
-        const acInput = document.createElement("input");
-        acInput.type = "number";
-        acInput.min = "0";
-        acInput.value = session.results.target?.ac || "";
-        acInput.placeholder = t("turn.hiddenAcPlaceholder");
-        acInput.addEventListener("input", () => {
-          activeCombatResolution = recordCombatTarget(activeCombatResolution, { name: targetInput.value, ac: acInput.value ? Number(acInput.value) : null });
-        });
-        acLabel.appendChild(acInput);
-        fields.append(targetLabel, acLabel);
+        targetLabel.appendChild(targetSelect);
+        fields.appendChild(targetLabel);
       }
 
       if (action.id === "core:movement") {
@@ -8274,7 +8365,7 @@
       result.textContent = resultLines.join("\n") || action.description || action.detail || "Confirm to resolve this action.";
 
       const footer = document.createElement("div");
-      footer.className = "combat-resolution-actions";
+      footer.className = "combat-resolution-footer";
       const cancel = document.createElement("button");
       cancel.type = "button";
       cancel.className = "secondary";
@@ -8283,10 +8374,38 @@
       const confirm = document.createElement("button");
       confirm.type = "button";
       confirm.textContent = action.effect === "endTurn" ? t("turn.endTurn") : t("turn.confirmResult");
+      const confirmation = validateCombatResolutionForConfirmation(session);
+      confirm.disabled = !confirmation.ok;
+      confirm.title = confirmation.ok ? "" : confirmation.reason;
       confirm.addEventListener("click", commitActiveCombatResolution);
       footer.append(cancel, confirm);
 
-      combatResolution.append(header, steps, fields, controls, result, footer);
+      const workspace = document.createElement("div");
+      workspace.className = "combat-resolution-workspace";
+      if (fields.children.length) {
+        const detailsSection = document.createElement("section");
+        detailsSection.className = "combat-resolution-section";
+        const detailsTitle = document.createElement("h4");
+        detailsTitle.textContent = t("turn.resolutionDetails");
+        detailsSection.append(detailsTitle, fields);
+        workspace.appendChild(detailsSection);
+      }
+      if (controls.children.length) {
+        const rollsSection = document.createElement("section");
+        rollsSection.className = "combat-resolution-section";
+        const rollsTitle = document.createElement("h4");
+        rollsTitle.textContent = t("turn.resolutionRolls");
+        rollsSection.append(rollsTitle, controls);
+        workspace.appendChild(rollsSection);
+      }
+      const resultSection = document.createElement("section");
+      resultSection.className = "combat-resolution-section combat-resolution-summary";
+      const resultTitle = document.createElement("h4");
+      resultTitle.textContent = t("turn.resolutionResult");
+      resultSection.append(resultTitle, result);
+      workspace.appendChild(resultSection);
+
+      combatResolution.append(header, steps, workspace, footer);
     }
 
     function renderTurnActionResources(resources = []) {
@@ -8303,11 +8422,16 @@
         card.className = "turn-actions-resource-card";
         const name = document.createElement("div");
         name.className = "turn-actions-resource-name";
-        name.textContent = translateDynamicText(resource.title, resource.title);
+        renderTurnActionTranslatableText(name, resource.title, "resource-title", resource.key || resource.title);
         const detail = document.createElement("div");
         detail.className = "turn-actions-resource-detail";
         const remaining = formatRemainingResourceText(resource.remaining, resource.total);
-        detail.textContent = translateDynamicText([remaining, resource.detail].filter(Boolean).join(" | "));
+        renderTurnActionTranslatableText(
+          detail,
+          [remaining, resource.detail].filter(Boolean).join(" | "),
+          "resource-detail",
+          resource.key || resource.title
+        );
         card.append(name, detail);
         grid.appendChild(card);
       });
@@ -8427,13 +8551,13 @@
       definitions.forEach((definition) => {
         const card = document.createElement("div");
         card.className = "turn-actions-resource-card";
-        card.title = translateDynamicText(statusDescriptionText(definition), statusDescriptionText(definition));
         const name = document.createElement("div");
         name.className = "turn-actions-resource-name";
-        name.textContent = `${definition.symbol} ${definition.name}`;
+        renderTurnActionTranslatableText(name, `${definition.symbol} ${definition.name}`, "status-title", definition.id || definition.name);
         const detail = document.createElement("div");
         detail.className = "turn-actions-resource-detail";
-        detail.textContent = translateDynamicText(definition.description, definition.description);
+        renderTurnActionTranslatableText(detail, statusDescriptionText(definition), "status-detail", definition.id || definition.name);
+        card.title = detail.textContent;
         card.append(name, detail);
         grid.appendChild(card);
       });
@@ -8478,7 +8602,7 @@
           if (!disabled) row.addEventListener("click", () => spendTurnAction(action));
           const rowTitle = document.createElement("div");
           rowTitle.className = "turn-actions-row-title";
-          rowTitle.textContent = translateDynamicText(action.title, action.title);
+          renderTurnActionTranslatableText(rowTitle, action.title, "action-title", action.key || action.id || action.title);
           row.appendChild(rowTitle);
           const cost = document.createElement("div");
           cost.className = "turn-actions-row-cost";
@@ -8487,12 +8611,16 @@
           if (action.detail) {
             const detail = document.createElement("div");
             detail.className = "turn-actions-row-detail";
-            detail.textContent = translateDynamicText(action.detail, action.detail);
+            renderTurnActionTranslatableText(detail, action.detail, "action-detail", action.key || action.id || action.title);
             row.appendChild(detail);
           }
           const state = document.createElement("div");
           state.className = `turn-actions-row-state${disabledReason ? " blocked" : ""}`;
-          state.textContent = disabledReason || t("turn.available");
+          if (disabledReason) {
+            renderTurnActionTranslatableText(state, disabledReason, "action-state", action.key || action.id || action.title);
+          } else {
+            state.textContent = t("turn.available");
+          }
           row.appendChild(state);
           list.appendChild(row);
         });
@@ -8500,6 +8628,80 @@
         container.appendChild(group);
       });
       return container;
+    }
+
+    function renderTurnActionTranslatableText(element, sourceText, scope, identity) {
+      const original = String(sourceText || "").trim();
+      if (!element || !original) return;
+      const cacheKey = featureTranslationKey("start-combat", scope, identity, original.slice(0, 160));
+      element.dataset.translationKey = cacheKey;
+      element.dataset.translationSource = original;
+      const translated = turnActionDescriptionsTranslated ? ensureFeatureTranslationCache()[cacheKey] : "";
+      element.textContent = translated || translateDynamicText(original, original);
+    }
+
+    function syncTurnActionTranslationButton() {
+      if (!turnActionsTranslate) return;
+      turnActionsTranslate.disabled = turnActionTranslationPending;
+      turnActionsTranslate.textContent = turnActionTranslationPending
+        ? t("translation.translatingShort")
+        : turnActionDescriptionsTranslated
+          ? t("translation.viewOriginal")
+          : t("translation.translateDescriptions");
+      turnActionsTranslate.setAttribute("aria-pressed", turnActionDescriptionsTranslated ? "true" : "false");
+    }
+
+    async function toggleTurnActionTranslations() {
+      if (turnActionTranslationPending || !turnActionsBody || !turnActionsPanel) return;
+      if (turnActionDescriptionsTranslated) {
+        turnActionDescriptionsTranslated = false;
+        refreshTurnActionsPanel();
+        showStatus(t("translation.original"));
+        return;
+      }
+
+      refreshTurnActionsPanel();
+      const targets = [...turnActionsPanel.querySelectorAll("[data-translation-key][data-translation-source]")];
+      const entries = new Map(targets.map((target) => [target.dataset.translationKey, target.dataset.translationSource]));
+      const pending = [...entries.entries()]
+        .filter(([cacheKey]) => !ensureFeatureTranslationCache()[cacheKey]);
+      turnActionTranslationPending = true;
+      syncTurnActionTranslationButton();
+      showStatus(t("translation.translatingAll"));
+      let translatedCount = entries.size - pending.length;
+      let failedCount = 0;
+      let cursor = 0;
+      try {
+        const workers = Array.from({ length: Math.min(4, pending.length) }, async () => {
+          while (cursor < pending.length) {
+            const [cacheKey, sourceText] = pending[cursor];
+            cursor += 1;
+            try {
+              await translateFeatureDescription(cacheKey, sourceText);
+              translatedCount += 1;
+            } catch (error) {
+              failedCount += 1;
+              console.error(error);
+            }
+          }
+        });
+        await Promise.all(workers);
+        turnActionDescriptionsTranslated = translatedCount > 0;
+        refreshTurnActionsPanel();
+        showStatus(failedCount > 0
+          ? t("translation.partial", { translated: translatedCount, failed: failedCount })
+          : turnActionDescriptionsTranslated
+            ? t("translation.translated")
+            : t("translation.noDescriptions"));
+      } catch (error) {
+        console.error(error);
+        turnActionDescriptionsTranslated = translatedCount > 0;
+        refreshTurnActionsPanel();
+        showStatus(t("translation.failed"));
+      } finally {
+        turnActionTranslationPending = false;
+        syncTurnActionTranslationButton();
+      }
     }
 
     function refreshTurnActionsPanel() {
@@ -8522,6 +8724,7 @@
       }
       renderCombatResolution();
       renderCombatLog();
+      syncTurnActionTranslationButton();
       combatPerformanceSamples.unshift({ phase: "render", cached: false, durationMs: performance.now() - startedAt, at: Date.now() });
       combatPerformanceSamples.splice(30);
     }
@@ -8830,12 +9033,27 @@
       title.textContent = name;
       optionDescription.appendChild(title);
 
-      splitDescriptionLines(description).forEach((line) => {
-        const body = document.createElement("p");
-        body.className = "option-description-line";
-        body.textContent = line;
-        optionDescription.appendChild(body);
+      const descriptionBody = document.createElement("div");
+      descriptionBody.className = "option-description-body";
+      const renderDescription = (target) => {
+        target.textContent = "";
+        splitDescriptionLines(description).forEach((line) => {
+          const body = document.createElement("p");
+          body.className = "option-description-line";
+          body.textContent = line;
+          target.appendChild(body);
+        });
+      };
+      renderDescription(descriptionBody);
+      const translationToolbar = buildFeatureTranslationToolbar({
+        cacheKey: featureTranslationKey("option-description", activeSelectField?.dataset.optionType, name, description.slice(0, 120)),
+        description,
+        detailBody: descriptionBody,
+        renderOriginal: renderDescription,
+        labelText: t("translation.appliesDescription")
       });
+      if (translationToolbar) optionDescription.appendChild(translationToolbar);
+      optionDescription.appendChild(descriptionBody);
 
       if (activeSelectField?.dataset.optionType === "background") {
         renderBackgroundChoiceControls(option).forEach((control) => optionDescription.appendChild(control));
@@ -8899,9 +9117,10 @@
       return { search, list, empty };
     }
 
-    function appendCollapsibleSection(parent, title, { collapsed = false, stateKey = "", renderContent = null } = {}) {
+    function appendCollapsibleSection(parent, title, { collapsed = false, stateKey = "", renderContent = null, tone = "" } = {}) {
       const section = document.createElement("section");
       section.className = "collapsible-section";
+      if (tone) section.classList.add("spell-category", `spell-category-${tone}`);
       const startsCollapsed = stateKey in collapsibleSectionState ? collapsibleSectionState[stateKey] : collapsed;
       section.classList.toggle("collapsed", startsCollapsed);
       let contentRendered = false;
@@ -9965,7 +10184,9 @@
     function applyLiveSheetPatch(patch) {
       if (!patch || typeof patch !== "object" || Array.isArray(patch)) return false;
       let changed = false;
-      document.querySelectorAll(".field").forEach((element) => {
+      isApplyingLiveSheetPatch = true;
+      try {
+        document.querySelectorAll(".field").forEach((element) => {
         const key = element.dataset.key;
         if (!key || !(key in patch)) return;
         const value = patch[key];
@@ -9981,7 +10202,10 @@
         changed = true;
         element.dispatchEvent(new Event("input", { bubbles: true }));
         element.dispatchEvent(new Event("change", { bubbles: true }));
-      });
+        });
+      } finally {
+        isApplyingLiveSheetPatch = false;
+      }
       if (!changed) return false;
       refreshAfterApplyingSlotData();
       updateActiveSlotFromCurrentData();
@@ -10360,7 +10584,10 @@
       return false;
     }
 
+    let isApplyingLiveSheetPatch = false;
+
     function handleLockedSheetEvent(event) {
+      if (isApplyingLiveSheetPatch) return;
       if (!isCharacterReady()) return;
       const field = event.target?.closest?.(".field");
       if (!field || fieldCanChangeWhenReady(field)) return;
@@ -11571,7 +11798,8 @@
     function appendKnownCantripsSection(parent, knownCantrips, detailBody, field, stateKey, snapshot) {
       const body = appendCollapsibleSection(parent, "Cantrips conocidos", {
         collapsed: false,
-        stateKey
+        stateKey,
+        tone: "known-cantrips"
       });
       if (!knownCantrips.length) {
         appendItemSection(body, "Sin cantrips", "Agrega cantrips desde la lista de cantrips disponibles.");
@@ -11631,6 +11859,7 @@
       appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "wizard:learn-cantrips",
+        tone: "learn-cantrips",
         renderContent: (target) => appendSearchableList(
           target,
           snapshot.accessibleCantrips
@@ -11639,7 +11868,7 @@
         )
       });
 
-      const spellbookBody = appendCollapsibleSection(main, "Spellbook", { collapsed: false, stateKey: "wizard:spellbook" });
+      const spellbookBody = appendCollapsibleSection(main, "Spellbook", { collapsed: false, stateKey: "wizard:spellbook", tone: "spellbook" });
 
       const knownSpells = snapshot.wizardSpellbookSpells
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
@@ -11658,6 +11887,7 @@
       appendCollapsibleSection(main, t("spell.learnSpells"), {
         collapsed: true,
         stateKey: "wizard:learn-spells",
+        tone: "learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
           target,
           snapshot.accessibleSpells,
@@ -11718,6 +11948,7 @@
       appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "bard:learn-cantrips",
+        tone: "learn-cantrips",
         renderContent: (target) => appendSearchableList(
           target,
           snapshot.accessibleCantrips
@@ -11728,7 +11959,7 @@
 
       const knownSpells = snapshot.selectedKnownSpells
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-      const knownBody = appendCollapsibleSection(main, "Spells conocidos", { collapsed: false, stateKey: "bard:known-spells" });
+      const knownBody = appendCollapsibleSection(main, "Spells conocidos", { collapsed: false, stateKey: "bard:known-spells", tone: "known-spells" });
       if (!knownSpells.length) {
         appendItemSection(knownBody, "Sin spells conocidos", "Agrega spells desde la lista de Bard.");
       } else {
@@ -11744,6 +11975,7 @@
       appendCollapsibleSection(main, t("spell.learnSpells"), {
         collapsed: true,
         stateKey: "bard:learn-spells",
+        tone: "learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
           target,
           snapshot.accessibleSpells,
@@ -11939,6 +12171,7 @@
       appendCollapsibleSection(main, t("spell.learnCantrips"), {
         collapsed: true,
         stateKey: "managed:learn-cantrips",
+        tone: "learn-cantrips",
         renderContent: (target) => appendSearchableList(
           target,
           snapshot.accessibleCantrips
@@ -11949,7 +12182,7 @@
 
       const knownSpells = snapshot.selectedKnownSpells
         .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-      const knownBody = appendCollapsibleSection(main, "Spells seleccionadas", { collapsed: false, stateKey: "managed:known-spells" });
+      const knownBody = appendCollapsibleSection(main, "Spells seleccionadas", { collapsed: false, stateKey: "managed:known-spells", tone: "known-spells" });
       if (!knownSpells.length) {
         appendItemSection(knownBody, "Sin spells seleccionadas", "Agrega spells desde la lista disponible.");
       } else {
@@ -11965,6 +12198,7 @@
       appendCollapsibleSection(main, t("spell.learnSpells"), {
         collapsed: true,
         stateKey: "managed:learn-spells",
+        tone: "learn-spells",
         renderContent: (target) => appendSpellLevelGroups(
           target,
           snapshot.accessibleSpells,
@@ -12286,8 +12520,7 @@
       root.className = "item-sheet";
 
       if (!feat) {
-        appendItemSection(root, fallbackName, "No encontre este feat en los datos locales.");
-        return root;
+        return buildTextFeatureDrawerContent(fallbackName, "No encontre este feat en los datos locales.", "Feat");
       }
 
       appendText(root, "item-sheet-title", feat.name, "h2");
@@ -12311,13 +12544,30 @@
 
       const descriptionContainer = document.createElement("div");
       descriptionContainer.className = "spell-description-blocks";
-      const renderFeatDescription = (target) => appendEntryBlocks(target, feat.entries, "Beneficios");
+      const additionalSpells = formatAdditionalSpells(feat);
+      const senses = formatStructuredValue(feat.senses);
+      const resistances = formatStructuredValue(feat.resist);
+      const renderFeatDescription = (target) => {
+        target.textContent = "";
+        appendEntryBlocks(target, feat.entries, "Beneficios");
+        appendItemSection(target, "Spells adicionales", additionalSpells);
+        appendItemSection(target, "Sentidos", senses);
+        appendItemSection(target, "Resistencias", resistances);
+        appendItemSection(target, "Background Feature", backgroundFeature);
+      };
       renderFeatDescription(descriptionContainer);
       const translationToolbar = buildFeatureTranslationToolbar({
         cacheKey: featureTranslationKey("feat", feat.name, feat.source, feat.page),
-        description: flattenEntryText(feat.entries || ""),
+        description: [
+          flattenEntryText(feat.entries || ""),
+          additionalSpells ? `Spells adicionales\n${additionalSpells}` : "",
+          senses ? `Sentidos\n${senses}` : "",
+          resistances ? `Resistencias\n${resistances}` : "",
+          backgroundFeature ? `Background Feature\n${backgroundFeature}` : ""
+        ].filter(Boolean).join("\n\n"),
         detailBody: descriptionContainer,
-        renderOriginal: renderFeatDescription
+        renderOriginal: renderFeatDescription,
+        labelText: t("translation.appliesDescription")
       });
       if (translationToolbar) root.appendChild(translationToolbar);
       root.appendChild(descriptionContainer);
@@ -12330,10 +12580,6 @@
         feat,
         entries: feat.entries || []
       });
-      appendItemSection(root, "Spells adicionales", formatAdditionalSpells(feat));
-      appendItemSection(root, "Sentidos", formatStructuredValue(feat.senses));
-      appendItemSection(root, "Resistencias", formatStructuredValue(feat.resist));
-      appendItemSection(root, "Background Feature", backgroundFeature);
       appendText(root, "item-source", sourceLine(feat));
       return root;
     }
@@ -12370,8 +12616,11 @@
       root.className = "item-sheet";
 
       if (!subclass) {
-        appendItemSection(root, "Subclase", fallbackDescription || "No encontre esta subclase en los datos locales.");
-        return root;
+        return buildTextFeatureDrawerContent(
+          "Subclase",
+          fallbackDescription || "No encontre esta subclase en los datos locales.",
+          "Subclass"
+        );
       }
 
       const features = subclassDisplayFeatures(subclass);
@@ -12393,14 +12642,32 @@
       if (chips.childElementCount) root.appendChild(chips);
 
       const introEntries = subclassIntroEntries(subclass, features);
-      if (introEntries.length) appendEntryBlocks(root, introEntries, "Descripcion");
-      else appendItemSection(root, "Descripcion", fallbackDescription || "Sin descripcion adicional disponible.");
-
-      features
-        .filter((feature) => normalizeName(feature.name || "") !== normalizeName(subclass.name || ""))
-        .forEach((feature) => {
-          appendItemSection(root, `Nivel ${feature.level}: ${feature.name}`, flattenEntryText(feature.entries || feature.entry || ""));
+      const detailFeatures = features
+        .filter((feature) => normalizeName(feature.name || "") !== normalizeName(subclass.name || ""));
+      const description = [
+        flattenEntryText(introEntries),
+        ...detailFeatures.map((feature) => `Nivel ${feature.level}: ${feature.name}\n${flattenEntryText(feature.entries || feature.entry || "")}`)
+      ].filter(Boolean).join("\n\n") || fallbackDescription || "Sin descripcion adicional disponible.";
+      const descriptionContainer = document.createElement("div");
+      descriptionContainer.className = "spell-description-blocks";
+      const renderDescription = (target) => {
+        target.textContent = "";
+        if (introEntries.length) appendEntryBlocks(target, introEntries, "Descripcion");
+        else appendItemSection(target, "Descripcion", fallbackDescription || "Sin descripcion adicional disponible.");
+        detailFeatures.forEach((feature) => {
+          appendItemSection(target, `Nivel ${feature.level}: ${feature.name}`, flattenEntryText(feature.entries || feature.entry || ""));
         });
+      };
+      renderDescription(descriptionContainer);
+      const translationToolbar = buildFeatureTranslationToolbar({
+        cacheKey: featureTranslationKey("subclass", subclass.className, subclass.name || subclass.shortName, subclass.source, description.slice(0, 120)),
+        description,
+        detailBody: descriptionContainer,
+        renderOriginal: renderDescription,
+        labelText: t("translation.appliesDescription")
+      });
+      if (translationToolbar) root.appendChild(translationToolbar);
+      root.appendChild(descriptionContainer);
 
       appendText(root, "item-source", sourceLine(subclass));
       return root;
@@ -13248,7 +13515,7 @@
         const spellName = String(option.value || "").replace(/^spell:/, "") || option.label || "";
         const spell = findSpellByName(spellName);
         return spell
-          ? buildSpellDrawerContent(spell)
+          ? buildSpellDrawerContent(spell, "", { includeTranslationToolbar: true })
           : buildTextFeatureDrawerContent(option.label || spellName, option.description || "No encontre esta spell en los datos locales.", "Spell");
       }
       if (option.type === "subclass") {

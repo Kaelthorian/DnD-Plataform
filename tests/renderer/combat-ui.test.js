@@ -21,6 +21,7 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
   "turnActionsAttacksOrb",
   "turnActionsEndTurn",
   "turnActionsHeader",
+  "turnActionsTranslate",
   "turnActionsCollapse",
   "combatResolution",
   "combatLogList"
@@ -40,12 +41,43 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
 ].forEach((needle) => assert.ok(html.includes(needle), `missing combat integration: ${needle}`));
 
 [
+  "function combatTargetRoster",
+  "function appendCombatTargetOptions",
+  "dndLiveVttCombatTargetRoster",
+  'document.createElement("select")',
+  't("turn.targetParty")',
+  't("turn.targetEnemies")'
+].forEach((needle) => assert.ok(html.includes(needle), `missing combat target selector integration: ${needle}`));
+
+[
+  "function combatResolutionStepCompleted",
+  "function combatResolutionStepLabel",
+  'turnActionsPanel?.classList.toggle("is-resolving"',
+  "visibleResolutionSteps",
+  "step !== RESOLUTION_STEPS.applyEffect",
+  'className = "combat-resolution-workspace"',
+  'className = "combat-resolution-section"',
+  "confirm.disabled = !confirmation.ok"
+].forEach((needle) => assert.ok(html.includes(needle), `missing focused combat resolution workspace: ${needle}`));
+
+assert.ok(!html.includes('t("turn.knownAc")'), "Known AC should not be shown in Start Combat");
+assert.ok(!html.includes('const acInput = document.createElement("input")'), "Known AC input should be removed from Start Combat");
+assert.ok(styles.includes(".turn-actions-panel.is-resolving .turn-actions-body"), "action browser should hide while resolving an action");
+assert.ok(styles.includes(".combat-resolution-step.is-current"), "current resolution step styling is missing");
+assert.ok(styles.includes(".combat-resolution-step.is-complete"), "completed resolution step styling is missing");
+
+assert.ok(renderer.includes("function liveVttCombatTargetRoster"), "live VTT target roster helper is missing");
+assert.ok(renderer.includes("globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster"), "live VTT target roster is not exposed to Start Combat");
+
+[
   "function normalizeCombatWindowLayout",
   "function applyCombatWindowLayout",
   "function toggleTurnActionsPanelCollapsed",
   "function startCombatWindowMove",
   "function startCombatWindowResize",
   "function handleCombatWindowPointerMove",
+  "function toggleTurnActionTranslations",
+  "function renderTurnActionTranslatableText",
   "dnd-character-sheet-combat-window-v1",
   'data-combat-resize-edge="right"',
   'data-combat-resize-edge="bottom"',
@@ -53,6 +85,7 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
 ].forEach((needle) => assert.ok(html.includes(needle), `missing floating combat window integration: ${needle}`));
 
 assert.ok(renderer.includes('turnActionsEndTurn?.addEventListener("click", requestEndCombatTurn)'), "End Turn is not wired");
+assert.ok(renderer.includes('turnActionsTranslate?.addEventListener("click", () => toggleTurnActionTranslations().catch(console.error))'), "combat translation is not wired");
 assert.ok(renderer.includes('combatLogClear?.addEventListener("click", clearCombatLog)'), "combat log clear is not wired");
 assert.ok(renderer.includes('turnActionsCollapse?.addEventListener("click", toggleTurnActionsPanelCollapsed)'), "combat collapse is not wired");
 assert.ok(renderer.includes('turnActionsHeader?.addEventListener("pointerdown", startCombatWindowMove)'), "combat drag is not wired");
@@ -60,6 +93,7 @@ assert.ok(renderer.includes('startCombatWindowResize(event, handle.dataset.comba
 assert.ok(styles.includes(".combat-resolution"), "resolution UI styles missing");
 assert.ok(styles.includes(".combat-log-entry"), "combat log styles missing");
 assert.ok(styles.includes(".turn-actions-panel.is-collapsed"), "combat collapsed styles missing");
+assert.ok(styles.includes(".turn-actions-translate"), "combat translation styles missing");
 assert.ok(styles.includes("var(--dm-amber)"), "DM Screen visual language is missing");
 
 const equipmentProviderStart = html.indexOf('id: "equipment:attacks"');

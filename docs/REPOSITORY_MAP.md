@@ -8,7 +8,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 | Hoja de personaje | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `i18n.js` |
 | DM Screen/tablero/VTT | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config |
 | Save slots/migración | `src/services/save-service.js` | helpers de slots en `index.html`, test de save service |
-| Live Sheet | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`, panel React |
+| Live Sheet y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js` (roster visible para Start Combat), panel React |
 | Obsidian | `src/services/obsidian-service.js` | IPC/preload y componentes React |
 | Traducción | `src/services/translation-service.js` | `i18n.js` y `translateTextToSpanish()` en `index.html` |
 | Backgrounds | `src/data/backgrounds/backgrounds.json` | `data-loader.js`, `renderer.js`, marcadores background en `index.html` |
@@ -69,6 +69,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 - `src/engine/rests/rest-state.js` contiene la normalización idempotente de `__sheetMeta`, Hit Dice, gasto de dados, Exhaustion y clasificación explícita de `recharge`.
 - `src/engine/rests/short-rest.js` y `src/engine/rests/long-rest.js` solo devuelven transiciones/resultados declarativos; no acceden al DOM.
 - `src/app/renderer/index.html` aplica esos resultados a los campos PDF, `__sheetMeta`, la superficie existente `itemDrawer` y el estado Character Ready. Las interrupciones se enrutan por `globalThis.dndRestRuntime`.
+- Las descripciones examinables de items, spells, feats, features, subclases y opciones reutilizan `buildFeatureTranslationToolbar()` y la caché `__sheetMeta.featureDescriptionTranslations`; Start Combat usa esa misma caché mediante `toggleTurnActionTranslations()` para traducir/restaurar en bloque el texto dinámico visible. No crear otro servicio ni otra caché de traducción para nuevas superficies de detalle.
 - `src/app/renderer/renderer.js` conserva la sincronización pública de HP/HD/slots/Inspiration y no envía `__sheetMeta`.
 - Validación específica: `node tests/engine/rests.test.js`; validación completa de engine: `npm run test:engine`.
 

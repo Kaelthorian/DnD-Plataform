@@ -8,6 +8,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 - El encabezado mueve la ventana; los bordes derecho, inferior y la esquina inferior derecha ajustan su tamaño.
 - El control `−`/`+` colapsa o expande el contenido. La posición, tamaño y estado colapsado se conservan en `localStorage` bajo `dnd-character-sheet-combat-window-v1`.
 - La geometría se limita al viewport al abrir y al redimensionar la aplicación. El panel es flotante y no bloquea la interacción con la hoja.
+- Al elegir una acción, la ventana entra en modo de resolución enfocado: oculta temporalmente el catálogo, muestra los pasos numerados con estados actual/pending/completo y vuelve al catálogo al confirmar o cancelar.
 
 ## Entradas y fuentes de verdad
 
@@ -24,12 +25,13 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 | Condiciones | `__sheetMeta.activeStatuses` y `src/engine/conditions/statuses.js` |
 | Slots/usos/pools | helpers existentes del renderer y `src/engine/resources` |
 | Registro | `__sheetMeta.combatLog` con respaldo local `dnd-character-sheet-combat-log-v1` |
+| Selector de objetivos | `globalThis.dndLiveVttCombatTargetRoster()` en `renderer.js`, consumido por `index.html`; publica solo nombres visibles |
 
 ## Flujo
 
 1. `combatTurnState()` crea o migra el turno con Action, Bonus Action, Reaction, Movement, Object Interaction y ataques máximos.
 2. Una tarjeta declarativa se valida y `createCombatResolution()` reserva el coste. El contador proyectado cambia mientras la sesión está abierta.
-3. El stepper solicita sólo los pasos declarados: target, attack roll, save/check, damage/healing, efecto y confirmación.
+3. El stepper solicita sólo los pasos declarados: target, attack roll, save/check, damage/healing, efecto y confirmación. El target es un selector: incluye la party visible y, con combate VTT activo, los enemigos visibles de esa iniciativa. No acepta texto libre ni pide AC; los resultados Hit/Miss no determinados por natural 1/20 se confirman con el DM.
 4. Un ataque no habilita Damage hasta tener Hit; natural 1 falla, natural 20 marca crítico y duplica dados, no modificadores fijos.
 5. Los saves y el daño automático no crean Hit Roll. Si el modificador/AC del target es privado, el jugador marca el resultado comunicado por el DM.
 6. `Confirm Result` consume la economía y después usa los adaptadores existentes de slots, usos, inventario, munición, estados y log. `Cancel` revierte la reserva.
@@ -79,7 +81,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 1. Abrir una hoja con el arma A equipada y pulsar las espadas. Confirmar que su tarjeta sólo muestra daño/tipo y rango. Con Start Combat abierto, desequipar A y equipar el arma B; confirmar que las acciones cambian inmediatamente. Cerrar la ventana, volver a equipar A y reabrirla; confirmar que muestra A y no conserva B. Verificar además los cinco recursos y `End Turn`, y mover, redimensionar y colapsar la ventana para comprobar la persistencia de geometría.
 2. Preparar Booming Blade, Green-Flame Blade o True Strike con un arma compatible equipada. Confirmar que aparece una acción por arma, que el ataque usa el bonus correcto y que el daño combina el arma con el dado "on hit" del nivel actual sin tirar el rider secundario.
 3. Lanzar Hex o Hunter's Mark, confirmar el cast sin damage roll y abrir un ataque posterior: el rider debe aparecer como daño opcional. Terminar Concentration y confirmar que desaparece. Repetir con Zephyr Strike y comprobar que su rider de un uso se consume al confirmarlo.
-4. Abrir un arma, indicar target/AC, tirar Hit y verificar que Damage estaba bloqueado antes. Probar natural 1/20 cuando sea posible y cancelar otra acción.
+4. Abrir un arma, elegir target en el dropdown y confirmar que no existe campo de AC. Tirar Hit, resolver Hit/Miss con el DM y verificar que Damage estaba bloqueado antes. Confirmar además que el catálogo de acciones queda oculto durante la resolución y vuelve al cancelar. Probar natural 1/20 cuando sea posible.
 5. En un Fighter con Extra Attack, confirmar dos ataques: la primera confirmación consume Action y la segunda no.
 6. Probar un spell attack, un spell con save (por ejemplo Fireball/Sacred Flame), Magic Missile, un healing spell y uno con temporary HP. Confirmar que casting time, save/attack y escala provienen del registro correcto; cancelar antes de confirmar y comprobar el slot.
 7. Gastar Bonus Action y Reaction; terminar el turno y comprobar que una Reaction `allowOutsideTurn` sigue disponible.

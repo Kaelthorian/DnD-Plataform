@@ -8460,6 +8460,7 @@ function CharacterNote({
     onCharacterFieldChange?.(noteActionId, fieldKey, value);
   }
   const canEditRemoteSheet = Boolean(note.livePlayerId && note.liveConnected !== false);
+  const remoteCharacterLevel = clamp(Math.trunc(parseCharacterNumber(character.level, 1)), 1, 20);
   const characterSections = (() => {
     const sections = Array.isArray(character.sections) ? character.sections : [];
     const hasEquipment = sections.some(([title]) => normalizeSearch(title).includes("equipment"));
@@ -8541,9 +8542,37 @@ function CharacterNote({
           </p>
           <p>
             <strong className="text-neutral-200">Level</strong>{" "}
-            <CtrlEditableText value={character.level || ""} onCommit={canEditRemoteSheet ? (value) => commitCharacterField("CharacterLevel", value) : null}>
-              {character.level || "--"}
-            </CtrlEditableText>
+            {canEditRemoteSheet ? (
+              <span className="inline-flex items-center gap-1">
+                <button
+                  className="flex h-5 w-5 items-center justify-center border border-neutral-700 bg-neutral-900 font-bold text-amber-300 hover:border-amber-500 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-35"
+                  type="button"
+                  aria-label="Bajar nivel"
+                  title="Bajar nivel"
+                  disabled={remoteCharacterLevel <= 1}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => commitCharacterField("CharacterLevel", String(remoteCharacterLevel - 1))}
+                >
+                  −
+                </button>
+                <CtrlEditableText value={String(remoteCharacterLevel)} onCommit={(value) => commitCharacterField("CharacterLevel", String(clamp(Math.trunc(parseCharacterNumber(value, remoteCharacterLevel)), 1, 20)))}>
+                  {remoteCharacterLevel}
+                </CtrlEditableText>
+                <button
+                  className="flex h-5 w-5 items-center justify-center border border-neutral-700 bg-neutral-900 font-bold text-amber-300 hover:border-amber-500 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-35"
+                  type="button"
+                  aria-label="Subir nivel"
+                  title="Subir nivel"
+                  disabled={remoteCharacterLevel >= 20}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => commitCharacterField("CharacterLevel", String(remoteCharacterLevel + 1))}
+                >
+                  +
+                </button>
+              </span>
+            ) : (
+              <span>{character.level || "--"}</span>
+            )}
           </p>
           <p>
             <strong className="text-neutral-200">Alignment</strong>{" "}
@@ -11756,6 +11785,7 @@ function DmScreenApp() {
   function openResourcePicker(kind, spawnPoint = null, { search = "", selectedEntry = null, targetNoteId = "" } = {}) {
     if (!librariesReady) return;
     setNoteSpawnPoint(spawnPoint);
+    setResourcePickerTargetNoteId(targetNoteId);
     setResourcePickerKind(kind);
     setResourceSearchQuery(search);
     setResourceSortField("name");
@@ -11773,7 +11803,6 @@ function DmScreenApp() {
     }
     setObsidianPickerLoading(true);
     setObsidianPickerError("");
-    setResourcePickerTargetNoteId(targetNoteId);
     try {
       const vault = await api.getVault();
       setObsidianVault(vault);
@@ -15670,7 +15699,6 @@ function DmScreenApp() {
               onMonsterTextNoteAdd={addMonsterTextNote}
               onMonsterTextNoteRename={renameMonsterTextNote}
               onMonsterTextNoteChange={updateMonsterTextNote}
-              onChooseEquipmentItem={openLiveCharacterEquipmentPicker}
               onMonsterTextNoteRemove={removeMonsterTextNote}
             />
           ) : activeNote.kind === "character" ? (
@@ -15679,6 +15707,7 @@ function DmScreenApp() {
               onHpChange={updateNoteHp}
               onCharacterFieldChange={updateLiveCharacterField}
               onOpenResource={addCharacterResourceNote}
+              onChooseEquipmentItem={openLiveCharacterEquipmentPicker}
             />
           ) : activeNote.kind === "text" ? (
             <TextNote

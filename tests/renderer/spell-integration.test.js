@@ -7,6 +7,7 @@ const html = fs.readFileSync(path.join(root, "src/app/renderer/index.html"), "ut
 const renderer = fs.readFileSync(path.join(root, "src/app/renderer/renderer.js"), "utf8");
 const dmScreen = fs.readFileSync(path.join(root, "src/app/renderer/dm-screen/src/main.jsx"), "utf8");
 const i18n = fs.readFileSync(path.join(root, "src/app/renderer/i18n.js"), "utf8");
+const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "utf8");
 
 assert.ok(html.includes('<script src="../../engine/spells/spell-data.js"></script>'), "character sheet loads the shared spell data runtime");
 assert.ok(renderer.includes("dedupeSpellsByIdentity"), "spell loading preserves source-aware variants");
@@ -33,6 +34,17 @@ assert.ok(html.includes("state.concentration ="), "direct casts update the conce
 assert.ok(/function castPreparedSpell[\s\S]*confirmDirectConcentrationReplacement\(spell, options\)[\s\S]*interruptActiveRest\("spell"\)/.test(html), "direct casts confirm concentration replacement before spending resources or interrupting rest");
 assert.ok(html.includes("concentrationReplacementConfirmed: Boolean(committed.session.results.concentrationReplacementConfirmed)"), "combat-confirmed concentration replacement is reused during spell commit");
 assert.ok(html.includes("function endActiveConcentration"), "the prepared-spell UI exposes an explicit concentration end path");
+assert.ok(html.includes('section.classList.add("spell-category", `spell-category-${tone}`)'), "spellbook sections support semantic visual categories");
+assert.ok(html.includes('tone: "known-cantrips"'), "known cantrips have a distinct spellbook category");
+assert.ok(html.includes('tone: "learn-cantrips"'), "learnable cantrips have a distinct spellbook category");
+assert.ok(html.includes('tone: "known-spells"'), "known spells have a distinct spellbook category");
+assert.ok(html.includes('tone: "learn-spells"'), "learnable spells have a distinct spellbook category");
+assert.ok(html.includes('tone: "spellbook"'), "Wizard spellbook entries have a distinct category");
+assert.match(styles, /\.spell-category-known-cantrips[\s\S]*?#c084fc/, "known cantrips use a violet accent");
+assert.match(styles, /\.spell-category-learn-cantrips[\s\S]*?#22d3ee/, "learnable cantrips use a cyan accent");
+assert.match(styles, /\.spell-category-known-spells[\s\S]*?#4ade80/, "known spells use a green accent");
+assert.match(styles, /\.spell-category-learn-spells[\s\S]*?#60a5fa/, "learnable spells use a blue accent");
+assert.match(styles, /\.spell-category-spellbook[\s\S]*?var\(--dm-amber\)/, "the Wizard spellbook uses the amber accent");
 assert.ok(/result\.mode === "instant"[\s\S]*endActiveConcentration[\s\S]*applyLongRestRecovery/.test(html), "a completed instant long rest ends concentration before refreshing recovered state");
 assert.ok(/if \(result\.recovery\)[\s\S]*endActiveConcentration[\s\S]*applyLongRestRecovery/.test(html), "a completed timed long rest ends concentration while an interrupted rest does not");
 assert.ok(html.includes("getTemporaryHitPointsField()"), "temporary-HP spell rolls reuse the sheet field");
@@ -47,6 +59,13 @@ assert.ok(html.includes("consumeActiveSpellAttackEffects(appliedOptionalDamageCh
 assert.ok(/optionalDamageKeys: \[\.\.\.keys\][\s\S]*damageRoll: null/.test(html), "changing a rider invalidates the previous damage roll before confirmation");
 assert.ok(i18n.includes('"spell.castRitual"'), "ritual controls have EN/ES localization keys");
 assert.ok(i18n.includes('"spell.replaceConcentrationConfirm"'), "direct concentration replacement guidance has EN/ES localization keys");
+assert.ok(i18n.includes('"translation.translateDescriptions"'), "description translation controls have EN/ES localization keys");
+assert.ok(html.includes('featureTranslationKey("option-description"'), "generic choice descriptions expose the shared translation control");
+assert.ok(html.includes('featureTranslationKey("subclass"'), "subclass descriptions expose the shared translation control");
+assert.ok(
+  /function buildFeatureChoiceOptionDetailContent[\s\S]{0,1800}buildSpellDrawerContent\(spell, "", \{ includeTranslationToolbar: true \}\)/.test(html),
+  "spell details opened from feature choices expose translation"
+);
 assert.ok(dmScreen.includes('import "../../../../engine/spells/spell-data.js"'), "DM Screen uses the shared spell data runtime");
 assert.ok(dmScreen.includes("formatCanonicalSpellCastingTime(spell)"), "DM Screen renders canonical casting metadata");
 assert.ok(dmScreen.includes("canonicalSpellClassNames(entry)"), "DM Screen search and notes use canonical class availability");
