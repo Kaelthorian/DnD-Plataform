@@ -14,11 +14,15 @@ assert.ok(!/function loadSpellOptions\(\)[\s\S]{0,400}dedupeModernByName/.test(r
 assert.ok(html.includes("function spellForField(field)"), "sheet fields resolve source-aware spell references");
 assert.ok(html.includes("sheetMeta.spellReferences"), "spell references serialize in sheet metadata");
 assert.ok(html.includes("sheetMeta.wizardSpellbookReferences"), "wizard spellbook variants serialize without changing legacy names");
+assert.ok(/function normalizeName\(name\)\s*\{\s*return String\(name \?\? ""\)\.trim\(\)\.toLowerCase\(\);\s*\}/.test(html), "name normalization tolerates legacy non-text spellbook entries");
 assert.ok(
   /sheetMeta\.wizardSpellbookReferences\s*=\s*sheetMeta\.wizardSpellbookReferences\.filter[\s\S]*return sheetMeta\.wizardSpellbookReferences/.test(html),
   "wizard spellbook reference cleanup must preserve the mutable serialized array"
 );
 assert.ok(/function wizardSpellbookReferences[\s\S]*wizardSpellbookNames\(\)\.forEach[\s\S]*findSpellByName\(name\)/.test(html), "legacy wizard spellbook names migrate to one deterministic source-aware reference");
+assert.ok(html.includes("const spellbookReferences = wizardSpellbookReferences();"), "new wizard spells migrate legacy entries before adding their source-aware reference");
+assert.ok(html.includes("const uniqueReferenced = referenced.filter"), "the spellbook hides duplicate saved references while preserving distinct spell identities");
+assert.ok(html.includes("spell?.id || spell?.spellId || spell?.sourceName || spell?.name"), "prepared-spell rows reuse the same cast-level state key as their canonical spell");
 assert.ok(/function wizardSpellListRow[\s\S]*const fieldSpell = spellForField\(field\)[\s\S]*fieldSpell\.id[\s\S]*spell\.id/.test(html), "wizard rows compare the selected source-aware identity instead of disabling every same-name variant");
 assert.ok(html.includes("noAttackRoll: !hasAttackRoll"), "utility and saving-throw spells do not receive a d20 attack button");
 assert.ok(html.includes("cantripScalingExpression(spell, getCharacterLevel())"), "cantrip scaling uses canonical structured data");

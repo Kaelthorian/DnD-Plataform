@@ -311,12 +311,12 @@ async function testVttStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(broadcast.state.tokens[0].name, "Goblin");
     assert.strictEqual(broadcast.state.tokens[0].image.dataUrl, tinyPng);
     assert.deepStrictEqual(broadcast.state.tokens[0].imageRequest, { sources: ["MM"], names: ["Goblin"] });
-    assert.strictEqual(broadcast.state.tokens[1].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.tokens[1].name, "???");
     assert.strictEqual(broadcast.state.tokens[1].image.dataUrl, tinyPng);
     assert.deepStrictEqual(broadcast.state.tokens[1].imageRequest, { sources: ["MM"], names: ["Goblin Boss"] });
     assert.strictEqual(broadcast.state.tokens[1].hpCurrent, "12");
     assert.strictEqual(broadcast.state.tokens[1].ac, "15");
-    assert.strictEqual(broadcast.state.tokens[2].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.tokens[2].name, "???");
     assert.strictEqual(broadcast.state.tokens[2].image.dataUrl, "");
     assert.strictEqual(broadcast.state.tokens[2].imageRequest, null);
     assert.strictEqual(broadcast.state.tokens[2].hpCurrent, "");
@@ -326,9 +326,9 @@ async function testVttStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(broadcast.state.combat.round, 2);
     assert.strictEqual(broadcast.state.combat.participants.length, 3);
     assert.strictEqual(broadcast.state.combat.participants[0].initiative, "18");
-    assert.strictEqual(broadcast.state.combat.participants[1].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.combat.participants[1].name, "???");
     assert.strictEqual(broadcast.state.combat.participants[1].image.dataUrl, tinyPng);
-    assert.strictEqual(broadcast.state.combat.participants[2].name, "Criatura desconocida");
+    assert.strictEqual(broadcast.state.combat.participants[2].name, "???");
     assert.strictEqual(broadcast.state.combat.participants[2].initiative, "");
     assert.strictEqual(broadcast.state.combat.participants[2].image.dataUrl, "");
     assert.strictEqual(broadcast.state.markers.length, 1);

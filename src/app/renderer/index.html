@@ -1967,6 +1967,14 @@
       return sheetMeta.wizardSpellbook.filter(Boolean);
     }
 
+    function wizardSpellbookReferenceIdentity(reference) {
+      const id = normalizeName(reference?.id || "");
+      if (id) return `id:${id}`;
+      const name = normalizeName(reference?.name || "");
+      if (!name) return "";
+      return `spell:${name}:${normalizeName(reference?.source || "")}:${Number(reference?.level) || ""}`;
+    }
+
     function wizardSpellbookReferences() {
       if (!Array.isArray(sheetMeta.wizardSpellbookReferences)) sheetMeta.wizardSpellbookReferences = [];
       sheetMeta.wizardSpellbookReferences = sheetMeta.wizardSpellbookReferences.filter(
@@ -2003,12 +2011,19 @@
       const referenced = wizardSpellbookReferences()
         .map((reference) => findSpellById(reference.id) || findSpellByName(reference.name, reference.level, reference.source))
         .filter(Boolean);
-      const referencedNames = new Set(referenced.map((spell) => normalizeName(spell.name)));
+      const referencedSpellIdentities = new Set();
+      const uniqueReferenced = referenced.filter((spell) => {
+        const identity = wizardSpellbookReferenceIdentity(spell);
+        if (!identity || referencedSpellIdentities.has(identity)) return false;
+        referencedSpellIdentities.add(identity);
+        return true;
+      });
+      const referencedNames = new Set(uniqueReferenced.map((spell) => normalizeName(spell.name)));
       const legacy = wizardSpellbookNames()
         .filter((name) => !referencedNames.has(normalizeName(name)))
         .map((name) => findSpellByName(name))
         .filter(Boolean);
-      return [...referenced, ...legacy];
+      return [...uniqueReferenced, ...legacy];
     }
 
     function wizardSpellbookSet() {
@@ -2029,8 +2044,9 @@
         showStatus(`Spellbook lleno: ${wizardMaxSpellbookSpells()} magia(s) para este nivel.`);
         return false;
       }
+      const spellbookReferences = wizardSpellbookReferences();
       sheetMeta.wizardSpellbook.push(spellName);
-      wizardSpellbookReferences().push({ id: spell.id || "", name: spell.name, source: spell.source || "", level: spell.level });
+      spellbookReferences.push({ id: spell.id || "", name: spell.name, source: spell.source || "", level: spell.level });
       assignWizardSpellToSheet(spell);
       scheduleSheetChoiceRefresh();
       return true;
@@ -2586,7 +2602,7 @@
     }
 
     function normalizeName(name) {
-      return name.trim().toLowerCase();
+      return String(name ?? "").trim().toLowerCase();
     }
 
     function spellStatusIdsForName(name) {
@@ -4050,7 +4066,7 @@
     }
 
     function spellCastLevelStateKey(spell, baseLevelOverride = null) {
-      return normalizeName(`${spell?.id || spell?.sourceName || spell?.name || ""}|${spell?.source || ""}|${baseLevelOverride ?? spell?.level ?? 0}`);
+      return normalizeName(`${spell?.id || spell?.spellId || spell?.sourceName || spell?.name || ""}|${spell?.source || ""}|${baseLevelOverride ?? spell?.level ?? 0}`);
     }
 
     function castLevelOptionsForSpell(spell, baseLevelOverride = null) {

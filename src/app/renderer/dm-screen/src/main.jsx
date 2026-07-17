@@ -8168,22 +8168,13 @@ function CharacterResourceButton({ kind, label, onOpenResource, onRemoveResource
   );
 }
 
-function CharacterEquipmentBlock({ text, context, onRoll, onOpenResource = null, onAddResource = null, onRemoveResource = null, dropNoteId = "" }) {
-  const [draft, setDraft] = useState("");
+function CharacterEquipmentBlock({ text, context, onRoll, onOpenResource = null, onChooseItem = null, onRemoveResource = null, dropNoteId = "" }) {
   const lines = compactLines(text);
   const candidates = equipmentResourceCandidates(text);
-  const canEdit = Boolean(onAddResource);
+  const canEdit = Boolean(onChooseItem);
   const entries = candidates.length
     ? candidates.map((item) => ({ label: item.display, removable: true }))
     : lines.map((line) => ({ label: line.replace(/^[-*]\s*/, ""), removable: false }));
-
-  function submitDraft(event) {
-    event.preventDefault();
-    const itemName = sanitizeDisplayText(draft, "");
-    if (!itemName) return;
-    onAddResource?.(itemName);
-    setDraft("");
-  }
 
   return (
     <div
@@ -8192,22 +8183,14 @@ function CharacterEquipmentBlock({ text, context, onRoll, onOpenResource = null,
       data-drop-note-id={dropNoteId || undefined}
     >
       {canEdit ? (
-        <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={submitDraft}>
-          <input
-            className="h-9 min-w-0 border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 focus:border-amber-500 focus:outline-none"
-            value={draft}
-            placeholder="Sumar item al inventario"
-            onPointerDown={(event) => event.stopPropagation()}
-            onChange={(event) => setDraft(event.target.value)}
-          />
-          <button
-            className="h-9 border border-amber-500/70 bg-amber-950/70 px-3 text-xs font-bold uppercase text-amber-100 hover:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:cursor-not-allowed disabled:opacity-50"
-            type="submit"
-            disabled={!draft.trim()}
-          >
-            Sumar
-          </button>
-        </form>
+        <button
+          className="h-9 w-full border border-amber-500/70 bg-amber-950/70 px-3 text-xs font-bold uppercase text-amber-100 hover:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => onChooseItem?.()}
+        >
+          + Sumar item
+        </button>
       ) : null}
       {entries.length ? (
         <div className="grid gap-2 sm:grid-cols-2">
@@ -8234,7 +8217,7 @@ function CharacterEquipmentBlock({ text, context, onRoll, onOpenResource = null,
   );
 }
 
-function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onAddResource = null, onRemoveResource = null, dropNoteId = "" }) {
+function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onChooseItem = null, onRemoveResource = null, dropNoteId = "" }) {
   const lines = compactLines(text);
   const normalizedContext = normalizeSearch(context);
   const isFeatures = normalizedContext.includes("features");
@@ -8293,7 +8276,7 @@ function CharacterTextBlock({ text, context, onRoll, onOpenResource = null, onAd
         context={context}
         onRoll={onRoll}
         onOpenResource={onOpenResource}
-        onAddResource={onAddResource}
+        onChooseItem={onChooseItem}
         onRemoveResource={onRemoveResource}
         dropNoteId={dropNoteId}
       />
@@ -8449,7 +8432,8 @@ function CharacterNote({
   onDuplicate,
   onHpChange,
   onCharacterFieldChange,
-  onOpenResource
+  onOpenResource,
+  onChooseEquipmentItem
 }) {
   const frameNote = shellNote || note;
   const frameNoteId = frameNote.id;
@@ -8644,8 +8628,8 @@ function CharacterNote({
               context={title}
               onRoll={addRoll}
               onOpenResource={(kind, label, event) => onOpenResource?.(kind, label, note, event)}
-              onAddResource={canEditRemoteSheet && normalizeSearch(title).includes("equipment")
-                ? (label) => commitCharacterField("Equipment", appendCharacterEquipmentItem(characterEquipmentText(character), label))
+              onChooseItem={canEditRemoteSheet && normalizeSearch(title).includes("equipment")
+                ? () => onChooseEquipmentItem?.(note)
                 : null}
               onRemoveResource={canEditRemoteSheet && normalizeSearch(title).includes("equipment")
                 ? (label) => commitCharacterField("Equipment", removeCharacterEquipmentItem(characterEquipmentText(character), label))
@@ -10781,6 +10765,7 @@ function DmScreenApp() {
   const [monsterNotes, setMonsterNotes] = useState([]);
   const [savedBoardNotes, setSavedBoardNotes] = useState([]);
   const [isSavedBoardNotesOpen, setIsSavedBoardNotesOpen] = useState(false);
+  const [resourcePickerTargetNoteId, setResourcePickerTargetNoteId] = useState("");
   const [savedBoardNotesSpawnPoint, setSavedBoardNotesSpawnPoint] = useState(null);
   const [pendingNoteClose, setPendingNoteClose] = useState(null);
   const [pendingSavedNameConflict, setPendingSavedNameConflict] = useState(null);
@@ -11768,7 +11753,7 @@ function DmScreenApp() {
     }
   }
 
-  function openResourcePicker(kind, spawnPoint = null, { search = "", selectedEntry = null } = {}) {
+  function openResourcePicker(kind, spawnPoint = null, { search = "", selectedEntry = null, targetNoteId = "" } = {}) {
     if (!librariesReady) return;
     setNoteSpawnPoint(spawnPoint);
     setResourcePickerKind(kind);
@@ -11788,6 +11773,7 @@ function DmScreenApp() {
     }
     setObsidianPickerLoading(true);
     setObsidianPickerError("");
+    setResourcePickerTargetNoteId(targetNoteId);
     try {
       const vault = await api.getVault();
       setObsidianVault(vault);
@@ -12020,11 +12006,34 @@ function DmScreenApp() {
 
   function addResourceNote(kind, entry, positionOverride = null) {
     addBoardNote({ kind, entry, entryCustom: entry?.__homebrew ? cloneForBoardState(entry) : null }, positionOverride);
+    closeResourcePicker();
+  }
+
+  function closeResourcePicker() {
     setResourcePickerKind(null);
+    setResourcePickerTargetNoteId("");
     setNoteSpawnPoint(null);
   }
 
+  function openLiveCharacterEquipmentPicker(note) {
+    if (!note?.livePlayerId || note.liveConnected === false) return;
+    openResourcePicker("item", null, { targetNoteId: note.id });
+  }
+
+  function addResourcePickerEntry(entry) {
+    if (!resourcePickerTargetNoteId) {
+      addResourceNote(resourcePickerKind || "spell", entry);
+      return;
+    }
+    const targetNote = monsterNotesRef.current.find((note) => note.id === resourcePickerTargetNoteId);
+    const itemName = sanitizeDisplayText(entry?.name, "");
+    if (!targetNote?.character || !itemName) return;
+    const nextEquipment = appendCharacterEquipmentItem(characterEquipmentText(targetNote.character), itemName);
+    if (updateLiveCharacterField(targetNote.id, "Equipment", nextEquipment)) closeResourcePicker();
+  }
+
   function addObsidianNote(noteMeta, positionOverride = null) {
+
     if (!noteMeta?.relativePath) return;
     const vaultName = obsidianVault?.name || noteMeta.vaultName || "";
     addBoardNote({
@@ -12039,6 +12048,7 @@ function DmScreenApp() {
       height: 640,
       obsidianLoading: true
     }, positionOverride || obsidianSpawnPoint);
+
     setIsObsidianPickerOpen(false);
     setObsidianSpawnPoint(null);
     setTimeout(() => loadObsidianNoteContent(noteMeta.relativePath), 0);
@@ -15660,6 +15670,7 @@ function DmScreenApp() {
               onMonsterTextNoteAdd={addMonsterTextNote}
               onMonsterTextNoteRename={renameMonsterTextNote}
               onMonsterTextNoteChange={updateMonsterTextNote}
+              onChooseEquipmentItem={openLiveCharacterEquipmentPicker}
               onMonsterTextNoteRemove={removeMonsterTextNote}
             />
           ) : activeNote.kind === "character" ? (
@@ -16353,8 +16364,8 @@ function DmScreenApp() {
           if (resourcePickerKind === "item") setSelectedItem(entry);
           else setSelectedSpell(entry);
         }}
-        onAdd={(entry) => addResourceNote(resourcePickerKind || "spell", entry)}
-        onClose={() => setResourcePickerKind(null)}
+        onAdd={addResourcePickerEntry}
+        onClose={closeResourcePicker}
       />
       <ObsidianPicker
         isOpen={isObsidianPickerOpen}

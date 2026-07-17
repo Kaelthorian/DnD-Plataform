@@ -14,7 +14,7 @@ const MAX_VTT_TOKENS = 200;
 const MAX_VTT_MARKERS = 200;
 const MAX_VTT_PING_AGE_MS = 5000;
 const MAX_HAND_QUEUE = 40;
-const VTT_ANONYMOUS_MONSTER_NAME = "Criatura desconocida";
+const VTT_ANONYMOUS_MONSTER_NAME = "???";
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);

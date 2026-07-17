@@ -14,6 +14,7 @@ assert.match(dmScreenSource, /combat: await mapCombatShareSnapshot|const combat 
 assert.match(rendererSource, /class="live-vtt-combat" aria-live="polite" hidden/);
 assert.match(rendererSource, /function renderLiveVttCombat\(combat\)/);
 assert.match(rendererSource, /currentRound = participants\.slice/);
+assert.match(rendererSource, /\.live-vtt-combat-card\[data-active="true"\][\s\S]{0,240}border-color: #38bdf8[\s\S]{0,180}rgba\(56, 189, 248, 0\.88\)/);
 assert.match(rendererSource, /nodes\.push\(divider, \.\.\.participants\.map/);
 assert.match(serverSource, /function sanitizeVttCombat\(combat\)/);
 assert.match(serverSource, /combat: sanitizeVttCombat\(payload\.combat\)/);

@@ -437,8 +437,8 @@
           flex-basis: 78px;
           width: 78px;
           height: 98px;
-          border-color: #fbbf24;
-          box-shadow: 0 0 0 2px #111827, 0 0 16px rgba(251, 191, 36, 0.72);
+          border-color: #38bdf8;
+          box-shadow: 0 0 0 2px #0f172a, 0 0 12px rgba(56, 189, 248, 0.88), 0 0 26px rgba(14, 165, 233, 0.62);
         }
         .live-vtt-combat-portrait {
           position: relative;
