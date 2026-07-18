@@ -1,5 +1,6 @@
 const os = require("os");
 const crypto = require("crypto");
+const net = require("net");
 const { EventEmitter } = require("events");
 const { WebSocket, WebSocketServer } = require("ws");
 
@@ -53,8 +54,186 @@ function normalizePort(port) {
 }
 
 function isTailscaleIpv4(address) {
-  const parts = String(address || "").split(".").map((part) => Number.parseInt(part, 10));
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+function parseIpv4(address) {
+  const text = String(address || "").trim();
+  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(text)) return null;
+  const parts = text.split(".").map((part) => Number.parseInt(part, 10));
+  if (parts.some((part) => part < 0 || part > 255)) return null;
+  return parts;
+}
+
+function isCarrierGradeNatIpv4(address) {
+  const parts = parseIpv4(address);
+  return Boolean(parts && parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127);
+}
+
+function isPrivateIpv4(address) {
+  const parts = parseIpv4(address);
+  if (!parts) return false;
+  return (
+    parts[0] === 10
+    || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31)
+    || (parts[0] === 192 && parts[1] === 168)
+  );
+}
+
+function classifyConnectionHost(host) {
+  const normalized = String(host || "").trim().toLowerCase();
+  if (!normalized) return "invalid";
+  const ipVersion = net.isIP(normalized);
+  if (ipVersion === 4) {
+    const parts = parseIpv4(normalized);
+    if (parts[0] === 127 || normalized === "0.0.0.0") return "loopback";
+    if (parts[0] === 169 && parts[1] === 254) return "link-local";
+    if (isTailscaleIpv4(normalized)) return "tailscale";
+    if (isCarrierGradeNatIpv4(normalized)) return "carrier-grade-nat";
+    if (isPrivateIpv4(normalized)) return "private-ip";
+    return "public-ip";
+  }
+  if (ipVersion === 6) {
+    if (normalized === "::1" || normalized === "::") return "loopback";
+    if (/^(?:fc|fd)/i.test(normalized)) return "private-ipv6";
+    if (/^fe[89ab]/i.test(normalized)) return "link-local";
+    return "public-ipv6";
+  }
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) return "loopback";
+  return "domain";
+}
+
+function validDomain(host) {
+  const value = String(host || "");
+  if (!value || value.length > 253 || value.includes("..")) return false;
+  return value.split(".").every((label) => (
+    label.length >= 1
+    && label.length <= 63
+    && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label)
+  ));
+}
+
+function splitConnectionHost(rawHost) {
+  let value = String(rawHost || "").trim();
+  if (!value || /[\u0000-\u001f\u007f\s]/.test(value)) return { host: "", port: null, scheme: "", error: "INVALID_HOST" };
+
+  const schemeMatch = value.match(/^([a-z][a-z0-9+.-]*):\/\//i);
+  const scheme = schemeMatch ? schemeMatch[1].toLowerCase() : "";
+  if (scheme && scheme !== "ws" && scheme !== "wss") return { host: "", port: null, scheme, error: "INVALID_SCHEME" };
+  if (scheme) value = value.slice(schemeMatch[0].length);
+  value = value.split(/[/?#]/, 1)[0];
+
+  let host = value;
+  let embeddedPort = null;
+  if (value.startsWith("[")) {
+    const closingBracket = value.indexOf("]");
+    if (closingBracket < 0) return { host: "", port: null, scheme, error: "INVALID_HOST" };
+    host = value.slice(1, closingBracket);
+    const suffix = value.slice(closingBracket + 1);
+    if (suffix) {
+      if (!/^:\d+$/.test(suffix)) return { host: "", port: null, scheme, error: "INVALID_PORT" };
+      embeddedPort = Number.parseInt(suffix.slice(1), 10);
+    }
+  } else if ((value.match(/:/g) || []).length === 1) {
+    const separator = value.lastIndexOf(":");
+    const possiblePort = value.slice(separator + 1);
+    if (/^\d+$/.test(possiblePort)) {
+      host = value.slice(0, separator);
+      embeddedPort = Number.parseInt(possiblePort, 10);
+    }
+  }
+
+  host = host.replace(/\.$/, "").trim().toLowerCase();
+  const ipVersion = net.isIP(host);
+  if (!host || (!ipVersion && !validDomain(host))) return { host: "", port: null, scheme, error: "INVALID_HOST" };
+  return { host, port: embeddedPort, scheme, error: "" };
+}
+
+function normalizeConnectionTarget(rawHost, rawPort = DEFAULT_PORT) {
+  const parsed = splitConnectionHost(rawHost);
+  if (parsed.error) return { ok: false, error: parsed.error, host: "", port: null };
+  if (parsed.scheme === "wss") {
+    return { ok: false, error: "WSS_NOT_CONFIGURED", host: parsed.host, port: parsed.port || normalizePort(rawPort) };
+  }
+  const candidatePort = parsed.port ?? Number.parseInt(rawPort, 10);
+  if (!Number.isInteger(candidatePort) || candidatePort < 1 || candidatePort > 65535) {
+    return { ok: false, error: "INVALID_PORT", host: parsed.host, port: null };
+  }
+  const hostKind = classifyConnectionHost(parsed.host);
+  const formattedHost = net.isIP(parsed.host) === 6 ? `[${parsed.host}]` : parsed.host;
+  return {
+    ok: true,
+    host: parsed.host,
+    port: candidatePort,
+    hostKind,
+    displayAddress: `${formattedHost}:${candidatePort}`,
+    url: `ws://${formattedHost}:${candidatePort}`,
+    publicCandidate: ["public-ip", "public-ipv6", "domain"].includes(hostKind)
+  };
+}
+
+function buildDirectInternetDiagnostics({ publicHost = "", routerWanAddress = "", port = DEFAULT_PORT, running = false, selfTests = null } = {}) {
+  const target = normalizeConnectionTarget(publicHost, port);
+  const wanTarget = routerWanAddress ? normalizeConnectionTarget(routerWanAddress, port) : null;
+  const items = [];
+  let blockedByCgnat = false;
+
+  if (!publicHost) {
+    items.push({ code: "PUBLIC_HOST_REQUIRED", severity: "error", message: "Enter the public IP or DNS name that players will use." });
+  } else if (!target.ok) {
+    items.push({ code: target.error, severity: "error", message: target.error === "WSS_NOT_CONFIGURED" ? "WSS certificates are not configured in this version." : "The public host or port is invalid." });
+  } else if (!target.publicCandidate) {
+    const isCgnat = target.hostKind === "carrier-grade-nat";
+    blockedByCgnat = isCgnat;
+    items.push({
+      code: isCgnat ? "CGNAT_ADDRESS" : "PRIVATE_PUBLIC_HOST",
+      severity: "error",
+      message: isCgnat
+        ? "This address is in 100.64.0.0/10 and is not publicly routable; direct Internet hosting is not possible through CGNAT."
+        : "This is a private, loopback, link-local, or Tailscale address. It is not a Direct Internet address."
+    });
+  } else if (target.hostKind === "domain") {
+    items.push({ code: "DNS_NOT_RESOLVED", severity: "warning", message: "The DNS name was accepted but not resolved or tested by the app." });
+  }
+
+  if (!routerWanAddress) {
+    items.push({ code: "WAN_ADDRESS_NOT_PROVIDED", severity: "warning", message: "CGNAT cannot be assessed until you compare the router WAN IPv4 with your public IPv4." });
+  } else if (!wanTarget?.ok) {
+    items.push({ code: "INVALID_WAN_ADDRESS", severity: "error", message: "The router WAN IPv4 is invalid." });
+  } else if (wanTarget.hostKind === "carrier-grade-nat") {
+    blockedByCgnat = true;
+    items.push({ code: "CGNAT_DETECTED", severity: "error", message: "The router WAN address is in 100.64.0.0/10. Direct inbound connections are not possible without Tailscale or an explicitly approved relay." });
+  } else if (["private-ip", "private-ipv6", "loopback", "link-local"].includes(wanTarget.hostKind)) {
+    items.push({ code: "PRIVATE_WAN_ADDRESS", severity: "warning", message: "The router WAN address is private. This indicates double NAT or possible CGNAT; every controllable router must forward the port." });
+  } else if (target.ok && target.hostKind === "public-ip" && wanTarget.hostKind === "public-ip" && target.host !== wanTarget.host) {
+    items.push({ code: "WAN_PUBLIC_MISMATCH", severity: "warning", message: "The router WAN IPv4 differs from the public IPv4. This may indicate CGNAT or another upstream NAT." });
+  }
+
+  if (target.ok && target.publicCandidate) {
+    items.push({ code: "PORT_MAPPING_UNVERIFIED", severity: "warning", message: `Forward TCP port ${target.port} on the router to this PC's LAN IPv4. The app has not verified that mapping.` });
+    items.push({ code: "FIREWALL_UNVERIFIED", severity: "warning", message: "Windows Firewall access is not verified. Allow the app only on the intended network profile if needed." });
+    items.push({ code: "PLAINTEXT_WEBSOCKET", severity: "warning", message: "Direct Internet uses unencrypted ws:// in phase 1. Do not treat it as secure transport." });
+  }
+
+  const localTest = selfTests?.local || null;
+  if (!running || !localTest) {
+    items.push({ code: "LOCAL_TEST_PENDING", severity: "info", message: "Start the host and run the local test to verify that the listener responds on this PC." });
+  } else if (localTest.ok) {
+    items.push({ code: "LOCAL_TEST_OK", severity: "success", message: "The local listener responded. This does not verify router, firewall, CGNAT, DNS, or public reachability." });
+  } else {
+    items.push({ code: "LOCAL_TEST_FAILED", severity: "error", message: "The local listener did not respond. Resolve the local host error before testing from another network." });
+  }
+
+  return {
+    target: target.ok ? target : null,
+    directAddress: target.ok && target.publicCandidate ? target.displayAddress : "",
+    publicCandidate: Boolean(target.ok && target.publicCandidate),
+    publicReachabilityVerified: false,
+    blockedByCgnat,
+    canAttemptDirect: Boolean(target.ok && target.publicCandidate && !blockedByCgnat),
+    items
+  };
+}
+
+  const parts = parseIpv4(address);
+  if (!parts) return false;
   return parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127;
 }
 
@@ -448,21 +627,31 @@ function localLanAddresses() {
 }
 
 function generateSessionToken() {
-  return crypto.randomBytes(4).toString("hex").toUpperCase();
+  return crypto.randomBytes(32).toString("base64url");
 }
 
 function normalizeStartOptions(optionsOrPort = DEFAULT_PORT) {
   if (isPlainObject(optionsOrPort)) {
+    const connectionMode = ["lan", "tailscale", "direct-internet"].includes(optionsOrPort.connectionMode)
+      ? optionsOrPort.connectionMode
+      : "auto";
+    const directInternet = connectionMode === "direct-internet";
     return {
       port: normalizePort(optionsOrPort.port),
-      tokenEnabled: optionsOrPort.tokenEnabled !== false,
-      sessionToken: sanitizeText(optionsOrPort.sessionToken, 64)
+      connectionMode,
+      tokenEnabled: directInternet || optionsOrPort.tokenEnabled !== false,
+      sessionToken: sanitizeText(optionsOrPort.sessionToken, 128),
+      publicHost: sanitizeText(optionsOrPort.publicHost, 300),
+      routerWanAddress: sanitizeText(optionsOrPort.routerWanAddress, 300)
     };
   }
   return {
     port: normalizePort(optionsOrPort),
+    connectionMode: "auto",
     tokenEnabled: false,
-    sessionToken: ""
+    sessionToken: "",
+    publicHost: "",
+    routerWanAddress: ""
   };
 }
 
@@ -502,6 +691,11 @@ class LiveSheetServer extends EventEmitter {
     this.players = new Map();
     this.tokenEnabled = false;
     this.sessionToken = "";
+    this.connectionMode = "auto";
+    this.directInternetConfig = {
+      publicHost: "",
+      routerWanAddress: ""
+    };
     this.vttState = { active: false, updatedAt: new Date().toISOString() };
     this.raisedHands = new Map();
     this.selfTests = {
@@ -518,6 +712,14 @@ class LiveSheetServer extends EventEmitter {
     const addresses = listLocalAddresses();
     const port = this.port || extra.port || DEFAULT_PORT;
     const recommendedAddress = addresses.tailscaleAddresses[0] || addresses.lanAddresses[0] || "";
+    const detectedMode = addresses.tailscaleAddresses.length ? "tailscale" : "lan";
+    const recommendedConnectionMode = this.connectionMode === "auto" ? detectedMode : this.connectionMode;
+    const directInternet = buildDirectInternetDiagnostics({
+      ...this.directInternetConfig,
+      port,
+      running: this.isRunning(),
+      selfTests: this.selfTests
+    });
     return {
       running: this.isRunning(),
       port: this.port,
@@ -525,11 +727,13 @@ class LiveSheetServer extends EventEmitter {
       lanAddresses: addresses.lanAddresses,
       addresses: addresses.allAddresses,
       playerCount: [...this.players.values()].filter((player) => player.connected).length,
-      recommendedConnectionMode: addresses.tailscaleAddresses.length ? "tailscale" : "lan",
-      recommendedUrl: recommendedAddress ? `ws://${recommendedAddress}:${port}` : "",
+      connectionMode: this.connectionMode,
+      recommendedConnectionMode,
+      recommendedUrl: recommendedConnectionMode !== "direct-internet" && recommendedAddress ? `ws://${recommendedAddress}:${port}` : "",
       tokenEnabled: this.tokenEnabled,
       sessionToken: this.tokenEnabled ? this.sessionToken : "",
       selfTests: this.selfTests,
+      directInternet,
       ...extra
     };
   }
@@ -639,6 +843,20 @@ class LiveSheetServer extends EventEmitter {
 
     const options = normalizeStartOptions(optionsOrPort);
     const nextPort = options.port;
+    if (options.connectionMode === "direct-internet") {
+      const directInternet = buildDirectInternetDiagnostics({
+        publicHost: options.publicHost,
+        routerWanAddress: options.routerWanAddress,
+        port: nextPort
+      });
+      if (!directInternet.publicCandidate || directInternet.blockedByCgnat) {
+        const diagnostic = directInternet.items.find((item) => item.severity === "error");
+        const wrapped = new Error(diagnostic?.message || "Direct Internet requires a publicly routable IP or DNS name.");
+        wrapped.code = directInternet.blockedByCgnat ? "DIRECT_CGNAT" : "DIRECT_ADDRESS_NOT_PUBLIC";
+        wrapped.diagnostics = directInternet;
+        throw wrapped;
+      }
+    }
     const server = new WebSocketServer({
       host: "0.0.0.0",
       port: nextPort,
