@@ -5,6 +5,9 @@ const {
   LiveSheetServer,
   listLocalAddresses,
   sanitizeSheetPatch,
+  generateSessionToken,
+  normalizeConnectionTarget,
+  buildDirectInternetDiagnostics,
   websocketSelfTest
 } = require("../../src/services/live-sheet-server");
 
@@ -71,6 +74,122 @@ async function withServer(options, test) {
   }
 }
 
+
+async function testStrongSessionTokens() {
+  const first = generateSessionToken();
+  const second = generateSessionToken();
+  assert.match(first, /^[A-Za-z0-9_-]{43}$/);
+  assert.strictEqual(Buffer.from(first, "base64url").length, 32);
+  assert.notStrictEqual(first, second);
+
+  await withServer({
+    connectionMode: "direct-internet",
+    publicHost: "203.0.113.44",
+    routerWanAddress: "203.0.113.44",
+    tokenEnabled: false,
+    sessionToken: "WEAK"
+  }, async (server) => {
+    const status = server.status();
+    assert.strictEqual(status.connectionMode, "direct-internet");
+    assert.strictEqual(status.tokenEnabled, true);
+    assert.match(status.sessionToken, /^[A-Za-z0-9_-]{43}$/);
+    assert.notStrictEqual(status.sessionToken, "WEAK");
+    assert.strictEqual(status.directInternet.publicReachabilityVerified, false);
+  });
+}
+
+async function testConnectionTargetNormalization() {
+  assert.deepStrictEqual(
+    normalizeConnectionTarget("ws://Example.COM:9123/path", 8787),
+    {
+      ok: true,
+      host: "example.com",
+      port: 9123,
+      hostKind: "domain",
+      displayAddress: "example.com:9123",
+      url: "ws://example.com:9123",
+      publicCandidate: true
+    }
+  );
+
+  const privateTarget = normalizeConnectionTarget("192.168.1.25", "8787");
+  assert.strictEqual(privateTarget.ok, true);
+  assert.strictEqual(privateTarget.hostKind, "private-ip");
+  assert.strictEqual(privateTarget.publicCandidate, false);
+
+  const cgnatTarget = normalizeConnectionTarget("100.100.10.20", 8787);
+  assert.strictEqual(cgnatTarget.hostKind, "carrier-grade-nat");
+  assert.strictEqual(cgnatTarget.publicCandidate, false);
+
+  const ipv6Target = normalizeConnectionTarget("[2001:db8::5]:9000", 8787);
+  assert.strictEqual(ipv6Target.displayAddress, "[2001:db8::5]:9000");
+  assert.strictEqual(ipv6Target.url, "ws://[2001:db8::5]:9000");
+  assert.strictEqual(ipv6Target.publicCandidate, false);
+
+  assert.strictEqual(normalizeConnectionTarget("wss://game.example.test:8787", 8787).error, "WSS_NOT_CONFIGURED");
+  assert.strictEqual(normalizeConnectionTarget("https://game.example.test", 8787).error, "INVALID_SCHEME");
+  assert.strictEqual(normalizeConnectionTarget("bad host", 8787).error, "INVALID_HOST");
+}
+
+async function testDirectInternetDiagnostics() {
+  const privateDiagnostics = buildDirectInternetDiagnostics({
+    publicHost: "192.168.1.25",
+    routerWanAddress: "192.168.1.1",
+    port: 8787
+  });
+  assert.strictEqual(privateDiagnostics.directAddress, "");
+  assert.strictEqual(privateDiagnostics.publicReachabilityVerified, false);
+  const invalidWanDiagnostics = buildDirectInternetDiagnostics({
+    publicHost: "203.0.113.44",
+    routerWanAddress: "router.example.test",
+    port: 8787
+  });
+  assert(invalidWanDiagnostics.items.some((item) => item.code === "INVALID_WAN_ADDRESS"));
+
+  assert(privateDiagnostics.items.some((item) => item.code === "PRIVATE_PUBLIC_HOST"));
+
+  const cgnatDiagnostics = buildDirectInternetDiagnostics({
+    publicHost: "game.example.test",
+    routerWanAddress: "100.64.10.20",
+    port: 9000
+  });
+  assert.strictEqual(cgnatDiagnostics.blockedByCgnat, true);
+  assert.strictEqual(cgnatDiagnostics.canAttemptDirect, false);
+  assert(cgnatDiagnostics.items.some((item) => item.code === "CGNAT_DETECTED"));
+
+  const candidateDiagnostics = buildDirectInternetDiagnostics({
+    publicHost: "203.0.113.44",
+    routerWanAddress: "203.0.113.44",
+    port: 9000,
+    running: true,
+    selfTests: { local: { ok: true } }
+  });
+  assert.strictEqual(candidateDiagnostics.directAddress, "203.0.113.44:9000");
+  assert.strictEqual(candidateDiagnostics.canAttemptDirect, true);
+  assert.strictEqual(candidateDiagnostics.publicReachabilityVerified, false);
+  ["PORT_MAPPING_UNVERIFIED", "FIREWALL_UNVERIFIED", "PLAINTEXT_WEBSOCKET", "LOCAL_TEST_OK"].forEach((code) => {
+    assert(candidateDiagnostics.items.some((item) => item.code === code), `missing diagnostic ${code}`);
+  });
+}
+
+async function testPortOccupiedDiagnostic() {
+  const blocker = net.createServer();
+  const port = await getFreePort();
+  await new Promise((resolve, reject) => {
+    blocker.once("error", reject);
+    blocker.listen(port, "0.0.0.0", resolve);
+  });
+  const server = new LiveSheetServer();
+  try {
+    await assert.rejects(
+      server.start({ port, tokenEnabled: false }),
+      (error) => error?.code === "EADDRINUSE" && /already in use/i.test(error.message)
+    );
+  } finally {
+    await server.stop();
+    await new Promise((resolve) => blocker.close(resolve));
+  }
+}
 async function testAddressDetection() {
   const addresses = listLocalAddresses({
     Ethernet: [
@@ -635,6 +754,10 @@ async function testRaisedHandQueue() {
 }
 
 (async () => {
+  await testStrongSessionTokens();
+  await testConnectionTargetNormalization();
+  await testDirectInternetDiagnostics();
+  await testPortOccupiedDiagnostic();
   await testAddressDetection();
   await testStartStopAndSelfTest();
   await testTokenRejection();

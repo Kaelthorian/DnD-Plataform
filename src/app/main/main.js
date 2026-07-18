@@ -7,7 +7,7 @@ const log = require("electron-log");
 const { autoUpdater } = require("electron-updater");
 
 const dataLoader = require("../../services/data-loader");
-const { liveSheetServer, listLocalAddresses } = require("../../services/live-sheet-server");
+const { liveSheetServer, listLocalAddresses, normalizeConnectionTarget, buildDirectInternetDiagnostics } = require("../../services/live-sheet-server");
 const { ObsidianService } = require("../../services/obsidian-service");
 const saveService = require("../../services/save-service");
 const dmSoundLinkService = require("../../services/dm-sound-link-service");
@@ -515,16 +515,29 @@ function getTailscaleCliDiagnostic() {
   }
 }
 
-function getLiveSheetDiagnostics() {
+function getLiveSheetDiagnostics(options = {}) {
   const addresses = listLocalAddresses();
   const firstTailscaleIp = addresses.tailscaleAddresses[0] || "";
+  const status = liveSheetServer.status();
+  const input = options && typeof options === "object" ? options : {};
+  const hasDirectInput = Boolean(input.publicHost || input.routerWanAddress || input.port);
+  const directInternet = hasDirectInput
+    ? buildDirectInternetDiagnostics({
+        publicHost: input.publicHost,
+        routerWanAddress: input.routerWanAddress,
+        port: input.port || status.port || 8787,
+        running: status.running,
+        selfTests: status.selfTests
+      })
+    : status.directInternet;
   return {
     ...addresses,
     tailscaleDetected: Boolean(firstTailscaleIp),
     message: firstTailscaleIp
       ? `Tailscale IP detected: ${firstTailscaleIp}`
       : "No Tailscale IP detected. Open Tailscale and confirm this device is connected.",
-    cli: getTailscaleCliDiagnostic()
+    cli: getTailscaleCliDiagnostic(),
+    directInternet
   };
 }
 
@@ -806,7 +819,8 @@ ipcMain.handle("live-sheet:start", async (_event, options) => {
       ok: false,
       error: error?.message || "Could not start the local host.",
       code: error?.code || "START_FAILED",
-      status: liveSheetServer.status()
+      status: liveSheetServer.status(),
+      diagnostics: getLiveSheetDiagnostics(options)
     };
   }
 });
@@ -820,8 +834,12 @@ ipcMain.handle("live-sheet:status", async () => {
   return liveSheetServer.status();
 });
 
-ipcMain.handle("live-sheet:diagnostics", async () => {
-  return getLiveSheetDiagnostics();
+ipcMain.handle("live-sheet:diagnostics", async (_event, options) => {
+  return getLiveSheetDiagnostics(options);
+});
+
+ipcMain.handle("live-sheet:normalize-target", async (_event, { host, port } = {}) => {
+  return normalizeConnectionTarget(host, port);
 });
 
 ipcMain.handle("live-sheet:self-test", async () => {

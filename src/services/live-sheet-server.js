@@ -53,7 +53,6 @@ function normalizePort(port) {
   return parsed;
 }
 
-function isTailscaleIpv4(address) {
 function parseIpv4(address) {
   const text = String(address || "").trim();
   if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(text)) return null;
@@ -85,7 +84,6 @@ function classifyConnectionHost(host) {
     const parts = parseIpv4(normalized);
     if (parts[0] === 127 || normalized === "0.0.0.0") return "loopback";
     if (parts[0] === 169 && parts[1] === 254) return "link-local";
-    if (isTailscaleIpv4(normalized)) return "tailscale";
     if (isCarrierGradeNatIpv4(normalized)) return "carrier-grade-nat";
     if (isPrivateIpv4(normalized)) return "private-ip";
     return "public-ip";
@@ -165,7 +163,7 @@ function normalizeConnectionTarget(rawHost, rawPort = DEFAULT_PORT) {
     hostKind,
     displayAddress: `${formattedHost}:${candidatePort}`,
     url: `ws://${formattedHost}:${candidatePort}`,
-    publicCandidate: ["public-ip", "public-ipv6", "domain"].includes(hostKind)
+    publicCandidate: ["public-ip", "domain"].includes(hostKind)
   };
 }
 
@@ -187,7 +185,7 @@ function buildDirectInternetDiagnostics({ publicHost = "", routerWanAddress = ""
       severity: "error",
       message: isCgnat
         ? "This address is in 100.64.0.0/10 and is not publicly routable; direct Internet hosting is not possible through CGNAT."
-        : "This is a private, loopback, link-local, or Tailscale address. It is not a Direct Internet address."
+        : "This is a private, loopback, link-local, Tailscale, or unsupported IPv6 address. It is not a Direct Internet IPv4 address."
     });
   } else if (target.hostKind === "domain") {
     items.push({ code: "DNS_NOT_RESOLVED", severity: "warning", message: "The DNS name was accepted but not resolved or tested by the app." });
@@ -195,12 +193,12 @@ function buildDirectInternetDiagnostics({ publicHost = "", routerWanAddress = ""
 
   if (!routerWanAddress) {
     items.push({ code: "WAN_ADDRESS_NOT_PROVIDED", severity: "warning", message: "CGNAT cannot be assessed until you compare the router WAN IPv4 with your public IPv4." });
-  } else if (!wanTarget?.ok) {
-    items.push({ code: "INVALID_WAN_ADDRESS", severity: "error", message: "The router WAN IPv4 is invalid." });
+  } else if (!wanTarget?.ok || !["public-ip", "private-ip", "carrier-grade-nat"].includes(wanTarget.hostKind)) {
+    items.push({ code: "INVALID_WAN_ADDRESS", severity: "error", message: "The router WAN value must be an IPv4 address." });
   } else if (wanTarget.hostKind === "carrier-grade-nat") {
     blockedByCgnat = true;
     items.push({ code: "CGNAT_DETECTED", severity: "error", message: "The router WAN address is in 100.64.0.0/10. Direct inbound connections are not possible without Tailscale or an explicitly approved relay." });
-  } else if (["private-ip", "private-ipv6", "loopback", "link-local"].includes(wanTarget.hostKind)) {
+  } else if (wanTarget.hostKind === "private-ip") {
     items.push({ code: "PRIVATE_WAN_ADDRESS", severity: "warning", message: "The router WAN address is private. This indicates double NAT or possible CGNAT; every controllable router must forward the port." });
   } else if (target.ok && target.hostKind === "public-ip" && wanTarget.hostKind === "public-ip" && target.host !== wanTarget.host) {
     items.push({ code: "WAN_PUBLIC_MISMATCH", severity: "warning", message: "The router WAN IPv4 differs from the public IPv4. This may indicate CGNAT or another upstream NAT." });
@@ -232,6 +230,7 @@ function buildDirectInternetDiagnostics({ publicHost = "", routerWanAddress = ""
   };
 }
 
+function isTailscaleIpv4(address) {
   const parts = parseIpv4(address);
   if (!parts) return false;
   return parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127;
@@ -882,7 +881,7 @@ class LiveSheetServer extends EventEmitter {
       }
       const code = error?.code === "EADDRINUSE" ? "EADDRINUSE" : "START_FAILED";
       const message = code === "EADDRINUSE"
-        ? `El puerto ${nextPort} ya esta en uso. Elegi otro puerto.`
+        ? `Port ${nextPort} is already in use. Choose another port.`
         : (error?.message || "No se pudo iniciar el host local.");
       const wrapped = new Error(message);
       wrapped.code = code;
@@ -891,14 +890,26 @@ class LiveSheetServer extends EventEmitter {
 
     this.server = server;
     this.port = nextPort;
+    this.connectionMode = options.connectionMode;
+    this.directInternetConfig = {
+      publicHost: options.publicHost,
+      routerWanAddress: options.routerWanAddress
+    };
     this.tokenEnabled = Boolean(options.tokenEnabled);
-    this.sessionToken = this.tokenEnabled ? (options.sessionToken || generateSessionToken()) : "";
+    this.sessionToken = this.tokenEnabled
+      ? (options.connectionMode === "direct-internet" ? generateSessionToken() : (options.sessionToken || generateSessionToken()))
+      : "";
     this.selfTests = { local: null, tailscale: null };
     server.on("connection", (socket, request) => this.handleConnection(socket, request));
     server.on("close", () => {
       if (this.server === server) {
         this.server = null;
         this.port = null;
+        this.tokenEnabled = false;
+        this.sessionToken = "";
+        this.connectionMode = "auto";
+        this.directInternetConfig = { publicHost: "", routerWanAddress: "" };
+        this.selfTests = { local: null, tailscale: null };
         this.emitStatus();
       }
     });
@@ -918,6 +929,8 @@ class LiveSheetServer extends EventEmitter {
     this.port = null;
     this.tokenEnabled = false;
     this.sessionToken = "";
+    this.connectionMode = "auto";
+    this.directInternetConfig = { publicHost: "", routerWanAddress: "" };
     this.selfTests = { local: null, tailscale: null };
     this.raisedHands.clear();
     for (const socket of server.clients || []) {
@@ -1288,6 +1301,12 @@ class LiveSheetServer extends EventEmitter {
 module.exports = {
   DEFAULT_PORT,
   MAX_MESSAGE_BYTES,
+  generateSessionToken,
+  normalizeConnectionTarget,
+  classifyConnectionHost,
+  isCarrierGradeNatIpv4,
+  isPrivateIpv4,
+  buildDirectInternetDiagnostics,
   isTailscaleIpv4,
   isTailscaleInterfaceName,
   listLocalAddresses,

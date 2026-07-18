@@ -106,6 +106,8 @@
     const liveSheetClientBackdrop = document.getElementById("liveSheetClientBackdrop");
     const liveSheetClientClose = document.getElementById("liveSheetClientClose");
     const liveSheetClientCancel = document.getElementById("liveSheetClientCancel");
+    const liveSheetConnectionMode = document.getElementById("liveSheetConnectionMode");
+    const liveSheetModeHelp = document.getElementById("liveSheetModeHelp");
     const liveSheetDmIp = document.getElementById("liveSheetDmIp");
     const liveSheetPort = document.getElementById("liveSheetPort");
     const liveSheetSessionToken = document.getElementById("liveSheetSessionToken");
@@ -225,6 +227,10 @@
     function loadLiveSheetClientSettings() {
       try {
         const parsed = JSON.parse(localStorage.getItem(LIVE_SHEET_CLIENT_SETTINGS_KEY) || "{}");
+        if (liveSheetConnectionMode) {
+          const mode = String(parsed.connectionMode || "tailscale");
+          liveSheetConnectionMode.value = ["lan", "tailscale", "direct-internet"].includes(mode) ? mode : "tailscale";
+        }
         if (liveSheetDmIp) liveSheetDmIp.value = String(parsed.host || parsed.dmIp || "");
         if (liveSheetPort) liveSheetPort.value = String(parsed.port || "8787");
         if (liveSheetPlayerName) liveSheetPlayerName.value = String(parsed.playerName || "");
@@ -236,6 +242,7 @@
     function saveLiveSheetClientSettings() {
       localStorage.setItem(LIVE_SHEET_CLIENT_SETTINGS_KEY, JSON.stringify({
         host: liveSheetDmIp?.value?.trim() || "",
+        connectionMode: liveSheetConnectionMode?.value || "tailscale",
         port: liveSheetPort?.value?.trim() || "8787",
         playerName: liveSheetPlayerName?.value?.trim() || ""
       }));
@@ -1909,6 +1916,7 @@
 
     function openLiveSheetClientPanel() {
       loadLiveSheetClientSettings();
+      refreshLiveSheetConnectionMode();
       if (!liveSheetPlayerName?.value?.trim()) liveSheetPlayerName.value = defaultLiveSheetPlayerName();
       if (!liveSheetPort?.value) liveSheetPort.value = "8787";
       if (liveSheetClientBackdrop) {
@@ -1949,35 +1957,74 @@
       showStatus(t("live.disconnectedStatus"));
     }
 
-    function normalizeLiveSheetHost(rawHost) {
-      const trimmed = String(rawHost || "").trim();
-      if (!trimmed) return "";
-      const withoutProtocol = trimmed.replace(/^wss?:\/\//i, "");
-      return withoutProtocol.split("/")[0].split(":")[0].trim();
+    function refreshLiveSheetConnectionMode() {
+      const mode = liveSheetConnectionMode?.value || "tailscale";
+      const helpKey = mode === "direct-internet" ? "live.help.direct" : `live.help.${mode}`;
+      if (liveSheetModeHelp) {
+        liveSheetModeHelp.textContent = t(helpKey);
+        liveSheetModeHelp.dataset.i18n = helpKey;
+      }
+      if (liveSheetSessionToken) {
+        const required = mode === "direct-internet";
+        liveSheetSessionToken.required = required;
+        liveSheetSessionToken.setAttribute("aria-required", required ? "true" : "false");
+      }
     }
 
-    function connectLiveSheetClient() {
+    async function normalizeLiveSheetTarget(rawHost, rawPort) {
+      const api = window.dndSheet?.liveSheet;
+      if (api?.normalizeConnectionTarget) return api.normalizeConnectionTarget(rawHost, rawPort);
+
+      const input = String(rawHost || "").trim();
+      if (!input) return { ok: false, error: "INVALID_HOST" };
+      if (/^wss:\/\//i.test(input)) return { ok: false, error: "WSS_NOT_CONFIGURED" };
+      try {
+        const parsed = new URL(/^ws:\/\//i.test(input) ? input : `ws://${input}`);
+        if (parsed.protocol !== "ws:") return { ok: false, error: "INVALID_SCHEME" };
+        const port = parsed.port ? Number.parseInt(parsed.port, 10) : Number.parseInt(rawPort, 10);
+        if (!Number.isInteger(port) || port < 1 || port > 65535) return { ok: false, error: "INVALID_PORT" };
+        const host = parsed.hostname;
+        const formattedHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+        return { ok: true, host, port, url: `ws://${formattedHost}:${port}` };
+      } catch (_error) {
+        return { ok: false, error: "INVALID_HOST" };
+      }
+    }
+
+    async function connectLiveSheetClient() {
       if (liveSheetClientSocket?.readyState === WebSocket.OPEN || liveSheetClientSocket?.readyState === WebSocket.CONNECTING) {
         disconnectLiveSheetClient();
         return;
       }
 
-      const dmHost = normalizeLiveSheetHost(liveSheetDmIp?.value);
-      const port = Number.parseInt(liveSheetPort?.value || "8787", 10);
-      if (!dmHost) {
+      const connectionMode = liveSheetConnectionMode?.value || "tailscale";
+      if (connectionMode === "direct-internet" && !liveSheetSessionToken?.value?.trim()) {
+        setLiveSheetClientStatus("live.tokenRequiredDirect", "error");
+        liveSheetSessionToken?.focus();
+        return;
+      }
+      if (!liveSheetDmIp?.value?.trim()) {
         setLiveSheetClientStatus("live.enterHost", "error");
         liveSheetDmIp?.focus();
         return;
       }
-      if (!Number.isInteger(port) || port < 1 || port > 65535) {
-        setLiveSheetClientStatus("live.invalidPort", "error");
-        liveSheetPort?.focus();
+
+      let target;
+      try {
+        target = await normalizeLiveSheetTarget(liveSheetDmIp.value, liveSheetPort?.value || "8787");
+      } catch (_error) {
+        target = { ok: false, error: "INVALID_HOST" };
+      }
+      if (!target?.ok) {
+        setLiveSheetClientStatus(target?.error === "WSS_NOT_CONFIGURED" ? "live.wssNotConfigured" : (target?.error === "INVALID_PORT" ? "live.invalidPort" : "live.invalidAddress"), "error");
+        (target?.error === "INVALID_PORT" ? liveSheetPort : liveSheetDmIp)?.focus?.();
         return;
       }
 
+      const { host: dmHost, port, url } = target;
       if (liveSheetDmIp) liveSheetDmIp.value = dmHost;
+      if (liveSheetPort) liveSheetPort.value = String(port);
       saveLiveSheetClientSettings();
-      const url = `ws://${dmHost}:${port}`;
       liveSheetClientManualDisconnect = false;
       setLiveSheetClientStatus(t("live.connectingTo", { url }), "neutral");
       try {
@@ -2059,6 +2106,7 @@
 
     function refreshTranslatedUi() {
       playerI18n.applyTranslations(document);
+      refreshLiveSheetConnectionMode();
       syncSettingsControls();
       if (liveSheetClientStatus) {
         setLiveSheetClientStatus(liveSheetClientStatus.dataset.statusKey || liveSheetClientStatus.textContent || "Disconnected", liveSheetClientStatus.dataset.tone || "neutral");
@@ -2983,9 +3031,10 @@
       liveSheetClientClose?.addEventListener("click", closeLiveSheetClientPanel);
       liveSheetClientCancel?.addEventListener("click", closeLiveSheetClientPanel);
       liveSheetConnectButton?.addEventListener("click", connectLiveSheetClient);
-      [liveSheetDmIp, liveSheetPort, liveSheetPlayerName]
+      [liveSheetConnectionMode, liveSheetDmIp, liveSheetPort, liveSheetPlayerName]
         .filter(Boolean)
         .forEach((input) => input.addEventListener("change", saveLiveSheetClientSettings));
+      liveSheetConnectionMode?.addEventListener("change", refreshLiveSheetConnectionMode);
       liveSheetClientBackdrop?.addEventListener("click", (event) => {
         if (event.target === liveSheetClientBackdrop) closeLiveSheetClientPanel();
       });

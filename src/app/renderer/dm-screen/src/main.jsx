@@ -9187,6 +9187,9 @@ function LivePlayersPanel({
   status,
   diagnostics,
   port,
+  mode,
+  directPublicHost,
+  directRouterWanAddress,
   error,
   players,
   collapsed,
@@ -9195,18 +9198,24 @@ function LivePlayersPanel({
   onPortChange,
   onTokenEnabledChange,
   onStart,
+  onModeChange,
+  onDirectPublicHostChange,
+  onDirectRouterWanAddressChange,
+  onRefreshDiagnostics,
   onStop,
   onRunSelfTest,
   onKick,
   onAddMapNote
 }) {
   const running = Boolean(status?.running);
+  const activeMode = running ? (status?.connectionMode || mode || "tailscale") : (mode || "tailscale");
+  const directInternet = (running ? status?.directInternet : diagnostics?.directInternet) || status?.directInternet || {};
+  const directItems = Array.isArray(directInternet?.items) ? directInternet.items : [];
+  const directAddress = directInternet?.directAddress || "";
   const addresses = Array.isArray(status?.addresses) ? status.addresses : [];
   const tailscaleAddresses = Array.isArray(status?.tailscaleAddresses) ? status.tailscaleAddresses : [];
   const lanAddresses = Array.isArray(status?.lanAddresses) ? status.lanAddresses : addresses.filter((address) => !tailscaleAddresses.includes(address));
-  const primaryAddress = tailscaleAddresses[0] || lanAddresses[0] || addresses[0] || "DM_IP";
   const effectivePort = status?.port || port || 8787;
-  const recommendedUrl = status?.recommendedUrl || (primaryAddress !== "DM_IP" ? `ws://${primaryAddress}:${effectivePort}` : "");
   const tailscaleUrl = tailscaleAddresses[0] ? `ws://${tailscaleAddresses[0]}:${effectivePort}` : "";
   const sessionToken = status?.tokenEnabled ? status?.sessionToken : "";
   const selfTests = status?.selfTests || {};
@@ -9248,7 +9257,7 @@ function LivePlayersPanel({
           className="relative flex h-14 w-14 items-center justify-center border border-amber-500 bg-neutral-900/95 text-amber-300 shadow-2xl transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           type="button"
           aria-label="Expand live players panel"
-          title={`Live Players: ${players.length} players | ws://${primaryAddress}:${effectivePort}`}
+          title={`Live Players: ${players.length} players | ${activeMode}`}
           onClick={onToggleCollapsed}
         >
           <MultiplayerIcon className="h-8 w-8" />
@@ -9274,7 +9283,7 @@ function LivePlayersPanel({
           <div>
             <h2 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Live Players</h2>
             <p className="mt-1 text-xs text-neutral-500">
-              Players connect to {recommendedUrl || `ws://${primaryAddress}:${effectivePort}`} from the Connect to DM panel.
+              Choose LAN, Tailscale, or Direct Internet below. Direct public reachability is never assumed.
             </p>
           </div>
           <div className="flex shrink-0 items-start gap-2">
@@ -9306,6 +9315,22 @@ function LivePlayersPanel({
       </header>
       <>
         <div className="grid gap-3 border-b border-neutral-800 p-3">
+            <label className="grid gap-1 text-xs font-bold uppercase text-neutral-500">
+              Hosting mode
+              <select
+                className="h-9 border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
+                value={activeMode}
+                disabled={running}
+                onChange={(event) => onModeChange(event.target.value)}
+              >
+                <option value="tailscale">Tailscale</option>
+                <option value="lan">Local network (LAN)</option>
+                <option value="direct-internet">Direct Internet Host</option>
+              </select>
+              <span className="font-normal normal-case text-neutral-500">
+                LAN is private, Tailscale uses the existing tailnet, and Direct Internet requires manual TCP port forwarding.
+              </span>
+            </label>
             <div className="grid grid-cols-[1fr_auto_auto] gap-2">
               <label className="text-xs font-bold uppercase text-neutral-500">
                 Port
@@ -9341,15 +9366,82 @@ function LivePlayersPanel({
               <input
                 className="mt-0.5"
                 type="checkbox"
-                checked={Boolean(tokenEnabled)}
-                disabled={running}
+                checked={activeMode === "direct-internet" || Boolean(tokenEnabled)}
+                disabled={running || activeMode === "direct-internet"}
                 onChange={(event) => onTokenEnabledChange(event.target.checked)}
               />
               <span>
                 <span className="block font-bold text-neutral-100">Session token</span>
-                <span className="text-neutral-500">Recommended for Tailscale host. Turn off only for local tests.</span>
+                <span className="text-neutral-500">{activeMode === "direct-internet" ? "Mandatory; a new strong code is generated for every Direct Internet host." : "Recommended for Tailscale. Turn off only for trusted LAN tests."}</span>
               </span>
             </label>
+            {sessionToken ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                <code className="min-w-0 break-all border border-neutral-800 bg-neutral-950 px-2 py-2 text-xs text-amber-200">Session code: {sessionToken}</code>
+                <button className="border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold text-neutral-200 hover:border-amber-500" type="button" onClick={() => copyText(sessionToken)}>Copy</button>
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-500">The session code appears after the host starts. It is never saved.</p>
+            )}
+
+            <section className={`grid gap-2 border p-3 ${activeMode === "direct-internet" ? "border-amber-500/50 bg-amber-950/10" : "border-neutral-800 bg-neutral-950/50"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-amber-300">Direct Internet Host</h3>
+                <span className="border border-amber-500/40 px-2 py-1 text-[10px] font-bold uppercase text-amber-200">Public reachability not verified</span>
+              </div>
+              <label className="grid gap-1 text-xs font-bold uppercase text-neutral-500">
+                Public IPv4 or DNS name
+                <input
+                  className="h-9 border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
+                  type="text"
+                  spellCheck="false"
+                  placeholder="203.0.113.10 or game.example.net"
+                  value={directPublicHost}
+                  disabled={running}
+                  onChange={(event) => onDirectPublicHostChange(event.target.value)}
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-bold uppercase text-neutral-500">
+                Router WAN IPv4 (optional CGNAT check)
+                <input
+                  className="h-9 border border-neutral-700 bg-neutral-950 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
+                  type="text"
+                  inputMode="decimal"
+                  spellCheck="false"
+                  placeholder="Address shown on the router Internet/WAN page"
+                  value={directRouterWanAddress}
+                  disabled={running}
+                  onChange={(event) => onDirectRouterWanAddressChange(event.target.value)}
+                />
+              </label>
+              <button className="h-8 border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold text-neutral-200 hover:border-amber-500" type="button" onClick={onRefreshDiagnostics}>
+                Refresh diagnostics
+              </button>
+              {directAddress ? (
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <code className="min-w-0 break-all border border-amber-500/30 bg-neutral-950 px-2 py-2 text-xs text-amber-200">{directAddress}</code>
+                  <button className="border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold text-neutral-200 hover:border-amber-500" type="button" onClick={() => copyText(directAddress)}>Copy address</button>
+                </div>
+              ) : (
+                <p className="text-xs text-neutral-500">A private, loopback, Tailscale, or CGNAT address is never shown as an Internet address.</p>
+              )}
+              <div className="grid gap-1">
+                {directItems.map((item) => (
+                  <p
+                    key={item.code}
+                    className={`border px-2 py-1 text-xs ${item.severity === "error" ? "border-red-500/30 bg-red-950/30 text-red-200" : item.severity === "success" ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-200" : item.severity === "warning" ? "border-amber-500/30 bg-amber-950/20 text-amber-100" : "border-neutral-800 bg-neutral-950 text-neutral-400"}`}
+                  >
+                    {item.message}
+                  </p>
+                ))}
+              </div>
+              <p className="text-xs leading-relaxed text-neutral-400">
+                Phase 1 requires a manual TCP port-forward on the router to this PC's LAN IPv4. The app does not change the router or Windows Firewall.
+              </p>
+              <p className="text-xs leading-relaxed text-red-200">
+                Transport is unencrypted ws://. Future wss:// support requires user-managed certificates; WebRTC signaling/TURN would be a separate project.
+              </p>
+            </section>
 
             <section className="grid gap-2 border border-emerald-500/30 bg-emerald-950/10 p-3">
               <div className="flex items-center justify-between gap-2">
@@ -9365,14 +9457,6 @@ function LivePlayersPanel({
                 </div>
               ) : (
                 <p className="text-xs text-neutral-500">Start the host to show the recommended Tailscale URL.</p>
-              )}
-              {sessionToken ? (
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                  <code className="min-w-0 break-all border border-neutral-800 bg-neutral-950 px-2 py-2 text-xs text-amber-200">Session code: {sessionToken}</code>
-                  <button className="border border-neutral-700 bg-neutral-950 px-3 text-xs font-bold text-neutral-200 hover:border-amber-500" type="button" onClick={() => copyText(sessionToken)}>Copy</button>
-                </div>
-              ) : (
-                <p className="text-xs text-neutral-500">No token mode active.</p>
               )}
               <label className="grid gap-1 text-xs font-bold uppercase text-neutral-500">
                 MagicDNS host
@@ -9417,9 +9501,10 @@ function LivePlayersPanel({
             </section>
 
             <section className="grid gap-1 border border-neutral-800 bg-neutral-950/50 p-3 text-xs text-neutral-400">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-neutral-500">LAN fallback</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-neutral-500">Local network (LAN only)</h3>
+              <p className="text-neutral-500">Private addresses below are not reachable from the public Internet.</p>
               {lanAddresses.length ? lanAddresses.map((address) => (
-                <code key={address} className="break-all border border-neutral-800 bg-neutral-950 px-2 py-1 text-amber-200">ws://{address}:{effectivePort}</code>
+                <code key={address} className="break-all border border-neutral-800 bg-neutral-950 px-2 py-1 text-amber-200">{address}:{effectivePort}</code>
               )) : (
                 <p className="text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
               )}
@@ -11251,6 +11336,9 @@ function DmScreenApp() {
   const [livePlayers, setLivePlayers] = useState([]);
   const [raisedHands, setRaisedHands] = useState([]);
   const [liveHostPort, setLiveHostPort] = useState("8787");
+  const [liveHostMode, setLiveHostMode] = useState("tailscale");
+  const [liveDirectPublicHost, setLiveDirectPublicHost] = useState("");
+  const [liveDirectRouterWanAddress, setLiveDirectRouterWanAddress] = useState("");
   const [liveHostTokenEnabled, setLiveHostTokenEnabled] = useState(true);
   const [liveHostError, setLiveHostError] = useState("");
   const [livePlayersCollapsed, setLivePlayersCollapsed] = useState(loadLivePlayersPanelCollapsed);
@@ -11777,6 +11865,8 @@ function DmScreenApp() {
         setLiveServerStatus(status);
         if (status?.port) setLiveHostPort(String(status.port));
         if (typeof status?.tokenEnabled === "boolean") setLiveHostTokenEnabled(status.tokenEnabled);
+        if (["lan", "tailscale", "direct-internet"].includes(status?.connectionMode)) setLiveHostMode(status.connectionMode);
+        if (status?.directInternet?.target?.host) setLiveDirectPublicHost(status.directInternet.target.host);
       })
       .catch(console.error);
     liveSheet.getDiagnostics?.()
@@ -11803,6 +11893,8 @@ function DmScreenApp() {
       setLiveServerStatus(status || { running: false, port: 8787, addresses: [], tailscaleAddresses: [], lanAddresses: [], playerCount: 0 });
       if (status?.port) setLiveHostPort(String(status.port));
       if (typeof status?.tokenEnabled === "boolean") setLiveHostTokenEnabled(status.tokenEnabled);
+      if (["lan", "tailscale", "direct-internet"].includes(status?.connectionMode)) setLiveHostMode(status.connectionMode);
+      if (status?.directInternet?.target?.host) setLiveDirectPublicHost(status.directInternet.target.host);
       if (status?.running) setLiveHostError("");
     });
     const unsubscribeUpdated = liveSheet.onPlayerUpdated((player) => {
@@ -11907,6 +11999,23 @@ function DmScreenApp() {
     }
   }
 
+  async function refreshLiveHostDiagnostics() {
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!liveSheet?.getDiagnostics) return null;
+    try {
+      const diagnostics = await liveSheet.getDiagnostics({
+        publicHost: liveDirectPublicHost,
+        routerWanAddress: liveDirectRouterWanAddress,
+        port: liveHostPort
+      });
+      setLiveDiagnostics(diagnostics);
+      return diagnostics;
+    } catch (error) {
+      setLiveHostError(error?.message || "Could not run connection diagnostics.");
+      return null;
+    }
+  }
+
   async function startLiveHost() {
     const liveSheet = window.dndSheet?.liveSheet;
     if (!liveSheet) {
@@ -11916,16 +12025,20 @@ function DmScreenApp() {
     setLiveHostError("");
     const result = await liveSheet.startServer({
       port: liveHostPort,
-      tokenEnabled: liveHostTokenEnabled
+      connectionMode: liveHostMode,
+      tokenEnabled: liveHostMode === "direct-internet" || liveHostTokenEnabled,
+      publicHost: liveDirectPublicHost,
+      routerWanAddress: liveDirectRouterWanAddress
     });
     if (!result?.ok) {
       setLiveHostError(result?.error || "Could not start the local host.");
       if (result?.status) setLiveServerStatus(result.status);
+      if (result?.diagnostics) setLiveDiagnostics(result.diagnostics);
       return;
     }
     setLiveServerStatus(result.status);
     if (result.status?.port) setLiveHostPort(String(result.status.port));
-    liveSheet.getDiagnostics?.().then(setLiveDiagnostics).catch(() => {});
+    await refreshLiveHostDiagnostics();
   }
 
   async function stopLiveHost() {
@@ -11933,7 +12046,7 @@ function DmScreenApp() {
     if (!liveSheet) return;
     const result = await liveSheet.stopServer();
     if (result?.status) setLiveServerStatus(result.status);
-    liveSheet.getDiagnostics?.().then(setLiveDiagnostics).catch(() => {});
+    await refreshLiveHostDiagnostics();
   }
 
   async function runLiveHostSelfTest() {
@@ -16209,12 +16322,19 @@ function DmScreenApp() {
         status={liveServerStatus}
         diagnostics={liveDiagnostics}
         port={liveHostPort}
+        mode={liveHostMode}
+        directPublicHost={liveDirectPublicHost}
+        directRouterWanAddress={liveDirectRouterWanAddress}
         error={liveHostError}
         players={livePlayers}
         collapsed={livePlayersCollapsed}
         tokenEnabled={liveHostTokenEnabled}
         onToggleCollapsed={() => setLivePlayersCollapsed((value) => !value)}
         onPortChange={setLiveHostPort}
+        onModeChange={(nextMode) => { setLiveHostMode(nextMode); if (nextMode === "direct-internet") setLiveHostTokenEnabled(true); }}
+        onDirectPublicHostChange={setLiveDirectPublicHost}
+        onDirectRouterWanAddressChange={setLiveDirectRouterWanAddress}
+        onRefreshDiagnostics={refreshLiveHostDiagnostics}
         onTokenEnabledChange={setLiveHostTokenEnabled}
         onStart={startLiveHost}
         onStop={stopLiveHost}

@@ -72,20 +72,27 @@
       <div class="live-sheet-client-header">
         <div>
           <div class="live-sheet-client-title" id="liveSheetClientTitle" data-i18n="live.title">Connect to DM</div>
-          <div class="live-sheet-client-subtitle" data-i18n="live.subtitle">Tailscale or local network live sheet sharing</div>
+          <div class="live-sheet-client-subtitle" data-i18n="live.subtitle">LAN, Tailscale, or direct Internet connection to the DM host</div>
         </div>
         <button class="live-sheet-client-close" id="liveSheetClientClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
       </div>
       <div class="live-sheet-client-body">
-        <label class="live-sheet-client-label" for="liveSheetDmIp" data-i18n="live.host">DM host / Tailscale IP</label>
-        <input class="live-sheet-client-input" id="liveSheetDmIp" type="text" spellcheck="false" autocomplete="off" placeholder="100.x.y.z or kael-pc" data-i18n-placeholder="live.hostPlaceholder">
+        <label class="live-sheet-client-label" for="liveSheetConnectionMode" data-i18n="live.mode">Connection mode</label>
+        <select class="live-sheet-client-input" id="liveSheetConnectionMode">
+          <option value="tailscale" data-i18n="live.mode.tailscale">Tailscale</option>
+          <option value="lan" data-i18n="live.mode.lan">Local network (LAN)</option>
+          <option value="direct-internet" data-i18n="live.mode.direct">Direct Internet</option>
+        </select>
+        <label class="live-sheet-client-label" for="liveSheetDmIp" data-i18n="live.host">DM IP address or domain</label>
+        <input class="live-sheet-client-input" id="liveSheetDmIp" type="text" spellcheck="false" autocomplete="off" placeholder="192.168.x.x, 100.x.y.z, or game.example.net" data-i18n-placeholder="live.hostPlaceholder">
         <label class="live-sheet-client-label" for="liveSheetPort" data-i18n="live.port">Port</label>
         <input class="live-sheet-client-input" id="liveSheetPort" type="number" min="1" max="65535" step="1" value="8787">
-        <label class="live-sheet-client-label" for="liveSheetSessionToken" data-i18n="live.sessionToken">Session token</label>
-        <input class="live-sheet-client-input" id="liveSheetSessionToken" type="text" spellcheck="false" autocomplete="off" maxlength="80" placeholder="Optional code from DM" data-i18n-placeholder="live.sessionTokenPlaceholder">
+        <label class="live-sheet-client-label" for="liveSheetSessionToken" data-i18n="live.sessionToken">Session code</label>
+        <input class="live-sheet-client-input" id="liveSheetSessionToken" type="text" spellcheck="false" autocomplete="off" maxlength="128" placeholder="Code provided by the DM" data-i18n-placeholder="live.sessionTokenPlaceholder">
         <label class="live-sheet-client-label" for="liveSheetPlayerName" data-i18n="live.playerName">Player name</label>
         <input class="live-sheet-client-input" id="liveSheetPlayerName" type="text" maxlength="80" placeholder="Player" data-i18n-placeholder="live.playerNamePlaceholder">
-        <div class="live-sheet-client-help" data-i18n="live.help">Use the DM's Tailscale 100.x.y.z IP or MagicDNS name. Do not use a public IP or port forwarding.</div>
+        <div class="live-sheet-client-help" id="liveSheetModeHelp" data-i18n="live.help.tailscale">Use the DM's Tailscale IP or MagicDNS name. Every participant needs access to the same tailnet.</div>
+        <div class="live-sheet-client-help" data-i18n="live.securityWarning">Direct Internet uses unencrypted ws:// in phase 1. Do not send the code through a public channel.</div>
         <div class="live-sheet-client-status" id="liveSheetClientStatus" aria-live="polite" data-i18n="live.disconnected">Disconnected</div>
       </div>
       <div class="live-sheet-client-actions">

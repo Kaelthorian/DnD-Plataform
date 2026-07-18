@@ -47,10 +47,11 @@ contextBridge.exposeInMainWorld("dndSheet", {
   loadLanguages: () => ipcRenderer.invoke("languages:load"),
   translateText: (text, from = "en", to = "es") => ipcRenderer.invoke("translate:text", { text, from, to }),
   liveSheet: {
-    startServer: (port) => ipcRenderer.invoke("live-sheet:start", port),
+    startServer: (options) => ipcRenderer.invoke("live-sheet:start", options),
     stopServer: () => ipcRenderer.invoke("live-sheet:stop"),
     getStatus: () => ipcRenderer.invoke("live-sheet:status"),
-    getDiagnostics: () => ipcRenderer.invoke("live-sheet:diagnostics"),
+    getDiagnostics: (options) => ipcRenderer.invoke("live-sheet:diagnostics", options),
+    normalizeConnectionTarget: (host, port) => ipcRenderer.invoke("live-sheet:normalize-target", { host, port }),
     runSelfTest: () => ipcRenderer.invoke("live-sheet:self-test"),
     getPlayers: () => ipcRenderer.invoke("live-sheet:get-players"),
     kickPlayer: (playerId) => ipcRenderer.invoke("live-sheet:kick-player", playerId),
