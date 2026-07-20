@@ -21,7 +21,7 @@ Los `attachedSpells` del catálogo se proyectan como spells temporales usando su
 ## Identidad y estado
 
 - Ítem: `catalogId`, derivado de nombre, fuente y variante por el catálogo.
-- Capability: ID estable local al ítem; compilado como `catalogId::capability:<id>`. Una capability `oneTime` persistida usa esa misma clave en `__sheetMeta.itemCapabilityUses` y no se recupera con descansos.
+- Capability: ID estable local al ítem; compilado como `catalogId::capability:<id>`. Una capability `oneTime` se consume por copia física: Equipment separa una unidad como ` {dnd-used}` y la muestra como `Used`/`Usada`; una copia nueva del mismo `catalogId` permanece disponible. `__sheetMeta.itemCapabilityUses` conserva la migración de saves viejos por catálogo y la marca de auditoría de la copia gastada; no hay recuperación con descansos.
 - Recurso: `catalogId::resourceId`, persistido en `__sheetMeta.itemResources`.
 - Efecto: `instanceId` único por activación, persistido en `__sheetMeta.activeItemEffects`.
 
@@ -43,7 +43,7 @@ Los beneficios persistentes que la metadata canónica no puede expresar completa
 
 `Cape of the Mountebank` declara `Dimension Door|XPHB` a nivel 4 como spell de item mientras la capa está worn. El botón compartido de ambas superficies consume su uso 1/1, nunca un slot. La nube que deja el punto de partida se conserva como guía textual porque requiere una posición del mundo/VTT que la hoja no puede determinar por sí sola.
 
-`Medal of Muscle` usa una capability `oneTime` con `activatesStatus`. Tras confirmar la Action agrega el status removible `medal-of-muscle-strength`, que aplica advantage únicamente a Strength checks y Strength saving throws durante la hora indicada; Player o DM lo quitan desde sus controles habituales de Status. El uso queda gastado de forma permanente y la medalla no vuelve a ofrecer la acción, incluso si el status se retira antes. `activatesStatus.id` debe corresponder a un status registrado en `src/engine/conditions/statuses.js`; los status de origen de ítem pueden marcarse `playerSelectable: false` para que sólo una capability los conceda, sin impedir que Player o DM los remuevan.
+`Medal of Muscle` usa una capability `oneTime` con `activatesStatus`. Tras confirmar la Action agrega el status removible `medal-of-muscle-strength`, que aplica advantage únicamente a Strength checks y Strength saving throws durante la hora indicada; Player o DM lo quitan desde sus controles habituales de Status. Equipment convierte sólo esa unidad en una copia `Used`/`Usada`; otra medalla nueva mantiene su Action. El uso de la copia gastada queda permanente, incluso si el status se retira antes. `activatesStatus.id` debe corresponder a un status registrado en `src/engine/conditions/statuses.js`; los status de origen de ítem pueden marcarse `playerSelectable: false` para que sólo una capability los conceda, sin impedir que Player o DM los remuevan.
 
 `Simic Guild Signet` ilustra el camino canónico sin overlay: su `attachedSpells.charges[1]` concede `Expeditious Retreat`, se resuelve como Bonus Action con el comportamiento normal de la spell, consume una de las 3 cargas del signet al confirmar y no consume un spell slot. La entrada requiere que el anillo esté worn y el item attuned.
 

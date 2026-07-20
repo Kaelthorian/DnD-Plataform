@@ -8259,7 +8259,11 @@
       }
       const createdItemEffect = createItemCapabilityEffect(action, itemCapabilityValidation);
       const activatedItemStatus = activateItemCapabilityStatus(action);
-      const itemCapabilityUsed = markItemCapabilityUsed(itemCapabilityValidation.item, itemCapabilityValidation.capability);
+      const itemCapabilityUsed = markItemCapabilityUsed(
+        itemCapabilityValidation.item,
+        itemCapabilityValidation.capability,
+        itemCapabilityValidation.inventoryEntry
+      );
       const equipmentConsumed = Boolean(action.inventoryEntry || action.ammoEntry || action.itemResourceCost);
       if (action.inventoryEntry) removeItemFromEquipment(action.inventoryEntry, 1);
       if (action.ammoEntry) removeItemFromEquipment(action.ammoEntry, 1);
@@ -8268,7 +8272,10 @@
       const effectsApplied = applyCombatActionSideEffects(action);
       if (createdItemEffect) effectsApplied.push(action.title);
       if (activatedItemStatus) effectsApplied.push(activatedItemStatus.name);
-      if (itemCapabilityUsed) effectsApplied.push(`${action.title}: item is now nonmagical`);
+      if (itemCapabilityUsed) {
+        effectsApplied.push(t("item.oneTimeConsumed", { title: action.title }));
+        scheduleEquipmentMutationRefresh({ reason: "item-one-time-used", derived: false });
+      }
       if (action.selfHealing?.kind === "equalToDamageDealt") {
         const amount = Math.max(0, Number(activeCombatResolution.results.damageRoll?.appliedTotal ?? activeCombatResolution.results.damageRoll?.total) || 0);
         if (amount > 0) {
@@ -11328,17 +11335,28 @@
       return `${item.name} [${source}${variantSuffix}]`;
     }
 
+    const EQUIPMENT_USED_COPY_MARKER = " {dnd-used}";
+
+    function equipmentUsedCopyStorageName(storageName) {
+      const normalized = String(storageName || "").trim().replace(/\s+\{dnd-used\}\s*$/i, "");
+      return normalized ? `${normalized}${EQUIPMENT_USED_COPY_MARKER}` : "";
+    }
+
     function parseEquipmentLine(line) {
       const trimmed = String(line || "").trim();
       const match = trimmed.match(/^(\d+)\s+(.+)$/);
       const rawName = match ? match[2].trim() : trimmed;
-      const reference = itemReferenceParts(rawName);
+      const usedCopy = /\s+\{dnd-used\}\s*$/i.test(rawName);
+      const referenceStorageName = usedCopy ? rawName.replace(/\s+\{dnd-used\}\s*$/i, "") : rawName;
+      const reference = itemReferenceParts(referenceStorageName);
       const parentheticalQuantity = reference.name.match(/\((\d+)\)\s*$/)?.[1];
       const quantity = match ? Number.parseInt(match[1], 10) : Number.parseInt(parentheticalQuantity || "1", 10);
       return {
         quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
         rawName,
         storageName: rawName,
+        referenceStorageName,
+        usedCopy,
         displayName: reference.name,
         catalogSource: reference.source,
         catalogVariantToken: reference.variantToken,
@@ -12227,21 +12245,76 @@
       return sheetMeta.itemCapabilityUses;
     }
 
-    function itemCapabilityUseKey(item, capability) {
+    function legacyItemCapabilityUseKey(item, capability) {
       const catalogId = catalogItemId(item);
       const capabilityId = String(capability?.capabilityId || capability?.id || "").trim();
       return catalogId && capabilityId ? `${catalogId}::capability:${capabilityId}` : "";
     }
 
-    function itemCapabilityHasBeenUsed(item, capability) {
-      const key = itemCapabilityUseKey(item, capability);
+    function itemCapabilityUseKey(item, capability, entry) {
+      const legacyKey = legacyItemCapabilityUseKey(item, capability);
+      return legacyKey ? `${legacyKey}::copy:${entry?.usedCopy ? "used" : "available"}` : "";
+    }
+
+    function itemCapabilityHasBeenUsed(item, capability, entry) {
+      if (entry?.usedCopy) return true;
+      const key = itemCapabilityUseKey(item, capability, entry);
       return Boolean(key && itemCapabilityUseStateStore()[key]?.used === true);
     }
 
-    function markItemCapabilityUsed(item, capability) {
-      if (!capability?.oneTime) return false;
-      const key = itemCapabilityUseKey(item, capability);
-      if (!key || itemCapabilityHasBeenUsed(item, capability)) return false;
+    function markEquipmentCopyUsed(entry) {
+      const field = getFieldByKey("Equipment");
+      if (!field || !entry || entry.usedCopy) return null;
+      const targetKey = equipmentItemKey(entry);
+      const usedStorageName = equipmentUsedCopyStorageName(entry.referenceStorageName || entry.storageName);
+      if (!targetKey || !usedStorageName) return null;
+      const usedEntry = parseEquipmentLine(formatEquipmentEntryLine(1, usedStorageName));
+      const usedKey = equipmentItemKey(usedEntry);
+      const nextLines = [];
+      let usedQuantity = 1;
+      let changed = false;
+      equipmentLines().forEach((line) => {
+        const current = parseEquipmentLine(line);
+        const currentKey = equipmentItemKey(current);
+        if (currentKey === usedKey) {
+          usedQuantity += current.quantity;
+          changed = true;
+          return;
+        }
+        if (currentKey !== targetKey || current.usedCopy) {
+          nextLines.push(line);
+          return;
+        }
+        if (current.quantity > 1) nextLines.push(formatEquipmentEntryLine(current.quantity - 1, current.storageName));
+        changed = true;
+      });
+      if (!changed) return null;
+      nextLines.push(formatEquipmentEntryLine(usedQuantity, usedStorageName));
+      field.value = nextLines.join("\n");
+      return usedEntry;
+    }
+
+    function migrateLegacyItemCapabilityUse(item, capability) {
+      const legacyKey = legacyItemCapabilityUseKey(item, capability);
+      const store = itemCapabilityUseStateStore();
+      if (!legacyKey || !store[legacyKey]?.used) return false;
+      const catalogId = catalogItemId(item);
+      const alreadyMarked = equipmentEntries().some((entry) => entry.usedCopy
+        && catalogItemId(findItemData(entry)) === catalogId);
+      const availableEntry = equipmentEntries().find((entry) => !entry.usedCopy
+        && catalogItemId(findItemData(entry)) === catalogId);
+      if (!alreadyMarked && !markEquipmentCopyUsed(availableEntry)) return false;
+      delete store[legacyKey];
+      return true;
+    }
+
+    function markItemCapabilityUsed(item, capability, entry) {
+      if (!capability?.oneTime || !entry) return false;
+      if (itemCapabilityHasBeenUsed(item, capability, entry)) return false;
+      const usedEntry = markEquipmentCopyUsed(entry);
+      if (!usedEntry) return false;
+      const key = itemCapabilityUseKey(item, capability, usedEntry);
+      if (!key) return false;
       itemCapabilityUseStateStore()[key] = {
         used: true,
         usedAt: new Date().toISOString()
@@ -12253,6 +12326,16 @@
       const item = findItemData(entry);
       if (!item || entry.quantity <= 0 || isCatalogItemUnavailable(item)) return [];
       const profile = automationProfileForItem(item);
+      const migratedLegacyUse = (profile?.actions || [])
+        .filter((capability) => capability.oneTime)
+        .some((capability) => migrateLegacyItemCapabilityUse(item, capability));
+      if (migratedLegacyUse) {
+        if (typeof scheduleSave === "function") scheduleSave();
+        if (typeof invalidateCombatActionCache === "function") invalidateCombatActionCache("item-one-time-legacy-migrated");
+        if (!equipmentMutationRefreshRunning) {
+          scheduleEquipmentMutationRefresh({ reason: "item-one-time-legacy-migrated", derived: false });
+        }
+      }
       const catalogId = catalogItemId(item);
       return (profile?.actions || []).map((capability) => {
         const requirement = itemCapabilityRequirementStatus(item, capability);
@@ -12262,7 +12345,7 @@
           info: namedItemResourceInfo(item, definitions[cost.resourceId], { persistInitialization: true })
         }));
         const unavailable = resourceInfos.find(({ cost, info }) => !info || info.current < cost.amount)?.cost;
-        const oneTimeSpent = capability.oneTime && itemCapabilityHasBeenUsed(item, capability);
+        const oneTimeSpent = capability.oneTime && itemCapabilityHasBeenUsed(item, capability, entry);
         const type = itemCapabilityActionType(capability.activation?.type);
         const area = capability.createsEffect?.area;
         const duration = capability.createsEffect?.duration;
@@ -12282,8 +12365,8 @@
         ];
         const primaryResource = resourceInfos[0]?.info || null;
         return {
-          key: `inventory:item-capability:${catalogId}:${capability.capabilityId}`,
-          id: `inventory:item-capability:${catalogId}:${capability.capabilityId}`,
+          key: `inventory:item-capability:${catalogId}:${capability.capabilityId}:${equipmentItemKey(entry)}`,
+          id: `inventory:item-capability:${catalogId}:${capability.capabilityId}:${equipmentItemKey(entry)}`,
           title: capability.name,
           type,
           actionCost: capability.actionCost || [itemResourceActionCost(type)].filter(Boolean),
@@ -12293,6 +12376,7 @@
           allowOutsideTurn: type === ACTION_TYPES.reaction,
           itemActionCatalogId: catalogId,
           itemCapabilityId: capability.capabilityId,
+          itemCapabilityEquipmentKey: equipmentItemKey(entry),
           itemResourceReference: { catalogId, name: item.name, source: item.source, catalogVariantToken: catalogVariantToken(item) },
           resourceCosts: (capability.resourceCosts || []).map((cost) => ({ ...cost })),
           itemCapabilityResource: primaryResource ? { name: primaryResource.name, current: primaryResource.current, max: primaryResource.max } : null,
@@ -12307,7 +12391,7 @@
           saveDamageRule: savingThrow?.onSuccess || "",
           selfHealing: capability.selfHealing ? { ...capability.selfHealing } : null,
           itemGrantedSpell: grantedSpell,
-          disabledReason: !requirement.ok ? requirement.reason : oneTimeSpent ? `${capability.name}: already used; the item is nonmagical.` : unavailable ? t("item.actionNamedResourceUnavailable", { resource: unavailable.resourceId }) : "",
+          disabledReason: !requirement.ok ? requirement.reason : oneTimeSpent ? t("item.oneTimeUsed", { capability: capability.name }) : unavailable ? t("item.actionNamedResourceUnavailable", { resource: unavailable.resourceId }) : "",
           detail: [
             capability.description || "",
             target.range ? t("item.targetRangeSummary", { range: target.range, unit: target.unit || "feet" }) : "",
@@ -12366,6 +12450,7 @@
         const item = findItemData(entry);
         return itemCapabilityTurnActions(entry).flatMap((action) => {
           if (!action.itemGrantedSpell && !action.damageComponents?.length) return [];
+          if (action.disabledReason) return [];
           if (seen.has(action.id)) return [];
           seen.add(action.id);
           const spell = action.itemGrantedSpell?.spell || null;
@@ -12404,8 +12489,10 @@
       if (!item || !capability) return { ok: false, reason: t("item.actionResourceUnavailable") };
       const requirement = itemCapabilityRequirementStatus(item, capability);
       if (!requirement.ok) return requirement;
-      if (capability.oneTime && itemCapabilityHasBeenUsed(item, capability)) {
-        return { ok: false, reason: `${capability.name}: already used; the item is nonmagical.` };
+      const inventoryEntry = equipmentEntries().find((entry) => equipmentItemKey(entry) === action.itemCapabilityEquipmentKey) || null;
+      if (!inventoryEntry) return { ok: false, reason: t("item.actionRequiresOwnership") };
+      if (capability.oneTime && itemCapabilityHasBeenUsed(item, capability, inventoryEntry)) {
+        return { ok: false, reason: t("item.oneTimeUsed", { capability: capability.name }) };
       }
       if (capability.activatesStatus && !findStatusDefinition(capability.activatesStatus.id)) {
         return { ok: false, reason: t("item.actionResourceUnavailable") };
@@ -12415,7 +12502,7 @@
         const info = namedItemResourceInfo(item, definitions[cost.resourceId], { persistInitialization: false });
         if (!info || info.current < cost.amount) return { ok: false, reason: t("item.actionNamedResourceUnavailable", { resource: cost.resourceId }) };
       }
-      return { ok: true, item, capability, definitions };
+      return { ok: true, item, capability, definitions, inventoryEntry };
     }
 
     function activateItemCapabilityStatus(action) {
@@ -15676,6 +15763,7 @@
 
     function equipmentItemKey(entry) {
       const reference = itemReferenceParts(entry);
+      const stateSuffix = entry?.usedCopy ? "::used-copy" : "";
       if (reference.hasStableReference) {
         const item = findItemData(reference);
         const catalogId = reference.catalogId || catalogItemId(item || {
@@ -15683,9 +15771,9 @@
           source: reference.source,
           catalogVariantToken: reference.variantToken || "root"
         });
-        if (catalogId) return `catalog:${catalogId}`;
+        if (catalogId) return `catalog:${catalogId}${stateSuffix}`;
       }
-      return normalizeItemLookupName(reference.name);
+      return `${normalizeItemLookupName(reference.name)}${stateSuffix}`;
     }
 
     function hasItemProperty(item, abbreviation) {
@@ -16201,8 +16289,8 @@
 
     function showItemDrawer(entry, item) {
       showDrawer(
-        item?.name || entry.displayName,
-        `${entry.quantity}x - ${itemMetaText(item, entry.quantity)}`,
+        itemEquipmentDisplayName(item, entry),
+        `${entry.quantity}x${entry.usedCopy ? ` - ${t("item.used")}` : ""} - ${itemMetaText(item, entry.quantity)}`,
         buildItemDrawerContent(item)
       );
     }
@@ -16364,6 +16452,11 @@
       return `${quantity} ${name}`;
     }
 
+    function itemEquipmentDisplayName(item, entry) {
+      const name = item?.name || entry?.displayName || "";
+      return entry?.usedCopy ? `${name} — ${t("item.used")}` : name;
+    }
+
     function ammunitionPackContent(item) {
       if (itemTypeAbbreviation(item) !== "A" || !Array.isArray(item?.packContents) || item.packContents.length !== 1) return null;
       const content = item.packContents[0];
@@ -16468,7 +16561,7 @@
         const name = document.createElement("button");
         name.type = "button";
         name.className = "equipment-name";
-        name.textContent = item?.name || entry.displayName;
+        name.textContent = itemEquipmentDisplayName(item, entry);
         if (entry.hasStableReference && item?.source) name.textContent += ` [${sourceLabel(item.source)}]`;
         name.title = "Ver informacion del item";
         name.addEventListener("click", () => showItemDrawer(entry, item));

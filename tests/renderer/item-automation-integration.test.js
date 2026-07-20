@@ -23,6 +23,10 @@ assert.match(html, /function itemCapabilityTurnActions\(entry\)/);
 assert.match(html, /function itemCapabilityUseStateStore\(\)/, "one-use item capabilities must persist their spent state");
 assert.match(html, /function activateItemCapabilityStatus\(action\)/, "item capabilities must be able to activate a removable sheet status");
 assert.match(html, /itemCapabilityUses/, "one-use item capabilities must survive save and load");
+assert.match(html, /EQUIPMENT_USED_COPY_MARKER/, "one-use item capabilities must retain a visible used Equipment copy");
+assert.match(html, /function markEquipmentCopyUsed\(entry\)/, "spending a one-use item must split its physical Equipment copy");
+assert.match(html, /itemCapabilityEquipmentKey/, "one-use actions must validate the specific Equipment copy that supplied them");
+assert.match(html, /itemEquipmentDisplayName\(item, entry\)/, "used Equipment copies must have a localized visible label");
 assert.match(html, /function itemCapabilityPreparedSelections\(\)/,
   "item spells and damaging capabilities must be visible in Attacks and Spellcasting");
 assert.match(html, /itemCapabilityPreparedSelections\(\)/);

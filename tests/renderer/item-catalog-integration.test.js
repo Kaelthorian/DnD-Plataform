@@ -96,7 +96,8 @@ assert.match(itemEquipmentReference, /return `\$\{item\.name\} \[\$\{source\}\$\
 assert.match(itemReferenceParts, /suffix\[1\]\.split\("\|"\)/);
 assert.match(itemReferenceParts, /hasStableReference: Boolean\(source \|\| variantToken \|\| catalogId\)/);
 assert.match(equipmentItemKey, /if \(reference\.hasStableReference\)/);
-assert.match(equipmentItemKey, /return `catalog:\$\{catalogId\}`/);
+assert.match(equipmentItemKey, /const stateSuffix = entry\?\.usedCopy \? "::used-copy" : ""/);
+assert.match(equipmentItemKey, /return `catalog:\$\{catalogId\}\$\{stateSuffix\}`/);
 
 // Specific variants stay below their 1,779 parent rows, while remaining
 // independently indexed and selectable through the parent's detail panel.
