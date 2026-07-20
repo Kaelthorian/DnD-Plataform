@@ -13,6 +13,7 @@ const saveService = require("../../services/save-service");
 const dmSoundLinkService = require("../../services/dm-sound-link-service");
 const { saveTokenLibraryImage } = require("../../services/token-library-service");
 const translationService = require("../../services/translation-service");
+const { allowLiveSheetFirewallRule } = require("../../services/windows-firewall-service");
 
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 const platformBackgroundWatchers = new Map();
@@ -541,6 +542,33 @@ function getLiveSheetDiagnostics(options = {}) {
   };
 }
 
+async function promptForLiveSheetFirewall(webContents, status) {
+  if (process.platform !== "win32" || !status?.running || !Number.isInteger(status.port)) {
+    return { prompted: false, skipped: true };
+  }
+  const parentWindow = BrowserWindow.fromWebContents(webContents) || undefined;
+  const result = await dialog.showMessageBox(parentWindow, {
+    type: "question",
+    title: "Windows Firewall",
+    message: `Allow incoming Live Sheet connections on TCP port ${status.port}?`,
+    detail: "This creates a Windows Firewall rule for DnD Character Sheet. Windows may ask for administrator approval. You can remove the rule later from Windows Firewall.",
+    buttons: ["Allow private networks", "Allow private and public networks", "Not now"],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true
+  });
+  if (result.response === 2) return { prompted: true, skipped: true };
+  const profiles = result.response === 1 ? ["Private", "Public"] : ["Private"];
+  return {
+    prompted: true,
+    ...allowLiveSheetFirewallRule({
+      port: status.port,
+      profiles,
+      programPath: process.execPath
+    })
+  };
+}
+
 function ensurePlatformBackgroundWatchers() {
   getPlatformBackgroundDirectoryCandidates().forEach((directoryPath) => {
     if (platformBackgroundWatchers.has(directoryPath) || !fs.existsSync(directoryPath)) return;
@@ -810,10 +838,11 @@ ipcMain.handle("translate:text", async (_event, { text, from = "en", to = "es" }
   return translationService.translateText(source, from, to);
 });
 
-ipcMain.handle("live-sheet:start", async (_event, options) => {
+ipcMain.handle("live-sheet:start", async (event, options) => {
   try {
     const status = await liveSheetServer.start(options);
-    return { ok: true, status };
+    const firewall = await promptForLiveSheetFirewall(event.sender, status);
+    return { ok: true, status, firewall };
   } catch (error) {
     return {
       ok: false,

@@ -9313,7 +9313,7 @@ function LivePlayersPanel({
           </div>
         </div>
       </header>
-      <>
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="grid gap-3 border-b border-neutral-800 p-3">
             <label className="grid gap-1 text-xs font-bold uppercase text-neutral-500">
               Hosting mode
@@ -9384,7 +9384,8 @@ function LivePlayersPanel({
               <p className="text-xs text-neutral-500">The session code appears after the host starts. It is never saved.</p>
             )}
 
-            <section className={`grid gap-2 border p-3 ${activeMode === "direct-internet" ? "border-amber-500/50 bg-amber-950/10" : "border-neutral-800 bg-neutral-950/50"}`}>
+            {activeMode === "direct-internet" ? (
+            <section className="grid gap-2 border border-amber-500/50 bg-amber-950/10 p-3">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-amber-300">Direct Internet Host</h3>
                 <span className="border border-amber-500/40 px-2 py-1 text-[10px] font-bold uppercase text-amber-200">Public reachability not verified</span>
@@ -9442,7 +9443,9 @@ function LivePlayersPanel({
                 Transport is unencrypted ws://. Future wss:// support requires user-managed certificates; WebRTC signaling/TURN would be a separate project.
               </p>
             </section>
+            ) : null}
 
+            {activeMode === "tailscale" ? (
             <section className="grid gap-2 border border-emerald-500/30 bg-emerald-950/10 p-3">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-emerald-300">Tailscale connection</h3>
@@ -9483,6 +9486,7 @@ function LivePlayersPanel({
               </div>
               <p className="text-xs text-neutral-500">{diagnostics?.message || (tailscaleAddresses[0] ? `Tailscale IP detected: ${tailscaleAddresses[0]}` : "No Tailscale IP detected. Open Tailscale and confirm this device is connected.")}</p>
             </section>
+            ) : null}
 
             <section className="grid gap-2 border border-neutral-800 bg-neutral-950/50 p-3">
               <div className="flex items-center justify-between gap-2">
@@ -9491,15 +9495,18 @@ function LivePlayersPanel({
               </div>
               <div className="grid gap-1 text-xs">
                 <span className={`border px-2 py-1 ${testClass(selfTests.local)}`}>{testLabel(selfTests.local, "Local test OK", "Local test failed", "Local test pending")}</span>
-                <span className={`border px-2 py-1 ${testClass(selfTests.tailscale)}`}>{testLabel(selfTests.tailscale, "Tailscale self-test OK", "Tailscale self-test failed", tailscaleAddresses.length ? "Tailscale self-test pending" : "No Tailscale IP for self-test")}</span>
+                {activeMode === "tailscale" ? (
+                  <span className={`border px-2 py-1 ${testClass(selfTests.tailscale)}`}>{testLabel(selfTests.tailscale, "Tailscale self-test OK", "Tailscale self-test failed", tailscaleAddresses.length ? "Tailscale self-test pending" : "No Tailscale IP for self-test")}</span>
+                ) : null}
               </div>
-              {running && tailscaleAddresses.length && selfTests.tailscale && !selfTests.tailscale.ok ? (
+              {activeMode === "tailscale" && running && tailscaleAddresses.length && selfTests.tailscale && !selfTests.tailscale.ok ? (
                 <p className="border border-red-500/30 bg-red-950/30 px-2 py-1 text-xs text-red-200">
                   The host started, but it is not responding through Tailscale. Check Windows Firewall and allow DnD Character Sheet / Electron on private networks.
                 </p>
               ) : null}
             </section>
 
+            {activeMode === "lan" ? (
             <section className="grid gap-1 border border-neutral-800 bg-neutral-950/50 p-3 text-xs text-neutral-400">
               <h3 className="text-xs font-bold uppercase tracking-wide text-neutral-500">Local network (LAN only)</h3>
               <p className="text-neutral-500">Private addresses below are not reachable from the public Internet.</p>
@@ -9509,10 +9516,11 @@ function LivePlayersPanel({
                 <p className="text-neutral-500">{running ? "No LAN IP detected. Check Windows network settings." : "Start the host to show LAN IP addresses."}</p>
               )}
             </section>
+            ) : null}
             {error ? <p className="border border-red-500/30 bg-red-950/40 px-2 py-1 text-xs text-red-200">{error}</p> : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto p-3">
+        <div className="p-3">
             <section className="border border-neutral-800 bg-neutral-950/70">
               <header className="border-b border-neutral-800 px-3 py-2">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-amber-500">Live Sheets</h3>
@@ -9543,7 +9551,7 @@ function LivePlayersPanel({
               </div>
             </section>
         </div>
-      </>
+      </div>
     </aside>
   );
 }
@@ -12038,6 +12046,9 @@ function DmScreenApp() {
     }
     setLiveServerStatus(result.status);
     if (result.status?.port) setLiveHostPort(String(result.status.port));
+    if (result.firewall?.prompted && !result.firewall.ok && !result.firewall.skipped) {
+      setLiveHostError(result.firewall.error || "The Windows Firewall rule was not added. The host is still running.");
+    }
     await refreshLiveHostDiagnostics();
   }
 
