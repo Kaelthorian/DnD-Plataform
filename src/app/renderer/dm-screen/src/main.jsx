@@ -757,6 +757,34 @@ function itemRuleSections(item) {
   return [...typeSections, ...propertySections, ...masterySections].filter((section) => section.title && section.text);
 }
 
+function itemGroupMemberNames(item) {
+  return (Array.isArray(item?.items) ? item.items : [])
+    .map((entry) => {
+      const reference = isPlainObject(entry) ? entry.name || entry.uid || entry.item || "" : entry;
+      return String(reference || "").split("|")[0].trim();
+    })
+    .filter(Boolean);
+}
+
+function itemPickerDescriptionSections(item) {
+  if (!item) return [];
+  const sections = [];
+  const description = renderItemEntryText(item.entries, item);
+  const additionalDescription = renderItemEntryText(item.additionalEntries, item);
+  if (description) sections.push({ title: "", text: description });
+  if (additionalDescription) sections.push({ title: "Additional use", text: additionalDescription });
+  sections.push(...itemRuleSections(item));
+
+  const groupMembers = itemGroupMemberNames(item);
+  if (groupMembers.length) {
+    sections.push({
+      title: "Available items",
+      text: groupMembers.map((name) => `- ${name}`).join("\n")
+    });
+  }
+  return sections;
+}
+
 function itemRulesFooter(item) {
   const parts = [];
   const source = itemSourceLabel(item);
@@ -10321,6 +10349,7 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
   const secondarySort = isSpell ? "level" : "rarity";
   const selectedTopLevelItem = isSpell ? null : itemTopLevelEntry(selectedEntry);
   const specificVariants = isSpell ? [] : itemSpecificVariants(selectedTopLevelItem);
+  const selectedItemDescriptionSections = isSpell ? [] : itemPickerDescriptionSections(selectedEntry);
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4" data-monster-picker="true">
@@ -10419,7 +10448,20 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
                     <Stat label="Source" value={isSpell ? spellSource(selectedEntry) : itemSource(selectedEntry)} />
                     <Stat label={secondaryLabel} value={isSpell ? formatSpellLevel(selectedEntry) : titleCase(itemRarity(selectedEntry))} />
                   </div>
-                  <p className="mt-3 whitespace-pre-line leading-relaxed">{isSpell ? selectedEntry.description : renderItemEntryText(selectedEntry.entries, selectedEntry)}</p>
+                  {isSpell ? (
+                    <p className="mt-3 whitespace-pre-line leading-relaxed">{selectedEntry.description}</p>
+                  ) : selectedItemDescriptionSections.length ? (
+                    <div className="mt-3 space-y-3">
+                      {selectedItemDescriptionSections.map((section, index) => (
+                        <p key={`${selectedEntry.name}-description-${section.title || index}`} className="whitespace-pre-line leading-relaxed">
+                          {section.title ? <><span className="font-bold italic text-neutral-100">{section.title}.</span>{" "}</> : null}
+                          {section.text}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 italic leading-relaxed text-neutral-500">No additional description is available for this catalog entry.</p>
+                  )}
                 </div>
               </article>
               <div className="sticky bottom-0 border-t border-neutral-700 bg-neutral-900 pt-4">

@@ -38,6 +38,7 @@ Alcance: código propio, configuración, scripts, tests, documentación, rutas d
 | Baja | `npm ls --depth=0` informa el peer faltante `electron-builder-squirrel-windows`; el target configurado es NSIS, no Squirrel. | Verificar en una tarea de packaging; no añadir dependencia sin confirmar necesidad. |
 | Baja | `pdfjs-dist@6.0.227` declara Node 22.13+ aunque la app consume su bundle de navegador y el build pasó con Node 20.19. | Puede advertir al instalar; validar el inspector Node por separado o usar Node 22.13+ cuando corresponda. |
 | Baja | `caniuse-lite` está desactualizado según el build. | Actualizar solo en una tarea de dependencias con red autorizada y diff revisado. |
+| Baja | npm 12 avisa que no soporta Node 20.20 aunque el proyecto admite Node 20 y el build actual paso. | Alinear la version local de npm con el Node soportado en una tarea de toolchain; no cambiar runtimes ni lockfile como parte de una correccion de UI. |
 
 No se confirmaron dependencias circulares en los módulos CommonJS inspeccionados; la UI histórica usa globals y orden de scripts, por lo que un detector convencional no cubriría su acoplamiento real. Tampoco se confirmó código muerto suficiente para borrado seguro.
 

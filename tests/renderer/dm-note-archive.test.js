@@ -17,8 +17,10 @@ function functionBlock(name) {
 assert.match(source, /import "\.\.\/\.\.\/\.\.\/\.\.\/engine\/items\/item-catalog\.js"/);
 assert.match(source, /function renderItemEntryText\(value, item = \{\}\)/);
 assert.match(source, /itemCatalogEngine\?\.renderEntryText\?\.\(value, item\)/);
-assert.match(source, /renderItemEntryText\(selectedEntry\.entries, selectedEntry\)/,
+assert.match(functionBlock("itemPickerDescriptionSections"), /renderItemEntryText\(item\.entries, item\)/,
   "DM item detail must preserve structured tables and safe 5etools tags");
+assert.match(functionBlock("ResourcePicker"), /itemPickerDescriptionSections\(selectedEntry\)/,
+  "DM item picker must render the shared structured description sections");
 assert.match(source, /function shouldOfferBoardNoteSave\(note\)/);
 assert.match(source, /function monsterNoteHasPersistentEdits\(note\)/);
 assert.match(source, /note\.monsterCustom \|\| String\(note\.titleOverride \|\| ""\)\.trim\(\)/);

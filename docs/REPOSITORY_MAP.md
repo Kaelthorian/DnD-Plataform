@@ -25,6 +25,8 @@ Mapa operativo para evitar búsquedas globales repetidas.
 | Build DM Screen | `scripts/ensure-dm-screen-build.js` | Comprueba por separado CSS y todos los inputs/chunks JS (incluidos catálogo y helper de spells) antes de invocar Tailwind/Vite; `dist/` es runtime generado e ignorado |
 | Packaging/publicación | `package.json`, `scripts/run-electron-builder.js` | `crear-instalador.bat` solo con cautela |
 
+El picker React de Items del DM Screen esta en `src/app/renderer/dm-screen/src/main.jsx`: compone `entries`, reglas heredadas de tipo, propiedad y maestria, y miembros de grupos para que una entrada valida no termine con un detalle visual vacio.
+
 ## Directorios de alto nivel
 
 - `src/app/main`, `src/app/preload`: frontera privilegiada Electron.

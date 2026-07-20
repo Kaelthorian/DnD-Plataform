@@ -66,6 +66,8 @@ const ammunitionPackContent = functionBlock(html, "ammunitionPackContent");
 const updateSpellcastingFields = functionBlock(html, "updateSpellcastingFields");
 const selectedDefenseSources = functionBlock(html, "selectedDefenseSources");
 const buildItemDrawerContent = functionBlock(html, "buildItemDrawerContent");
+const dmItemPickerDescriptionSections = functionBlock(dmScreen, "itemPickerDescriptionSections");
+const dmResourcePicker = functionBlock(dmScreen, "ResourcePicker");
 
 // The app-owned `item` array is the only active top-level collection. The count
 // guard makes a partial or accidentally merged catalog fail closed.
@@ -199,6 +201,17 @@ assert.match(functionBlock(dmScreen, "splitTaggedValue"), /taggedReferenceParts/
 assert.match(functionBlock(dmScreen, "itemTypeMeta"), /resolveItemTypeMetadata/);
 assert.match(functionBlock(dmScreen, "itemRuleSections"), /typeMeta\?\.entries/,
   "DM item detail must include inherited item-type rules");
+assert.match(dmItemPickerDescriptionSections, /renderItemEntryText\(item\.entries, item\)/,
+  "the DM item picker must retain the item's own description");
+assert.match(dmItemPickerDescriptionSections, /sections\.push\(\.\.\.itemRuleSections\(item\)\)/,
+  "the DM item picker must include inherited type, property, and mastery rules when entries are empty");
+assert.match(dmItemPickerDescriptionSections, /itemGroupMemberNames\(item\)/,
+  "item groups must expose their concrete options instead of showing a blank detail panel");
+assert.match(dmResourcePicker, /selectedItemDescriptionSections\.map/,
+  "clicking an item must render every available description section in the picker detail panel");
+assert.match(dmResourcePicker, /No additional description is available for this catalog entry/,
+  "the picker must explain genuinely empty catalog records instead of leaving a blank panel");
+
 assert.match(functionBlock(dmScreen, "libraryEntrySearchText"), /itemSpecificVariants\(entry\)\.flatMap/,
   "DM search must discover child variants through their top-level parent");
 
