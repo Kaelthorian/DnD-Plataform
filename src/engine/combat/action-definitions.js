@@ -74,10 +74,39 @@
     ];
   }
 
+  function normalizeDamageComponent(component = {}, index = 0) {
+    return {
+      id: String(component.id || `damage-${index + 1}`),
+      formula: String(component.formula || ""),
+      type: String(component.type || ""),
+      source: String(component.source || "weapon"),
+      trigger: String(component.trigger || "onHit"),
+      critical: String(component.critical || "doubleDice"),
+      sourceCatalogId: String(component.sourceCatalogId || ""),
+      sourceCapabilityId: String(component.sourceCapabilityId || "")
+    };
+  }
+
+  function attackDamageComponents(row = {}) {
+    const declared = Array.isArray(row.damageComponents)
+      ? row.damageComponents.map(normalizeDamageComponent).filter((component) => component.formula)
+      : [];
+    if (declared.length) return declared;
+    if (!row.damage || row.damage === "--") return [];
+    return [normalizeDamageComponent({ id: "weapon-base", formula: row.damage, type: row.damageType })];
+  }
+
+  function criticalDamageFormula(formula, policy = "doubleDice") {
+    const value = String(formula || "");
+    if (policy !== "doubleDice") return value;
+    return value.replace(/(\d*)d(\d+)/gi, (_match, count, faces) => `${Math.max(1, Number(count) || 1) * 2}d${faces}`);
+  }
+
   function createAttackActionDefinition(row = {}, overrides = {}) {
     const bonus = Number(row.attackBonus);
     const hasAttackRoll = !row.noAttackRoll && Number.isFinite(bonus);
-    const hasDamage = Boolean(row.damage && row.damage !== "--");
+    const damageComponents = attackDamageComponents(row);
+    const hasDamage = damageComponents.length > 0;
     const costType = row.actionType === "bonus" ? "bonusAction" : row.actionType === "reaction" ? "reaction" : "action";
     return definition({
       id: overrides.id || `attack:${String(row.name || "attack").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
@@ -94,10 +123,11 @@
         RESOLUTION_STEPS.confirmResult
       ],
       attack: { ...row },
+      damageComponents,
       description: row.description || "",
       formula: hasAttackRoll ? `d20${bonus >= 0 ? "+" : ""}${bonus}` : "",
-      damageFormula: row.damage || "",
-      damageType: row.damageType || "",
+      damageFormula: row.damage || damageComponents[0]?.formula || "",
+      damageType: row.damageType || damageComponents[0]?.type || "",
       range: row.range || "",
       ...overrides
     });
@@ -409,6 +439,9 @@
     RESOLUTION_STEPS,
     ACTION_CATEGORIES,
     createUniversalActionDefinitions,
+    normalizeDamageComponent,
+    attackDamageComponents,
+    criticalDamageFormula,
     createAttackActionDefinition,
     createSpellActionDefinition,
     maxAttacksFromFeatureText,

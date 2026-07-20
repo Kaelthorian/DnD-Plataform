@@ -109,6 +109,26 @@
     return update(session, { results: { damageRoll: { ...result, total: Number(result.total) || 0 } } });
   }
 
+  function recordDamageRolls(session, rolls = []) {
+    const damageRolls = (Array.isArray(rolls) ? rolls : []).map((roll, index) => ({
+      ...roll,
+      id: String(roll?.id || `damage-${index + 1}`),
+      formula: String(roll?.formula || ""),
+      type: String(roll?.type || ""),
+      total: Number(roll?.total) || 0
+    }));
+    const total = damageRolls.reduce((sum, roll) => sum + roll.total, 0);
+    const compatibility = damageRolls.length === 1
+      ? { ...damageRolls[0] }
+      : { total, components: damageRolls.map((roll) => ({ ...roll })) };
+    return update(session, { results: { damageRolls, damageRoll: compatibility } });
+  }
+
+  function triggeredDamageComponents(action = {}, results = {}) {
+    return (Array.isArray(action.damageComponents) ? action.damageComponents : [])
+      .filter((component) => component.trigger !== "onHit" || results.attackRoll?.hit === true);
+  }
+
   function confirmConcentrationReplacement(session, confirmed = true) {
     return update(session, { results: { concentrationReplacementConfirmed: Boolean(confirmed) } });
   }
@@ -124,7 +144,7 @@
       if (attack && attack.hit !== true && !session.action.rollDamageOnMiss) return { ok: false, reason: attack.hit === false ? "A Miss does not allow a normal Damage Roll." : "The hit must be resolved before damage." };
       const save = session.results.savingThrow;
       if (save?.outcome === "pending") return { ok: false, reason: "Resolve the Saving Throw before damage." };
-      if (!session.results.damageRoll) return { ok: false, reason: "Roll Damage first." };
+      if (!session.results.damageRoll && !session.results.damageRolls?.length) return { ok: false, reason: "Roll Damage first." };
     }
     return { ok: true, reason: "" };
   }
@@ -150,7 +170,7 @@
     if (session.steps.includes("damageRoll")) {
       const missed = session.results.attackRoll?.hit === false && !session.action.rollDamageOnMiss;
       const savedForNone = session.results.savingThrow?.outcome === "passed" && session.action.saveDamageRule === "none";
-      if (!missed && !savedForNone && !session.results.damageRoll) return { ok: false, reason: "Roll Damage first." };
+      if (!missed && !savedForNone && !session.results.damageRoll && !session.results.damageRolls?.length) return { ok: false, reason: "Roll Damage first." };
     }
     return { ok: true, reason: "" };
   }
@@ -221,6 +241,8 @@
     recordSavingThrow,
     recordAbilityCheck,
     recordDamageRoll,
+    recordDamageRolls,
+    triggeredDamageComponents,
     confirmConcentrationReplacement,
     canResolveStep,
     advanceResolution,

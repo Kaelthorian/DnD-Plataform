@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "match": {
+        "name": "Devotee's Censer",
+        "source": "TCE",
+        "variantToken": "specific:flail|phb"
+      },
+      "resources": [
+        {
+          "id": "healing-incense",
+          "name": "Healing Incense",
+          "max": 1,
+          "recovery": {
+            "trigger": "dawn",
+            "amount": "full"
+          }
+        }
+      ],
+      "capabilities": [
+        {
+          "id": "radiant-strike",
+          "name": "Radiant Strike",
+          "kind": "attackRider",
+          "trigger": {
+            "event": "onHit",
+            "source": "thisItemAttack"
+          },
+          "requirements": {
+            "owned": true,
+            "equipped": true,
+            "attuned": true
+          },
+          "damage": [
+            {
+              "formula": "1d8",
+              "type": "radiant",
+              "critical": "doubleDice"
+            }
+          ]
+        },
+        {
+          "id": "healing-incense",
+          "name": "Healing Incense",
+          "kind": "action",
+          "activation": {
+            "type": "bonusAction"
+          },
+          "requirements": {
+            "owned": true,
+            "equipped": true,
+            "attuned": true
+          },
+          "resourceCosts": [
+            {
+              "resourceId": "healing-incense",
+              "amount": 1
+            }
+          ],
+          "createsEffect": {
+            "id": "healing-incense-cloud",
+            "name": "Healing Incense Cloud",
+            "duration": {
+              "unit": "minute",
+              "value": 1,
+              "combatRounds": 10
+            },
+            "area": {
+              "shape": "emanation",
+              "radius": 10,
+              "unit": "feet",
+              "anchor": "sourceActor",
+              "movesWithAnchor": true
+            },
+            "visibility": {
+              "obscuresVision": false
+            },
+            "hooks": [
+              {
+                "event": "sourceTurnStart",
+                "targets": "creaturesCurrentlyInArea",
+                "effect": {
+                  "kind": "healing",
+                  "formula": "1d4"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "Belt of Dwarvenkind",
+        "source": "XDMG",
+        "variantToken": "root"
+      },
+      "capabilities": [
+        {
+          "id": "dwarvenkind-worn-benefits",
+          "name": "Dwarvenkind Worn Benefits",
+          "kind": "modifier",
+          "requirements": {
+            "owned": true,
+            "equipped": true,
+            "attuned": true,
+            "equipmentModes": ["worn"]
+          },
+          "effects": {
+            "abilityBonuses": [
+              { "ability": "CON", "amount": 2, "maximum": 20 }
+            ],
+            "languages": ["Dwarvish"],
+            "rollAdvantages": [
+              {
+                "roll": "skillCheck",
+                "ability": "CHA",
+                "skill": "Persuasion",
+                "label": "Advantage on Charisma (Persuasion) checks made to interact with dwarves and duergar."
+              }
+            ]
+          }
+        },
+        {
+          "id": "non-dwarf-worn-benefits",
+          "name": "Non-Dwarf Worn Benefits",
+          "kind": "modifier",
+          "requirements": {
+            "owned": true,
+            "equipped": true,
+            "attuned": true,
+            "equipmentModes": ["worn"],
+            "raceExcludes": ["dwarf", "duergar"]
+          },
+          "effects": {
+            "senses": [
+              { "type": "darkvision", "range": 60, "unit": "feet" }
+            ],
+            "defenses": {
+              "resistances": ["poison"]
+            },
+            "rollAdvantages": [
+              {
+                "roll": "savingThrow",
+                "label": "Advantage on saving throws made to avoid or end the Poisoned condition."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "Balance Card",
+        "source": "BMT",
+        "variantToken": "root"
+      },
+      "resources": [
+        {
+          "id": "life-drain",
+          "name": "Drain Life Force",
+          "max": 1,
+          "recovery": {
+            "trigger": "dawn",
+            "amount": "full"
+          }
+        }
+      ],
+      "capabilities": [
+        {
+          "id": "drain-life-force",
+          "name": "Brandish: Drain Life Force",
+          "kind": "action",
+          "activation": {
+            "type": "action"
+          },
+          "requirements": {
+            "owned": true
+          },
+          "resourceCosts": [
+            {
+              "resourceId": "life-drain",
+              "amount": 1
+            }
+          ],
+          "target": {
+            "type": "creature",
+            "required": true,
+            "range": 30,
+            "unit": "feet"
+          },
+          "savingThrow": {
+            "ability": "CON",
+            "dc": 17,
+            "onSuccess": "none"
+          },
+          "damage": [
+            {
+              "formula": "4d8",
+              "type": "necrotic",
+              "critical": "none"
+            }
+          ],
+          "selfHealing": {
+            "kind": "equalToDamageDealt"
+          },
+          "description": "A creature within 30 feet makes a DC 17 Constitution saving throw. On a failed save, it takes 4d8 necrotic damage, and you regain Hit Points equal to the damage dealt."
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "Cape of the Mountebank",
+        "source": "XDMG",
+        "variantToken": "root"
+      },
+      "resources": [
+        {
+          "id": "dimension-door",
+          "name": "Dimension Door",
+          "max": 1,
+          "recovery": {
+            "trigger": "dawn",
+            "amount": "full"
+          }
+        }
+      ],
+      "capabilities": [
+        {
+          "id": "cast-dimension-door",
+          "name": "Cape: Dimension Door",
+          "kind": "action",
+          "activation": {
+            "type": "action"
+          },
+          "requirements": {
+            "owned": true,
+            "equipped": true,
+            "equipmentModes": ["worn"]
+          },
+          "resourceCosts": [
+            {
+              "resourceId": "dimension-door",
+              "amount": 1
+            }
+          ],
+          "spell": {
+            "name": "Dimension Door",
+            "source": "XPHB",
+            "castLevel": 4
+          },
+          "description": "Cast Dimension Door without expending a spell slot. The space you leave is Lightly Obscured by smoke until the end of your next turn."
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "Medal of Muscle",
+        "source": "CRCotN",
+        "variantToken": "root"
+      },
+      "capabilities": [
+        {
+          "id": "squeeze-medal",
+          "name": "Squeeze Medal",
+          "kind": "action",
+          "activation": {
+            "type": "action"
+          },
+          "requirements": {
+            "owned": true
+          },
+          "oneTime": true,
+          "activatesStatus": {
+            "id": "medal-of-muscle-strength",
+            "duration": {
+              "unit": "hour",
+              "value": 1
+            }
+          },
+          "description": "Gain Advantage on Strength checks and Strength saving throws for 1 hour. The medal becomes nonmagical after this one use."
+        }
+      ]
+    }
+  ]
+}

@@ -172,6 +172,23 @@ assert.deepStrictEqual(
   [["fireball", "XPHB", "charges", "1"]]
 );
 
+const simicSignet = realItem("Simic Guild Signet", "GGR");
+const simicSignetProfile = itemCatalog.itemAutomationProfile(simicSignet);
+assert.equal(simicSignetProfile.resources.charges, 3);
+assert.deepStrictEqual(simicSignetProfile.spells.attached, [{
+  name: "expeditious retreat",
+  source: "",
+  usage: "charges",
+  cost: "1"
+}], "the signet must expose its canonical spell and charge cost for automatic runtime resolution");
+
+const bellBranch = realItem("Bell Branch", "TCE");
+assert.deepStrictEqual(
+  itemCatalog.itemAutomationProfile(bellBranch).spells.attached,
+  [{ name: "protection from evil and good", source: "", usage: "charges", cost: "1" }],
+  "Bell Branch must expose Protection from Evil and Good separately from the item display name"
+);
+
 const professorOrb = realItem("Professor Orb", "WDMM");
 assert.equal(professorOrb.attachedSpells.ability, "int");
 assert.equal(
@@ -232,6 +249,22 @@ assert.equal(itemCatalog.equipmentModesMatch(["held"], ["accessory"]), false,
 assert.equal(itemCatalog.equipmentModesMatch(["held"], ["mainHand"]), true);
 assert.equal(itemCatalog.equipmentModesMatch(["worn"], ["accessory"]), true);
 assert.deepStrictEqual(itemCatalog.persistentDefenseProfile(realItem("Brooch of Shielding", "XDMG")).resistances, ["force"]);
+assert.deepStrictEqual(itemCatalog.persistentDefenseProfile(realItem("Ring of Poison Resistance", "XDMG")).resistances, ["poison"],
+  "a worn resistance ring must expose its structured passive defense");
+assert.deepStrictEqual(itemCatalog.persistentDefenseProfile(realItem("Belt of Dwarvenkind", "XDMG")).resistances, [],
+  "a race-conditional resistance must not leak through the unconditional catalog fallback");
+assert.deepStrictEqual(itemCatalog.persistentAbilityScoreProfile(realItem("Amulet of Health", "XDMG")), [{
+  ability: "CON",
+  score: 19,
+  equipmentModes: ["worn"]
+}], "a worn static ability score must be exposed as a deterministic equipment override");
+assert.deepStrictEqual(itemCatalog.itemAutomationProfile(realItem("Amulet of Health", "XDMG")).abilityScores.static, [{
+  ability: "CON",
+  score: 19,
+  equipmentModes: ["worn"]
+}]);
+assert.deepStrictEqual(itemCatalog.persistentAbilityScoreProfile(realItem("Potion of Hill Giant Strength", "XDMG")), [],
+  "temporary consumed ability scores must not become passive equipment overrides");
 assert.deepStrictEqual(itemCatalog.persistentDefenseProfile(realItem("Armor of Vulnerability (Bludgeoning)", "XDMG")), {
   resistances: ["bludgeoning"],
   immunities: [],

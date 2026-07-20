@@ -2548,13 +2548,15 @@
 
     async function loadItemOptions() {
       if (desktopStore?.loadItems) return desktopStore.loadItems();
-      const [itemsResponse, baseItemsResponse] = await Promise.all([
+      const [itemsResponse, baseItemsResponse, automationResponse] = await Promise.all([
         fetchLocalResource("../../data/items/items.json"),
-        fetchLocalResource("../../data/items/items-base.json")
+        fetchLocalResource("../../data/items/items-base.json"),
+        fetchLocalResource("../../data/items/item-automation.json")
       ]);
       return {
         items: itemsResponse,
-        baseItems: baseItemsResponse
+        baseItems: baseItemsResponse,
+        automation: automationResponse
       };
     }
 
@@ -2689,6 +2691,11 @@
     function applyItemCatalogData(itemData) {
       const activeSource = Array.isArray(itemData?.items?.item) ? itemData.items.item : [];
       items = attachItemCatalogIdentities(activeSource);
+      const automationRegistry = globalThis.dndItemAutomationRegistry?.createItemAutomationRegistry?.({
+        overlay: itemData?.automation || { schemaVersion: 1, items: [] },
+        catalog: { item: items }
+      });
+      globalThis.dndItemCatalog?.setItemAutomationRegistry?.(automationRegistry);
       const declaredExpectedCount = Number(itemData?.items?._meta?.expectedActiveRecords);
       const expectedCount = Number.isInteger(declaredExpectedCount) && declaredExpectedCount > 0 ? declaredExpectedCount : 1779;
       const validation = globalThis.dndItemCatalog?.validateItemCatalog?.(items, { expectedCount });
@@ -2730,6 +2737,7 @@
         ...(itemData?.cacheMeta || {}),
         expectedCount,
         activeCount: items.length,
+        automationCount: automationRegistry?.size || 0,
         tombstoneCount: retiredItems.length,
         validation
       };

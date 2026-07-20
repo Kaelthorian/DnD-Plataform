@@ -42,6 +42,94 @@
     };
   }
 
+  function resourceStateKey(catalogId, resourceId) {
+    const itemId = String(catalogId || "").trim();
+    const poolId = String(resourceId || "").trim();
+    return itemId && poolId ? `${itemId}::${poolId}` : itemId;
+  }
+
+  function namedResourceDefinition(definition = {}) {
+    const resourceId = String(definition.resourceId || definition.id || "").trim();
+    const max = finiteWholeNumber(definition.max);
+    if (!resourceId || max == null || max <= 0) return null;
+    return {
+      resourceId,
+      max,
+      kind: String(definition.kind || "uses"),
+      recovery: definition.recovery && typeof definition.recovery === "object"
+        ? { trigger: String(definition.recovery.trigger || ""), amount: definition.recovery.amount }
+        : null
+    };
+  }
+
+  function ensureResourceState(store, catalogId, definition, options = {}) {
+    const normalizedDefinition = namedResourceDefinition(definition);
+    if (!normalizedDefinition) return { nextStore: store || {}, state: null, key: "", changed: false };
+    const source = store && typeof store === "object" && !Array.isArray(store) ? store : {};
+    const key = resourceStateKey(catalogId, normalizedDefinition.resourceId);
+    const legacyKey = String(catalogId || "").trim();
+    const legacyRecord = options.allowLegacy === true && !source[key] ? source[legacyKey] : null;
+    const record = source[key] || legacyRecord;
+    const state = {
+      ...normalizeResourceRecord(record, { max: normalizedDefinition.max, kind: normalizedDefinition.kind }),
+      resourceId: normalizedDefinition.resourceId,
+      recovery: normalizedDefinition.recovery
+    };
+    const current = source[key];
+    const equal = recordsEqual(current, state)
+      && current.resourceId === state.resourceId
+      && JSON.stringify(current.recovery || null) === JSON.stringify(state.recovery || null);
+    return equal
+      ? { nextStore: source, state, key, changed: false, migratedLegacy: false }
+      : { nextStore: { ...source, [key]: state }, state, key, changed: true, migratedLegacy: Boolean(legacyRecord) };
+  }
+
+  function adjustResourceState(store, catalogId, definition, delta, options = {}) {
+    const ensured = ensureResourceState(store, catalogId, definition, options);
+    if (!ensured.state) return { ...ensured, applied: false };
+    const amount = Number(delta);
+    if (!Number.isFinite(amount) || amount === 0) return { ...ensured, applied: false };
+    const current = Math.max(0, Math.min(ensured.state.max, ensured.state.current + Math.trunc(amount)));
+    if (current === ensured.state.current) return { ...ensured, applied: false };
+    const state = { ...ensured.state, current };
+    return {
+      ...ensured,
+      nextStore: { ...ensured.nextStore, [ensured.key]: state },
+      state,
+      changed: true,
+      applied: true
+    };
+  }
+
+  function processRecoveryEvent(store, event, definitions = []) {
+    const trigger = String(event || "").trim();
+    let nextStore = store && typeof store === "object" && !Array.isArray(store) ? store : {};
+    const recovered = [];
+    const declared = Array.isArray(definitions) && definitions.length
+      ? definitions
+      : Object.entries(nextStore).flatMap(([key, record]) => {
+        const resourceId = String(record?.resourceId || "").trim();
+        const suffix = resourceId ? `::${resourceId}` : "";
+        if (!suffix || !key.endsWith(suffix) || !record?.recovery) return [];
+        return [{ ...record, catalogId: key.slice(0, -suffix.length), resourceId }];
+      });
+    declared.forEach((input) => {
+      const catalogId = String(input?.catalogId || "").trim();
+      const definition = namedResourceDefinition(input);
+      if (!catalogId || !definition || definition.recovery?.trigger !== trigger) return;
+      const ensured = ensureResourceState(nextStore, catalogId, definition);
+      nextStore = ensured.nextStore;
+      const requested = definition.recovery.amount === "full"
+        ? ensured.state.max
+        : Math.min(ensured.state.max, ensured.state.current + Math.max(0, Number(definition.recovery.amount) || 0));
+      if (requested === ensured.state.current) return;
+      const state = { ...ensured.state, current: requested };
+      nextStore = { ...nextStore, [ensured.key]: state };
+      recovered.push({ key: ensured.key, catalogId, resourceId: definition.resourceId, before: ensured.state.current, after: requested });
+    });
+    return { nextStore, recovered, changed: recovered.length > 0 };
+  }
+
   function recordsEqual(left, right) {
     return Boolean(left && right
       && left.current === right.current
@@ -81,6 +169,22 @@
     return cost != null && cost > 0 ? cost : null;
   }
 
+  function declaredAttachedSpellUse(spell = {}) {
+    const usage = String(spell.usage || "").trim().toLowerCase();
+    const match = String(spell.cost || "").trim().match(/^(\d+)(e)?$/i);
+    if (!match || !["daily", "rest", "limited"].includes(usage)) return null;
+    const max = finiteWholeNumber(match[1]);
+    if (max == null || max <= 0) return null;
+    return {
+      usage,
+      max,
+      each: Boolean(match[2]),
+      recovery: usage === "daily" ? { trigger: "dawn", amount: "full" }
+        : usage === "rest" ? { trigger: "longRest", amount: "full" }
+          : null
+    };
+  }
+
   function inferItemActionTypes(text) {
     const value = String(text || "");
     if (!value.trim()) return [];
@@ -117,7 +221,13 @@
     normalizeResourceRecord,
     ensureItemResourceState,
     adjustItemResourceState,
+    resourceStateKey,
+    namedResourceDefinition,
+    ensureResourceState,
+    adjustResourceState,
+    processRecoveryEvent,
     declaredAttachedSpellChargeCost,
+    declaredAttachedSpellUse,
     inferItemActionTypes,
     inferItemActionType,
     inferUniqueItemActionType,

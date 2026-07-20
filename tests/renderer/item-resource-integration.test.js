@@ -26,7 +26,13 @@ const adjustItemResource = functionBlock(html, "adjustItemResource");
 const setItemAttuned = functionBlock(html, "setItemAttuned");
 const appendItemResourceControl = functionBlock(html, "appendItemResourceControl");
 const attachedSpellItemActionType = functionBlock(html, "attachedSpellItemActionType");
+const attachedSpellUseDefinition = functionBlock(html, "attachedSpellUseDefinition");
 const itemDescriptionGrantsSpellCasting = functionBlock(html, "itemDescriptionGrantsSpellCasting");
+const attachedSpellTurnAction = functionBlock(html, "attachedSpellTurnAction");
+const itemAttachedSpellPreparedSelections = functionBlock(html, "itemAttachedSpellPreparedSelections");
+const itemGrantedSpellPreparedSelection = functionBlock(html, "itemGrantedSpellPreparedSelection");
+const itemCapabilityPreparedSelections = functionBlock(html, "itemCapabilityPreparedSelections");
+const castGrantedItemSpell = functionBlock(html, "castGrantedItemSpell");
 const itemEffectStateStore = functionBlock(html, "itemEffectStateStore");
 const setItemEffectActive = functionBlock(html, "setItemEffectActive");
 const appendItemEffectControl = functionBlock(html, "appendItemEffectControl");
@@ -90,26 +96,55 @@ assert.doesNotMatch(chargedItemTurnActions, /!type \|\| entry\.quantity/,
 assert.match(chargedItemTurnActions, /\(spell\.usage \|\| "always"\) === "always" && !grantsUnbucketedSpells/,
   "unbucketed spellbook contents must not become cast actions without a casting grant");
 assert.match(chargedItemTurnActions, /declaredAttachedSpellChargeCost/);
+assert.match(chargedItemTurnActions, /attachedSpellTurnAction\(item, spell/,
+  "known attached spells should be upgraded from manual items into spell actions");
 assert.match(chargedItemTurnActions, /itemResourceCost: cost/);
 assert.match(chargedItemTurnActions, /const attachedSpells = profile\?\.spells\?\.attached \|\| \[\]/);
-assert.match(chargedItemTurnActions, /item\.actionManualTracking/,
-  "daily/rest/will spell actions must remain explicitly manual");
+assert.match(chargedItemTurnActions, /attachedSpellUseInfo\(item, spell\)/,
+  "daily, rest, and limited attached spells must receive a declared persistent use pool");
 assert.match(chargedItemTurnActions, /\.\.\.\(consumesCharges \? \{ itemResourceCatalogId: catalogId, itemResourceCost: cost \} : \{\}\)/,
   "only an explicit numeric charge cost may enter the transactional decrement path");
 assert.match(chargedItemTurnActions, /RESOLUTION_STEPS\.selectTarget[\s\S]*RESOLUTION_STEPS\.applyEffect[\s\S]*RESOLUTION_STEPS\.confirmResult/,
   "item actions must require guided target/effect confirmation");
 assert.match(chargedItemTurnActions, /item\.actionManualAdjudication/);
+assert.match(attachedSpellTurnAction, /createSpellActionDefinition/,
+  "an attached item spell must reuse canonical spell targeting, saves, damage, and concentration metadata");
+assert.match(attachedSpellTurnAction, /category: ACTION_CATEGORIES\.items/,
+  "item spells must not enter the normal spell-slot consumption path");
+assert.match(attachedSpellTurnAction, /itemGrantedSpell/);
+assert.match(attachedSpellTurnAction, /itemAttachedSpellUse/,
+  "a declared daily/rest/limited spell use must be committed transactionally");
+assert.match(attachedSpellUseDefinition, /declaredAttachedSpellUse/,
+  "attached spell pools must derive only from structured catalog usage metadata");
+assert.match(itemAttachedSpellPreparedSelections, /action\.disabledReason/,
+  "a depleted item spell must leave Attacks and Spellcasting");
+assert.match(itemAttachedSpellPreparedSelections, /chargedItemTurnActions\(entry\)/,
+  "the spell list must derive from the same resource-validated action as Combat");
+assert.match(itemGrantedSpellPreparedSelection, /name: spell\.name/,
+  "an item spell row must keep the canonical spell name instead of appending the item name");
+assert.match(itemGrantedSpellPreparedSelection, /sourceName: spell\.name/,
+  "an item spell row must preserve canonical lookup identity for casting and statuses");
+assert.doesNotMatch(itemGrantedSpellPreparedSelection, /spell\.name \+ " - " \+ item\.name/,
+  "the item source belongs in metadata, never in a spell name lookup");
+assert.match(itemCapabilityPreparedSelections, /name: action\.itemGrantedSpell\s*\?\s*action\.itemGrantedSpell\.name/,
+  "declarative item spell capabilities must also keep the canonical spell name");
+assert.match(castGrantedItemSpell, /recordSuccessfulSpellCast/,
+  "casting from an item must preserve normal spell statuses and concentration without spending a slot");
 assert.match(itemAttachedSpellsLine, /spell\.usage \|\| "always"/);
 assert.match(itemAttachedSpellsLine, /spell\.cost != null/);
 assert.match(itemAttachedSpellsLine, /item\.spellUsageCost/,
   "every attached spell must expose its parsed usage and declared cost");
 
 assert.match(validateItemResourceAction, /itemRequiresAttunement\(item\) && !itemIsAttuned\(item\)/);
+assert.match(validateItemResourceAction, /itemSpellEquipmentModes/,
+  "a spell granted while wearing or holding an item must be revalidated when confirming");
 assert.match(validateItemResourceAction, /!characterOwnsCatalogItem\(item\)/,
   "combat confirmation must reject an item removed after the action opened");
 assert.match(validateItemResourceAction, /info\.current < cost/);
 assert.match(consumeItemResourceForAction, /adjustItemResource\(validation\.item, -validation\.cost\)/);
-assert.match(consumeItemResourceForAction, /validation\.cost <= 0\) return validation\.ok/,
+assert.match(consumeItemResourceForAction, /validation\.attachedSpellUse/,
+  "attached spell use pools must decrement only after a confirmed combat resolution");
+assert.match(consumeItemResourceForAction, /validation\.cost <= 0\) return true/,
   "manual-cost activations must never invent or decrement a charge cost");
 {
   let adjustments = 0;
@@ -147,6 +182,7 @@ for (const key of [
   "item.actionManualAdjudication",
   "item.actionManualTracking",
   "item.spellUsageCost",
+  "item.grantedBy",
   "item.effectManualGuidance",
   "item.effectActivate",
   "item.effectDeactivate"

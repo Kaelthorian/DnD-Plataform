@@ -484,6 +484,34 @@ assert.match(formatted, /Damage: 8 Piercing/);
 assert.match(formatted, /Resources: Action/);
 assert.match(formatted, /1 attack remains/);
 
+// 26. Compound damage is authoritative while legacy damageRoll remains available.
+const compoundAction = actions.createAttackActionDefinition({
+  name: "Censer",
+  attackBonus: 7,
+  damage: "1d8+4",
+  damageType: "bludgeoning",
+  damageComponents: [
+    { id: "base", formula: "1d8+4", type: "bludgeoning", source: "weapon", trigger: "onHit", critical: "doubleDice" },
+    { id: "rider", formula: "1d8", type: "radiant", source: "itemCapability", trigger: "onHit", critical: "doubleDice" }
+  ]
+});
+let compoundSession = resolution.createResolution(compoundAction, base);
+compoundSession = resolution.recordTarget(compoundSession, { name: "Fiend", ac: 15 });
+compoundSession = resolution.recordAttackRoll(compoundSession, { natural: 20, total: 27 });
+compoundSession = resolution.recordDamageRolls(compoundSession, [
+  { id: "base", formula: "2d8+4", type: "bludgeoning", total: 13 },
+  { id: "rider", formula: "2d8", type: "radiant", total: 9 }
+]);
+assert.deepEqual(compoundSession.results.damageRolls.map((roll) => roll.type), ["bludgeoning", "radiant"]);
+assert.equal(compoundSession.results.damageRoll.total, 22);
+assert.equal(resolution.confirmResolution(compoundSession).ok, true);
+const compoundLog = combatLog.formatCombatLogEvent(combatLog.createCombatLogEvent({
+  actor: "Kael", action: "Censer", damageComponents: compoundSession.results.damageRolls
+}));
+assert.match(compoundLog, /Bludgeoning: 2d8\+4 = 13/);
+assert.match(compoundLog, /Radiant: 2d8 = 9/);
+assert.match(compoundLog, /Total: 22/);
+
 // Universal list includes every required baseline action and no generic free-action counter.
 const universalNames = new Set(actions.createUniversalActionDefinitions({ speed: 30 }).map((entry) => entry.name));
 ["Attack", "Dash", "Disengage", "Dodge", "Help", "Hide", "Ready", "Search", "Study", "Influence", "Utilize", "Magic", "Grapple", "Shove", "Improvised Action", "Movement", "Stand Up", "Drop Prone", "Object Interaction", "End Turn"].forEach((name) => assert.equal(universalNames.has(name), true, `Missing ${name}`));

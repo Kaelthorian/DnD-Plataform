@@ -6,14 +6,17 @@ const v8 = require("v8");
 const { parentPort, workerData } = require("worker_threads");
 
 async function sourceSignature() {
-  const [itemsStat, baseItemsStat] = await Promise.all([
+  const [itemsStat, baseItemsStat, automationStat] = await Promise.all([
     fs.stat(workerData.itemsPath),
-    fs.stat(workerData.baseItemsPath)
+    fs.stat(workerData.baseItemsPath),
+    fs.stat(workerData.automationPath)
   ]);
   return [
     `v${workerData.cacheVersion}`,
+    `schema:${workerData.automationSchemaVersion}`,
     `${itemsStat.size}:${Math.trunc(itemsStat.mtimeMs)}`,
-    `${baseItemsStat.size}:${Math.trunc(baseItemsStat.mtimeMs)}`
+    `${baseItemsStat.size}:${Math.trunc(baseItemsStat.mtimeMs)}`,
+    `${automationStat.size}:${Math.trunc(automationStat.mtimeMs)}`
   ].join("|");
 }
 
@@ -21,7 +24,7 @@ async function readCachedCatalog(signature) {
   if (!workerData.cachePath) return null;
   try {
     const cached = v8.deserialize(await fs.readFile(workerData.cachePath));
-    if (cached?.signature !== signature || !cached.data?.items || !cached.data?.baseItems) return null;
+    if (cached?.signature !== signature || !cached.data?.items || !cached.data?.baseItems || !cached.data?.automation) return null;
     return cached.data;
   } catch (_error) {
     return null;
@@ -35,13 +38,15 @@ async function writeCachedCatalog(signature, data) {
 }
 
 async function parseSourceCatalog() {
-  const [itemsRaw, baseItemsRaw] = await Promise.all([
+  const [itemsRaw, baseItemsRaw, automationRaw] = await Promise.all([
     fs.readFile(workerData.itemsPath, "utf8"),
-    fs.readFile(workerData.baseItemsPath, "utf8")
+    fs.readFile(workerData.baseItemsPath, "utf8"),
+    fs.readFile(workerData.automationPath, "utf8")
   ]);
   return {
     items: JSON.parse(itemsRaw),
-    baseItems: JSON.parse(baseItemsRaw)
+    baseItems: JSON.parse(baseItemsRaw),
+    automation: JSON.parse(automationRaw)
   };
 }
 

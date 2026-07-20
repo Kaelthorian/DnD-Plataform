@@ -61,19 +61,20 @@ La restauración valida ambos payloads y sus hashes antes de escribir, rechaza u
 
 ## Runtime y automatización
 
-`src/services/data-loader.js` carga ambos JSON app-owned mediante el worker y una caché binaria derivada v2. El Character Sheet mantiene el índice en memoria; el DM Screen importa el mismo catálogo en su chunk Vite. Cambiar cualquiera de los dos JSON invalida las cachés derivadas y el bundle del DM Screen.
+`src/services/data-loader.js` carga los dos JSON canónicos y el overlay `item-automation.json` mediante el worker y una caché binaria derivada v3. La firma incluye tamaño/mtime de los tres archivos y versión del schema. El Character Sheet mantiene el índice/registry en memoria; el DM Screen importa la colección canónica. Cambiar cualquier fuente invalida la caché derivada.
 
 La sincronización conserva campos estructurados, descripciones, reglas heredadas de `itemType` y tags; no convierte automáticamente cada frase de reglas en una mutación de personaje. `item-catalog.js` deriva perfiles reutilizables y `item-resource-state.js` persiste cargas/reload numéricos por `catalogId`, con límites y gasto confirmado.
 
 Los adaptadores genéricos cubren armas, armaduras, múltiples accesorios/wondrous equipables, munición base/mágica compatible, expansión de packs nuevos, consumibles, conjuros anexos con su propio casting time y costes explícitos, CA persistente segura al llevar/sostener, saving throws y bonos persistentes de ataque/CD de conjuros. Las referencias estructuradas de properties/masteries conservan `uid`/`note`, y ambos renderers muestran las reglas heredadas por `_copy` de `itemType`. Una lista de spells sólo se convierte en acciones cuando el ítem concede expresamente castearlos; no se interpreta el contenido de un spellbook como poderes del ítem. Las defensas equipadas se agregan al resumen visible, pero no modifican automáticamente daño/HP. Los requisitos deterministas de sintonización por clase, raza, background o capacidad de lanzar conjuros se validan; requisitos narrativos o no representados en la hoja requieren confirmación manual y todavía no se impone el límite global de tres ítems sintonizados.
 
-Un efecto que no puede aplicarse sin inventar reglas puede marcarse activo/inactivo en `__sheetMeta.itemEffects`; esa marca persiste y guía al jugador, pero no altera estadísticas por sí sola. Recargas con dados, usos diarios/por descanso compartidos, bonos condicionados por tipo de daño, objetivos, duraciones, vehículos y decisiones del mundo permanecen manuales. Los packs de munición ya guardados antes de esta integración no se migran retrospectivamente; sólo las altas nuevas se expanden a unidades. La presencia de un campo en JSON no prueba automatización completa.
+Las capacidades deterministas se declaran en el overlay separado y se validan por identidad exacta; consultar `docs/ITEM_AUTOMATION.md`. Recursos nombrados usan `catalogId::resourceId`, daño adicional conserva componentes/tipos y efectos nuevos crean instancias en `__sheetMeta.activeItemEffects`. `itemEffects` continúa como marca manual legacy. Recargas con dados, decisiones abiertas y geometría VTT permanecen guiadas. Los packs de munición legacy no se migran retrospectivamente. La presencia de un campo en JSON no prueba automatización completa.
 
 ## Validación mínima
 
 ```powershell
 npm run validate:items
 node tests/engine/item-data.test.js
+node tests/engine/item-automation.test.js
 node tests/services/item-sync.test.js
 node tests/services/data-loader-cache.test.js
 node tests/renderer/combat-ui.test.js

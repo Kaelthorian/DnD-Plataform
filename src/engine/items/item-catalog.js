@@ -16,6 +16,12 @@
     "sling bullets of althemone|mot": "sling bullet",
     "unbreakable arrow|xge": "arrow"
   });
+  let automationRegistry = null;
+
+  function setItemAutomationRegistry(registry) {
+    automationRegistry = registry && typeof registry.augmentProfile === "function" ? registry : null;
+    return automationRegistry;
+  }
 
   function normalizeIdentityPart(value) {
     return String(value == null ? "" : value)
@@ -394,7 +400,7 @@
       const scopedBlock = inheritedScope ? `${inheritedScope}\n${block}` : block;
       const modes = persistentEquipmentModes(scopedBlock);
       if (!modes.length) return false;
-      return !/\b(?:as|using) (?:an?|your) (?:action|bonus action|reaction|magic action)\b|\bfor (?:that|the) duration\b|\bfor \d+ (?:round|minute|hour|day)s?\b|\buntil\b|\btransform(?:ed|ation|ing)?\b|\bwhile cursed\b|\bdraw(?:n|ing)? (?:a|the|this) card\b/i.test(scopedBlock);
+      return !/\b(?:as|using) (?:an?|your) (?:action|bonus action|reaction|magic action)\b|\bfor (?:that|the) duration\b|\bfor \d+ (?:round|minute|hour|day)s?\b|\buntil\b|\btransform(?:ed|ation|ing)?\b|\bwhile cursed\b|\bdraw(?:n|ing)? (?:a|the|this) card\b|\bif you (?:aren't|are not|are not a|aren't a)\b/i.test(scopedBlock);
     });
     const hasSafe = (pattern) => safeBlocks.some((block) => pattern.test(block));
     return {
@@ -403,6 +409,39 @@
       vulnerabilities: hasSafe(/\bvulnerab(?:le|ility|ilities)\b/i) ? raw.vulnerabilities : [],
       conditionImmunities: hasSafe(/\b(?:immune|immunity|immunities|can(?:not|'t) be)\b/i) ? raw.conditionImmunities : []
     };
+  }
+
+  const STATIC_ABILITY_SCORE_NAMES = Object.freeze({
+    str: { ability: "STR", name: "Strength" },
+    dex: { ability: "DEX", name: "Dexterity" },
+    con: { ability: "CON", name: "Constitution" },
+    int: { ability: "INT", name: "Intelligence" },
+    wis: { ability: "WIS", name: "Wisdom" },
+    cha: { ability: "CHA", name: "Charisma" }
+  });
+
+  function persistentAbilityScoreProfile(item = {}) {
+    const declared = item?.ability?.static;
+    if (!declared || typeof declared !== "object" || Array.isArray(declared)) return [];
+    const sentences = renderEntryText(item.entries || [], item)
+      .split(/(?<=[.!?])\s+/)
+      .map((sentence) => sentence.trim())
+      .filter(Boolean);
+
+    return Object.entries(declared).flatMap(([key, value]) => {
+      const definition = STATIC_ABILITY_SCORE_NAMES[normalizeIdentityPart(key)];
+      const score = Number(value);
+      if (!definition || !Number.isInteger(score) || score < 1 || score > 30) return [];
+      const scorePattern = new RegExp(`\\b${definition.name} score\\b[^.!?]*\\b(?:is|becomes?|changes? to)\\s+${score}\\b`, "i");
+      const sentence = sentences.find((entry) => scorePattern.test(entry) && persistentEquipmentModes(entry).length);
+      if (!sentence) return [];
+      if (/\b(?:for \d+ (?:round|minute|hour|day)s?|until|when you drink|after you|as an? (?:action|bonus action|reaction|magic action))\b/i.test(sentence)) return [];
+      return [{
+        ability: definition.ability,
+        score,
+        equipmentModes: persistentEquipmentModes(sentence)
+      }];
+    });
   }
 
   function matchingPersistentBonusSentence(item, declared, requiredPattern) {
@@ -516,7 +555,7 @@
     const type = String(item.type || "").split("|")[0].toUpperCase();
     const description = renderEntryText(item.entries || [], item);
     const attachedSpells = attachedSpellReferences(item.attachedSpells);
-    return {
+    const profile = {
       catalogId: item.catalogId || itemCatalogId(item),
       catalogKey: item.catalogKey || itemCatalogKey(item),
       variantToken: item.catalogVariantToken || itemVariantToken(item),
@@ -573,6 +612,9 @@
         conditionImmunities: Array.isArray(item.conditionImmune) ? [...item.conditionImmune] : [],
         savingThrowBonus: numberFromBonus(item.bonusSavingThrow)
       },
+      abilityScores: {
+        static: persistentAbilityScoreProfile(item)
+      },
       consumable: item.poison === true
         || Array.isArray(item.poisonTypes)
         || (Array.isArray(item.miscTags) && item.miscTags.includes("CNS"))
@@ -598,6 +640,17 @@
         variants: item.variants ?? null
       }
     };
+    return automationRegistry
+      ? automationRegistry.augmentProfile(profile, item)
+      : {
+        ...profile,
+        resources: { ...profile.resources, definitions: [] },
+        capabilities: [],
+        attackRiders: [],
+        actions: [],
+        modifiers: [],
+        manualCapabilities: []
+      };
   }
 
   return Object.freeze({
@@ -608,11 +661,13 @@
     collectCatalogRecords,
     decorateItem,
     itemAutomationProfile,
+    setItemAutomationRegistry,
     itemCatalogId,
     itemCatalogKey,
     itemVariantToken,
     equipmentModesMatch,
     persistentDefenseProfile,
+    persistentAbilityScoreProfile,
     persistentEquipmentModes,
     persistentHeldArmorClassBonus,
     persistentWornArmorClassBonus,

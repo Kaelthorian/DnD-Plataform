@@ -7,7 +7,8 @@ const PROJECT_ROOT = path.resolve(SRC_ROOT, "..");
 const APP_DATA_ROOT = path.join(SRC_ROOT, "data");
 const RENDERER_ASSETS_ROOT = path.join(SRC_ROOT, "app", "renderer", "assets");
 const VENDOR_DATA_ROOT = path.join(PROJECT_ROOT, "vendor", "5etools-src-main", "data");
-const ITEM_CACHE_VERSION = 2;
+const ITEM_CACHE_VERSION = 3;
+const ITEM_AUTOMATION_SCHEMA_VERSION = 1;
 const itemCatalogLoads = new Map();
 
 function appDataPath(...segments) {
@@ -53,13 +54,15 @@ function itemCatalogCachePath(userDataPath) {
   return path.join(userDataPath, "data-cache", `items-catalog-v${ITEM_CACHE_VERSION}.bin`);
 }
 
-function loadItemsInWorker({ itemsPath, baseItemsPath, cachePath }) {
+function loadItemsInWorker({ itemsPath, baseItemsPath, automationPath, cachePath }) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, "workers", "item-data-worker.js"), {
       workerData: {
         cacheVersion: ITEM_CACHE_VERSION,
         itemsPath,
         baseItemsPath,
+        automationPath,
+        automationSchemaVersion: ITEM_AUTOMATION_SCHEMA_VERSION,
         cachePath
       }
     });
@@ -82,19 +85,20 @@ function loadItemsInWorker({ itemsPath, baseItemsPath, cachePath }) {
   });
 }
 
-async function loadItemsDirect(itemsPath, baseItemsPath) {
-  const [items, baseItems] = await Promise.all([readJson(itemsPath), readJson(baseItemsPath)]);
-  return { items, baseItems, cacheMeta: { source: "direct-fallback" } };
+async function loadItemsDirect(itemsPath, baseItemsPath, automationPath) {
+  const [items, baseItems, automation] = await Promise.all([readJson(itemsPath), readJson(baseItemsPath), readJson(automationPath)]);
+  return { items, baseItems, automation, cacheMeta: { source: "direct-fallback" } };
 }
 
 function loadItems(userDataPath = "", options = {}) {
   const itemsPath = options.itemsPath || appDataPath("items", "items.json");
   const baseItemsPath = options.baseItemsPath || appDataPath("items", "items-base.json");
+  const automationPath = options.automationPath || appDataPath("items", "item-automation.json");
   const cachePath = options.cachePath === undefined ? itemCatalogCachePath(userDataPath) : options.cachePath;
-  const loadKey = `${itemsPath}|${baseItemsPath}|${cachePath || "no-cache"}`;
+  const loadKey = `${itemsPath}|${baseItemsPath}|${automationPath}|schema:${ITEM_AUTOMATION_SCHEMA_VERSION}|${cachePath || "no-cache"}`;
   if (itemCatalogLoads.has(loadKey)) return itemCatalogLoads.get(loadKey);
-  const load = loadItemsInWorker({ itemsPath, baseItemsPath, cachePath })
-    .catch(() => loadItemsDirect(itemsPath, baseItemsPath));
+  const load = loadItemsInWorker({ itemsPath, baseItemsPath, automationPath, cachePath })
+    .catch(() => loadItemsDirect(itemsPath, baseItemsPath, automationPath));
   itemCatalogLoads.set(loadKey, load);
   return load;
 }
@@ -122,6 +126,8 @@ module.exports = {
   loadConditionsDiseases,
   loadLanguages,
   clearItemCatalogMemoryCache,
+  ITEM_CACHE_VERSION,
+  ITEM_AUTOMATION_SCHEMA_VERSION,
   paths: {
     APP_DATA_ROOT,
     RENDERER_ASSETS_ROOT,

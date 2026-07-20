@@ -5,9 +5,9 @@ Este directorio contiene reglas puras y serializables del turno de combate. No d
 ## Archivos
 
 - `turn-economy.js`: inicio/fin de turno, Action/Bonus Action/Reaction/Movement/Object Interaction, reservas transaccionales y Extra Attack.
-- `action-definitions.js`: acciones universales y adaptadores declarativos para ataques/hechizos.
-- `resolution-engine.js`: sesión por pasos, Hit antes de Damage, saves, confirmación/cancelación y bloqueo de doble ejecución.
-- `combat-log.js`: contrato y formato del registro de combate.
+- `action-definitions.js`: acciones universales, adaptadores y componentes de daño tipados con política de crítico.
+- `resolution-engine.js`: sesión por pasos, Hit antes de Damage, `results.damageRolls` con fallback singular, confirmación/cancelación y bloqueo de doble ejecución.
+- `combat-log.js`: contrato y formato del registro, incluidos subtotales por componente/tipo.
 
 ## Límites
 

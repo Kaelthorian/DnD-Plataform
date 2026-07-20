@@ -36,6 +36,19 @@ assert.strictEqual(itemResources.normalizeResourceRecord({ current: -4, max: 5 }
 const overflow = itemResources.adjustItemResourceState(underflow.nextStore, catalogId, charges, 99);
 assert.strictEqual(overflow.state.current, 5, "recovery must be bounded at the declared maximum");
 
+const namedDefinition = { resourceId: "burst", max: 3, kind: "uses", recovery: { trigger: "shortRest", amount: "full" } };
+const named = itemResources.ensureResourceState({}, catalogId, namedDefinition);
+assert.strictEqual(named.key, `${catalogId}::burst`);
+assert.strictEqual(named.state.current, 3);
+const namedSpent = itemResources.adjustResourceState(named.nextStore, catalogId, namedDefinition, -2);
+assert.strictEqual(namedSpent.state.current, 1);
+assert.strictEqual(itemResources.processRecoveryEvent(namedSpent.nextStore, "longRest", [{ ...namedDefinition, catalogId }]).nextStore[named.key].current, 1);
+assert.strictEqual(itemResources.processRecoveryEvent(namedSpent.nextStore, "shortRest", [{ ...namedDefinition, catalogId }]).nextStore[named.key].current, 3);
+assert.strictEqual(itemResources.processRecoveryEvent(namedSpent.nextStore, "shortRest").nextStore[named.key].current, 3,
+  "named records carry enough recovery metadata for processRecoveryEvent(state, event)");
+const migratedNamed = itemResources.ensureResourceState({ [catalogId]: { current: 2, max: 3, kind: "charges" } }, catalogId, namedDefinition, { allowLegacy: true });
+assert.strictEqual(migratedNamed.state.current, 2, "callers can explicitly migrate an implicit legacy pool to one named resource");
+
 const expandedFull = itemResources.ensureItemResourceState(initialized.nextStore, catalogId, { kind: "charges", max: 7 });
 assert.strictEqual(expandedFull.state.current, 7, "a full resource should remain full when the catalog maximum changes");
 const reducedPartial = itemResources.ensureItemResourceState(spent.nextStore, catalogId, { kind: "charges", max: 2 });
@@ -46,6 +59,26 @@ assert.strictEqual(itemResources.declaredAttachedSpellChargeCost({ usage: "charg
   "variable spell costs require manual adjudication");
 assert.strictEqual(itemResources.declaredAttachedSpellChargeCost({ usage: "daily", cost: "1" }), null,
   "only explicit charge usage may consume the charge pool");
+assert.deepStrictEqual(itemResources.declaredAttachedSpellUse({ usage: "daily", cost: "2e" }), {
+  usage: "daily",
+  max: 2,
+  each: true,
+  recovery: { trigger: "dawn", amount: "full" }
+});
+assert.deepStrictEqual(itemResources.declaredAttachedSpellUse({ usage: "rest", cost: "1" }), {
+  usage: "rest",
+  max: 1,
+  each: false,
+  recovery: { trigger: "longRest", amount: "full" }
+});
+assert.deepStrictEqual(itemResources.declaredAttachedSpellUse({ usage: "limited", cost: "3" }), {
+  usage: "limited",
+  max: 3,
+  each: false,
+  recovery: null
+});
+assert.strictEqual(itemResources.declaredAttachedSpellUse({ usage: "daily", cost: "1d3" }), null,
+  "variable daily spell counts require manual adjudication");
 
 assert.strictEqual(itemResources.inferItemActionType("As a Bonus Action, you can activate it."), "bonus");
 assert.strictEqual(itemResources.inferItemActionType("You can use a bonus action to activate it."), "bonus");

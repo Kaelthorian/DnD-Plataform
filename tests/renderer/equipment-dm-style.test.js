@@ -42,6 +42,7 @@ assert.match(html, /item-resource-status", "", "p", \{ allowEmpty: true \}/, "it
 assert.match(html, /item-effect-control[\s\S]*?item-section-body", "", "p", \{ allowEmpty: true \}/, "item effect status should create its initial empty node");
 assert.match(createAddButton, /fieldByLayerKey\(layer, "Equipment"\)/, "the item launcher should live in the inventory header");
 assert.match(createAddButton, /button\.textContent = t\("item\.addShort"\)/, "the item launcher should have a visible localized action label");
+assert.match(createAddButton, /equipmentPanelForLayer\.appendChild\(button\)/, "the item launcher should be docked outside the scrolling inventory rows");
 assert.match(createPanel, /equipment-panel dm-equipment-panel/, "the sheet inventory should opt into the DM-style surface");
 
 assert.match(styles, /\.item-picker\s*\{[\s\S]*?grid-template-columns:\s*minmax\(360px, 420px\) minmax\(0, 1fr\)/, "the picker should use the DM-style two-pane layout");
@@ -49,6 +50,9 @@ assert.match(styles, /\.item-picker-title\s*\{[\s\S]*?color:\s*#f59e0b/, "the pi
 assert.match(styles, /\.item-picker-add\s*\{[\s\S]*?background:\s*#f59e0b/, "the add action should use the amber DM treatment");
 assert.match(styles, /\.equipment-panel\s*\{[\s\S]*?background:\s*transparent[\s\S]*?box-shadow:\s*none/, "the inventory list should preserve the sheet background");
 assert.match(styles, /\.equipment-list\s*\{[\s\S]*?background:\s*transparent/, "the inventory rows should not restore an opaque list surface");
+assert.match(styles, /\.equipment-panel\s*\{[\s\S]*?grid-template-rows:\s*auto minmax\(0, 1fr\) auto/, "the inventory should reserve a fixed row for its add action");
+assert.match(styles, /\.equipment-list\s*\{[\s\S]*?min-height:\s*0[\s\S]*?overflow-y:\s*auto/, "the inventory rows should remain vertically scrollable inside the panel");
+assert.match(styles, /\.add-equipment-button\.equipment-panel-add\s*\{[\s\S]*?position:\s*static/, "the docked add action should not overlap item controls");
 assert.match(styles, /\.equipment-name\s*\{[\s\S]*?overflow-wrap:\s*anywhere[\s\S]*?white-space:\s*normal/, "equipment names should wrap instead of being truncated");
 assert.match(styles, /\.equipment-equip\.equipped\s*\{[\s\S]*?background:\s*#f59e0b/, "equipped items should have a visible amber state");
 assert.match(styles, /\.add-equipment-button\s*\{[\s\S]*?color:\s*#f59e0b/, "the item launcher should match the DM accent");

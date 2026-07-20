@@ -32,6 +32,12 @@
       hit: typeof input.hit === "boolean" ? input.hit : null,
       damage: optionalNumber(input.damage),
       damageType: String(input.damageType || ""),
+      damageComponents: cleanArray(input.damageComponents).map((component) => ({
+        id: String(component?.id || ""),
+        formula: String(component?.formula || ""),
+        type: String(component?.type || ""),
+        total: Number(component?.total) || 0
+      })),
       healing: optionalNumber(input.healing),
       savingThrows: cleanArray(input.savingThrows),
       resourcesConsumed: cleanArray(input.resourcesConsumed),
@@ -61,7 +67,13 @@
     )).join(", ")}.`);
     if (event.rollMode && event.rollMode !== "normal") lines.push(`Roll mode: ${event.rollMode}.`);
     if (event.attackTotal != null) lines.push(`Hit Roll: ${event.attackTotal}${event.hit == null ? " (DM resolution pending)" : event.hit ? " — Hit" : " — Miss"}.`);
-    if (event.damage != null) lines.push(`Damage: ${event.damage}${event.damageType ? ` ${event.damageType}` : ""}.`);
+    if (event.damageComponents?.length) {
+      event.damageComponents.forEach((component) => {
+        const label = component.type ? component.type[0].toUpperCase() + component.type.slice(1) : "Damage";
+        lines.push(`${label}: ${component.formula || "roll"} = ${component.total}.`);
+      });
+      lines.push(`Total: ${event.damageComponents.reduce((sum, component) => sum + component.total, 0)}.`);
+    } else if (event.damage != null) lines.push(`Damage: ${event.damage}${event.damageType ? ` ${event.damageType}` : ""}.`);
     if (event.healing != null) lines.push(`Healing: ${event.healing}.`);
     if (event.savingThrows?.length) lines.push(`Saving Throw: ${event.savingThrows.join("; ")}.`);
     if (event.resourcesConsumed?.length) lines.push(`Resources: ${event.resourcesConsumed.join(", ")}.`);

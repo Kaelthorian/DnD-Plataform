@@ -314,7 +314,12 @@
   <script src="../../engine/actions/action-advisor.js"></script>
   <script src="../../engine/spells/spell-data.js"></script>
   <script src="../../engine/items/item-catalog.js"></script>
+  <script src="../../engine/items/item-automation-schema.js"></script>
+  <script src="../../engine/items/item-capability-compiler.js"></script>
+  <script src="../../engine/items/item-automation-registry.js"></script>
   <script src="../../engine/items/item-resource-state.js"></script>
+  <script src="../../engine/effects/effect-state.js"></script>
+  <script src="../../engine/effects/effect-lifecycle.js"></script>
   <script src="../../engine/combat/turn-economy.js"></script>
   <script src="../../engine/combat/action-definitions.js"></script>
   <script src="../../engine/combat/resolution-engine.js"></script>
@@ -436,6 +441,8 @@
       recordSavingThrow: recordCombatSavingThrow,
       recordAbilityCheck: recordCombatAbilityCheck,
       recordDamageRoll: recordCombatDamageRoll,
+      recordDamageRolls: recordCombatDamageRolls,
+      triggeredDamageComponents: triggeredCombatDamageComponents,
       confirmConcentrationReplacement,
       validateResolutionForConfirmation: validateCombatResolutionForConfirmation,
       confirmResolution: confirmCombatResolution,
@@ -1394,6 +1401,7 @@
       if (!recovery) return;
       applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
       sheetMeta.featureUses = recovery.nextResourceState;
+      processItemAutomationRecoveryEvent("shortRest");
       normalizeRestSheetState();
       updatePreparedSpellsPanel();
     }
@@ -1405,6 +1413,7 @@
       sheetMeta.sorceryPoints = restoreSorceryPointsOnLongRest(sheetMeta.sorceryPoints, sorcererLevelForCharacter());
       applySpellSlotFieldUpdates(recovery.spellSlotUpdates);
       sheetMeta.featureUses = recovery.nextResourceState;
+      processItemAutomationRecoveryEvent("longRest");
       resetLongRestFeaturePools();
       if (currentHpField && fieldValue("HPMax")) currentHpField.value = recovery.currentHitPoints;
       const tempHpField = getTemporaryHitPointsField();
@@ -4797,6 +4806,25 @@
       if (ammunition && (ammunition.baseItem || itemWeaponAttackBonus(ammunition) || itemWeaponDamageBonus(ammunition))) nameParts.push(ammunition.name);
       const styleLabels = fightingStyleDamageLabels(item, slot, record, attackMode);
       const abilityKey = itemTypeAbbreviation(item) === "R" || hasItemProperty(item, "F") ? "DEX" : "STR";
+      const catalogId = catalogItemId(item);
+      const itemProfile = automationProfileForItem(item);
+      const attackRiders = (itemProfile?.attackRiders || []).filter((rider) => (
+        rider?.trigger?.event === "onHit"
+        && rider?.trigger?.source === "thisItemAttack"
+        && (!rider.requirements?.owned || characterOwnsCatalogItem(item))
+        && (!rider.requirements?.equipped || Boolean(record))
+        && (!rider.requirements?.attuned || itemIsAttuned(item))
+      ));
+      const damageType = (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase();
+      const damageComponents = [{
+        id: "weapon-base",
+        formula: damageExpression,
+        type: damageType,
+        source: "weapon",
+        sourceCatalogId: catalogId,
+        trigger: "onHit",
+        critical: "doubleDice"
+      }, ...attackRiders.flatMap((rider) => rider.damageComponents || [])];
       return {
         name: `${item.name || entry.displayName}${nameParts.length ? ` (${nameParts.join(", ")})` : ""}`,
         item,
@@ -4810,7 +4838,9 @@
         magicDamageBonus,
         damage: damageExpression,
         damageLabel: damageExpression,
-        damageType: (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase(),
+        damageType,
+        damageComponents,
+        sourceCatalogId: catalogId,
         description: itemDescriptionText(item),
         range: item.range || (hasItemProperty(item, "R") ? "10 ft" : "5 ft"),
         properties: itemPropertiesLine(item),
@@ -5517,6 +5547,14 @@
       scheduleSave();
     }
 
+    function castGrantedItemSpell(spell, options = {}) {
+      if (!spell || spell.kind !== "spell") return false;
+      if (spell.level > 0) interruptActiveRest("spell");
+      const statusResult = activateSpellStatuses(spell.sourceName || spell.name, spell.name);
+      recordSuccessfulSpellCast(spell, { ...options, statusChanged: statusResult.activated });
+      return true;
+    }
+
     function rollDie(sides) {
       return Math.floor(Math.random() * sides) + 1;
     }
@@ -5704,6 +5742,11 @@
       return match?.[1]?.toUpperCase() || "";
     }
 
+    function abilityCheckAbilityFromLabel(label) {
+      const match = String(label || "").match(/\b(STR|DEX|CON|INT|WIS|CHA)\b/i);
+      return match?.[1]?.toUpperCase() || "";
+    }
+
     function attackRollStatusContext() {
       const effects = activeStatusEffects();
       return {
@@ -5752,8 +5795,9 @@
     function d20CheckStatusContext(label) {
       const effects = activeStatusEffects();
       if (!isSavingThrowLabel(label)) {
+        const ability = abilityCheckAbilityFromLabel(label);
         return {
-          mode: effects.abilityCheckMode,
+          mode: mergeRollModes([effects.abilityCheckMode, effects.checkModeByAbility?.[ability] || "normal"]),
           bonusDice: effects.checkBonusDice,
           d20TestPenalty: effects.d20TestPenalty || 0,
           notes: [...effects.checkNotes, ...effects.generalNotes]
@@ -6321,7 +6365,7 @@
         : [unarmed];
       const layOnHands = layOnHandsPreparedSelection();
       const quickenedSpell = quickenedSpellPreparedSelection();
-      return [...attacks, ...equippedWeaponAttackSelections(), ...featureGrantedAttackSelections(), ...(layOnHands ? [layOnHands] : []), ...(quickenedSpell ? [quickenedSpell] : []), ...featureActivationSelections(), ...featResourceSelections(), ...allPreparedSpells];
+      return [...attacks, ...equippedWeaponAttackSelections(), ...itemAttachedSpellPreparedSelections(), ...itemCapabilityPreparedSelections(), ...featureGrantedAttackSelections(), ...(layOnHands ? [layOnHands] : []), ...(quickenedSpell ? [quickenedSpell] : []), ...featureActivationSelections(), ...featResourceSelections(), ...allPreparedSpells];
     }
 
     function preparedAttackDrawerMetaForItem(item) {
@@ -6330,6 +6374,10 @@
 
     function openPreparedAttackDetail(row) {
       if (!row) return;
+      if ((row.kind === "itemCapability" || row.kind === "itemSpell") && row.item) {
+        showDrawer(row.item.name || row.name || "Item", preparedAttackDrawerMetaForItem(row.item), buildItemDrawerContent(row.item));
+        return;
+      }
       if (row.kind === "quickened") {
         openQuickenedSpellPicker();
         return;
@@ -6491,9 +6539,14 @@
         const levelButton = document.createElement("button");
         levelButton.type = "button";
         levelButton.className = "dice-button";
+        const grantedItemAction = spell.itemCapabilityAction || spell.itemSpellAction || null;
         if (spell.kind === "pool") {
           levelButton.textContent = "Pool";
           levelButton.title = `${spell.name}: recurso de puntos de curacion`;
+          levelButton.disabled = true;
+        } else if (grantedItemAction?.itemGrantedSpell) {
+          levelButton.textContent = t("item.itemSpellLevelShort", { level: spell.castLevel });
+          levelButton.title = t("item.itemSpellLevel", { level: spell.castLevel });
           levelButton.disabled = true;
         } else if (spell.kind !== "spell") {
           levelButton.textContent = "-";
@@ -6549,7 +6602,17 @@
         const castButton = document.createElement("button");
         castButton.type = "button";
         castButton.className = "dice-button";
-        if (spell.kind === "pool") {
+        if (grantedItemAction) {
+          const action = grantedItemAction;
+          const resource = action?.itemCapabilityResource || action?.itemGrantedSpellResource || itemResourceInfo(spell.item, { persistInitialization: true });
+          castButton.textContent = resource ? `${resource.current}/${resource.max}` : t("item.useCapability");
+          castButton.title = action?.disabledReason || action?.detail || spell.description;
+          castButton.disabled = Boolean(action?.disabledReason);
+          castButton.addEventListener("click", async () => {
+            await openTurnActionsPanel();
+            openCombatResolution(action);
+          });
+        } else if (spell.kind === "pool") {
           castButton.textContent = `${spell.poolRemaining}/${spell.poolMax}`;
           castButton.title = `${spell.name}: ${spell.poolRemaining}/${spell.poolMax} puntos restantes`;
           castButton.addEventListener("click", () => openPreparedAttackDetail(spell));
@@ -6601,7 +6664,7 @@
           }).trim()
           : t("dice.noDamageDiceShort"));
         if (spell.kind === "pool") damageButton.addEventListener("click", () => openPreparedAttackDetail(spell));
-        else if (spell.kind === "activation") damageButton.disabled = true;
+        else if (spell.kind === "activation" || grantedItemAction) damageButton.disabled = true;
         else if (!spell.damage) damageButton.disabled = true;
         else damageButton.addEventListener("click", () => rollDamage(spell));
 
@@ -7744,6 +7807,7 @@
     function startNewCombatTurn() {
       const state = combatTurnState();
       ageActiveSpellAttackEffects();
+      sheetMeta.pendingItemEffectExecutions = processActiveItemEffectEvent("sourceTurnStart", { sourceActorId: "sheet:self" });
       sheetMeta.activeStatuses = ensureActiveStatusIds().filter((id) => id !== "dodging");
       renderStatusDock();
       const effects = activeStatusEffects();
@@ -7868,6 +7932,7 @@
       const state = combatTurnState();
       const attack = session.results.attackRoll;
       const damage = session.results.damageRoll;
+      const damageRolls = session.results.damageRolls || [];
       const save = session.results.savingThrow;
       const event = createCombatLogEvent({
         actor: characterCombatName(),
@@ -7882,6 +7947,7 @@
         attackTotal: attack?.total,
         hit: attack?.hit,
         damage: session.action.healing ? null : damage?.appliedTotal ?? damage?.total,
+        damageComponents: session.action.healing ? [] : damageRolls.map((roll) => ({ ...roll, total: roll.appliedTotal ?? roll.total })),
         healing: session.action.healing ? damage?.appliedTotal ?? damage?.total : null,
         damageType: session.action.damageType,
         savingThrows: save ? [`${session.action.saveAbility || "Save"}: ${save.outcome}`] : [],
@@ -7933,7 +7999,12 @@
         showStatus(action.disabledReason || validation.reason);
         return;
       }
-      activeCombatResolution = createCombatResolution(action, combatTurnState());
+      const itemCapabilityValidation = validateItemCapabilityAction(action);
+      if (!itemCapabilityValidation.ok) {
+        showStatus(itemCapabilityValidation.reason);
+        return;
+      }
+      activeCombatResolution = createCombatResolution(action, combatTurnState(), { resources: combatActionResourceLedger(action) });
       if (activeCombatResolution.status === "blocked") {
         showStatus(activeCombatResolution.blockedReason);
         return;
@@ -8002,41 +8073,64 @@
         showStatus(t("turn.resolveSaveFirst"));
         return;
       }
-      const optionalDamage = (action.optionalDamageChoices || [])
-        .filter((choice) => activeCombatResolution.results.variant?.optionalDamageKeys?.includes(choice.key))
-        .map((choice) => choice.damage)
-        .filter(Boolean);
       const optionalDamageKeys = [...(activeCombatResolution.results.variant?.optionalDamageKeys || [])];
-      const expression = [action.damageFormula, ...optionalDamage].filter(Boolean).join("+");
-      if (!expression) {
+      const optionalComponents = (action.optionalDamageChoices || [])
+        .filter((choice) => optionalDamageKeys.includes(choice.key) && choice.damage)
+        .map((choice) => ({
+          id: choice.key,
+          formula: choice.damage,
+          type: choice.damageType || action.damageType || "",
+          source: "optionalDamage",
+          trigger: "onHit",
+          critical: choice.critical || "doubleDice"
+        }));
+      const declaredComponents = action.damageComponents?.length
+        ? (triggeredCombatDamageComponents?.(action, activeCombatResolution.results) || [])
+        : (action.damageFormula ? [{ id: "legacy-damage", formula: action.damageFormula, type: action.damageType || "", source: "legacy", trigger: "onHit", critical: "doubleDice" }] : []);
+      const components = [...declaredComponents, ...optionalComponents];
+      if (!components.length) {
         showStatus(t("turn.noDamageRoll"));
         return;
       }
       const critical = Boolean(attack?.critical);
-      const finalExpression = critical ? criticalDamageExpression(expression) || expression : expression;
-      const roll = applyDamageRollOptions(rollDiceExpression(finalExpression), action.attack?.damageRollOptions || {});
-      if (!roll) {
+      const rolls = components.map((component) => {
+        const finalExpression = critical && component.critical === "doubleDice"
+          ? criticalDamageExpression(component.formula) || component.formula
+          : component.formula;
+        const rolled = applyDamageRollOptions(rollDiceExpression(finalExpression), component.source === "weapon" ? action.attack?.damageRollOptions || {} : {});
+        if (!rolled) return null;
+        let appliedTotal = rolled.total;
+        if (save?.outcome === "passed" && action.saveDamageRule === "half") appliedTotal = Math.floor(rolled.total / 2);
+        if (save?.outcome === "passed" && action.saveDamageRule === "none") appliedTotal = 0;
+        return {
+          ...component,
+          expression: finalExpression,
+          total: rolled.total,
+          appliedTotal,
+          dice: rolled.terms.filter((term) => term.type === "dice").flatMap((term) => term.rolls),
+          terms: rolled.terms
+        };
+      });
+      if (rolls.some((roll) => !roll)) {
         showStatus(t("turn.invalidDamage"));
         return;
       }
-      let appliedTotal = roll.total;
-      if (save?.outcome === "passed" && action.saveDamageRule === "half") appliedTotal = Math.floor(roll.total / 2);
-      if (save?.outcome === "passed" && action.saveDamageRule === "none") appliedTotal = 0;
+      const appliedTotal = rolls.reduce((sum, roll) => sum + roll.appliedTotal, 0);
       const detail = formatDiceLines([
-        critical ? `Critical: ${expression} -> ${finalExpression}` : `Formula: ${expression}`,
-        ...roll.terms.filter((term) => term.type === "dice").map((term) => `${term.expression}: ${term.rolls.join(" + ")} = ${term.subtotal}`),
-        `Rolled total: ${roll.total}`,
-        appliedTotal !== roll.total ? `After save: ${appliedTotal}` : "",
-        action.damageType ? `Type: ${action.damageType}` : ""
+        ...rolls.map((roll) => `${roll.type ? `${roll.type[0].toUpperCase()}${roll.type.slice(1)}` : "Damage"}: ${roll.expression} = ${roll.appliedTotal}`),
+        `Total: ${appliedTotal}`
       ]);
-      activeCombatResolution = recordCombatDamageRoll(activeCombatResolution, {
-        total: roll.total,
-        appliedTotal,
-        dice: roll.terms.filter((term) => term.type === "dice").flatMap((term) => term.rolls),
-        expression: finalExpression,
+      activeCombatResolution = recordCombatDamageRolls(activeCombatResolution, rolls.map((roll) => ({
+        ...roll,
         optionalDamageKeys,
         detail
-      });
+      })));
+      activeCombatResolution.results.damageRoll = {
+        ...activeCombatResolution.results.damageRoll,
+        appliedTotal,
+        optionalDamageKeys,
+        detail
+      };
       showDiceTray(`${action.title}: ${action.healing ? "Healing" : "Damage"}`, String(appliedTotal), detail);
       renderCombatResolution();
     }
@@ -8113,13 +8207,26 @@
         showStatus(itemResourceValidation.reason);
         return;
       }
+      const itemCapabilityValidation = validateItemCapabilityAction(activeCombatResolution.action);
+      if (!itemCapabilityValidation.ok) {
+        showStatus(itemCapabilityValidation.reason);
+        return;
+      }
       const committed = confirmCombatResolution(activeCombatResolution, actionPatch);
       if (!committed.ok) {
         showStatus(committed.reason);
         return;
       }
       const action = committed.session.action;
-      if (action.category === ACTION_CATEGORIES.spells && action.attack?.kind === "spell") {
+      if (action.itemGrantedSpell?.cast) {
+        if (!castGrantedItemSpell(action.itemGrantedSpell.cast, { deferUi: true })) {
+          showStatus(t("turn.spellCommitFailed"));
+          return;
+        }
+        const spellState = combatTurnState();
+        committed.economy.levelOnePlusSpellCast = spellState.levelOnePlusSpellCast;
+        committed.economy.quickenedSpellUsed = spellState.quickenedSpellUsed;
+      } else if (action.category === ACTION_CATEGORIES.spells && action.attack?.kind === "spell") {
         if (!castPreparedSpell(action.attack, {
           deferUi: true,
           concentrationReplacementConfirmed: Boolean(committed.session.results.concentrationReplacementConfirmed)
@@ -8145,17 +8252,59 @@
         showStatus(t("item.actionResourceUnavailable"));
         return;
       }
+      const itemCapabilityResourcesCommitted = consumeItemCapabilityResources(action, itemCapabilityValidation);
+      if (!itemCapabilityResourcesCommitted) {
+        showStatus(t("item.actionResourceUnavailable"));
+        return;
+      }
+      const createdItemEffect = createItemCapabilityEffect(action, itemCapabilityValidation);
+      const activatedItemStatus = activateItemCapabilityStatus(action);
+      const itemCapabilityUsed = markItemCapabilityUsed(itemCapabilityValidation.item, itemCapabilityValidation.capability);
       const equipmentConsumed = Boolean(action.inventoryEntry || action.ammoEntry || action.itemResourceCost);
       if (action.inventoryEntry) removeItemFromEquipment(action.inventoryEntry, 1);
       if (action.ammoEntry) removeItemFromEquipment(action.ammoEntry, 1);
       sheetMeta.combatTurn = committed.economy;
       if (action.effect === "executeReady") sheetMeta.combatTurn.readyAction = null;
       const effectsApplied = applyCombatActionSideEffects(action);
+      if (createdItemEffect) effectsApplied.push(action.title);
+      if (activatedItemStatus) effectsApplied.push(activatedItemStatus.name);
+      if (itemCapabilityUsed) effectsApplied.push(`${action.title}: item is now nonmagical`);
+      if (action.selfHealing?.kind === "equalToDamageDealt") {
+        const amount = Math.max(0, Number(activeCombatResolution.results.damageRoll?.appliedTotal ?? activeCombatResolution.results.damageRoll?.total) || 0);
+        if (amount > 0) {
+          const hpField = getCurrentHitPointsField();
+          const current = Math.max(0, Number.parseInt(hpField?.value || "0", 10) || 0);
+          const maximum = Math.max(current, Number.parseInt(fieldValue("HPMax") || String(current), 10) || current);
+          const healed = Math.max(0, Math.min(maximum, current + amount) - current);
+          if (hpField) hpField.value = String(current + healed);
+          effectsApplied.push(t("item.selfHealingApplied", { amount: healed }));
+        }
+      }
+      if (action.itemEffectExecution) {
+        const selectedTargetActorIds = [...new Set(["sheet:self", ...(activeCombatResolution.results.variant?.selectedAreaTargetIds || [])])];
+        const amount = activeCombatResolution.results.damageRoll?.appliedTotal ?? activeCombatResolution.results.damageRoll?.total ?? 0;
+        if (action.healing && selectedTargetActorIds.includes("sheet:self") && amount > 0) {
+          const hpField = getCurrentHitPointsField();
+          const current = Math.max(0, Number.parseInt(hpField?.value || "0", 10) || 0);
+          const maximum = Math.max(current, Number.parseInt(fieldValue("HPMax") || String(current), 10) || current);
+          if (hpField) hpField.value = String(Math.min(maximum, current + amount));
+        }
+        sheetMeta.activeItemEffects = activeItemEffectState().map((effect) => effect.instanceId === action.itemEffectExecution.instanceId
+          ? { ...effect, targetActorIds: selectedTargetActorIds }
+          : effect);
+        sheetMeta.pendingItemEffectExecutions = (sheetMeta.pendingItemEffectExecutions || [])
+          .filter((execution) => execution.executionId !== action.itemEffectExecution.executionId);
+        effectsApplied.push(`${action.title}: ${selectedTargetActorIds.length} target(s)`);
+      }
       const appliedOptionalDamageChoices = (action.optionalDamageChoices || [])
         .filter((choice) => selectedOptionalDamage.includes(choice.key));
       appliedOptionalDamageChoices.forEach((choice) => effectsApplied.push(choice.name));
       consumeActiveSpellAttackEffects(appliedOptionalDamageChoices);
-      if (action.effect === "endTurn") sheetMeta.combatTurn = endTurn(sheetMeta.combatTurn);
+      if (action.effect === "endTurn") {
+        const sourceTurnEndExecutions = processActiveItemEffectEvent("sourceTurnEnd", { sourceActorId: "sheet:self" });
+        if (sourceTurnEndExecutions.length) sheetMeta.pendingItemEffectExecutions = [...(sheetMeta.pendingItemEffectExecutions || []), ...sourceTurnEndExecutions];
+        sheetMeta.combatTurn = endTurn(sheetMeta.combatTurn);
+      }
       addCombatLogEvent({ ...committed.session, action, results: activeCombatResolution.results }, combatResourcesConsumed(action), effectsApplied);
       activeCombatResolution = null;
       if (!equipmentConsumed) invalidateCombatActionCache("commit-resolution");
@@ -8287,6 +8436,37 @@
         fields.appendChild(targetLabel);
       }
 
+      if (action.itemEffectExecution?.area) {
+        const areaPicker = document.createElement("fieldset");
+        const legend = document.createElement("legend");
+        const area = action.itemEffectExecution.area;
+        legend.textContent = t("item.selectCreaturesInArea", { shape: area.shape, radius: area.radius, unit: area.unit });
+        areaPicker.appendChild(legend);
+        const roster = combatTargetRoster();
+        const selected = new Set(["sheet:self", ...(session.results.variant?.selectedAreaTargetIds || [])]);
+        [...roster.party, ...roster.enemies].forEach((target) => {
+          const id = String(target.id || target.name || "");
+          const name = String(target.name || "").trim();
+          if (!id || !name) return;
+          const label = document.createElement("label");
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = selected.has(id);
+          checkbox.disabled = id === "sheet:self";
+          checkbox.addEventListener("change", () => {
+            const next = new Set(["sheet:self", ...(activeCombatResolution.results.variant?.selectedAreaTargetIds || [])]);
+            if (checkbox.checked) next.add(id); else next.delete(id);
+            setCombatSessionResults({ variant: { ...(activeCombatResolution.results.variant || {}), selectedAreaTargetIds: [...next] } });
+          });
+          label.append(checkbox, document.createTextNode(name));
+          areaPicker.appendChild(label);
+        });
+        const visibility = document.createElement("small");
+        visibility.textContent = action.itemEffectExecution.visibility?.obscuresVision === false ? t("item.doesNotObscureVision") : "";
+        areaPicker.appendChild(visibility);
+        fields.appendChild(areaPicker);
+      }
+
       if (action.id === "core:movement") {
         const movement = document.createElement("label");
         movement.textContent = t("turn.distanceRemaining", { distance: projectedTurnEconomy(session.economy).movementRemaining });
@@ -8376,7 +8556,7 @@
 
       if (action.resolutionSteps.includes(RESOLUTION_STEPS.savingThrow)) {
         const label = document.createElement("span");
-        label.textContent = t("turn.saveDc", { ability: action.saveAbility || "Target", dc: fieldValue("SpellSaveDC  2") || fieldValue("SpellSaveDC") || "DM" });
+        label.textContent = t("turn.saveDc", { ability: action.saveAbility || "Target", dc: action.saveDc || fieldValue("SpellSaveDC  2") || fieldValue("SpellSaveDC") || "DM" });
         controls.appendChild(label);
         [["Failed Save", "failed"], ["Passed Save", "passed"], ["DM Pending", "pending"]].forEach(([text, outcome]) => {
           const button = document.createElement("button");
@@ -9625,6 +9805,16 @@
       button.title = t("item.addItem");
       button.setAttribute("aria-label", t("item.addItem"));
       button.addEventListener("click", openItemPicker);
+
+      const equipmentPanelForLayer = equipmentField
+        ? layer.querySelector(".equipment-panel")
+        : null;
+      if (equipmentPanelForLayer) {
+        button.classList.add("equipment-panel-add");
+        equipmentPanelForLayer.appendChild(button);
+        return;
+      }
+
       const buttonRect = equipmentField
         ? [Math.max(x1 + 2, x2 - 52), y1 + 2, x2 - 2, Math.min(y2 - 2, y1 + 19)]
         : [x1, y1 - 21, x2, y1 - 3];
@@ -10235,7 +10425,9 @@
           : {};
       }
       if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
+      if (!sheetMeta.itemAbilityScoreBases || typeof sheetMeta.itemAbilityScoreBases !== "object" || Array.isArray(sheetMeta.itemAbilityScoreBases)) sheetMeta.itemAbilityScoreBases = {};
       if (!sheetMeta.itemResources || typeof sheetMeta.itemResources !== "object" || Array.isArray(sheetMeta.itemResources)) sheetMeta.itemResources = {};
+      if (!sheetMeta.itemCapabilityUses || typeof sheetMeta.itemCapabilityUses !== "object" || Array.isArray(sheetMeta.itemCapabilityUses)) sheetMeta.itemCapabilityUses = {};
       if (!sheetMeta.itemEffects || typeof sheetMeta.itemEffects !== "object" || Array.isArray(sheetMeta.itemEffects)) sheetMeta.itemEffects = {};
       if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
@@ -10628,7 +10820,7 @@
 
     function filteredStatusDefinitions(query = "") {
       const normalizedQuery = normalizeName(query || "");
-      const definitions = getStatusDefinitions();
+      const definitions = getStatusDefinitions().filter((definition) => definition.playerSelectable !== false);
       if (!normalizedQuery) return definitions;
       return definitions.filter((definition) => {
         const haystack = normalizeName([
@@ -11487,6 +11679,79 @@
       return [...byKey.values()];
     }
 
+    function equippedSlotsForCatalogItem(item) {
+      const catalogId = catalogItemId(item);
+      return uniqueEquippedCatalogItems().find((entry) => catalogItemId(entry.item) === catalogId)?.slots || new Set();
+    }
+
+    function characterMatchesRaceTag(tag) {
+      const target = normalizeName(tag);
+      if (!target) return false;
+      const detail = selectedRaceDetail();
+      return [getSelectedRaceName(), selectedRaceBaseName(), detail?.name]
+        .map(normalizeName)
+        .filter(Boolean)
+        .some((name) => name === target || name.split(/\s+/).includes(target));
+    }
+
+    function activeItemModifiers() {
+      return combatMemoValue("active-item-modifiers", () => uniqueEquippedCatalogItems().flatMap(({ item, slots }) => {
+        if (!itemMagicBonusesEnabled(item)) return [];
+        return (automationProfileForItem(item)?.modifiers || [])
+          .filter((modifier) => itemCapabilityRequirementStatus(item, modifier).ok)
+          .filter((modifier) => itemEquipmentModesMatch(modifier.requirements?.equipmentModes || [], slots))
+          .map((modifier) => ({ item, modifier }));
+      }));
+    }
+
+    function equippedAbilityScoreOverrides() {
+      const overrides = new Map();
+      uniqueEquippedCatalogItems().forEach(({ item, slots }) => {
+        if (!itemMagicBonusesEnabled(item)) return;
+        const definitions = automationProfileForItem(item)?.abilityScores?.static || [];
+        definitions.forEach((definition) => {
+          if (!itemEquipmentModesMatch(definition.equipmentModes, slots)) return;
+          const ability = String(definition.ability || "").toUpperCase();
+          const score = Number(definition.score);
+          if (!ABILITY_KEYS.includes(ability) || !Number.isInteger(score)) return;
+          const current = overrides.get(ability) || { ability, score: 0, bonuses: [], sources: [] };
+          current.score = Math.max(current.score, score);
+          current.sources.push(item.name);
+          overrides.set(ability, current);
+        });
+      });
+      activeItemModifiers().forEach(({ item, modifier }) => {
+        (modifier.effects?.abilityBonuses || []).forEach((bonus) => {
+          const ability = String(bonus.ability || "").toUpperCase();
+          if (!ABILITY_KEYS.includes(ability) || !Number.isInteger(Number(bonus.amount))) return;
+          const current = overrides.get(ability) || { ability, score: 0, bonuses: [], sources: [] };
+          current.bonuses.push({ amount: Number(bonus.amount), maximum: bonus.maximum == null ? null : Number(bonus.maximum) });
+          current.sources.push(item.name);
+          overrides.set(ability, current);
+        });
+      });
+      return overrides;
+    }
+
+    function equippedItemLanguages() {
+      return uniqueReadableValues(activeItemModifiers().flatMap(({ modifier }) => modifier.effects?.languages || []));
+    }
+
+    function equippedItemBenefitLines() {
+      return activeItemModifiers().flatMap(({ item, modifier }) => [
+        ...(modifier.effects?.senses || []).map((sense) => t("item.senseBenefit", {
+          item: item.name,
+          sense: titleCaseWords([sense.type])[0],
+          range: sense.range,
+          unit: sense.unit
+        })),
+        ...(modifier.effects?.rollAdvantages || []).map((advantage) => t("item.contextualBenefit", {
+          item: item.name,
+          benefit: advantage.label
+        }))
+      ]);
+    }
+
     function equippedSavingThrowBonus(ability) {
       const target = String(ability || "").slice(0, 3).toUpperCase();
       return uniqueEquippedCatalogItems().reduce((total, { item, slots }) => {
@@ -11627,10 +11892,11 @@
         reason: "item-resource-changed",
         panel: false,
         armorClass: false,
-        prepared: false,
+        prepared: true,
         alerts: false,
         combat: true,
-        save: true
+        save: true,
+        derived: false
       });
       refreshItemResourceControls(catalogId);
       return true;
@@ -11730,6 +11996,12 @@
       return /\b(?:you can|you may|allows? you to) cast\b|\bcast one of (?:the )?(?:following )?spells?\b/i.test(description);
     }
 
+    function attachedSpellEquipmentModes(item) {
+      const description = automationProfileForItem(item)?.description || "";
+      const modes = globalThis.dndItemCatalog?.persistentEquipmentModes?.(description) || [];
+      return modes.filter((mode) => mode === "worn" || mode === "held");
+    }
+
     function itemResourceActionCost(type) {
       if (type === ACTION_TYPES.bonus) return { type: "bonusAction", amount: 1 };
       if (type === ACTION_TYPES.reaction) return { type: "reaction", amount: 1 };
@@ -11744,6 +12016,89 @@
       if (cost > 0 && info.current < cost) return t("item.actionNotEnoughCharges", { cost, current: info.current });
       if (info.current <= 0) return t("item.actionNoCharges");
       return "";
+    }
+
+    function attachedSpellUseDefinition(spell) {
+      const declared = globalThis.dndItemResourceState?.declaredAttachedSpellUse?.(spell);
+      if (!declared) return null;
+      const spellKey = normalizeName(`${spell?.name || ""}-${spell?.source || ""}`).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return {
+        resourceId: `attached-spell-${declared.usage}-${declared.max}${declared.each ? `-each-${spellKey}` : ""}`,
+        name: `${spell?.name || "Spell"} (${declared.usage})`,
+        max: declared.max,
+        kind: "spellUses",
+        recovery: declared.recovery
+      };
+    }
+
+    function attachedSpellUseInfo(item, spell, { persistInitialization = true } = {}) {
+      const definition = attachedSpellUseDefinition(spell);
+      if (!definition) return null;
+      const info = namedItemResourceInfo(item, definition, { persistInitialization });
+      return info ? { definition, info } : null;
+    }
+
+    function attachedSpellTurnAction(item, spell, {
+      catalogId,
+      reference,
+      type,
+      info,
+      cost,
+      consumesCharges,
+      spellUse = null,
+      equipmentModes = []
+    } = {}) {
+      const usage = String(spell?.usage || "always").toLowerCase();
+      const spellData = findSpellByName(spell?.name, null, spell?.source || "");
+      if (!spellData || !["always", "will", "charges", "daily", "rest", "limited"].includes(usage) || (usage === "charges" && !consumesCharges) || (["daily", "rest", "limited"].includes(usage) && !spellUse)) return null;
+      const spellRow = spellAttackSelections(spellData, spellData.level)[0];
+      if (!spellRow) return null;
+      const declaredCost = spell.cost != null ? String(spell.cost) : "-";
+      const id = "inventory:item-spell:" + catalogId + ":" + normalizeName(spellData.name) + ":" + normalizeName(spellData.source) + ":" + normalizeName(usage) + ":" + declaredCost;
+      const definition = createSpellActionDefinition({
+        name: spellData.name,
+        source: spellData.source,
+        level: spellData.level,
+        spell: spellData
+      }, spellRow, {
+        id,
+        name: t("item.actionCastSpell", { spell: spellData.name, item: item.name })
+      });
+      return {
+        ...definition,
+        key: id,
+        id,
+        type,
+        actionCost: [itemResourceActionCost(type)].filter(Boolean),
+        category: ACTION_CATEGORIES.items,
+        allowOutsideTurn: type === ACTION_TYPES.reaction,
+        itemActionCatalogId: catalogId,
+        itemResourceReference: reference,
+        itemResourceName: item.name,
+        itemSpellEquipmentModes: [...equipmentModes],
+        ...(consumesCharges ? { itemResourceCatalogId: catalogId, itemResourceCost: cost } : {}),
+        ...(spellUse ? { itemAttachedSpellUse: { definition: { ...spellUse.definition }, amount: 1 } } : {}),
+        itemGrantedSpellResource: spellUse?.info ? { name: spellUse.info.name, current: spellUse.info.current, max: spellUse.info.max } : (consumesCharges && info ? { name: item.name, current: info.current, max: info.max } : null),
+        itemGrantedSpell: {
+          spell: { ...spellData },
+          cast: { ...spellRow },
+          usage,
+          cost: consumesCharges ? cost : spellUse ? 1 : null
+        },
+        disabledReason: equipmentModes.length && !itemEquipmentModesMatch(equipmentModes, equippedSlotsForCatalogItem(item))
+          ? t("item.actionRequiresEquipped")
+          : consumesCharges
+            ? itemResourceActionDisabledReason(item, info, cost)
+            : spellUse?.info?.current <= 0
+              ? t("item.actionNoCharges")
+            : (itemRequiresAttunement(item) && !itemIsAttuned(item) ? t("item.actionRequiresAttunement") : ""),
+        detail: [
+          spellData.name + (spellData.source ? " [" + sourceLabel(spellData.source) + "]." : "."),
+          t("item.spellUsageCost", { usage, cost: declaredCost }),
+          t("item.grantedSpellNoSlot", { spell: spellData.name })
+        ].join(" "),
+        source: "inventory"
+      };
     }
 
     function chargedItemTurnActions(entry) {
@@ -11763,6 +12118,7 @@
         source: item.source,
         catalogVariantToken: catalogVariantToken(item)
       };
+      const equipmentModes = attachedSpellEquipmentModes(item);
       const baseForType = (type) => ({
         type,
         actionCost: [itemResourceActionCost(type)].filter(Boolean),
@@ -11781,9 +12137,21 @@
         if (!type) return [];
         const cost = globalThis.dndItemResourceState?.declaredAttachedSpellChargeCost?.(spell);
         const consumesCharges = Boolean(cost && info);
+        const spellUse = attachedSpellUseInfo(item, spell);
         const spellLabel = [spell.name, spell.source ? sourceLabel(spell.source) : ""].filter(Boolean).join(" - ");
         const usage = spell.usage || "always";
         const declaredCost = spell.cost != null ? String(spell.cost) : "-";
+        const automaticAction = attachedSpellTurnAction(item, spell, {
+          catalogId,
+          reference,
+          type,
+          info,
+          cost,
+          consumesCharges,
+          spellUse,
+          equipmentModes
+        });
+        if (automaticAction) return [automaticAction];
         return [{
           ...baseForType(type),
           key: `inventory:charged-spell:${catalogId}:${normalizeName(spell.name)}:${normalizeName(usage)}:${declaredCost}`,
@@ -11797,7 +12165,7 @@
           itemResourceName: item.name
         }];
       });
-      if (inferredItemType && !isConsumableItem(item) && (info || hasManualResource)) {
+      if (inferredItemType && !isConsumableItem(item) && (info || hasManualResource) && !actions.some((action) => action.itemGrantedSpell)) {
         actions.unshift({
           ...baseForType(inferredItemType),
           key: `inventory:charged-item:${catalogId}`,
@@ -11814,6 +12182,444 @@
       return actions;
     }
 
+    function namedItemResourceInfo(item, definition, { persistInitialization = true } = {}) {
+      const catalogId = catalogItemId(item);
+      const ensured = globalThis.dndItemResourceState?.ensureResourceState?.(itemResourceStateStore(), catalogId, definition);
+      if (!ensured?.state) return null;
+      if (ensured.changed) {
+        sheetMeta.itemResources = ensured.nextStore;
+        if (persistInitialization && typeof scheduleSave === "function") scheduleSave();
+      }
+      return { catalogId, key: ensured.key, ...definition, ...ensured.state };
+    }
+
+    function characterHasCatalogItemEquipped(item) {
+      const catalogId = catalogItemId(item);
+      return equipmentEntries().some((candidate) => candidate.quantity > 0
+        && catalogItemId(findItemData(candidate)) === catalogId
+        && Boolean(equippedRecord(equipmentItemKey(candidate))));
+    }
+
+    function itemCapabilityRequirementStatus(item, capability) {
+      const requirements = capability?.requirements || {};
+      if (requirements.owned && !characterOwnsCatalogItem(item)) return { ok: false, reason: t("item.actionRequiresOwnership") };
+      if (requirements.equipped && !characterHasCatalogItemEquipped(item)) return { ok: false, reason: t("item.actionRequiresEquipped") };
+      if (requirements.attuned && !itemIsAttuned(item)) return { ok: false, reason: t("item.actionRequiresAttunement") };
+      if (requirements.equipmentModes?.length && !itemEquipmentModesMatch(requirements.equipmentModes, equippedSlotsForCatalogItem(item))) {
+        return { ok: false, reason: t("item.actionRequiresEquipped") };
+      }
+      if ((requirements.raceExcludes || []).some(characterMatchesRaceTag)) return { ok: false, reason: t("item.actionRaceExcluded") };
+      return { ok: true, reason: "" };
+    }
+
+    function itemCapabilityActionType(type) {
+      if (type === "bonusAction") return ACTION_TYPES.bonus;
+      if (type === "reaction") return ACTION_TYPES.reaction;
+      if (type === "objectInteraction") return ACTION_TYPES.objectInteraction;
+      if (type === "none") return ACTION_TYPES.none;
+      return ACTION_TYPES.action;
+    }
+
+    function itemCapabilityUseStateStore() {
+      if (!sheetMeta.itemCapabilityUses || typeof sheetMeta.itemCapabilityUses !== "object" || Array.isArray(sheetMeta.itemCapabilityUses)) {
+        sheetMeta.itemCapabilityUses = {};
+      }
+      return sheetMeta.itemCapabilityUses;
+    }
+
+    function itemCapabilityUseKey(item, capability) {
+      const catalogId = catalogItemId(item);
+      const capabilityId = String(capability?.capabilityId || capability?.id || "").trim();
+      return catalogId && capabilityId ? `${catalogId}::capability:${capabilityId}` : "";
+    }
+
+    function itemCapabilityHasBeenUsed(item, capability) {
+      const key = itemCapabilityUseKey(item, capability);
+      return Boolean(key && itemCapabilityUseStateStore()[key]?.used === true);
+    }
+
+    function markItemCapabilityUsed(item, capability) {
+      if (!capability?.oneTime) return false;
+      const key = itemCapabilityUseKey(item, capability);
+      if (!key || itemCapabilityHasBeenUsed(item, capability)) return false;
+      itemCapabilityUseStateStore()[key] = {
+        used: true,
+        usedAt: new Date().toISOString()
+      };
+      return true;
+    }
+
+    function itemCapabilityTurnActions(entry) {
+      const item = findItemData(entry);
+      if (!item || entry.quantity <= 0 || isCatalogItemUnavailable(item)) return [];
+      const profile = automationProfileForItem(item);
+      const catalogId = catalogItemId(item);
+      return (profile?.actions || []).map((capability) => {
+        const requirement = itemCapabilityRequirementStatus(item, capability);
+        const definitions = Object.fromEntries((profile.resources?.definitions || []).map((definition) => [definition.resourceId, definition]));
+        const resourceInfos = (capability.resourceCosts || []).map((cost) => ({
+          cost,
+          info: namedItemResourceInfo(item, definitions[cost.resourceId], { persistInitialization: true })
+        }));
+        const unavailable = resourceInfos.find(({ cost, info }) => !info || info.current < cost.amount)?.cost;
+        const oneTimeSpent = capability.oneTime && itemCapabilityHasBeenUsed(item, capability);
+        const type = itemCapabilityActionType(capability.activation?.type);
+        const area = capability.createsEffect?.area;
+        const duration = capability.createsEffect?.duration;
+        const target = capability.target || {};
+        const savingThrow = capability.savingThrow;
+        const damageComponents = (capability.damageComponents || []).map((component) => ({ ...component }));
+        const grantedSpell = capability.spell ? {
+          ...capability.spell,
+          spell: findSpellByName(capability.spell.name, null, capability.spell.source) || null
+        } : null;
+        const resolutionSteps = [
+          ...(target.required ? [RESOLUTION_STEPS.selectTarget] : []),
+          ...(savingThrow ? [RESOLUTION_STEPS.savingThrow] : []),
+          ...(damageComponents.length ? [RESOLUTION_STEPS.damageRoll] : []),
+          RESOLUTION_STEPS.applyEffect,
+          RESOLUTION_STEPS.confirmResult
+        ];
+        const primaryResource = resourceInfos[0]?.info || null;
+        return {
+          key: `inventory:item-capability:${catalogId}:${capability.capabilityId}`,
+          id: `inventory:item-capability:${catalogId}:${capability.capabilityId}`,
+          title: capability.name,
+          type,
+          actionCost: capability.actionCost || [itemResourceActionCost(type)].filter(Boolean),
+          resolutionSteps,
+          category: ACTION_CATEGORIES.items,
+          targetRequired: Boolean(target.required),
+          allowOutsideTurn: type === ACTION_TYPES.reaction,
+          itemActionCatalogId: catalogId,
+          itemCapabilityId: capability.capabilityId,
+          itemResourceReference: { catalogId, name: item.name, source: item.source, catalogVariantToken: catalogVariantToken(item) },
+          resourceCosts: (capability.resourceCosts || []).map((cost) => ({ ...cost })),
+          itemCapabilityResource: primaryResource ? { name: primaryResource.name, current: primaryResource.current, max: primaryResource.max } : null,
+          createsEffect: capability.createsEffect ? { ...capability.createsEffect } : null,
+          activatesStatus: capability.activatesStatus ? { ...capability.activatesStatus, duration: capability.activatesStatus.duration ? { ...capability.activatesStatus.duration } : null } : null,
+          oneTime: capability.oneTime === true,
+          damageComponents,
+          damageFormula: damageComponents[0]?.formula || "",
+          damageType: damageComponents[0]?.type || "",
+          saveAbility: savingThrow?.ability || "",
+          saveDc: savingThrow?.dc || null,
+          saveDamageRule: savingThrow?.onSuccess || "",
+          selfHealing: capability.selfHealing ? { ...capability.selfHealing } : null,
+          itemGrantedSpell: grantedSpell,
+          disabledReason: !requirement.ok ? requirement.reason : oneTimeSpent ? `${capability.name}: already used; the item is nonmagical.` : unavailable ? t("item.actionNamedResourceUnavailable", { resource: unavailable.resourceId }) : "",
+          detail: [
+            capability.description || "",
+            target.range ? t("item.targetRangeSummary", { range: target.range, unit: target.unit || "feet" }) : "",
+            savingThrow ? t("item.fixedSaveSummary", { ability: savingThrow.ability, dc: savingThrow.dc }) : "",
+            capability.selfHealing?.kind === "equalToDamageDealt" ? t("item.healingEqualDamage") : "",
+            grantedSpell ? t("item.grantedSpellNoSlot", { spell: grantedSpell.name }) : "",
+            capability.activatesStatus ? `Applies ${findStatusDefinition(capability.activatesStatus.id)?.name || capability.activatesStatus.id}${capability.activatesStatus.duration ? ` for ${capability.activatesStatus.duration.value} ${capability.activatesStatus.duration.unit}` : ""}.` : "",
+            capability.oneTime ? "This property can be used only once." : "",
+            area ? t("item.areaSummary", { shape: area.shape, radius: area.radius, unit: area.unit }) : "",
+            duration ? t("item.durationSummary", { rounds: duration.combatRounds || "-", value: duration.value, unit: duration.unit }) : "",
+            capability.createsEffect?.visibility?.obscuresVision === false ? t("item.doesNotObscureVision") : ""
+          ].filter(Boolean).join(" "),
+          source: "inventory"
+        };
+      });
+    }
+
+    function itemGrantedSpellPreparedSelection(item, action) {
+      const grantedSpell = action?.itemGrantedSpell;
+      const spell = grantedSpell?.spell || null;
+      if (!item || !spell) return null;
+      const spellRow = grantedSpell.cast || spellAttackSelections(spell, spell.level)[0] || {};
+      return {
+        ...spellRow,
+        name: spell.name,
+        sourceName: spell.name,
+        source: spell.source || spellRow.source || "",
+        spellId: spell.id || spellRow.spellId || "",
+        kind: "itemSpell",
+        item,
+        spell,
+        level: spell.level,
+        castLevel: spell.level,
+        castLevelOptions: [],
+        description: [action.detail || spellRow.description || "", t("item.grantedBy", { item: item.name })].filter(Boolean).join("\n"),
+        itemSpellAction: action
+      };
+    }
+
+    function itemAttachedSpellPreparedSelections() {
+      const seen = new Set();
+      return equipmentEntries().flatMap((entry) => {
+        const item = findItemData(entry);
+        return chargedItemTurnActions(entry).flatMap((action) => {
+          if (!action.itemGrantedSpell || action.disabledReason || seen.has(action.id)) return [];
+          seen.add(action.id);
+          const row = itemGrantedSpellPreparedSelection(item, action);
+          return row ? [row] : [];
+        });
+      });
+    }
+
+    function itemCapabilityPreparedSelections() {
+      const seen = new Set();
+      return equipmentEntries().flatMap((entry) => {
+        const item = findItemData(entry);
+        return itemCapabilityTurnActions(entry).flatMap((action) => {
+          if (!action.itemGrantedSpell && !action.damageComponents?.length) return [];
+          if (seen.has(action.id)) return [];
+          seen.add(action.id);
+          const spell = action.itemGrantedSpell?.spell || null;
+          const spellRow = spell ? (spellAttackSelections(spell, action.itemGrantedSpell.castLevel ?? spell.level)[0] || {}) : {};
+          const damageFormula = action.damageFormula || spellRow.damage || "";
+          return [{
+            ...spellRow,
+            name: action.itemGrantedSpell
+              ? action.itemGrantedSpell.name
+              : action.title,
+            sourceName: action.itemGrantedSpell?.name || spellRow.sourceName || action.title,
+            source: action.itemGrantedSpell?.spell?.source || spellRow.source || "",
+            spellId: action.itemGrantedSpell?.spell?.id || spellRow.spellId || "",
+            kind: "itemCapability",
+            item,
+            spell,
+            level: action.itemGrantedSpell?.castLevel ?? spell?.level ?? -1,
+            castLevel: action.itemGrantedSpell?.castLevel ?? spell?.level ?? -1,
+            castLevelOptions: [],
+            damage: damageFormula,
+            damageLabel: damageFormula,
+            damageType: action.damageType || spellRow.damageType || "",
+            noAttackRoll: true,
+            description: [action.detail, action.itemGrantedSpell ? t("item.grantedBy", { item: item.name }) : ""].filter(Boolean).join("\n"),
+            itemCapabilityAction: action
+          }];
+        });
+      });
+    }
+
+    function validateItemCapabilityAction(action) {
+      if (!action?.itemCapabilityId) return { ok: true, item: null, capability: null };
+      const item = findItemData(action.itemResourceReference || { catalogId: action.itemActionCatalogId });
+      const profile = automationProfileForItem(item);
+      const capability = profile?.capabilities?.find((entry) => entry.capabilityId === action.itemCapabilityId);
+      if (!item || !capability) return { ok: false, reason: t("item.actionResourceUnavailable") };
+      const requirement = itemCapabilityRequirementStatus(item, capability);
+      if (!requirement.ok) return requirement;
+      if (capability.oneTime && itemCapabilityHasBeenUsed(item, capability)) {
+        return { ok: false, reason: `${capability.name}: already used; the item is nonmagical.` };
+      }
+      if (capability.activatesStatus && !findStatusDefinition(capability.activatesStatus.id)) {
+        return { ok: false, reason: t("item.actionResourceUnavailable") };
+      }
+      const definitions = Object.fromEntries((profile.resources?.definitions || []).map((definition) => [definition.resourceId, definition]));
+      for (const cost of capability.resourceCosts || []) {
+        const info = namedItemResourceInfo(item, definitions[cost.resourceId], { persistInitialization: false });
+        if (!info || info.current < cost.amount) return { ok: false, reason: t("item.actionNamedResourceUnavailable", { resource: cost.resourceId }) };
+      }
+      return { ok: true, item, capability, definitions };
+    }
+
+    function activateItemCapabilityStatus(action) {
+      const status = action?.activatesStatus;
+      if (!status) return null;
+      const definition = findStatusDefinition(status.id);
+      if (!definition) return null;
+      activateStatusById(definition.id);
+      return definition;
+    }
+
+    function consumeItemCapabilityResources(action, validation) {
+      if (!action?.itemCapabilityId) return true;
+      let nextStore = itemResourceStateStore();
+      for (const cost of validation.capability.resourceCosts || []) {
+        const adjusted = globalThis.dndItemResourceState?.adjustResourceState?.(nextStore, catalogItemId(validation.item), validation.definitions[cost.resourceId], -cost.amount);
+        if (!adjusted?.applied) return false;
+        nextStore = adjusted.nextStore;
+      }
+      sheetMeta.itemResources = nextStore;
+      return true;
+    }
+
+    function activeItemEffectState() {
+      sheetMeta.activeItemEffects = globalThis.dndEffectState?.migrateLegacyItemEffects?.(
+        sheetMeta.activeItemEffects, itemEffectStateStore(), { sourceActorId: "sheet:self" }
+      ) || [];
+      return sheetMeta.activeItemEffects;
+    }
+
+    function itemAutomationResourceDefinitions() {
+      const seen = new Set();
+      return equipmentEntries().flatMap((entry) => {
+        const item = findItemData(entry);
+        if (!item || entry.quantity <= 0) return [];
+        return (automationProfileForItem(item)?.resources?.definitions || []).filter((definition) => {
+          const key = `${definition.catalogId}::${definition.resourceId}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      });
+    }
+
+    function processItemAutomationRecoveryEvent(event, definitions = itemAutomationResourceDefinitions()) {
+      const attachedSpellDefinitions = equipmentEntries().flatMap((entry) => {
+        const item = findItemData(entry);
+        if (!item || entry.quantity <= 0) return [];
+        return (automationProfileForItem(item)?.spells?.attached || []).map((spell) => {
+          const definition = attachedSpellUseDefinition(spell);
+          return definition ? { ...definition, catalogId: catalogItemId(item) } : null;
+        }).filter(Boolean);
+      });
+      const recovered = globalThis.dndItemResourceState?.processRecoveryEvent?.(itemResourceStateStore(), event, [...definitions, ...attachedSpellDefinitions]);
+      if (recovered?.changed) sheetMeta.itemResources = recovered.nextStore;
+      const lifecycle = globalThis.dndEffectLifecycle?.dispatchEffectEvent?.(activeItemEffectState(), event, { sourceActorId: "sheet:self" });
+      if (lifecycle) {
+        sheetMeta.activeItemEffects = lifecycle.state;
+        if (lifecycle.executions?.length) sheetMeta.pendingItemEffectExecutions = [...(sheetMeta.pendingItemEffectExecutions || []), ...lifecycle.executions];
+      }
+      return { resources: recovered?.recovered || [], effects: lifecycle?.executions || [] };
+    }
+
+    function processActiveItemEffectEvent(event, context = {}) {
+      const dispatched = globalThis.dndEffectLifecycle?.dispatchEffectEvent?.(activeItemEffectState(), event, context);
+      if (!dispatched) return [];
+      sheetMeta.activeItemEffects = dispatched.state;
+      return dispatched.executions || [];
+    }
+
+    function pendingItemEffectTurnActions() {
+      return (Array.isArray(sheetMeta.pendingItemEffectExecutions) ? sheetMeta.pendingItemEffectExecutions : []).map((execution) => {
+        const effect = execution.effect || {};
+        const area = execution.area || {};
+        return {
+          key: `item-effect:${execution.executionId}`,
+          id: `item-effect:${execution.executionId}`,
+          title: t(effect.kind === "healing" ? "item.resolveAreaHealing" : "item.resolveAreaEffect"),
+          type: ACTION_TYPES.none,
+          actionCost: [],
+          resolutionSteps: [RESOLUTION_STEPS.chooseVariant, ...(effect.formula ? [RESOLUTION_STEPS.damageRoll] : []), RESOLUTION_STEPS.applyEffect, RESOLUTION_STEPS.confirmResult],
+          variantRequired: false,
+          targetRequired: false,
+          category: ACTION_CATEGORIES.items,
+          damageFormula: effect.formula || "",
+          healing: effect.kind === "healing",
+          itemEffectExecution: execution,
+          detail: [
+            t("item.areaSummary", { shape: area.shape, radius: area.radius, unit: area.unit }),
+            execution.remainingRounds != null ? t("item.remainingRounds", { rounds: execution.remainingRounds }) : "",
+            execution.visibility?.obscuresVision === false ? t("item.doesNotObscureVision") : ""
+          ].filter(Boolean).join(" "),
+          source: "itemEffect"
+        };
+      });
+    }
+
+    function createItemCapabilityEffect(action, validation) {
+      if (!action?.createsEffect) return null;
+      const effect = globalThis.dndEffectState?.createEffectInstance?.(action.createsEffect, {
+        sourceCatalogId: catalogItemId(validation.item),
+        sourceCapabilityId: validation.capability.capabilityId,
+        sourceActorId: "sheet:self"
+      });
+      if (!effect) return null;
+      sheetMeta.activeItemEffects = [...activeItemEffectState(), effect];
+      const onActivate = processActiveItemEffectEvent("onActivate", { sourceActorId: "sheet:self", instanceId: effect.instanceId });
+      if (onActivate.length) sheetMeta.pendingItemEffectExecutions = [...(sheetMeta.pendingItemEffectExecutions || []), ...onActivate];
+      return effect;
+    }
+
+    function appendItemAutomationSections(root, item) {
+      const profile = automationProfileForItem(item);
+      const resources = profile?.resources?.definitions || [];
+      const capabilities = profile?.capabilities || [];
+      const attachedSpellUses = (profile?.spells?.attached || []).map((spell) => {
+        const definition = attachedSpellUseDefinition(spell);
+        const info = definition ? namedItemResourceInfo(item, definition) : null;
+        return definition && info ? { definition, info } : null;
+      }).filter(Boolean);
+      if (!resources.length && !capabilities.length && !attachedSpellUses.length) return;
+      const section = document.createElement("section");
+      section.className = "item-section item-automation-capabilities";
+      appendText(section, "item-section-title", t("item.structuredCapabilities"));
+      resources.forEach((definition) => {
+        const info = namedItemResourceInfo(item, definition);
+        const recovery = definition.recovery?.trigger || t("item.manualResolution");
+        appendText(section, "item-section-body", `${definition.name}: ${info?.current ?? 0}/${info?.max ?? definition.max}. ${t("item.recoversOn", { event: recovery })}`, "p");
+        if (definition.recovery?.trigger === "dawn") {
+          const dawn = document.createElement("button");
+          dawn.type = "button";
+          dawn.className = "feature-list-button";
+          dawn.textContent = t("item.processDawn");
+          dawn.addEventListener("click", () => {
+            processItemAutomationRecoveryEvent("dawn", [definition]);
+            scheduleEquipmentMutationRefresh({ reason: "item-dawn-recovery", derived: false });
+            showStatus(t("item.dawnProcessed"));
+          });
+          section.appendChild(dawn);
+        }
+      });
+      attachedSpellUses.forEach(({ definition, info }) => {
+        const recovery = definition.recovery?.trigger || t("item.manualResolution");
+        appendText(section, "item-section-body", `${definition.name}: ${info.current}/${info.max}. ${t("item.recoversOn", { event: recovery })}`, "p");
+        if (definition.recovery?.trigger === "dawn") {
+          const dawn = document.createElement("button");
+          dawn.type = "button";
+          dawn.className = "feature-list-button";
+          dawn.textContent = t("item.processDawn");
+          dawn.addEventListener("click", () => {
+            processItemAutomationRecoveryEvent("dawn");
+            scheduleEquipmentMutationRefresh({ reason: "attached-spell-dawn-recovery", derived: false });
+            showStatus(t("item.dawnProcessed"));
+          });
+          section.appendChild(dawn);
+        }
+      });
+      capabilities.forEach((capability) => {
+        const damage = (capability.damageComponents || []).map((component) => `${component.formula} ${component.type}`).join(", ");
+        const area = capability.createsEffect?.area;
+        const savingThrow = capability.savingThrow;
+        const modifierEffects = capability.effects ? [
+          ...(capability.effects.abilityBonuses || []).map((bonus) => `${bonus.ability} ${formatModifier(bonus.amount)}${bonus.maximum ? ` (max ${bonus.maximum})` : ""}`),
+          ...(capability.effects.languages || []).map((language) => `Language: ${language}`),
+          ...(capability.effects.senses || []).map((sense) => `${titleCaseWords([sense.type])[0]} ${sense.range} ${sense.unit}`),
+          ...(capability.effects.defenses?.resistances || []).map((type) => `Resistance: ${type}`),
+          ...(capability.effects.rollAdvantages || []).map((advantage) => advantage.label)
+        ].join("; ") : "";
+        appendText(section, "item-section-body", [
+          capability.name,
+          capability.kind,
+          capability.activation?.type || capability.trigger?.event,
+          capability.spell ? t("item.grantedSpellNoSlot", { spell: capability.spell.name }) : "",
+          savingThrow ? t("item.fixedSaveSummary", { ability: savingThrow.ability, dc: savingThrow.dc }) : "",
+          damage,
+          capability.selfHealing?.kind === "equalToDamageDealt" ? t("item.healingEqualDamage") : "",
+          modifierEffects,
+          area ? `${area.shape} ${area.radius} ${area.unit}` : "",
+          capability.createsEffect?.visibility?.obscuresVision === false ? t("item.doesNotObscureVision") : ""
+        ].filter(Boolean).join(" - "), "p");
+      });
+      root.appendChild(section);
+    }
+
+    function combatActionResourceLedger(action) {
+      const ledger = {};
+      (action?.resourceCosts || []).forEach((cost) => {
+        ledger[cost.key] = Math.max(0, Number(itemResourceStateStore()[cost.key]?.current) || 0);
+      });
+      return ledger;
+    }
+
+    globalThis.dndItemEffectRuntime = Object.freeze({
+      dispatch(event, context = {}) {
+        const executions = processActiveItemEffectEvent(event, context);
+        if (executions.length) sheetMeta.pendingItemEffectExecutions = [...(sheetMeta.pendingItemEffectExecutions || []), ...executions];
+        invalidateCombatActionCache(`item-effect:${event}`);
+        scheduleTurnActionsPanelRefresh();
+        scheduleSave();
+        return executions.map((execution) => ({ ...execution }));
+      },
+      active() { return activeItemEffectState().map((effect) => ({ ...effect })); }
+    });
+
     function validateItemResourceAction(action) {
       const actionCatalogId = action?.itemActionCatalogId || action?.itemResourceCatalogId;
       if (!actionCatalogId) return { ok: true, item: null, info: null, cost: 0 };
@@ -11821,6 +12627,16 @@
       if (!item || isCatalogItemUnavailable(item)) return { ok: false, reason: t("item.actionResourceUnavailable") };
       if (!characterOwnsCatalogItem(item)) return { ok: false, reason: t("item.actionResourceUnavailable") };
       if (itemRequiresAttunement(item) && !itemIsAttuned(item)) return { ok: false, reason: t("item.actionRequiresAttunement") };
+      if (action.itemSpellEquipmentModes?.length && !itemEquipmentModesMatch(action.itemSpellEquipmentModes, equippedSlotsForCatalogItem(item))) {
+        return { ok: false, reason: t("item.actionRequiresEquipped") };
+      }
+      if (action.itemAttachedSpellUse?.definition) {
+        const definition = action.itemAttachedSpellUse.definition;
+        const amount = Math.max(1, Number.parseInt(action.itemAttachedSpellUse.amount, 10) || 1);
+        const info = namedItemResourceInfo(item, definition, { persistInitialization: false });
+        if (!info || info.current < amount) return { ok: false, reason: t("item.actionNoCharges") };
+        return { ok: true, item, info: null, cost: 0, attachedSpellUse: { definition, amount, info } };
+      }
       if (!action.itemResourceCatalogId) return { ok: true, item, info: null, cost: 0 };
       const info = itemResourceInfo(item);
       const cost = Number.isSafeInteger(action.itemResourceCost) && action.itemResourceCost > 0 ? action.itemResourceCost : 0;
@@ -11832,7 +12648,20 @@
 
     function consumeItemResourceForAction(action) {
       const validation = validateItemResourceAction(action);
-      if (!validation.ok || validation.cost <= 0) return validation.ok;
+      if (!validation.ok) return false;
+      if (validation.attachedSpellUse) {
+        const adjusted = globalThis.dndItemResourceState?.adjustResourceState?.(
+          itemResourceStateStore(),
+          catalogItemId(validation.item),
+          validation.attachedSpellUse.definition,
+          -validation.attachedSpellUse.amount
+        );
+        if (!adjusted?.applied) return false;
+        sheetMeta.itemResources = adjusted.nextStore;
+        scheduleEquipmentMutationRefresh({ reason: "attached-spell-use", panel: false, armorClass: false, prepared: true, alerts: false, combat: true, save: true, derived: false });
+        return true;
+      }
+      if (validation.cost <= 0) return true;
       return adjustItemResource(validation.item, -validation.cost);
     }
 
@@ -13114,7 +13943,7 @@
       } else {
         delete itemEffectStateStore()[catalogId];
       }
-      scheduleEquipmentMutationRefresh({ reason: "item-guided-effect-changed" });
+      scheduleEquipmentMutationRefresh({ reason: "item-guided-effect-changed", derived: false });
       return true;
     }
 
@@ -13194,6 +14023,7 @@
       appendItemSection(root, t("item.vehicle"), itemVehicleLine(item));
       appendItemAttunementControl(root, item);
       appendItemResourceControl(root, item);
+      appendItemAutomationSections(root, item);
       appendItemEffectControl(root, item);
 
       const descriptionContainer = document.createElement("div");
@@ -14997,8 +15827,9 @@
       equipmentMutationRefreshRunning = true;
       try {
         withCombatCollectionMemo(() => {
+          if (request.derived) updateDerivedStats({ refreshPanels: false });
           if (request.panel) updateEquipmentPanel();
-          if (request.armorClass) updateArmorClass();
+          if (request.armorClass && !request.derived) updateArmorClass();
           if (request.prepared) updatePreparedSpellsPanel({ refreshCombat: false });
           if (request.alerts) renderAlertsPanel();
         });
@@ -15025,7 +15856,8 @@
       prepared = true,
       alerts = true,
       combat = true,
-      save = true
+      save = true,
+      derived = null
     } = {}) {
       if (equipmentMutationRefreshRunning) return;
       if (!pendingEquipmentMutationRefresh) {
@@ -15036,6 +15868,7 @@
           armorClass: false,
           prepared: false,
           alerts: false,
+          derived: false,
           combat: false
         };
       }
@@ -15045,6 +15878,7 @@
       request.armorClass ||= armorClass;
       request.prepared ||= prepared;
       request.alerts ||= alerts;
+      request.derived ||= derived == null ? (armorClass || prepared || alerts) : Boolean(derived);
       if (combat && !request.combat) invalidateCombatActionCache(reason);
       request.combat ||= combat;
       if (save && typeof scheduleSave === "function") scheduleSave();
@@ -15301,6 +16135,9 @@
       if (!slots.includes(slot)) slots.push(slot);
       equippedItems()[key] = { slots, proficient: hasEquipmentProficiency(item) };
       notifyEquipmentCombatStateChanged("equipment-equipped");
+      if (itemRequiresAttunement(item) && !itemIsAttuned(item)) {
+        showStatus(t("item.attunementRequiredAfterEquip", { name: item.name }));
+      }
       return true;
     }
 
@@ -15558,7 +16395,7 @@
       });
       if (!added) nextLines.push(formatEquipmentEntryLine(quantity, referenceName));
       field.value = nextLines.join("\n");
-      scheduleEquipmentMutationRefresh({ reason: "equipment-added" });
+      scheduleEquipmentMutationRefresh({ reason: "equipment-added", derived: false });
       showStatus(t("item.added"));
     }
 
@@ -15567,6 +16404,7 @@
       if (!field) return;
       const targetKey = equipmentItemKey(entry);
       const nextLines = [];
+      let removedEquippedItem = false;
       equipmentLines().forEach((line) => {
         const current = parseEquipmentLine(line);
         if (equipmentItemKey(current) !== targetKey) {
@@ -15575,11 +16413,14 @@
         }
         const nextQuantity = current.quantity - quantity;
         if (nextQuantity > 0) nextLines.push(formatEquipmentEntryLine(nextQuantity, current.storageName));
-        else delete equippedItems()[targetKey];
+        else {
+          removedEquippedItem ||= Boolean(equippedRecord(targetKey));
+          delete equippedItems()[targetKey];
+        }
       });
 
       field.value = nextLines.join("\n");
-      scheduleEquipmentMutationRefresh({ reason: "equipment-removed" });
+      scheduleEquipmentMutationRefresh({ reason: "equipment-removed", derived: removedEquippedItem });
       showStatus("Item removido");
     }
 
@@ -17770,6 +18611,61 @@
       });
     }
 
+    function itemAbilityScoreBaseState() {
+      if (!sheetMeta.itemAbilityScoreBases || typeof sheetMeta.itemAbilityScoreBases !== "object" || Array.isArray(sheetMeta.itemAbilityScoreBases)) {
+        sheetMeta.itemAbilityScoreBases = {};
+      }
+      return sheetMeta.itemAbilityScoreBases;
+    }
+
+    function restoreEquippedAbilityScoreOverrides() {
+      const bases = itemAbilityScoreBaseState();
+      ABILITY_KEYS.forEach((ability) => {
+        const field = getFieldByKey(ability);
+        const base = Number.parseInt(String(bases[ability] ?? "").trim(), 10);
+        if (field && Number.isFinite(base)) field.value = String(base);
+        delete bases[ability];
+        if (!field) return;
+        delete field.dataset.generatedItemAbilityScore;
+        delete field.dataset.generatedItemAbilityValue;
+        field.title = field.dataset.key || ability;
+      });
+    }
+
+    function applyEquippedAbilityScoreOverrides() {
+      const bases = itemAbilityScoreBaseState();
+      equippedAbilityScoreOverrides().forEach(({ score, bonuses, sources }, ability) => {
+        const field = getFieldByKey(ability);
+        const current = Number.parseInt(String(field?.value || "").trim(), 10);
+        if (!field || !Number.isFinite(current)) return;
+        const adjusted = bonuses.reduce((value, bonus) => {
+          const next = value + bonus.amount;
+          return Number.isFinite(bonus.maximum) ? Math.min(next, bonus.maximum) : next;
+        }, current);
+        const next = Math.max(adjusted, score || 0);
+        if (next === current) return;
+        bases[ability] = current;
+        field.value = String(next);
+        field.dataset.generatedItemAbilityScore = "true";
+        field.dataset.generatedItemAbilityValue = String(next);
+        field.title = t("item.abilityScoreOverride", {
+          ability: field.dataset.key || ability,
+          base: current,
+          source: uniqueReadableValues(sources).join(", "),
+          score: next
+        });
+      });
+    }
+
+    function captureManualItemAbilityScoreEdit(field, ability) {
+      const bases = itemAbilityScoreBaseState();
+      if (!field || bases[ability] == null) return;
+      const expected = field.dataset.generatedItemAbilityValue || "";
+      if (String(field.value || "").trim() === expected) return;
+      const value = Number.parseInt(String(field.value || "").trim(), 10);
+      if (Number.isFinite(value)) bases[ability] = value;
+    }
+
     function captureManualRaceAbilityEdit(field, ability) {
       if (!field || field.dataset.generatedAbilitySource !== "race") return;
       const expected = field.dataset.generatedAbilityValue || "";
@@ -19114,6 +20010,7 @@
         ...selectedBackgroundLanguageChoices(),
         ...activeFeatData().flatMap((feat) => fixedGroupProficiencyValues(feat.languageProficiencies, languageLabelFromKey)),
         ...selectedFeatureLanguageChoices(),
+        ...equippedItemLanguages(),
         ...classFeatureEntriesForCharacter()
           .filter((entry) => /\byou know thieves'? cant\b/i.test(flattenEntryText(entry.feature?.entries || entry.description || "")))
           .map(() => "Thieves' Cant")
@@ -19326,6 +20223,7 @@
 
       uniqueEquippedCatalogItems().forEach(({ item }) => {
         if (!itemMagicBonusesEnabled(item)) return;
+        if ((automationProfileForItem(item)?.modifiers || []).some((modifier) => modifier.effects?.defenses)) return;
         const defenses = globalThis.dndItemCatalog?.persistentDefenseProfile?.(item);
         if (!defenses) return;
         const parts = [
@@ -19333,6 +20231,17 @@
           defenses.immunities?.length ? `Immunities: ${uniqueReadableValues(defenses.immunities).join(", ")}` : "",
           defenses.vulnerabilities?.length ? `Vulnerabilities: ${uniqueReadableValues(defenses.vulnerabilities).join(", ")}` : "",
           defenses.conditionImmunities?.length ? `Condition immunities: ${uniqueReadableValues(defenses.conditionImmunities).join(", ")}` : ""
+        ].filter(Boolean);
+        if (parts.length) passive.push(`${item.name}: ${parts.join("; ")}`);
+      });
+
+      activeItemModifiers().forEach(({ item, modifier }) => {
+        const defenses = modifier.effects?.defenses;
+        if (!defenses) return;
+        const parts = [
+          defenses.resistances?.length ? `Resistances: ${uniqueReadableValues(defenses.resistances).join(", ")}` : "",
+          defenses.immunities?.length ? `Immunities: ${uniqueReadableValues(defenses.immunities).join(", ")}` : "",
+          defenses.vulnerabilities?.length ? `Vulnerabilities: ${uniqueReadableValues(defenses.vulnerabilities).join(", ")}` : ""
         ].filter(Boolean);
         if (parts.length) passive.push(`${item.name}: ${parts.join("; ")}`);
       });
@@ -19406,6 +20315,7 @@
         ...selectedBackgroundLanguageChoices(),
         ...activeFeatData().flatMap((feat) => fixedGroupProficiencyValues(feat.languageProficiencies, languageLabelFromKey)),
         ...selectedFeatureLanguageChoices(),
+        ...equippedItemLanguages(),
         ...classFeatureEntriesForCharacter()
           .filter((entry) => /\byou know thieves'? cant\b/i.test(flattenEntryText(entry.feature?.entries || entry.description || "")))
           .map(() => "Thieves' Cant")
@@ -19421,6 +20331,7 @@
       const defenses = selectedDefenseSources();
       appendReadableSection(sections, "Active Defenses", defenses.active);
       appendReadableSection(sections, "Defenses", defenses.passive);
+      appendReadableSection(sections, "Item Benefits", equippedItemBenefitLines());
 
       return sections.join("\n\n");
     }
@@ -19819,13 +20730,15 @@
       updateHitPointMaximum();
     }
 
-    function updateDerivedStats() {
+    function updateDerivedStats({ refreshPanels = true } = {}) {
       invalidateCombatActionCache("derived-stats");
       return withCombatCollectionMemo(() => {
         ensureCurrencyDefaults();
+        restoreEquippedAbilityScoreOverrides();
         applySelectedBackgroundChoices();
         applySelectedClassEquipment();
         applyRaceAbilityAdjustments();
+        applyEquippedAbilityScoreOverrides();
         updateClassSkillProficiencies();
         updateBackgroundSkillProficiencies();
         updateRaceSkillProficiencies();
@@ -19862,10 +20775,12 @@
         pruneInvalidSpellSourceSelections(spellValidationSnapshot);
         pruneDuplicateSpellSelections();
         pruneOverLimitSpellSelections(spellValidationSnapshot);
-        if (typeof scheduleEquipmentPanelRefresh === "function") scheduleEquipmentPanelRefresh();
-        else updateEquipmentPanel();
-        if (typeof schedulePreparedSpellsPanelRefresh === "function") schedulePreparedSpellsPanelRefresh();
-        else updatePreparedSpellsPanel();
+        if (refreshPanels) {
+          if (typeof scheduleEquipmentPanelRefresh === "function") scheduleEquipmentPanelRefresh();
+          else updateEquipmentPanel();
+          if (typeof schedulePreparedSpellsPanelRefresh === "function") schedulePreparedSpellsPanelRefresh();
+          else updatePreparedSpellsPanel();
+        }
       });
     }
 
@@ -19891,7 +20806,10 @@
       const affectsSpeed = normalizedKey === "race";
       const affectsOtherProficiencies = ["classlevel", "background", "race"].includes(normalizedKey);
       if (!isAbility && !isProficiencyCheckbox && !isLevel && !affectsArmorClass && !affectsSpeed && !affectsOtherProficiencies) return;
-      if (isAbility) captureManualRaceAbilityEdit(event.target, upperKey);
+      if (isAbility) {
+        captureManualItemAbilityScoreEdit(event.target, upperKey);
+        captureManualRaceAbilityEdit(event.target, upperKey);
+      }
       updateDerivedStats();
     }
 
@@ -20068,10 +20986,21 @@
       });
 
       turnActionRegistry.register({
+        id: "item-effects:pending",
+        order: 23,
+        getActions() {
+          return { actions: pendingItemEffectTurnActions() };
+        }
+      });
+
+      turnActionRegistry.register({
         id: "inventory:charged-items",
         order: 24,
         getActions() {
-          return { actions: equipmentEntries().flatMap(chargedItemTurnActions) };
+          return { actions: equipmentEntries().flatMap((entry) => {
+            const declared = itemCapabilityTurnActions(entry);
+            return declared.length ? declared : chargedItemTurnActions(entry);
+          }) };
         }
       });
 

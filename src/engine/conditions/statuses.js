@@ -68,6 +68,18 @@
       }
     },
     {
+      id: "medal-of-muscle-strength",
+      name: "Medal of Muscle",
+      symbol: "STR ADV",
+      tone: "positive",
+      playerSelectable: false,
+      description: "Advantage on Strength ability checks and Strength saving throws for 1 hour. Remove this status when the duration ends.",
+      effects: {
+        checkModesByAbility: { STR: "advantage" },
+        saveModesByAbility: { STR: "advantage" }
+      }
+    },
+    {
       id: "dodging",
       name: "Dodging",
       symbol: "DOD",
@@ -565,6 +577,14 @@
     const definitions = normalizeStatusIds(ids)
       .map((id) => definitionsById.get(id))
       .filter(Boolean);
+    const checkModesByAbility = {
+      STR: [],
+      DEX: [],
+      CON: [],
+      INT: [],
+      WIS: [],
+      CHA: []
+    };
     const saveModesByAbility = {
       STR: [],
       DEX: [],
@@ -584,6 +604,7 @@
       attackRollModes: [],
       abilityCheckModes: [],
       saveRollModes: [],
+      checkModesByAbility,
       saveModesByAbility,
       attackBonusDice: [],
       checkBonusDice: [],
@@ -622,6 +643,11 @@
       appendRollMode(effects.attackRollModes, raw.attackRollMode);
       appendRollMode(effects.abilityCheckModes, raw.abilityCheckMode);
       appendRollMode(effects.saveRollModes, raw.saveRollMode);
+      Object.entries(raw.checkModesByAbility || {}).forEach(([ability, mode]) => {
+        const key = String(ability || "").trim().toUpperCase();
+        if (!checkModesByAbility[key]) return;
+        appendRollMode(checkModesByAbility[key], mode);
+      });
       Object.entries(raw.saveModesByAbility || {}).forEach(([ability, mode]) => {
         const key = String(ability || "").trim().toUpperCase();
         if (!saveModesByAbility[key]) return;
@@ -645,6 +671,9 @@
       attackRollMode: mergeRollModes(effects.attackRollModes),
       abilityCheckMode: mergeRollModes(effects.abilityCheckModes),
       saveRollMode: mergeRollModes(effects.saveRollModes),
+      checkModeByAbility: Object.fromEntries(
+        Object.entries(checkModesByAbility).map(([ability, modes]) => [ability, mergeRollModes(modes)])
+      ),
       saveModeByAbility: Object.fromEntries(
         Object.entries(saveModesByAbility).map(([ability, modes]) => [ability, mergeRollModes(modes)])
       )

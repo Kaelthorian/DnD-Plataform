@@ -5,16 +5,19 @@ const path = require("path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const itemCatalog = require(path.join(repoRoot, "src", "engine", "items", "item-catalog.js"));
+const itemAutomationRegistry = require(path.join(repoRoot, "src", "engine", "items", "item-automation-registry.js"));
 const syncItems = require("./sync-items.js");
 const defaultCatalog = path.join(repoRoot, "src", "data", "items", "items.json");
 const defaultBaseCatalog = path.join(repoRoot, "src", "data", "items", "items-base.json");
+const defaultAutomation = path.join(repoRoot, "src", "data", "items", "item-automation.json");
 
 function parseArgs(argv) {
-  const options = { catalog: defaultCatalog, baseCatalog: defaultBaseCatalog, source: "", reference: "", expectedCount: 1779 };
+  const options = { catalog: defaultCatalog, baseCatalog: defaultBaseCatalog, automation: defaultAutomation, source: "", reference: "", expectedCount: 1779 };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--catalog") options.catalog = path.resolve(argv[++index] || defaultCatalog);
     else if (arg === "--base-catalog") options.baseCatalog = path.resolve(argv[++index] || defaultBaseCatalog);
+    else if (arg === "--automation") options.automation = path.resolve(argv[++index] || defaultAutomation);
     else if (arg === "--source") options.source = path.resolve(argv[++index] || "");
     else if (arg === "--reference") options.reference = path.resolve(argv[++index] || "");
     else if (arg === "--expected-count") options.expectedCount = Number(argv[++index]);
@@ -34,6 +37,8 @@ function validate(options = parseArgs([])) {
   const warnings = [];
   const itemsData = readJson(options.catalog);
   const baseData = readJson(options.baseCatalog);
+  const automationPath = options.automation || (path.resolve(options.catalog) === path.resolve(defaultCatalog) ? defaultAutomation : "");
+  const automationData = automationPath ? readJson(automationPath) : { schemaVersion: 1, items: [] };
   const items = Array.isArray(itemsData.item) ? itemsData.item : [];
   const baseItems = Array.isArray(baseData.baseitem) ? baseData.baseitem : [];
   if (!Array.isArray(itemsData.item)) errors.push("items.json.item must be an array.");
@@ -46,6 +51,14 @@ function validate(options = parseArgs([])) {
   const identityReport = itemCatalog.validateItemCatalog(items, { expectedCount: options.expectedCount });
   errors.push(...identityReport.errors);
   const allRecords = itemCatalog.collectCatalogRecords(items);
+  let automationRegistry = null;
+  try {
+    automationRegistry = itemAutomationRegistry.createItemAutomationRegistry({ overlay: automationData, catalog: itemsData });
+    itemCatalog.setItemAutomationRegistry(automationRegistry);
+  } catch (error) {
+    errors.push(error.message);
+    itemCatalog.setItemAutomationRegistry(null);
+  }
   allRecords.forEach((record) => {
     for (const field of ["catalogId", "catalogKey", "catalogVariantToken"]) {
       if (!String(record.item?.[field] || "").trim()) errors.push(`${record.location}: missing generated ${field}.`);
@@ -104,11 +117,13 @@ function validate(options = parseArgs([])) {
   for (const field of ["itemProperty", "itemType", "itemMastery"]) {
     if (!Array.isArray(baseData[field])) warnings.push(`items-base.json.${field} is not an array.`);
   }
+  itemCatalog.setItemAutomationRegistry(null);
   const report = {
     ok: errors.length === 0,
     records: items.length,
     specificVariants: identityReport.specificVariants,
     identities: identityReport.identities,
+    automationDefinitions: automationRegistry?.size || 0,
     tombstones: tombstones.length,
     baseItems: baseItems.length,
     categories: { weapons, armors, charges, attunement, spells, consumables, vehicles },

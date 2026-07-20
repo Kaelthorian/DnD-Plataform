@@ -20,6 +20,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 | Acciones universales/perfiles | `src/engine/combat/action-definitions.js` |
 | Tiradas reales | `rollD20WithMode()`, `rollDiceExpression()`, `summarizeD20Roll()` y `showDiceTray()` en `index.html` |
 | Armas/inventario | campo PDF `Equipment`, `__sheetMeta.equippedItems`, catálogo app-owned `src/data/items/items.json` y `weaponAttackSelection()` |
+| Capacidades de ítems | `src/data/items/item-automation.json`, `src/engine/items` y `src/engine/effects`; adaptadores `itemCapabilityTurnActions()`/`processActiveItemEffectEvent()` |
 | Hechizos | `src/data/spells/spells.json`, `src/engine/spells/spell-data.js`, campos/checkboxes del PDF, `spellAttackSelections()` y `castPreparedSpell()` |
 | Features/raza/clase/subclase/feats | entradas generadas del renderer y registros vendor; `featureActionItemsFromEntries()` |
 | Condiciones | `__sheetMeta.activeStatuses` y `src/engine/conditions/statuses.js` |
@@ -32,7 +33,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 1. `combatTurnState()` crea o migra el turno con Action, Bonus Action, Reaction, Movement, Object Interaction y ataques máximos.
 2. Una tarjeta declarativa se valida y `createCombatResolution()` reserva el coste. El contador proyectado cambia mientras la sesión está abierta.
 3. El stepper solicita sólo los pasos declarados: target, attack roll, save/check, damage/healing, efecto y confirmación. El target es un selector: incluye la party visible y, con combate VTT activo, los enemigos visibles de esa iniciativa. No acepta texto libre ni pide AC; los resultados Hit/Miss no determinados por natural 1/20 se confirman con el DM.
-4. Un ataque no habilita Damage hasta tener Hit; natural 1 falla, natural 20 marca crítico y duplica dados, no modificadores fijos.
+4. Un ataque no habilita Damage hasta tener Hit; natural 1 falla, natural 20 marca crítico y duplica dados, no modificadores fijos. `damageComponents` mantiene fórmula/tipo/fuente por separado y `results.damageRolls` sus subtotales; los campos singulares siguen como compatibilidad.
 5. Los saves y el daño automático no crean Hit Roll. Si el modificador/AC del target es privado, el jugador marca el resultado comunicado por el DM.
 6. `Confirm Result` consume la economía y después usa los adaptadores existentes de slots, usos, inventario, munición, estados y log. `Cancel` revierte la reserva.
 7. `End Turn` deja la Reaction restante disponible para tarjetas `allowOutsideTurn`; `New Turn` la restaura y elimina Dodge/Ready vencidos.
@@ -72,10 +73,11 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 - Materiales costosos/consumibles se muestran desde metadata cuando existe, pero no hay un ledger estructurado de componentes en el inventario.
 - El panel Prepared Spells ofrece el cast ritual explícito para registros rituales de nivel 1+ y no consume slot. No modela los diez minutos adicionales, requisitos de ritual-casting de cada clase ni posesión/consumo de materiales; esas comprobaciones siguen siendo manuales.
 - Un cast directo que reemplaza Concentration exige dos pulsaciones dentro de diez segundos y realiza esa comprobación antes de interrumpir un descanso o gastar recursos. El stepper de combate conserva su confirmación explícita y transmite esa decisión al commit del spell. El contador `CON` de Prepared Spells permite terminarla manualmente; completar un Long Rest también la termina, pero iniciar o interrumpir el descanso no.
-- Triggers de Reaction/Ready, efectos start/end, ongoing damage, recharge, summons/transformaciones y maniobras posteriores a una tirada no generan prompts automáticos.
+- El lifecycle de ítems soporta dispatch genérico de triggers y el Censer usa `sourceTurnStart`; reglas no declaradas, summons/transformaciones y maniobras abiertas no generan prompts automáticos.
 - Los riders opcionales exponen fórmula y tipo, pero el jugador/DM confirma target, alcance y trigger. Buffs con cargas o targets compartidos (por ejemplo Flame Arrows o Crusader's Mantle) no mantienen un ledger autoritativo por criatura.
 - Que un item sincronizado declare cargas, saves, spells, resistencias o acciones no implica que el motor pueda ejecutarlos sin contexto. Sólo se automatizan perfiles deterministas soportados por inventario/equipo/recursos/condiciones; targets, geometría, efectos de mundo y elecciones abiertas permanecen guiados y visibles en el detalle.
 - Live Sheet sólo reenvía las tiradas confirmadas. Falta el protocolo autoritativo host/DM para validar y aplicar economía, HP y efectos compartidos.
+- Las áreas de ítems usan selección guiada de criaturas. La hoja puede aplicar HP propio y registrar objetivos, pero todavía no calcula posiciones/radios desde tokens ni aplica HP remoto; `movesWithAnchor`/visibilidad quedan preparados para esa integración.
 
 ## Prueba manual
 

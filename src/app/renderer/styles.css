@@ -151,7 +151,8 @@
     .equipment-panel {
       position: absolute;
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 0;
       border: 1px solid rgba(38, 38, 38, 0.38);
       border-radius: 4px;
       background: transparent;
@@ -247,9 +248,14 @@
     }
 
     .equipment-list {
+      min-height: 0;
+      min-width: 0;
+      overflow-x: hidden;
       overflow-y: auto;
       overscroll-behavior: contain;
+      scrollbar-gutter: stable;
       scrollbar-color: #737373 transparent;
+      touch-action: pan-y;
       background: transparent;
     }
 
@@ -380,6 +386,16 @@
       white-space: nowrap;
       cursor: pointer;
       transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+    }
+
+    .add-equipment-button.equipment-panel-add {
+      position: static;
+      z-index: 1;
+      width: calc(100% - 8px);
+      min-height: 18px;
+      margin: 2px 4px 3px;
+      box-sizing: border-box;
+      box-shadow: none;
     }
 
     .add-equipment-button:hover,
