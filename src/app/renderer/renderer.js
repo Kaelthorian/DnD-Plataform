@@ -81,11 +81,24 @@
     const diceTitle = document.getElementById("diceTitle");
     const diceResult = document.getElementById("diceResult");
     const diceDetail = document.getElementById("diceDetail");
-    const itemDrawer = document.getElementById("itemDrawer");
-    const itemDrawerTitle = document.getElementById("itemDrawerTitle");
-    const itemDrawerMeta = document.getElementById("itemDrawerMeta");
-    const itemDrawerBody = document.getElementById("itemDrawerBody");
-    const itemDrawerClose = document.getElementById("itemDrawerClose");
+    let itemDrawer = null;
+    let itemDrawerTitle = null;
+    let itemDrawerMeta = null;
+    let itemDrawerBody = null;
+    let itemDrawerClose = null;
+
+    // The drawer lives in the static shell, but it can be reconstructed while
+    // the sheet is loading. Resolve it again before a detail view uses it.
+    function refreshItemDrawerElements() {
+      itemDrawer = document.getElementById("itemDrawer");
+      itemDrawerTitle = document.getElementById("itemDrawerTitle");
+      itemDrawerMeta = document.getElementById("itemDrawerMeta");
+      itemDrawerBody = document.getElementById("itemDrawerBody");
+      itemDrawerClose = document.getElementById("itemDrawerClose");
+      return Boolean(itemDrawer && itemDrawerTitle && itemDrawerMeta && itemDrawerBody);
+    }
+
+    refreshItemDrawerElements();
     const itemPickerBackdrop = document.getElementById("itemPickerBackdrop");
     const itemPickerClose = document.getElementById("itemPickerClose");
     const itemPickerSearch = document.getElementById("itemPickerSearch");
@@ -3290,7 +3303,7 @@
         if (!isEquipmentFieldEvent(event)) globalThis.scheduleCombatActionCacheWarmup?.();
       });
       app.addEventListener("change", handleSpellAvailabilityChange);
-      itemDrawerClose.addEventListener("click", closeItemDrawer);
+      itemDrawerClose?.addEventListener("click", closeItemDrawer);
       itemPickerClose?.addEventListener("click", closeItemPicker);
       itemPickerSearch?.addEventListener("input", renderItemPickerList);
       itemPickerFilters?.addEventListener("click", (event) => {

@@ -23,6 +23,7 @@ assert.match(html, /id="itemPickerCount"/, "the picker should expose its filtere
 assert.match(html, /id="itemPickerDetail"/, "the picker should render selected item details in-place");
 assert.match(html, /data-i18n="item\.addSelected"/, "the picker should use the explicit add-item action label");
 assert.match(renderer, /const itemPickerDetail = document\.getElementById\("itemPickerDetail"\)/, "renderer wiring should capture the detail pane");
+assert.match(renderer, /function refreshItemDrawerElements\(\)/, "renderer wiring should be able to refresh the drawer elements after the sheet shell changes");
 
 const renderList = functionBlock("renderItemPickerList");
 const renderDetail = functionBlock("renderItemPickerDetail");
@@ -35,6 +36,10 @@ assert.match(renderList, /itemPickerCount\.textContent/, "the list should update
 assert.match(renderList, /renderItemPickerDetail\(\)/, "list refreshes should keep the detail pane synchronized");
 assert.match(renderDetail, /buildItemDrawerContent\(selectedPickerItem\)/, "the in-place detail should reuse the canonical item renderer");
 assert.doesNotMatch(selectItem, /showItemDrawer\(/, "selecting a picker row should not open a second floating drawer");
+assert.match(html, /function showDrawer\(title, meta, body, drawerClass = ""\) \{\s+if \(!refreshItemDrawerElements\(\)\)/, "item inspection should refresh drawer elements before writing its title or description");
+assert.match(html, /function appendText\(parent, className, text, tagName = "div", \{ allowEmpty = false \} = \{\}\)/, "item detail controls should be able to retain empty status nodes for later updates");
+assert.match(html, /item-resource-status", "", "p", \{ allowEmpty: true \}/, "item resource status should create its initial empty node");
+assert.match(html, /item-effect-control[\s\S]*?item-section-body", "", "p", \{ allowEmpty: true \}/, "item effect status should create its initial empty node");
 assert.match(createAddButton, /fieldByLayerKey\(layer, "Equipment"\)/, "the item launcher should live in the inventory header");
 assert.match(createAddButton, /button\.textContent = t\("item\.addShort"\)/, "the item launcher should have a visible localized action label");
 assert.match(createPanel, /equipment-panel dm-equipment-panel/, "the sheet inventory should opt into the DM-style surface");

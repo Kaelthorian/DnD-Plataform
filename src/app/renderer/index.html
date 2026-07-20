@@ -11670,7 +11670,7 @@
         return;
       }
 
-      const status = appendText(section, "item-section-body item-resource-status", "", "p");
+      const status = appendText(section, "item-section-body item-resource-status", "", "p", { allowEmpty: true });
       const guidance = appendText(section, "item-section-body", t("item.resourceManualRecharge", {
         rule: itemResourceRawGuidance(item)
       }), "p");
@@ -11917,8 +11917,8 @@
       return [header, ...details.filter(Boolean), sourceLine(item)].filter(Boolean).join("\n\n");
     }
 
-    function appendText(parent, className, text, tagName = "div") {
-      if (!text) return null;
+    function appendText(parent, className, text, tagName = "div", { allowEmpty = false } = {}) {
+      if (!text && !allowEmpty) return null;
       const node = document.createElement(tagName);
       node.className = className;
       node.textContent = text;
@@ -13124,7 +13124,7 @@
       section.className = "item-section item-effect-control";
       appendText(section, "item-section-title", t("item.effectTitle"));
       appendText(section, "item-section-body", t("item.effectManualGuidance"), "p");
-      const status = appendText(section, "item-section-body", "", "p");
+      const status = appendText(section, "item-section-body", "", "p", { allowEmpty: true });
       const button = document.createElement("button");
       button.type = "button";
       button.className = "feature-list-button";
@@ -15337,6 +15337,11 @@
     }
 
     function showDrawer(title, meta, body, drawerClass = "") {
+      if (!refreshItemDrawerElements()) {
+        console.error("Item drawer is unavailable; detail view could not be rendered.");
+        showStatus(t("item.drawerUnavailable"));
+        return;
+      }
       itemDrawer.classList.remove("spell-picker-drawer", "wizard-spellbook-drawer", "feat-readable-drawer", "rest-drawer");
       if (drawerClass) itemDrawer.classList.add(drawerClass);
       itemDrawerTitle.textContent = title || "Detalle";
