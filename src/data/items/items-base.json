@@ -1,0 +1,812 @@
+{
+  "_meta": {
+    "internalCopies": [
+      "itemType"
+    ],
+    "catalogSchemaVersion": 1,
+    "expectedActiveRecords": 0
+  },
+  "baseitem": [],
+  "itemProperty": [
+    {
+      "abbreviation": "2H",
+      "source": "XPHB",
+      "page": 214,
+      "basicRules2024": true,
+      "template": "{{prop_name}}",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Two-Handed",
+          "entries": [
+            "A Two-Handed weapon requires two hands when you attack with it."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "A",
+      "source": "XPHB",
+      "page": 213,
+      "basicRules2024": true,
+      "template": "{{prop_name}} (Range {{item.range}} ft.; {{item.ammoType}})",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Ammunition",
+          "entries": [
+            "You can use a weapon that has the Ammunition property to make a ranged attack only if you have ammunition to fire from it. The type of ammunition required is specified with the weapon's range. Each attack expends one piece of ammunition. Drawing the ammunition is part of the attack (you need a free hand to load a one-handed weapon). After a fight, you can spend 1 minute to recover half the ammunition (round down) you used in the fight; the rest is lost."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "AF",
+      "source": "XDMG",
+      "page": 72,
+      "template": "{{prop_name}} ({{item.range}} ft.; {{item.ammoType}})",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Ammunition",
+          "entries": [
+            "Firearm Bullets are destroyed upon use in a modern firearm. Futuristic firearms use Energy Cells that become depleted but could possibly be recharged with the proper equipment, at the GM's discretion."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "BF",
+      "source": "XDMG",
+      "page": 72,
+      "template": "{{prop_name}}",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Burst Fire",
+          "entries": [
+            "As an action, you can expend 10 pieces of a Burst Fire weapon's ammunition to spray shots in a 10-foot {@variantrule Cube [Area of Effect]|XPHB|Cube} within the weapon's normal range. Each creature in that area must succeed on a {@dc 15} Dexterity saving throw or take damage. Roll the weapon's damage once, and apply it to each creature that failed the save."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "F",
+      "source": "XPHB",
+      "page": 213,
+      "basicRules2024": true,
+      "template": "{{prop_name}}",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Finesse",
+          "entries": [
+            "When making an attack with a Finesse weapon, use your choice of your Strength or Dexterity modifier for the attack and damage rolls. You must use the same modifier for both rolls."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "H",
+      "source": "XPHB",
+      "page": 213,
+      "basicRules2024": true,
+      "template": "{{prop_name}}",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Heavy",
+          "entries": [
+            "You have {@variantrule Disadvantage|XPHB} on attack rolls with a Heavy weapon if it's a Melee weapon and your Strength score isn't at least 13 or if it's a Ranged weapon and your Dexterity score isn't at least 13."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "L",
+      "source": "XPHB",
+      "page": 213,
+      "basicRules2024": true,
+      "template": "{{prop_name}}",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Light",
+          "entries": [
+            "When you take the {@action Attack|XPHB} action on your turn and attack with a Light weapon, you can make one extra attack as a {@variantrule Bonus Action|XPHB} later on the same turn. That extra attack must be made with a different Light weapon, and you don't add your ability modifier to the extra attack's damage unless that modifier is negative. For example, you can attack with a {@item Shortsword|XPHB} in one hand and a {@item Dagger|XPHB} in the other using the {@action Attack|XPHB} action and a {@variantrule Bonus Action|XPHB}, but you don't add your Strength or Dexterity modifier to the damage roll of the {@variantrule Bonus Action|XPHB} unless that modifier is negative."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "LD",
+      "source": "XPHB",
+      "page": 214,
+      "basicRules2024": true,
+      "template": "{{prop_name}}",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Loading",
+          "entries": [
+            "You can fire only one piece of ammunition from a Loading weapon when you use an action, a {@variantrule Bonus Action|XPHB}, or a {@variantrule Reaction|XPHB} to fire it, regardless of the number of attacks you can normally make."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "R",
+      "source": "XPHB",
+      "page": 214,
+      "basicRules2024": true,
+      "template": "{{prop_name}}",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Reach",
+          "entries": [
+            "A Reach weapon adds 5 feet to your reach when you attack with it, as well as when determining your reach for {@action Opportunity Attack|XPHB|Opportunity Attacks} with it."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "RLD",
+      "source": "XDMG",
+      "page": 72,
+      "template": "{{prop_name}} ({{item.reload}} shots)",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Reload",
+          "entries": [
+            "You can make a limited number of shots with a Reload weapon. You must then reload the weapon as an action or a {@variantrule Bonus Action|XPHB}."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "T",
+      "source": "XPHB",
+      "page": 214,
+      "basicRules2024": true,
+      "template": "{{prop_name}} ({{item.range}} ft.)",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Thrown",
+          "entries": [
+            "If a weapon has the Thrown property, you can throw the weapon to make a ranged attack, and you can draw that weapon as part of the attack. If the weapon is a Melee weapon, use the same ability modifier for the attack and damage rolls that you use for a melee attack with that weapon."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "V",
+      "source": "XPHB",
+      "page": 214,
+      "basicRules2024": true,
+      "template": "{{prop_name}} ({{item.dmg2}})",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Versatile",
+          "entries": [
+            "A Versatile weapon can be used with one or two hands. A damage value in parentheses appears with the property. The weapon deals that damage when used with two hands to make a melee attack."
+          ]
+        }
+      ]
+    },
+    {
+      "abbreviation": "Vst",
+      "source": "EGW",
+      "page": 270,
+      "template": "Vestige",
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Vestige of Divergence",
+          "page": 200,
+          "entries": [
+            "{@note This item is a Vestige of Divergence, see {@book Vestiges of Divergence|EGW|7|Vestiges of Divergence} for more information.}"
+          ]
+        }
+      ]
+    }
+  ],
+  "itemType": [
+    {
+      "name": "Treasure (Art Object)",
+      "abbreviation": "$A",
+      "source": "XDMG",
+      "page": 215,
+      "entries": [
+        "Idols cast of solid gold, necklaces studded with precious stones, paintings of ancient kings, bejeweled dishes—art objects include all these and more."
+      ]
+    },
+    {
+      "name": "Treasure (Coinage)",
+      "abbreviation": "$C",
+      "source": "XPHB",
+      "page": 213,
+      "basicRules2024": true,
+      "entries": [
+        "Characters often find coins on their adventures and can spend those coins in shops, inns, and other businesses. Coins come in different denominations based on the relative worth of their material. The Coin Values table lists coins and how much they're worth relative to the Gold Piece, which is the game's main coin. For example, 100 Copper Pieces are worth 1 Gold Piece.",
+        "A coin weighs about a third of an ounce, so fifty coins weigh a pound."
+      ]
+    },
+    {
+      "name": "Treasure (Gemstone)",
+      "abbreviation": "$G",
+      "source": "XDMG",
+      "page": 214,
+      "entries": [
+        "Gemstones are small, lightweight, and easily secured compared to their same value in coins."
+      ]
+    },
+    {
+      "name": "Ammunition",
+      "abbreviation": "A",
+      "source": "XPHB",
+      "page": 222,
+      "basicRules2024": true
+    },
+    {
+      "name": "Ammunition",
+      "abbreviation": "AF",
+      "source": "XDMG",
+      "page": 72
+    },
+    {
+      "name": "Vehicle (Air)",
+      "abbreviation": "AIR",
+      "source": "XPHB",
+      "page": 230,
+      "basicRules2024": true,
+      "_copy": {
+        "abbreviation": "SHP",
+        "source": "XPHB"
+      }
+    },
+    {
+      "name": "Artisan's Tools",
+      "abbreviation": "AT",
+      "source": "XPHB",
+      "page": 220,
+      "basicRules2024": true,
+      "entries": [
+        "Artisan's Tools are each focused on crafting items and pursuing a trade. Each type of Artisan's Tools tools requires a separate proficiency.",
+        "If you have proficiency with a tool, add your {@variantrule Proficiency|XPHB|Proficiency Bonus} to any ability check you make that uses the tool. If you have proficiency in a skill that's used with that check, you have {@variantrule Advantage|XPHB} on the check too."
+      ]
+    },
+    {
+      "name": "Explosive",
+      "abbreviation": "EXP",
+      "source": "XDMG",
+      "page": 72
+    },
+    {
+      "name": "Food and Drink",
+      "abbreviation": "FD",
+      "source": "XPHB",
+      "page": 231,
+      "basicRules2024": true
+    },
+    {
+      "name": "Adventuring Gear",
+      "abbreviation": "G",
+      "source": "XPHB",
+      "page": 222,
+      "basicRules2024": true
+    },
+    {
+      "name": "Gaming Set",
+      "abbreviation": "GS",
+      "source": "XPHB",
+      "page": 221,
+      "basicRules2024": true,
+      "entries": [
+        "If you have proficiency with a tool, add your {@variantrule Proficiency|XPHB|Proficiency Bonus} to any ability check you make that uses the tool. If you have proficiency in a skill that's used with that check, you have {@variantrule Advantage|XPHB} on the check too."
+      ]
+    },
+    {
+      "name": "Generic Variant",
+      "abbreviation": "GV",
+      "source": "XDMG",
+      "page": 216
+    },
+    {
+      "name": "Heavy Armor",
+      "abbreviation": "HA",
+      "source": "XPHB",
+      "page": 219,
+      "basicRules2024": true
+    },
+    {
+      "name": "Instrument",
+      "abbreviation": "INS",
+      "source": "XPHB",
+      "page": 221,
+      "basicRules2024": true,
+      "entries": [
+        "If you have proficiency with a tool, add your {@variantrule Proficiency|XPHB|Proficiency Bonus} to any ability check you make that uses the tool. If you have proficiency in a skill that's used with that check, you have {@variantrule Advantage|XPHB} on the check too."
+      ]
+    },
+    {
+      "name": "Light Armor",
+      "abbreviation": "LA",
+      "source": "XPHB",
+      "page": 219,
+      "basicRules2024": true
+    },
+    {
+      "name": "Melee Weapon",
+      "abbreviation": "M",
+      "source": "XPHB",
+      "page": 213,
+      "basicRules2024": true
+    },
+    {
+      "name": "Medium Armor",
+      "abbreviation": "MA",
+      "source": "XPHB",
+      "page": 219,
+      "basicRules2024": true
+    },
+    {
+      "name": "Mount",
+      "abbreviation": "MNT",
+      "source": "XPHB",
+      "page": 230,
+      "basicRules2024": true
+    },
+    {
+      "name": "Other",
+      "abbreviation": "OTH",
+      "source": "XPHB",
+      "page": 213
+    },
+    {
+      "name": "Potion",
+      "abbreviation": "P",
+      "source": "XPHB",
+      "page": 222,
+      "basicRules2024": true
+    },
+    {
+      "name": "Ranged Weapon",
+      "abbreviation": "R",
+      "source": "XPHB",
+      "page": 214,
+      "basicRules2024": true,
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Range",
+          "entries": [
+            "A Range weapon has a range in parentheses after the Ammunition or Thrown property. The range lists two numbers. The first is the weapon's normal range in feet, and the second is the weapon's long range. When attacking a target beyond normal range, you have {@variantrule Disadvantage|XPHB} on the attack roll. You can't attack a target beyond the long range."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rod",
+      "abbreviation": "RD",
+      "source": "XDMG",
+      "page": 216
+    },
+    {
+      "name": "Ring",
+      "abbreviation": "RG",
+      "source": "XDMG",
+      "page": 216
+    },
+    {
+      "name": "Shield",
+      "abbreviation": "S",
+      "source": "XPHB",
+      "page": 219,
+      "basicRules2024": true
+    },
+    {
+      "name": "Scroll",
+      "abbreviation": "SC",
+      "source": "XPHB",
+      "page": 222,
+      "basicRules2024": true
+    },
+    {
+      "name": "Spellcasting Focus",
+      "abbreviation": "SCF",
+      "source": "XPHB",
+      "page": 222,
+      "basicRules2024": true
+    },
+    {
+      "name": "Vehicle (Water)",
+      "abbreviation": "SHP",
+      "source": "XPHB",
+      "page": 230,
+      "basicRules2024": true,
+      "entries": [
+        {
+          "type": "entries",
+          "name": "Speed",
+          "entries": [
+            "A ship sailing against a strong wind moves at half speed. In a dead calm (no wind), waterborne ships can't move under sail and must be rowed. Keelboats and Rowboats are used on lakes and rivers. If going downstream, add the speed of the current (typically 3 miles per hour) to the speed of the vehicle. These vehicles can't be rowed against any significant current, but they can be pulled upstream by draft animals on the shores. A Rowboat can be carried and weighs 100 pounds."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Crew",
+          "entries": [
+            "A ship larger than a Keelboat or Rowboat needs a crew of skilled hirelings (see \"{@book Services|XPHB|6|Services}\") to function. The minimum number of skilled hirelings needed to crew a ship depends on the type of ship."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Passengers",
+          "entries": [
+            "The number of Small and Medium passengers the ship can accommodate using hammocks. A ship outfitted with private accommodations can carry one-fifth as many passengers. A passenger usually pays 5 SP per day for a hammock, but prices can vary from ship to ship. A small private cabin usually costs 2 GP per day."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Damage Threshold",
+          "entries": [
+            "See the {@variantrule Damage Threshold|XPHB|rules glossary}."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Ship Repair",
+          "entries": [
+            "Repairs to a damaged ship can be made while the vessel is berthed. Repairing 1 {@variantrule Hit Points|XPHB|Hit Point} of damage requires 1 day and costs 20 GP for materials and labor. If the repairs are made in a location where supplies and skilled labor are abundant, such as a city shipyard, the repair time and cost are halved."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vehicle (Space)",
+      "abbreviation": "SPC",
+      "source": "AAG",
+      "page": 24
+    },
+    {
+      "name": "Tool",
+      "abbreviation": "T",
+      "source": "XPHB",
+      "page": 220,
+      "basicRules2024": true,
+      "entries": [
+        "If you have proficiency with a tool, add your {@variantrule Proficiency|XPHB|Proficiency Bonus} to any ability check you make that uses the tool. If you have proficiency in a skill that's used with that check, you have {@variantrule Advantage|XPHB} on the check too."
+      ]
+    },
+    {
+      "name": "Tack and Harness",
+      "abbreviation": "TAH",
+      "source": "XPHB",
+      "page": 230,
+      "basicRules2024": true
+    },
+    {
+      "name": "Trade Bar",
+      "abbreviation": "TB",
+      "source": "XDMG",
+      "page": 213,
+      "entries": [
+        "Because large numbers of coins can be difficult to transport and account for, many merchants prefer to use trade bars—ingots of precious metals and alloys (usually silver). These bars are valued by weight."
+      ]
+    },
+    {
+      "name": "Trade Good",
+      "abbreviation": "TG",
+      "source": "XDMG",
+      "page": 213,
+      "entries": [
+        "Merchants commonly exchange trade goods without using currency."
+      ]
+    },
+    {
+      "name": "Vehicle (Land)",
+      "abbreviation": "VEH",
+      "source": "XPHB",
+      "page": 230,
+      "basicRules2024": true
+    },
+    {
+      "name": "Wand",
+      "abbreviation": "WD",
+      "source": "XDMG",
+      "page": 216
+    }
+  ],
+  "itemTypeAdditionalEntries": [
+    {
+      "name": "Gaming Set",
+      "source": "XGE",
+      "appliesTo": "GS|XPHB",
+      "entries": [
+        "Proficiency with a gaming set applies to one type of game, such as Three-Dragon Ante or games of chance that use dice.",
+        {
+          "type": "entries",
+          "name": "Components",
+          "entries": [
+            "A gaming set has all the pieces needed to play a specific game or type of game, such as a complete deck of cards or a board and tokens."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "History",
+          "entries": [
+            "Your mastery of a game includes knowledge of its history, as well as of important events it was connected to or prominent historical figures involved with it."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Insight",
+          "entries": [
+            "Playing games with someone is a good way to gain understanding of their personality, granting you a better ability to discern their lies from their truths and read their mood."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Sleight of Hand",
+          "entries": [
+            "Sleight of Hand is a useful skill for cheating at a game, as it allows you to swap pieces, palm cards, or alter a die roll. Alternatively, engrossing a target in a game by manipulating the components with dexterous movements is a great distraction for a pickpocketing attempt."
+          ]
+        },
+        {
+          "type": "table",
+          "caption": "Gaming Set",
+          "colLabels": [
+            "Activity",
+            "DC"
+          ],
+          "colStyles": [
+            "col-10",
+            "col-2 text-center"
+          ],
+          "rows": [
+            [
+              "Catch a player cheating",
+              "15"
+            ],
+            [
+              "Gain insight into an opponent's personality",
+              "15"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Instrument",
+      "source": "XGE",
+      "appliesTo": "INS|XPHB",
+      "entries": [
+        "Proficiency with a musical instrument indicates you are familiar with the techniques used to play it. You also have knowledge of some songs commonly performed with that instrument.",
+        {
+          "type": "entries",
+          "name": "History",
+          "entries": [
+            "Your expertise aids you in recalling lore related to your instrument."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Performance",
+          "entries": [
+            "Your ability to put on a good show is improved when you incorporate an instrument into your act."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Compose a Tune",
+          "entries": [
+            "As part of a long rest, you can compose a new tune and lyrics for your instrument. You might use this ability to impress a noble or spread scandalous rumors with a catchy tune."
+          ]
+        },
+        {
+          "type": "table",
+          "caption": "Musical Instrument",
+          "colLabels": [
+            "Activity",
+            "DC"
+          ],
+          "colStyles": [
+            "col-10",
+            "col-2 text-center"
+          ],
+          "rows": [
+            [
+              "Identify a tune",
+              "10"
+            ],
+            [
+              "Improvise a tune",
+              "20"
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "itemEntry": [
+    {
+      "name": "Absorbing Tattoo",
+      "source": "TCE",
+      "entriesTemplate": [
+        "Produced by a special needle, this magic tattoo features designs that emphasize one color ({{item.detail1}}).",
+        {
+          "type": "entries",
+          "name": "Tattoo Attunement",
+          "entries": [
+            "To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.",
+            "If your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Damage Resistance",
+          "entries": [
+            "While the tattoo is on your skin, you have resistance to {{item.resist}} damage."
+          ]
+        },
+        {
+          "type": "entries",
+          "name": "Damage Absorption",
+          "entries": [
+            "When you take {{item.resist}} damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Armor of Resistance",
+      "source": "XDMG",
+      "entriesTemplate": [
+        "You have {@variantrule Resistance|XPHB} to {{getFullImmRes item.resist}} damage while you wear this armor."
+      ]
+    },
+    {
+      "name": "Chromatic Rose",
+      "source": "WBtW",
+      "entriesTemplate": [
+        "While this rose is held, it {{item.detail1}} as a harmless visual effect.",
+        "While holding the rose by its stem, you gain resistance to {{item.resist}} damage. If you would take more than 10 {{item.resist}} damage from a single source (after applying the resistance), the rose disintegrates, and you take no damage instead.",
+        "As an action, you can blow the petals from the rose to produce a 20-foot cone of {{item.resist}}. Each creature in the cone must make a {@dc 15} Constitution saving throw, taking {@damage 3d10} {{item.resist}} damage on a failed save, or half as much damage on a successful one. Using this property destroys the rose."
+      ]
+    },
+    {
+      "name": "Dragon Scale Mail",
+      "source": "XDMG",
+      "entriesTemplate": [
+        "Dragon Scale Mail is made of the scales of one kind of dragon. Sometimes dragons collect their cast-off scales and gift them. Other times, hunters carefully preserve the hide of a dead dragon. In either case, Dragon Scale Mail is highly valued.",
+        "While wearing this armor, you gain a +1 bonus to {@variantrule Armor Class|XPHB}, you have {@variantrule Advantage|XPHB} on saving throws against the breath weapons of Dragons, and you have {@variantrule Resistance|XPHB} to {{getFullImmRes item.resist}} damage.",
+        "Additionally, you can focus your senses as a {@action Magic|XPHB} action to discern the distance and direction to the closest {{item.detail1}} dragon within 30 miles of yourself. This action can't be used again until the next dawn."
+      ]
+    },
+    {
+      "name": "Grenade",
+      "source": "XDMG",
+      "entriesTemplate": [
+        "As an action, you can either throw a grenade at a point up to 60 feet away or use a Grenade Launcher to propel the grenade to a point up to 1,000 feet away. The grenade explodes at that point, creating a particular effect in a 20-foot-radius {@variantrule Sphere [Area of Effect]|XPHB|Sphere}."
+      ]
+    },
+    {
+      "name": "Ioun Stone",
+      "source": "XDMG",
+      "entriesTemplate": [
+        "Roughly marble sized, {@i Ioun Stones} are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of {@i Ioun Stones} exist, each type a distinct combination of shape and color.",
+        "When you take a {@action Magic|XPHB} action to toss an {@i Ioun Stone} into the air, the stone orbits your head at a distance of {@dice 1d3} feet, conferring its benefit to you while doing so. You can have up to three {@i Ioun Stones} orbiting your head at the same time.",
+        "Each {@i Ioun Stone} orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.",
+        "As a {@action Utilize|XPHB} action, you can seize and stow any number of {@i Ioun Stones} orbiting your head. If your {@variantrule Attunement|XPHB} to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it."
+      ]
+    },
+    {
+      "name": "Potion of Resistance",
+      "source": "XDMG",
+      "entriesTemplate": [
+        "When you drink this potion, you have {@variantrule Resistance|XPHB} to {{getFullImmRes item.resist}} damage for 1 hour."
+      ]
+    },
+    {
+      "name": "Ring of Resistance",
+      "source": "XDMG",
+      "entriesTemplate": [
+        "You have {@variantrule Resistance|XPHB} to {{getFullImmRes item.resist}} damage while wearing this ring. The ring is set with {{item.detail1}}."
+      ]
+    },
+    {
+      "name": "Scroll of Protection",
+      "source": "XDMG",
+      "entriesTemplate": [
+        "Using a {@action Magic|XPHB} action to read the scroll creates a 5-foot {@variantrule Emanation [Area of Effect]|XPHB|Emanation} originating from you. For 5 minutes, {{item.detail2}} can't enter or affect anything in the area. However, if you move in such a way that an {{item.detail1}} would be inside the area, the effect ends.",
+        "As a {@action Magic|XPHB} action, a creature within 5 feet of the {@variantrule Emanation [Area of Effect]|XPHB|Emanation} can attempt to overcome it, which forces the creature to make a {@dc 15} Charisma saving throw. On a successful save, the creature ceases to be affected by the {@variantrule Emanation [Area of Effect]|XPHB|Emanation}."
+      ]
+    }
+  ],
+  "itemMastery": [
+    {
+      "name": "Cleave",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "If you hit a creature with a melee attack roll using this weapon, you can make a melee attack roll with the weapon against a second creature within 5 feet of the first that is also within your reach. On a hit, the second creature takes the weapon's damage, but don't add your ability modifier to that damage unless that modifier is negative. You can make this extra attack only once per turn."
+      ]
+    },
+    {
+      "name": "Graze",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "If your attack roll with this weapon misses a creature, you can deal damage to that creature equal to the ability modifier you used to make the attack roll. This damage is the same type dealt by the weapon, and the damage can be increased only by increasing the ability modifier."
+      ]
+    },
+    {
+      "name": "Nick",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "When you make the extra attack of the Light property, you can make it as part of the {@action Attack|XPHB} action instead of as a {@variantrule Bonus Action|XPHB}. You can make this extra attack only once per turn."
+      ]
+    },
+    {
+      "name": "Push",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "If you hit a creature with this weapon, you can push the creature up to 10 feet straight away from yourself if it is Large or smaller."
+      ]
+    },
+    {
+      "name": "Sap",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "If you hit a creature with this weapon, that creature has {@variantrule Disadvantage|XPHB} on its next attack roll before the start of your next turn."
+      ]
+    },
+    {
+      "name": "Slow",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "If you hit a creature with this weapon and deal damage to it, you can reduce its {@variantrule Speed|XPHB} by 10 feet until the start of your next turn. If the creature is hit more than once by weapons that have this property, the {@variantrule Speed|XPHB} reduction doesn't exceed 10 feet."
+      ]
+    },
+    {
+      "name": "Topple",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "If you hit a creature with this weapon, you can force the creature to make a Constitution saving throw ({@dc 8} plus the ability modifier used to make the attack roll and your {@variantrule Proficiency|XPHB|Proficiency Bonus}). On a failed save, the creature has the {@condition Prone|XPHB} condition."
+      ]
+    },
+    {
+      "name": "Vex",
+      "source": "XPHB",
+      "page": 214,
+      "srd52": true,
+      "basicRules2024": true,
+      "entries": [
+        "If you hit a creature with this weapon and deal damage to the creature, you have {@variantrule Advantage|XPHB} on your next attack roll against that creature before the end of your next turn."
+      ]
+    }
+  ]
+}

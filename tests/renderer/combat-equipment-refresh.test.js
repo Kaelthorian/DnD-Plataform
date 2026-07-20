@@ -54,7 +54,7 @@ assert.match(updateEquipmentPanel, /pruneEquippedItems\(entries\)/, "the panel s
 assert.match(derivedInput, /normalizedKey\.includes\("equipment"\)[\s\S]*?scheduleEquipmentMutationRefresh\([\s\S]*?return;/, "Equipment field events should bypass the global derived-stat pipeline");
 assert.match(renderer, /function isEquipmentFieldEvent\(event\)/, "global listeners should identify Equipment field events");
 assert.match(renderer, /scheduleUnlessEquipmentField\(event, schedulePreparedSpellsPanelRefresh\)/, "global prepared refreshes should defer to the equipment transaction");
-assert.match(combatCommit, /const equipmentConsumed = Boolean\(action\.inventoryEntry \|\| action\.ammoEntry\)/, "combat should batch item and ammunition consumption");
+assert.match(combatCommit, /const equipmentConsumed = Boolean\(action\.inventoryEntry \|\| action\.ammoEntry \|\| action\.itemResourceCost\)/, "combat should batch item, ammunition, and declared charge consumption");
 assert.match(combatCommit, /if \(!equipmentConsumed\) \{[\s\S]*?updatePreparedSpellsPanel\(\)/, "combat should not duplicate equipment transaction refreshes");
 
 console.log("transactional equipment refresh and cache wiring verified");

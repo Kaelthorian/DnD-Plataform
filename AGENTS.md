@@ -16,9 +16,10 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - `src/services`: disco, red local, traducción externa y vault de Obsidian.
 - `src/engine`: reglas aisladas y comprobables sin DOM.
 - `src/engine/spells`: normalización y perfiles genéricos del catálogo de hechizos; sigue sus instrucciones locales y no supongas un handler por hechizo.
+- `src/engine/items`: identidad estable, render seguro de tags, perfiles estructurados y estado genérico de cargas/recarga; no inventar efectos narrativos ni crear un handler por ítem.
 - `src/engine/combat`: economía de turno, acciones declarativas, resolución transaccional y combat log. Las tiradas y adaptadores de sheet permanecen en `src/app/renderer/index.html`.
 - `src/app/renderer`: hoja de personaje y DM Screen. Ambos contienen monolitos; extraer por subsistema, con pruebas, no mediante reescritura total.
-- `src/data`: datos propios declarativos.
+- `src/data`: datos propios declarativos. El catálogo oficial activo de ítems vive en `src/data/items`; el snapshot vendor es sólo baseline de desarrollo.
 - `vendor/5etools-src-main`: snapshot externo de referencia y datos empaquetados. No editar por defecto.
 
 ## Reglas que deben preservarse
@@ -28,6 +29,9 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - Live Sheet: es WebSocket local/Tailscale, guarda jugadores remotos solo en memoria y debe conservar validación, límites y token de sesión.
 - Electron: conservar `contextIsolation: true`, `nodeIntegration: false`, preload acotado, validación de rutas y protocolos externos permitidos.
 - Datos: no deduplicar nombres que solo difieren en puntuación; pueden representar entradas distintas.
+- Catálogo de ítems: sincronizar por `catalogId` (nombre+fuente+variante), nunca sólo por nombre. `item` es la única colección activa y define las 1.779 filas superiores; los `variants[].specificVariant` son identidades seleccionables sólo desde su padre, sin inflar ese conteo. Los tombstones nunca aparecen en pickers. No mezclar ni borrar homebrew al sincronizar oficiales.
+- Recursos de ítems: persistir cargas/reload numéricas en `__sheetMeta.itemResources[catalogId]` y descontar sólo costos declarados después del commit. No tirar recargas con dados ni inferir pools `daily`/`rest`/`will`; conservarlos como guía manual hasta tener identidad de instancia y contrato inequívoco.
+- Automatización de ítems: aplicar sólo reglas persistentes y deterministas. Requisitos narrativos de sintonización, duración/targets, bonos contextuales y efectos de mundo deben conservar texto y flujo guiado; `__sheetMeta.itemEffects` marca estado sin inventar modificadores. Dos copias del mismo `catalogId` comparten recursos hasta que Equipment tenga IDs de instancia.
 - Rendimiento de datos: conservar el worker/caché versionado de items y el índice en memoria; `localStorage` no es válido para catálogos grandes. Toda caché derivada debe invalidarse al cambiar sus JSON fuente.
 - UI redimensionable: toda ventana o nota con resize debe usar la esquina inferior derecha `app-resize-corner` en ambos renderers. Start Combat fija el patrón de arrastre, colapsado, resize, geometría persistente y estilo DM; `itemDrawer`, Character Statuses y Free Dice lo reutilizan mediante el chrome/controlador `floating-sheet-window`. El contenido de esas ventanas usa superficies neutras oscuras y acento ámbar: no reintroducir fotos de hoja/Spellbook ni paneles blancos. No aplicar ese indicador de ventana a textareas ni a formas del mapa.
 
@@ -39,6 +43,8 @@ Requiere Node `^20.19.0 || >=22.12.0`. En este checkout existe un Node portable 
 npm ci
 npm start
 npm test
+node scripts/validate-items.js
+node tests/engine/item-data.test.js
 node scripts/validate-spells.js
 node tests/engine/spell-data.test.js
 npm run build:dm-screen
@@ -55,6 +61,7 @@ No hay scripts de lint ni typecheck. `npm run publish:win` publica una release r
 - DM Screen: además `npm run build:dm-screen` y smoke test manual cuando cambie interacción o persistencia.
 - Datos de backgrounds: `node scripts/diagnose-backgrounds.js`.
 - Datos o runtime de spells: `node scripts/validate-spells.js` y `node tests/engine/spell-data.test.js`; si cambia la UI o combate, ejecutar también las pruebas específicas y `npm test`.
+- Datos o runtime de items: seguir `docs/ADDING_ITEMS.md`; revisar el preview antes de `--apply`, ejecutar dos veces el mismo sync con `--check`, correr `npm run test:items` y verificar que tombstones no sean seleccionables pero las referencias históricas sigan abriendo.
 - Texto visible del jugador: `npm run test:i18n`; no aumentes las advertencias de hardcoded strings.
 - Empaquetado: verificar por separado; no publicar ni borrar salidas existentes.
 

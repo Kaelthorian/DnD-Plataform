@@ -118,7 +118,12 @@
     let spells = [];
     let feats = [];
     let items = [];
+    let retiredItems = [];
+    let itemLookupByCatalogId = new Map();
+    let itemLookupByIdentity = new Map();
+    let itemLookupByNameSource = new Map();
     let itemLookupByName = new Map();
+    let itemCatalogNameSourceCounts = new Map();
     let itemCatalogReady = false;
     let itemCatalogReadyPromise = Promise.resolve(false);
     let itemCatalogLoadMeta = {};
@@ -2531,8 +2536,8 @@
     async function loadItemOptions() {
       if (desktopStore?.loadItems) return desktopStore.loadItems();
       const [itemsResponse, baseItemsResponse] = await Promise.all([
-        fetchLocalResource("../../../vendor/5etools-src-main/data/items.json"),
-        fetchLocalResource("../../../vendor/5etools-src-main/data/items-base.json")
+        fetchLocalResource("../../data/items/items.json"),
+        fetchLocalResource("../../data/items/items-base.json")
       ]);
       return {
         items: itemsResponse,
@@ -2540,20 +2545,181 @@
       };
     }
 
+    function itemIdentityPart(value) {
+      return String(value ?? "").trim().toLowerCase().normalize("NFC");
+    }
+
+    function catalogVariantToken(item, context = {}) {
+      const explicit = item?.catalogVariantToken || item?.variantToken;
+      if (explicit) return String(explicit);
+      try {
+        return String(globalThis.dndItemCatalog?.itemVariantToken?.(item, context) || "root");
+      } catch (_error) {
+        return String(context.variantToken || item?.variant || "root");
+      }
+    }
+
+    function localItemIdentityKey(item, context = {}) {
+      return [
+        item?.name || context.name || "",
+        item?.source || context.source || "legacy",
+        catalogVariantToken(item, context)
+      ].map(itemIdentityPart).join("|");
+    }
+
+    function catalogItemIdentityKey(item, context = {}) {
+      const explicit = item?.catalogKey;
+      if (explicit) return String(explicit);
+      const identityContext = { ...context, variantToken: catalogVariantToken(item, context) };
+      try {
+        return String(globalThis.dndItemCatalog?.itemCatalogKey?.(item, identityContext) || localItemIdentityKey(item, identityContext));
+      } catch (_error) {
+        return localItemIdentityKey(item, identityContext);
+      }
+    }
+
+    function catalogItemId(item, context = {}) {
+      const explicit = item?.catalogId;
+      if (explicit) return String(explicit);
+      const identityContext = { ...context, variantToken: catalogVariantToken(item, context) };
+      try {
+        return String(globalThis.dndItemCatalog?.itemCatalogId?.(item, identityContext) || catalogItemIdentityKey(item, identityContext));
+      } catch (_error) {
+        return catalogItemIdentityKey(item, identityContext);
+      }
+    }
+
+    function itemNameSourceKey(itemOrName, source = "") {
+      const item = itemOrName && typeof itemOrName === "object" ? itemOrName : null;
+      return [item?.name || itemOrName || "", item?.source || source || "legacy"]
+        .map(itemIdentityPart)
+        .join("|");
+    }
+
+    function isCatalogItemUnavailable(item) {
+      if (!item) return false;
+      return item.__catalogUnavailable === true
+        || item.unavailable === true
+        || item.removedFromCatalog === true
+        || ["deleted", "removed", "retired", "unavailable"].includes(itemIdentityPart(item.catalogStatus || item.status));
+    }
+
+    function attachItemCatalogIdentities(itemsList = []) {
+      const source = (Array.isArray(itemsList) ? itemsList : []).filter(Boolean);
+      const attach = globalThis.dndItemCatalog?.attachCatalogIdentities;
+      if (typeof attach === "function") {
+        const decorated = attach(source);
+        if (Array.isArray(decorated)) return decorated;
+      }
+      const decorate = globalThis.dndItemCatalog?.decorateItem;
+      return source.map((item) => {
+        if (typeof decorate === "function") return decorate(item);
+        return {
+          ...item,
+          catalogId: catalogItemId(item),
+          catalogKey: catalogItemIdentityKey(item),
+          catalogVariantToken: catalogVariantToken(item)
+        };
+      });
+    }
+
+    function materializeSpecificItemVariant(parent, variant) {
+      const specific = variant?.specificVariant;
+      if (!specific || typeof specific !== "object") return null;
+      const specificEntries = Array.isArray(specific.entries) ? specific.entries.filter(Boolean) : specific.entries;
+      return {
+        ...parent,
+        ...(variant.base && typeof variant.base === "object" ? variant.base : {}),
+        ...specific,
+        entries: specificEntries?.length ? specific.entries : parent.entries,
+        additionalEntries: specific.additionalEntries || parent.additionalEntries,
+        variants: [],
+        catalogParentId: specific.catalogParentId || parent.catalogId || catalogItemId(parent)
+      };
+    }
+
+    function catalogIndexEntries(item) {
+      const entries = [item];
+      (Array.isArray(item?.variants) ? item.variants : []).forEach((variant) => {
+        const specific = materializeSpecificItemVariant(item, variant);
+        if (specific) entries.push(specific);
+      });
+      return entries.filter(Boolean);
+    }
+
+    function indexCatalogItem(item) {
+      catalogIndexEntries(item).forEach((entry) => {
+        const catalogId = catalogItemId(entry);
+        const catalogKey = catalogItemIdentityKey(entry);
+        const localKey = localItemIdentityKey(entry);
+        const nameSourceKey = itemNameSourceKey(entry);
+        if (catalogId && !itemLookupByCatalogId.has(catalogId)) itemLookupByCatalogId.set(catalogId, entry);
+        [catalogKey, localKey].filter(Boolean).forEach((key) => {
+          if (!itemLookupByIdentity.has(key)) itemLookupByIdentity.set(key, entry);
+        });
+        if (nameSourceKey) {
+          const matches = itemLookupByNameSource.get(nameSourceKey) || [];
+          if (!matches.includes(entry)) matches.push(entry);
+          itemLookupByNameSource.set(nameSourceKey, matches);
+        }
+        [normalizeName(entry?.name || ""), normalizeItemLookupName(entry?.name || "")]
+          .filter(Boolean)
+          .forEach((key) => {
+            const previous = itemLookupByName.get(key);
+            const preferred = globalThis.dndItemCatalog?.preferItemForLegacyName?.(previous, entry)
+              || preferModernEntry(previous, entry, (item) => item?.source || "");
+            itemLookupByName.set(key, preferred);
+          });
+      });
+    }
+
     function applyItemCatalogData(itemData) {
-      items = dedupeModernByName([
-        ...(Array.isArray(itemData?.baseItems?.baseitem) ? itemData.baseItems.baseitem : []),
-        ...(Array.isArray(itemData?.items?.item) ? itemData.items.item : [])
-      ], (item) => item?.name || "", (item) => item?.source || "");
+      const activeSource = Array.isArray(itemData?.items?.item) ? itemData.items.item : [];
+      items = attachItemCatalogIdentities(activeSource);
+      const declaredExpectedCount = Number(itemData?.items?._meta?.expectedActiveRecords);
+      const expectedCount = Number.isInteger(declaredExpectedCount) && declaredExpectedCount > 0 ? declaredExpectedCount : 1779;
+      const validation = globalThis.dndItemCatalog?.validateItemCatalog?.(items, { expectedCount });
+      if (validation && validation.ok === false) {
+        throw new Error(`Invalid app-owned item catalog: ${validation.errors?.join?.("; ") || "validation failed"}`);
+      }
+      if (items.length !== expectedCount) throw new Error(`Invalid app-owned item catalog count: expected ${expectedCount}, received ${items.length}.`);
+
+      retiredItems = (Array.isArray(itemData?.items?.tombstone) ? itemData.items.tombstone : [])
+        .filter(Boolean)
+        .map((item) => {
+          const catalogVariantToken = item.variantToken || item.catalogVariantToken || "root";
+          const identityContext = { variantToken: catalogVariantToken };
+          return {
+            ...item,
+            catalogId: item.catalogId || catalogItemId(item, identityContext),
+            catalogKey: item.catalogKey || catalogItemIdentityKey(item, identityContext),
+            catalogVariantToken,
+            __catalogUnavailable: true,
+            unavailable: true,
+            removedFromCatalog: true
+          };
+        });
       itemProperties = Array.isArray(itemData?.baseItems?.itemProperty) ? itemData.baseItems.itemProperty : [];
       itemTypes = Array.isArray(itemData?.baseItems?.itemType) ? itemData.baseItems.itemType : [];
       itemMasteries = Array.isArray(itemData?.baseItems?.itemMastery) ? itemData.baseItems.itemMastery : [];
+      itemLookupByCatalogId = new Map();
+      itemLookupByIdentity = new Map();
+      itemLookupByNameSource = new Map();
       itemLookupByName = new Map();
+      itemCatalogNameSourceCounts = new Map();
       items.forEach((item) => {
-        const key = normalizeItemLookupName(item?.name || "");
-        if (key && !itemLookupByName.has(key)) itemLookupByName.set(key, item);
+        const key = itemNameSourceKey(item);
+        itemCatalogNameSourceCounts.set(key, (itemCatalogNameSourceCounts.get(key) || 0) + 1);
       });
-      itemCatalogLoadMeta = itemData?.cacheMeta || {};
+      items.forEach(indexCatalogItem);
+      retiredItems.forEach(indexCatalogItem);
+      itemCatalogLoadMeta = {
+        ...(itemData?.cacheMeta || {}),
+        expectedCount,
+        activeCount: items.length,
+        tombstoneCount: retiredItems.length,
+        validation
+      };
       itemCatalogReady = true;
       return true;
     }

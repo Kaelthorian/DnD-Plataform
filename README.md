@@ -59,7 +59,7 @@ Las salidas van a `installer-pdf-fields/` y están ignoradas por Git. `npm run p
 - `Tokens`: biblioteca de imágenes de criaturas.
 - `docs`: arquitectura, mapa, desarrollo, pruebas, auditoría y guías de extensión.
 
-Empieza por [REPOSITORY_MAP](docs/REPOSITORY_MAP.md) para localizar una función y por [ARCHITECTURE](docs/architecture.md) para entender los límites.
+Empieza por [REPOSITORY_MAP](docs/REPOSITORY_MAP.md) para localizar una función y por [ARCHITECTURE](docs/ARCHITECTURE.md) para entender los límites.
 
 ## Limitaciones conocidas
 

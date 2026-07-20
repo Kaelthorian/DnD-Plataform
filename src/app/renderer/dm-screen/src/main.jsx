@@ -2,6 +2,7 @@ import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "r
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import "../../../../engine/spells/spell-data.js";
+import "../../../../engine/items/item-catalog.js";
 import "../../../../engine/conditions/statuses.js";
 
 const {
@@ -17,6 +18,7 @@ const {
   spellSource: canonicalSpellSource,
   spellSubclassNames: canonicalSpellSubclassNames
 } = globalThis.dndSpellDataEngine;
+const itemCatalogEngine = globalThis.dndItemCatalog;
 
 const LIVE_STATUS_FIELD = "__liveStatuses";
 const statusEngine = globalThis.dndConditionEngine;
@@ -86,8 +88,14 @@ const XP_BY_CR = {
 let bestiary = [];
 let spells = [];
 let ITEM_LIBRARY = [];
+let ITEM_ADDRESSABLE_LIBRARY = [];
+let ITEM_TOMBSTONES = [];
+let ITEM_CATALOG_BY_ID = new Map();
+let ITEM_CATALOG_BY_KEY = new Map();
+let ITEM_TOMBSTONE_BY_ID = new Map();
 let ITEM_PROPERTY_LOOKUP = new Map();
 let ITEM_TYPE_LOOKUP = new Map();
+let ITEM_TYPE_METADATA = [];
 let ITEM_MASTERY_LOOKUP = new Map();
 let dmScreenLibrariesPromise = null;
 const DAMAGE_TYPE_LABELS = {
@@ -464,7 +472,7 @@ function itemMonsterSectionEntry(item) {
     damage ? `Damage: ${damage}` : "",
     properties ? `Properties: ${properties}` : "",
     valueWeight ? `Value/Weight: ${valueWeight}` : "",
-    renderEntryText(item.entries),
+    renderItemEntryText(item.entries, item),
     itemRulesFooter(item) ? `Source: ${itemRulesFooter(item)}` : ""
   ].filter(Boolean);
   return {
@@ -483,15 +491,137 @@ function itemSource(item) {
   return item?.source || "Unknown";
 }
 
+function itemCatalogId(item) {
+  return String(item?.catalogId || "").trim();
+}
+
+function itemCatalogKey(item) {
+  return String(item?.catalogKey || "").trim();
+}
+
+function itemVariantToken(item) {
+  return String(item?.catalogVariantToken || item?.variantToken || "").trim();
+}
+
+function itemEquipmentReference(item) {
+  const name = sanitizeDisplayText(item?.name, "");
+  if (!name) return "";
+  const source = sanitizeDisplayText(item?.source, "legacy");
+  const variantToken = itemVariantToken(item);
+  const variantSuffix = variantToken && variantToken !== "root" ? `|${variantToken}` : "";
+  return `${name} [${source}${variantSuffix}]`;
+}
+
+function materializeSpecificItemVariant(parent, variant) {
+  const specific = variant?.specificVariant;
+  if (!specific || typeof specific !== "object") return null;
+  const specificEntries = Array.isArray(specific.entries) ? specific.entries.filter(Boolean) : specific.entries;
+  return {
+    ...parent,
+    ...(variant.base && typeof variant.base === "object" ? variant.base : {}),
+    ...specific,
+    entries: specificEntries?.length ? specific.entries : parent.entries,
+    additionalEntries: specific.additionalEntries || parent.additionalEntries,
+    variants: [],
+    catalogParentId: specific.catalogParentId || itemCatalogId(parent)
+  };
+}
+
+function itemSpecificVariants(item) {
+  return (Array.isArray(item?.variants) ? item.variants : [])
+    .map((variant) => materializeSpecificItemVariant(item, variant))
+    .filter(Boolean);
+}
+
+function itemAddressableEntries(items) {
+  return (Array.isArray(items) ? items : []).flatMap((item) => [item, ...itemSpecificVariants(item)]);
+}
+
+function validateDmItemCatalog(itemsData, topLevelItems, addressableItems) {
+  const declaredExpectedCount = Number(itemsData?._meta?.expectedActiveRecords);
+  const expectedCount = Number.isInteger(declaredExpectedCount) && declaredExpectedCount > 0 ? declaredExpectedCount : 1779;
+  const errors = [];
+  if (topLevelItems.length !== expectedCount) {
+    errors.push(`expected ${expectedCount} top-level items, found ${topLevelItems.length}`);
+  }
+  const topLevelIds = new Set(topLevelItems.map(itemCatalogId).filter(Boolean));
+  const ids = new Map();
+  const keys = new Map();
+  addressableItems.forEach((item, index) => {
+    const label = item?.name || `addressable item ${index + 1}`;
+    const catalogId = itemCatalogId(item);
+    const catalogKey = itemCatalogKey(item);
+    if (!catalogId) errors.push(`${label}: missing catalogId`);
+    else if (ids.has(catalogId)) errors.push(`${label}: duplicate catalogId also used by ${ids.get(catalogId)}`);
+    else ids.set(catalogId, label);
+    if (!catalogKey) errors.push(`${label}: missing catalogKey`);
+    else if (keys.has(catalogKey)) errors.push(`${label}: duplicate catalogKey also used by ${keys.get(catalogKey)}`);
+    else keys.set(catalogKey, label);
+    if (item?.catalogParentId && !topLevelIds.has(String(item.catalogParentId))) {
+      errors.push(`${label}: unknown catalogParentId ${item.catalogParentId}`);
+    }
+  });
+  if (errors.length) throw new Error(`Invalid DM item catalog: ${errors.slice(0, 12).join("; ")}`);
+  return { expectedCount, topLevelCount: topLevelItems.length, addressableCount: addressableItems.length };
+}
+
+function itemTopLevelEntry(item) {
+  const parentId = String(item?.catalogParentId || "").trim();
+  return parentId ? ITEM_CATALOG_BY_ID.get(parentId) || item : item;
+}
+
+function itemMatchesLibraryRef(item, ref) {
+  if (!item || !ref?.name) return false;
+  if (ref.catalogKey && itemCatalogKey(item) !== String(ref.catalogKey)) return false;
+  if (item.name !== ref.name || (ref.source && item.source !== ref.source)) return false;
+  return !ref.variantToken || itemVariantToken(item) === String(ref.variantToken);
+}
+
+function unavailableItemSnapshot(item, ref = null) {
+  const source = isPlainObject(item) ? item : {};
+  const reference = isPlainObject(ref) ? ref : {};
+  return {
+    ...source,
+    name: source.name || reference.name || "Unavailable item",
+    source: source.source || reference.source || "Unknown",
+    catalogId: itemCatalogId(source) || String(reference.catalogId || ""),
+    catalogKey: itemCatalogKey(source) || String(reference.catalogKey || ""),
+    catalogParentId: String(source.catalogParentId || reference.parentCatalogId || ""),
+    catalogVariantToken: itemVariantToken(source) || String(reference.variantToken || ""),
+    unavailable: true,
+    removedFromCatalog: true,
+    __catalogUnavailable: true
+  };
+}
+
+function tombstoneItemSnapshot(tombstone) {
+  if (!isPlainObject(tombstone)) return null;
+  const nestedSnapshot = [tombstone.snapshot, tombstone.item, tombstone.record, tombstone.previous]
+    .find((entry) => isPlainObject(entry)) || {};
+  return unavailableItemSnapshot({
+    ...nestedSnapshot,
+    ...tombstone,
+    name: nestedSnapshot.name || tombstone.name,
+    source: nestedSnapshot.source || tombstone.source,
+    catalogId: itemCatalogId(nestedSnapshot) || itemCatalogId(tombstone),
+    catalogKey: itemCatalogKey(nestedSnapshot) || itemCatalogKey(tombstone),
+    catalogVariantToken: itemVariantToken(nestedSnapshot) || itemVariantToken(tombstone)
+  }, tombstone);
+}
+
 function itemRarity(item) {
   return item?.rarity || "none";
 }
 
 function splitTaggedValue(value) {
-  const [code = "", source = ""] = String(value || "").split("|");
+  const structured = itemCatalogEngine?.taggedReferenceParts?.(value);
+  if (structured) return { code: structured.code, source: structured.source.toUpperCase(), note: structured.note || "" };
+  const raw = isPlainObject(value) ? value.uid || value.value || value.id || "" : value;
+  const [code = "", source = ""] = String(raw || "").split("|");
   return {
     code: code.trim(),
-    source: source.trim().toUpperCase()
+    source: source.trim().toUpperCase(),
+    note: isPlainObject(value) ? renderItemEntryText(value.note || "") : ""
   };
 }
 
@@ -502,12 +632,17 @@ function itemLookupByTaggedValue(lookup, value) {
 }
 
 function itemTypeMeta(item) {
-  return itemLookupByTaggedValue(ITEM_TYPE_LOOKUP, item?.type);
+  return itemCatalogEngine?.resolveItemTypeMetadata?.(ITEM_TYPE_METADATA, item?.type)
+    || itemLookupByTaggedValue(ITEM_TYPE_LOOKUP, item?.type);
 }
 
 function itemPropertyMetas(item) {
   return (Array.isArray(item?.property) ? item.property : [])
-    .map((property) => itemLookupByTaggedValue(ITEM_PROPERTY_LOOKUP, property))
+    .map((property) => {
+      const metadata = itemLookupByTaggedValue(ITEM_PROPERTY_LOOKUP, property);
+      const { note } = splitTaggedValue(property);
+      return metadata ? { ...metadata, referenceNote: note } : null;
+    })
     .filter(Boolean);
 }
 
@@ -521,7 +656,11 @@ function itemPropertyLine(item) {
 
 function itemMasteryMetas(item) {
   return (Array.isArray(item?.mastery) ? item.mastery : [])
-    .map((mastery) => itemLookupByTaggedValue(ITEM_MASTERY_LOOKUP, mastery))
+    .map((mastery) => {
+      const metadata = itemLookupByTaggedValue(ITEM_MASTERY_LOOKUP, mastery);
+      const { note } = splitTaggedValue(mastery);
+      return metadata ? { ...metadata, referenceNote: note } : null;
+    })
     .filter(Boolean);
 }
 
@@ -573,38 +712,49 @@ function formatItemPropertyName(propertyMeta, item) {
     ? propertyMeta.entries.find((entry) => entry && typeof entry === "object" && entry.name)
     : null;
   const baseName = namedEntry?.name || propertyMeta?.name || propertyMeta?.abbreviation || "";
+  let label = "";
   switch (propertyMeta?.abbreviation) {
     case "T":
-      return item?.range ? `${baseName} (${item.range} ft.)` : baseName;
+      label = item?.range ? `${baseName} (${item.range} ft.)` : baseName;
+      break;
     case "A":
     case "AF":
-      return item?.range ? `${baseName} (${item.range} ft.)` : baseName;
+      label = item?.range ? `${baseName} (${item.range} ft.)` : baseName;
+      break;
     case "RLD":
-      return item?.reload ? `${baseName} (${item.reload})` : baseName;
+      label = item?.reload ? `${baseName} (${item.reload})` : baseName;
+      break;
     case "V":
-      return item?.dmg2 ? `${baseName} (${item.dmg2})` : baseName;
+      label = item?.dmg2 ? `${baseName} (${item.dmg2})` : baseName;
+      break;
     default:
-      return baseName;
+      label = baseName;
   }
+  return propertyMeta?.referenceNote ? `${label} (${propertyMeta.referenceNote})` : label;
 }
 
-function extractEntriesBodyText(entries) {
+function extractEntriesBodyText(entries, item = {}) {
   const list = Array.isArray(entries) ? entries : [entries].filter(Boolean);
   if (!list.length) return "";
   const namedEntry = list.find((entry) => entry && typeof entry === "object" && entry.entries);
-  return renderEntryText(namedEntry?.entries || list);
+  return renderItemEntryText(namedEntry?.entries || list, item);
 }
 
 function itemRuleSections(item) {
+  const typeMeta = itemTypeMeta(item);
+  const typeSections = typeMeta?.entries ? [{
+    title: typeMeta.name || "Type rules",
+    text: extractEntriesBodyText(typeMeta.entries, item)
+  }] : [];
   const propertySections = itemPropertyMetas(item).map((propertyMeta) => ({
     title: formatItemPropertyName(propertyMeta, item),
-    text: extractEntriesBodyText(propertyMeta?.entries)
+    text: extractEntriesBodyText(propertyMeta?.entries, item)
   }));
   const masterySections = itemMasteryMetas(item).map((masteryMeta) => ({
-    title: `Mastery: ${masteryMeta?.name || "Unknown"}`,
-    text: extractEntriesBodyText(masteryMeta?.entries)
+    title: `Mastery: ${masteryMeta?.name || "Unknown"}${masteryMeta?.referenceNote ? ` (${masteryMeta.referenceNote})` : ""}`,
+    text: extractEntriesBodyText(masteryMeta?.entries, item)
   }));
-  return [...propertySections, ...masterySections].filter((section) => section.title && section.text);
+  return [...typeSections, ...propertySections, ...masterySections].filter((section) => section.title && section.text);
 }
 
 function itemRulesFooter(item) {
@@ -844,7 +994,8 @@ function compareLibraryIndexEntries(left, right, kind, sortField) {
 
 function libraryEntrySearchText(entry, kind) {
   if (kind === "spell") return [entry.name, formatSpellLevel(entry), spellSource(entry), spellSchool(entry), canonicalSpellClassNames(entry).join(" ")].map(normalizeSearch).join(" ");
-  return [entry.name, itemRarity(entry), itemSource(entry), entry.type, renderEntryText(entry.entries)].map(normalizeSearch).join(" ");
+  const variants = itemSpecificVariants(entry).flatMap((variant) => [variant.name, itemSource(variant), variant.baseItem, itemVariantToken(variant)]);
+  return [entry.name, itemRarity(entry), itemSource(entry), entry.type, renderItemEntryText(entry.entries, entry), ...variants].map(normalizeSearch).join(" ");
 }
 
 function buildMonsterSearchIndex(monsters) {
@@ -932,7 +1083,7 @@ function resourceNameVariants(value) {
 }
 
 function findResourceEntry(kind, resource) {
-  const entries = kind === "spell" ? spells : ITEM_LIBRARY;
+  const entries = kind === "spell" ? spells : ITEM_ADDRESSABLE_LIBRARY;
   const reference = resource && typeof resource === "object" ? resource : null;
   const name = reference?.name || resource;
   if (kind === "spell" && reference?.id) {
@@ -958,19 +1109,56 @@ function findResourceEntry(kind, resource) {
 
 function findLibraryEntryByRef(kind, ref) {
   if (!ref?.name) return null;
-  const entries = kind === "monster" ? bestiary : kind === "spell" ? spells : ITEM_LIBRARY;
+  const entries = kind === "monster" ? bestiary : kind === "spell" ? spells : ITEM_ADDRESSABLE_LIBRARY;
+  if (kind === "item") {
+    const catalogId = String(ref.catalogId || "").trim();
+    if (catalogId && ITEM_CATALOG_BY_ID.has(catalogId)) return ITEM_CATALOG_BY_ID.get(catalogId);
+    const catalogKey = String(ref.catalogKey || "").trim();
+    if (catalogKey && ITEM_CATALOG_BY_KEY.has(catalogKey)) return ITEM_CATALOG_BY_KEY.get(catalogKey);
+    const exactItem = entries.find((entry) => itemMatchesLibraryRef(entry, ref));
+    if (exactItem) return exactItem;
+    const normalizedName = normalizeResourceName(ref.name);
+    return entries.find((entry) => (
+      normalizeResourceName(entry.name) === normalizedName
+      && (!ref.source || entry.source === ref.source)
+      && (!ref.variantToken || itemVariantToken(entry) === String(ref.variantToken))
+    )) || null;
+  }
   return entries.find((entry) => entry.name === ref.name && (!ref.source || entry.source === ref.source))
     || entries.find((entry) => normalizeResourceName(entry.name) === normalizeResourceName(ref.name) && (!ref.source || entry.source === ref.source))
     || entries.find((entry) => normalizeResourceName(entry.name) === normalizeResourceName(ref.name))
     || null;
 }
 
+function findUnavailableItemByRef(ref) {
+  if (!ref?.name) return null;
+  const catalogId = String(ref.catalogId || "").trim();
+  const exact = catalogId ? ITEM_TOMBSTONE_BY_ID.get(catalogId) : null;
+  if (exact) return tombstoneItemSnapshot(exact);
+  const normalizedName = normalizeResourceName(ref.name);
+  const tombstone = ITEM_TOMBSTONES.find((entry) => itemMatchesLibraryRef(entry, ref))
+    || ITEM_TOMBSTONES.find((entry) => (
+      normalizeResourceName(entry?.name) === normalizedName
+      && (!ref.source || entry?.source === ref.source)
+      && (!ref.variantToken || itemVariantToken(entry) === String(ref.variantToken))
+    ));
+  return tombstoneItemSnapshot(tombstone);
+}
+
 function libraryRef(entry) {
   if (!entry?.name) return null;
-  return {
+  const ref = {
     name: entry.name,
     source: entry.source || ""
   };
+  const catalogId = itemCatalogId(entry);
+  const catalogKey = itemCatalogKey(entry);
+  const variantToken = itemVariantToken(entry);
+  if (catalogId) ref.catalogId = catalogId;
+  if (catalogKey) ref.catalogKey = catalogKey;
+  if (entry.catalogParentId) ref.parentCatalogId = String(entry.catalogParentId);
+  if (variantToken) ref.variantToken = variantToken;
+  return ref;
 }
 
 function noteDisplayName(note) {
@@ -2777,6 +2965,7 @@ function noteStorageSnapshot(note) {
     monsterActiveTabId: note.kind === "monster" ? monsterActivePanelId(note) : "stats",
     entryRef: libraryRef(note.entry),
     entryCustom: (note.kind === "spell" || note.kind === "item") && note.entryCustom ? cloneForBoardState(note.entryCustom) : null,
+    entrySnapshot: note.kind === "item" && note.entry && !note.entryCustom ? cloneForBoardState(note.entry) : null,
     character: note.character || null,
     textTitle: note.kind === "text" ? note.textTitle || "" : "",
     textContent: note.kind === "text" ? note.textContent || "" : "",
@@ -2826,7 +3015,12 @@ function restoreStoredNote(note) {
   const monsterCustom = note.kind === "monster" && note.monsterCustom ? cloneForBoardState(note.monsterCustom) : null;
   const monster = note.kind === "monster" ? (monsterCustom || findLibraryEntryByRef("monster", note.monsterRef)) : null;
   const entryCustom = (note.kind === "spell" || note.kind === "item") && note.entryCustom ? cloneForBoardState(note.entryCustom) : null;
-  const entry = note.kind === "spell" || note.kind === "item" ? (entryCustom || findLibraryEntryByRef(note.kind, note.entryRef)) : null;
+  const currentEntry = note.kind === "spell" || note.kind === "item" ? findLibraryEntryByRef(note.kind, note.entryRef) : null;
+  const storedItemSnapshot = note.kind === "item" && note.entrySnapshot ? cloneForBoardState(note.entrySnapshot) : null;
+  const unavailableEntry = note.kind === "item" && !currentEntry
+    ? (storedItemSnapshot ? unavailableItemSnapshot(storedItemSnapshot, note.entryRef) : findUnavailableItemByRef(note.entryRef))
+    : null;
+  const entry = note.kind === "spell" || note.kind === "item" ? (entryCustom || currentEntry || unavailableEntry) : null;
   const character = note.kind === "character" && note.character ? note.character : null;
   const mapImage = note.kind === "map" && note.mapImage
     ? restoreStoredMapImage(note.mapImage)
@@ -3174,10 +3368,26 @@ function characterEquipmentText(character) {
   return characterSectionText(character, "Equipment");
 }
 
-function appendCharacterEquipmentItem(equipmentText, itemName) {
-  const cleanItem = sanitizeDisplayText(itemName, "");
+function characterEquipmentReferenceKey(value) {
+  const reference = sanitizeDisplayText(value, "");
+  if (!reference) return "";
+  const suffix = reference.match(/^(.*?)\s+\[([^\]]+)]\s*$/);
+  if (!suffix) return `legacy:${normalizeResourceName(reference)}`;
+  const [source = "", ...variantParts] = suffix[2].split("|");
+  const variantToken = variantParts.join("|") || "root";
+  return `catalog:${normalizeSearch(suffix[1])}|${normalizeSearch(source)}|${normalizeSearch(variantToken)}`;
+}
+
+function appendCharacterEquipmentItem(equipmentText, itemOrName) {
+  const cleanItem = isPlainObject(itemOrName)
+    ? itemEquipmentReference(itemOrName)
+    : sanitizeDisplayText(itemOrName, "");
   if (!cleanItem) return String(equipmentText || "");
-  const existing = equipmentResourceCandidates(equipmentText).some((item) => normalizeResourceName(item.display) === normalizeResourceName(cleanItem));
+  const targetKey = characterEquipmentReferenceKey(cleanItem);
+  const existing = String(equipmentText || "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*]\s*/, "").replace(/^\s*\d+\s+/, "").trim())
+    .some((reference) => characterEquipmentReferenceKey(reference) === targetKey);
   if (existing) return String(equipmentText || "");
   const current = String(equipmentText || "").trim();
   return [current, `1 ${cleanItem}`].filter(Boolean).join("\n");
@@ -3245,6 +3455,17 @@ function renderEntryText(value) {
     if (value.entry) return renderEntryText(value.entry);
   }
   return "";
+}
+
+function renderItemEntryText(value, item = {}) {
+  try {
+    const rendered = itemCatalogEngine?.renderEntryText?.(value, item);
+    if (rendered || value == null) return rendered || "";
+  } catch (_error) {
+    // Fall back to the legacy renderer so a malformed optional block cannot
+    // prevent the rest of the DM board from opening.
+  }
+  return renderEntryText(value);
 }
 
 function homebrewTextSections(text) {
@@ -3776,8 +3997,8 @@ async function loadDmScreenLibraries() {
   dmScreenLibrariesPromise = Promise.all([
     import("../../../../data/bestiary/bestiary-sublist-data.json"),
     import("../../../../data/spells/spells.json"),
-    import("../../../../../vendor/5etools-src-main/data/items.json"),
-    import("../../../../../vendor/5etools-src-main/data/items-base.json"),
+    import("../../../../data/items/items.json"),
+    import("../../../../data/items/items-base.json"),
     import("../../../../../vendor/5etools-src-main/data/conditionsdiseases.json")
   ]).then(([bestiaryModule, spellsModule, itemsModule, baseItemsModule, conditionsModule]) => {
     const loadedBestiary = bestiaryModule.default || bestiaryModule;
@@ -3787,9 +4008,17 @@ async function loadDmScreenLibraries() {
     const loadedConditions = conditionsModule.default || conditionsModule;
     bestiary = Array.isArray(loadedBestiary) ? loadedBestiary : [];
     spells = Array.isArray(loadedSpells) ? loadedSpells : [];
-    ITEM_LIBRARY = [...(loadedItemsData.item || []), ...(loadedBaseItemsData.baseitem || [])];
+    ITEM_LIBRARY = (Array.isArray(loadedItemsData.item) ? loadedItemsData.item : [])
+      .filter((item) => item && !item.unavailable && !item.removedFromCatalog);
+    ITEM_ADDRESSABLE_LIBRARY = itemAddressableEntries(ITEM_LIBRARY);
+    validateDmItemCatalog(loadedItemsData, ITEM_LIBRARY, ITEM_ADDRESSABLE_LIBRARY);
+    ITEM_TOMBSTONES = Array.isArray(loadedItemsData.tombstone) ? loadedItemsData.tombstone.filter(Boolean) : [];
+    ITEM_CATALOG_BY_ID = new Map(ITEM_ADDRESSABLE_LIBRARY.map((item) => [itemCatalogId(item), item]).filter(([catalogId]) => catalogId));
+    ITEM_CATALOG_BY_KEY = new Map(ITEM_ADDRESSABLE_LIBRARY.map((item) => [itemCatalogKey(item), item]).filter(([catalogKey]) => catalogKey));
+    ITEM_TOMBSTONE_BY_ID = new Map(ITEM_TOMBSTONES.map((item) => [itemCatalogId(item), item]).filter(([catalogId]) => catalogId));
     ITEM_PROPERTY_LOOKUP = new Map((loadedBaseItemsData.itemProperty || []).map((property) => [`${property.abbreviation}|${property.source}`, property]));
-    ITEM_TYPE_LOOKUP = new Map((loadedBaseItemsData.itemType || []).map((type) => [`${type.abbreviation}|${type.source}`, type]));
+    ITEM_TYPE_METADATA = loadedBaseItemsData.itemType || [];
+    ITEM_TYPE_LOOKUP = new Map(ITEM_TYPE_METADATA.map((type) => [`${type.abbreviation}|${type.source}`, type]));
     ITEM_MASTERY_LOOKUP = new Map((loadedBaseItemsData.itemMastery || []).map((mastery) => [`${mastery.name}|${mastery.source}`, mastery]));
     statusEngine?.setExternalConditionEntries?.(loadedConditions);
     MONSTER_SEARCH_INDEX = buildMonsterSearchIndex(bestiary);
@@ -5838,6 +6067,7 @@ function ResourceNote({
   const entry = note.entry;
   useEffect(() => setSpellIconFailed(false), [entry?.icon]);
   const isSpell = note.kind === "spell";
+  const itemUnavailable = !isSpell && Boolean(entry?.__catalogUnavailable || entry?.unavailable || entry?.removedFromCatalog);
   const source = isSpell ? spellSource(entry) : itemSource(entry);
   const spellSourceText = isSpell ? spellSourceLabel(entry) : "";
   const spellSubtitle = isSpell ? formatSpellSubtitle(entry) : "";
@@ -5859,13 +6089,16 @@ function ResourceNote({
       ["Value", entry.value ? `${entry.value} cp` : ""],
       ["Weight", entry.weight ? `${entry.weight} lb.` : ""]
     ];
-  const text = isSpell ? entry.description : renderEntryText(entry.entries);
+  const text = isSpell ? entry.description : renderItemEntryText(entry.entries, entry);
   const itemRules = isSpell ? [] : itemRuleSections(entry);
   const itemPrimaryLabel = isSpell ? "" : itemTypeLabel(entry);
   const itemCategoryLine = isSpell ? "" : itemCategorySummary(entry);
   const itemDamage = isSpell ? "" : formatItemDamage(entry);
   const itemPropertiesLine = isSpell ? "" : itemPropertyLine(entry);
-  const itemMasteryLine = isSpell ? "" : itemMasteryMetas(entry).map((masteryMeta) => masteryMeta?.name).filter(Boolean).join(", ");
+  const itemMasteryLine = isSpell ? "" : itemMasteryMetas(entry)
+    .map((masteryMeta) => masteryMeta?.name ? `${masteryMeta.name}${masteryMeta.referenceNote ? ` (${masteryMeta.referenceNote})` : ""}` : "")
+    .filter(Boolean)
+    .join(", ");
   const itemValueWeightLine = isSpell ? "" : [formatItemCurrency(entry?.value), formatItemWeight(entry?.weight)].filter(Boolean).join(", ");
   const itemFooter = isSpell ? "" : itemRulesFooter(entry);
   const frameNote = shellNote || note;
@@ -5892,7 +6125,9 @@ function ResourceNote({
           title={`Restaurar ${noteDisplayName(note)}`}
         >
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{noteDisplayName(note)}</span>
-          <span className="block truncate text-[11px] text-neutral-500">{isSpell ? spellSubtitle : itemCategoryLine || itemPrimaryLabel}</span>
+          <span className="block truncate text-[11px] text-neutral-500">
+            {itemUnavailable ? "Unavailable catalog snapshot" : isSpell ? spellSubtitle : itemCategoryLine || itemPrimaryLabel}
+          </span>
         </button>
         <button
           className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
@@ -5928,6 +6163,11 @@ function ResourceNote({
           />
           <p className="mt-2 text-sm italic text-neutral-300">{isSpell ? spellSubtitle : itemPrimaryLabel}</p>
           {!isSpell && itemCategoryLine ? <p className="mt-1 text-sm text-neutral-500">{itemCategoryLine}</p> : null}
+          {itemUnavailable ? (
+            <p className="mt-2 inline-flex border border-red-500/50 bg-red-950/60 px-2 py-1 text-xs font-bold uppercase tracking-wide text-red-200">
+              Removed from active catalog - historical snapshot
+            </p>
+          ) : null}
         </div>
         <div className="flex items-start gap-3">
           {isSpell ? (
@@ -10079,6 +10319,8 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
   const title = isSpell ? "Add Spell" : "Add Item";
   const secondaryLabel = isSpell ? "Level" : "Rarity";
   const secondarySort = isSpell ? "level" : "rarity";
+  const selectedTopLevelItem = isSpell ? null : itemTopLevelEntry(selectedEntry);
+  const specificVariants = isSpell ? [] : itemSpecificVariants(selectedTopLevelItem);
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4" data-monster-picker="true">
@@ -10124,10 +10366,14 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
           </div>
           <div className="min-h-0 flex-1 overflow-auto bg-neutral-900">
             {entries.length ? entries.map((entry) => {
-              const active = selectedEntry === entry;
+              const active = isSpell
+                ? selectedEntry === entry
+                : itemCatalogId(selectedTopLevelItem) === itemCatalogId(entry);
               return (
                 <button
-                  key={`${kind}-${entry.name}-${isSpell ? spellSource(entry) : itemSource(entry)}-${entry.page || ""}`}
+                  key={isSpell
+                    ? `${kind}-${entry.id || `${entry.name}-${spellSource(entry)}-${entry.page || ""}`}`
+                    : `${kind}-${itemCatalogId(entry) || `${entry.name}-${itemSource(entry)}-${itemVariantToken(entry)}-${entry.page || ""}`}`}
                   className={`grid w-full grid-cols-[1fr_90px_90px] gap-2 border-b border-neutral-800 px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-300 ${active ? "bg-amber-500 text-neutral-950 hover:bg-amber-400" : "text-neutral-300 hover:bg-neutral-800"}`}
                   type="button"
                   onClick={() => onSelect(entry)}
@@ -10143,6 +10389,26 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
         <div className="min-h-0 overflow-auto bg-neutral-900 p-5">
           {selectedEntry ? (
             <div className="space-y-5">
+              {!isSpell && specificVariants.length ? (
+                <label className="block border border-neutral-700 bg-neutral-950 p-3 text-xs font-bold uppercase tracking-wide text-neutral-400">
+                  Specific variant ({specificVariants.length})
+                  <select
+                    className="mt-2 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none"
+                    value={selectedEntry.catalogParentId ? itemCatalogId(selectedEntry) : ""}
+                    onChange={(event) => {
+                      const variant = event.target.value ? ITEM_CATALOG_BY_ID.get(event.target.value) : selectedTopLevelItem;
+                      if (variant) onSelect(variant);
+                    }}
+                  >
+                    <option value="">Generic: {selectedTopLevelItem.name}</option>
+                    {specificVariants.map((variant) => (
+                      <option key={itemCatalogId(variant)} value={itemCatalogId(variant)}>
+                        {variant.name} [{itemSource(variant)}]{variant.baseItem ? ` - ${variant.baseItem}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <article className="overflow-hidden border border-neutral-950 bg-neutral-900 text-neutral-300 shadow-2xl">
                 <header className="border-b-2 border-amber-500 bg-neutral-900 px-3 py-2">
                   <h2 className="font-serif text-xl font-bold uppercase leading-none tracking-wide text-amber-500">{selectedEntry.name}</h2>
@@ -10153,12 +10419,12 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
                     <Stat label="Source" value={isSpell ? spellSource(selectedEntry) : itemSource(selectedEntry)} />
                     <Stat label={secondaryLabel} value={isSpell ? formatSpellLevel(selectedEntry) : titleCase(itemRarity(selectedEntry))} />
                   </div>
-                  <p className="mt-3 leading-relaxed">{isSpell ? selectedEntry.description : renderEntryText(selectedEntry.entries)}</p>
+                  <p className="mt-3 whitespace-pre-line leading-relaxed">{isSpell ? selectedEntry.description : renderItemEntryText(selectedEntry.entries, selectedEntry)}</p>
                 </div>
               </article>
               <div className="sticky bottom-0 border-t border-neutral-700 bg-neutral-900 pt-4">
                 <button className="inline-flex h-10 items-center bg-amber-500 px-4 text-sm font-bold text-neutral-950 hover:bg-amber-400" type="button" onClick={() => onAdd(selectedEntry)}>
-                  {isSpell ? "Sumar spell" : "Sumar item"}
+                  {isSpell ? "Sumar spell" : selectedEntry.catalogParentId ? "Sumar variante" : "Sumar item"}
                 </button>
               </div>
             </div>
@@ -11495,7 +11761,8 @@ function DmScreenApp() {
   useEffect(() => {
     if (!librariesReady || !resourcePickerKind) return;
     const selected = resourcePickerKind === "spell" ? selectedSpell : selectedItem;
-    if (selected && filteredResources.includes(selected)) return;
+    const selectedTopLevel = resourcePickerKind === "item" ? itemTopLevelEntry(selected) : selected;
+    if (selectedTopLevel && filteredResources.includes(selectedTopLevel)) return;
     if (resourcePickerKind === "spell") setSelectedSpell(filteredResources[0] || null);
     else setSelectedItem(filteredResources[0] || null);
   }, [filteredResources, librariesReady, resourcePickerKind, selectedItem, selectedSpell]);
@@ -12826,9 +13093,8 @@ function DmScreenApp() {
       return;
     }
     const targetNote = monsterNotesRef.current.find((note) => note.id === resourcePickerTargetNoteId);
-    const itemName = sanitizeDisplayText(entry?.name, "");
-    if (!targetNote?.character || !itemName) return;
-    const nextEquipment = appendCharacterEquipmentItem(characterEquipmentText(targetNote.character), itemName);
+    if (!targetNote?.character || !itemEquipmentReference(entry)) return;
+    const nextEquipment = appendCharacterEquipmentItem(characterEquipmentText(targetNote.character), entry);
     if (updateLiveCharacterField(targetNote.id, "Equipment", nextEquipment)) closeResourcePicker();
   }
 
@@ -15321,8 +15587,10 @@ function DmScreenApp() {
     const itemNote = notes.find((note) => note.id === itemNoteId);
     const targetNote = notes.find((note) => note.id === targetNoteId);
     if (itemNote?.kind !== "item" || !itemNote.entry || targetNote?.kind !== "character" || !targetNote.character) return false;
-    const itemName = itemNote.entry.name || noteDisplayName(itemNote);
-    const nextEquipment = appendCharacterEquipmentItem(characterEquipmentText(targetNote.character), itemName);
+    const equipmentItem = itemNote.entry.name
+      ? itemNote.entry
+      : { ...itemNote.entry, name: noteDisplayName(itemNote) };
+    const nextEquipment = appendCharacterEquipmentItem(characterEquipmentText(targetNote.character), equipmentItem);
     return updateLiveCharacterField(targetNote.id, "Equipment", nextEquipment);
   }
 

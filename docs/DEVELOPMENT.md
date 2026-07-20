@@ -23,7 +23,7 @@ npm ci
 npm start
 ```
 
-`prestart` reconstruye el DM Screen solo si falta o está desactualizado. `scripts/ensure-dm-screen-build.js` compara el CSS con sus fuentes Tailwind y el JavaScript con `main.jsx`, la configuración Vite y sus imports estáticos de datos/helpers; también exige todos los chunks declarados (`spells.js`, bestiary e items). CSS y JS se evalúan por separado: no vuelvas a usar la fecha más antigua de ambos pipelines como una sola señal porque causa un rebuild en cada arranque. No cambies npm ni regeneres `package-lock.json` sin revisar el diff; el lockfile actual es versión 1.
+`prestart` reconstruye el DM Screen solo si falta o está desactualizado. `scripts/ensure-dm-screen-build.js` compara el CSS con sus fuentes Tailwind y el JavaScript con `main.jsx`, la configuración Vite y sus imports estáticos de datos/helpers; también exige todos los chunks declarados (`spells.js`, bestiary, `items.js` e `items-base.js`). Los inputs de items son los JSON app-owned de `src/data/items`. CSS y JS se evalúan por separado: no vuelvas a usar la fecha más antigua de ambos pipelines como una sola señal porque causa un rebuild en cada arranque. No cambies npm ni regeneres `package-lock.json` sin revisar el diff; el lockfile actual es versión 1.
 
 ## Variables de entorno
 
@@ -38,6 +38,7 @@ No hay variables requeridas para desarrollo normal.
 - Character Sheet: modifica source directo; `npm start` carga `index.html`.
 - DM Screen: modifica `dm-screen/src/main.jsx` y ejecuta `npm run build:dm-screen`; `dm-screen/dist/` es un runtime generado e ignorado por Git que `prestart`/`predist` reconstruyen cuando corresponde.
 - Backgrounds: ejecuta `node scripts/diagnose-backgrounds.js` además de pruebas.
+- Items: usa preview/apply/check/restore de `docs/ADDING_ITEMS.md`; no copies el JSON externo directamente sobre el catálogo ni edites registros sincronizados a mano.
 - i18n del jugador: actualiza EN y ES juntos en `i18n.js` y ejecuta `npm run test:i18n`.
 - Save/protocolo: añade pruebas de migración o payload antes de tocar UI.
 
@@ -48,6 +49,22 @@ No hay variables requeridas para desarrollo normal.
 - Live Sheet: probar primero `127.0.0.1`, luego LAN/Tailscale; mantener token activado fuera de una máquina única.
 - Obsidian: todas las rutas deben seguir siendo relativas y validadas dentro del vault seleccionado.
 
+## Sincronización de items
+
+El comando npm sin sufijo es seguro por defecto y sólo calcula el preview:
+
+```powershell
+npm run sync:items -- --source <items-sublist-data.json> --reference <items-sublist.md>
+npm run sync:items:apply -- --source <items-sublist-data.json> --reference <items-sublist.md>
+npm run sync:items -- --source <items-sublist-data.json> --reference <items-sublist.md> --check
+npm run validate:items
+npm run test:items
+```
+
+Revisar `src/data/items/sync-preview.json` antes del apply. El backup comprimido y el manifiesto portable v2 `items-backup.manifest.json` permiten restaurar el catálogo de desarrollo con `node scripts/sync-items.js --restore-backup <manifest>`; el restore resuelve backups relativos al manifiesto y escribe en los targets actuales. Los manifiestos v1 siguen siendo compatibles. Esos artefactos quedan fuera del paquete Electron. El sync no toca slots, inventarios, logs ni homebrew; una baja sólo sale del catálogo activo. Repetir `--check` con los mismos inputs debe producir cero cambios ambas veces.
+
+Al extender el runtime de items, mantener las mutaciones por identidad estable: cargas/reload numéricas viven en `__sheetMeta.itemResources[catalogId]` y los efectos guiados en `__sheetMeta.itemEffects[catalogId]`. Los costos explícitos se confirman antes de descontar. Expresiones con dados, usos `daily`/`rest`/`will`, requisitos narrativos de attunement y bonos condicionados deben conservar texto/costo y ajuste manual; no automatizar pools compartidos, límite global de sintonización ni copias individuales hasta que Equipment tenga IDs de instancia y un contrato probado.
+
 ## Dependencias
 
 Antes de actualizar, comprobar uso actual, engines, scripts de instalación, Electron/Node soportados, tamaño y breaking changes. Actualizar de forma focalizada, ejecutar suite/build y revisar lockfile. `npm audit` requiere red y no se ejecutó durante esta auditoría; autorizarlo explícitamente antes de enviar metadatos de dependencias al registry.
@@ -55,3 +72,17 @@ Antes de actualizar, comprobar uso actual, engines, scripts de instalación, Ele
 ## Packaging
 
 `npm run dist` y `npm run dist:portable` escriben en `installer-pdf-fields/`. No ejecutar si hay una salida que deba preservarse sin elegir antes una ruta segura. `crear-instalador.bat` cambia la versión y puede borrar/reemplazar esa salida. `npm run publish:win` sube artefactos y puede volver pública una release: nunca usarlo como comprobación local.
+
+Los JSON de items bajo `vendor/5etools-src-main` permanecen versionados como baseline/recuperación de desarrollo, pero el packaging no los incluye como catálogo activo. `src/data/**` contiene todo lo necesario para el runtime de items.
+
+## Antes de integrar
+
+```powershell
+npm run test:items
+npm test
+npm run build:dm-screen
+git diff --check
+git status --short
+```
+
+Para un sync real, adjuntar al informe el conteo del preview, el resultado de apply, dos checks idempotentes y el smoke manual de referencias históricas/homebrew. Si no se ejecutó el apply real o el arranque GUI, declararlo expresamente.

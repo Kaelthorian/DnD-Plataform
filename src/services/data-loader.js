@@ -7,7 +7,7 @@ const PROJECT_ROOT = path.resolve(SRC_ROOT, "..");
 const APP_DATA_ROOT = path.join(SRC_ROOT, "data");
 const RENDERER_ASSETS_ROOT = path.join(SRC_ROOT, "app", "renderer", "assets");
 const VENDOR_DATA_ROOT = path.join(PROJECT_ROOT, "vendor", "5etools-src-main", "data");
-const ITEM_CACHE_VERSION = 1;
+const ITEM_CACHE_VERSION = 2;
 const itemCatalogLoads = new Map();
 
 function appDataPath(...segments) {
@@ -88,8 +88,8 @@ async function loadItemsDirect(itemsPath, baseItemsPath) {
 }
 
 function loadItems(userDataPath = "", options = {}) {
-  const itemsPath = options.itemsPath || vendorDataPath("items.json");
-  const baseItemsPath = options.baseItemsPath || vendorDataPath("items-base.json");
+  const itemsPath = options.itemsPath || appDataPath("items", "items.json");
+  const baseItemsPath = options.baseItemsPath || appDataPath("items", "items-base.json");
   const cachePath = options.cachePath === undefined ? itemCatalogCachePath(userDataPath) : options.cachePath;
   const loadKey = `${itemsPath}|${baseItemsPath}|${cachePath || "no-cache"}`;
   if (itemCatalogLoads.has(loadKey)) return itemCatalogLoads.get(loadKey);

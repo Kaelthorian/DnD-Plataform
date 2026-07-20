@@ -1,6 +1,6 @@
 # Auditoría técnica
 
-Fecha: 2026-07-12  
+Fecha: 2026-07-20
 Alcance: código propio, configuración, scripts, tests, documentación, rutas de datos empaquetadas y límites de vendor/assets. No se realizó auditoría online de dependencias ni inspección exhaustiva del source vendorizado.
 
 ## Fortalezas confirmadas
@@ -23,9 +23,15 @@ Alcance: código propio, configuración, scripts, tests, documentación, rutas d
 | Media | `setWindowOpenHandler` enviaba cualquier esquema a `shell.openExternal`. | Corregido: solo HTTP/HTTPS. |
 | Media | Live Sheet escucha `0.0.0.0`; el token puede desactivarse y no hay TLS. Expone hojas a la red alcanzable. | Diseño LAN/Tailscale; mantener token activo y documentar frontera. |
 | Media | Traducción de descripciones envía texto a `api.mymemory.translated.net`; CSP permite HTTP/HTTPS y la hoja usa script inline. | Pendiente: aviso de privacidad visible, eliminar fallback renderer y extraer inline antes de endurecer CSP. |
-| Media | Build genera chunks `items.js` (~15,8 MB) y `bestiary-sublist-data.js` (~15,6 MB). Impacta tamaño/startup/memoria. | Pendiente: índices livianos y carga diferida medida; no micro-optimizar. |
+| Media | Build genera chunks grandes para el catálogo app-owned `items.js` y `bestiary-sublist-data.js`. Aunque items ya no mezcla `baseitem` activo, el JSON estructurado sigue impactando tamaño/startup/memoria. | Pendiente: medir el nuevo bundle, diseñar índices livianos/carga diferida y no micro-optimizar sin perfil. |
+| Media | El catálogo conserva metadata rica (cargas, spells, efectos, vehículos y excepciones), pero no existe un intérprete autoritativo capaz de automatizar todas las reglas narrativas de 1.779 items. | Mantener automatización genérica sólo para casos deterministas y mostrar el resto como detalle/acción guiada; ampliar por familias con tests, no handlers vacíos por item. |
+| Media | `__sheetMeta.itemResources`, `itemAttunement` e `itemEffects` usan `catalogId` y no una identidad de instancia: dos copias del mismo item comparten contador, sintonización y marcador. Los usos `daily`/`rest`/`will` de `attachedSpells` tampoco declaran siempre si `1` y `1e` son pools compartidos o por conjuro. | Mantener esos ledgers guiados/manuales; introducir IDs de instancia de inventario y un contrato explícito de pools antes de automatizar copias o recuperaciones por descanso. |
+| Media | La sintonización valida tags deterministas disponibles en la hoja, pero no impone todavía el máximo global de tres ítems y deja requisitos narrativos/alineamiento como confirmación manual. | Modelar slots de attunement e identidades de instancia antes de imponer el límite; conservar el texto original para requisitos no verificables. |
+| Media | Los efectos narrativos/temporales de ítems sólo tienen una marca persistente guiada; defensas se incorporan al resumen pero no existe un pipeline autoritativo de daño/HP. Bonos contextuales como `bonusSpellDamage` no se aplican globalmente. | Mantener esas reglas manuales hasta contar con duración, target, tipo de daño y resolución transaccional probados. |
+| Media | Los packs de munición nuevos se expanden al agregarlos, pero inventarios legacy que ya guardaron el nombre del pack no se migran a unidades. | Añadir una migración idempotente cuando Equipment disponga de identidad de instancia y pueda distinguir pack intacto de texto manual. |
+| Baja | Las referencias antiguas sólo por nombre son ambiguas para algunos registros; se conserva la preferencia histórica por fuentes modernas, mientras las escrituras nuevas guardan fuente/variante o `catalogId`. | Mantener el fallback sólo para compatibilidad y ofrecer una migración asistida si se necesita precisión retrospectiva. |
 | Media | Cobertura se concentra en módulos extraídos; no hay Electron smoke automatizado, E2E, lint, typecheck ni CI propio. | Añadir pruebas al extraer; evaluar smoke test y lint sin reforma masiva. |
-| Media | 122 posibles strings visibles hardcoded en Character Sheet; DM Screen usa español hardcoded. | Baseline conocido; no aumentar y migrar por componente. |
+| Media | 117 posibles strings visibles hardcoded en Character Sheet; DM Screen usa español hardcoded. | Baseline conocido; no aumentar y migrar por componente. |
 | Media | Documentación describía carpetas vacías como sistemas implementados y faltaban README/AGENTS/mapa/auditoría raíz. | Corregido en documentación nueva/actualizada. |
 | Baja | `5etools-src-main/` contiene dos JSON de feats no referenciados y existen `FEATURE_MAP.md`/`feature-map.md`. | Candidatos a consolidación; no eliminados sin aprobación específica. |
 | Baja | `package-lock.json` es v1 y el Node del sistema detectado es 15.6.0; Vite exige 20.19+/22.12+. | Requisito `engines` y procedimiento portable documentados. |
@@ -42,15 +48,17 @@ No se confirmaron dependencias circulares en los módulos CommonJS inspeccionado
 - Lista de protocolos externos permitidos.
 - Requisito Node y patrones de higiene/secrets en `.gitignore`.
 - Documentación operativa, arquitectónica, de pruebas y decisiones basada en rutas reales.
+- Catálogo oficial de items app-owned con identidad nombre+fuente+variante, sincronización preview/apply/check, backup portable y reversible, tombstones históricos y separación de homebrew.
 
 ## Trabajo futuro recomendado
 
 1. Alta: pruebas DOM/Electron de save/load y startup; luego extraer un dominio del Character Sheet.
 2. Alta: extraer del DM Screen serialización/parsers de board/VTT con pruebas antes de dividir componentes.
 3. Media: diseñar índices livianos/carga diferida para datasets grandes y medir tiempo/memoria.
-4. Media: migrar traducción a main exclusivamente, añadir aviso de privacidad y endurecer CSP.
-5. Media: mantener token Live Sheet obligatorio fuera de loopback o añadir una opción de bind explícita.
-6. Baja: con aprobación, eliminar duplicados confirmados y consolidar mapas/documentos aspiracionales.
+4. Media: ampliar reglas de items por familias (efectos temporales, attunement global y vehículos) y diseñar IDs de instancia/pools de usos antes de automatizar decisiones abiertas; cargas numéricas, sintonización determinista y commit transaccional ya tienen cobertura focalizada.
+5. Media: migrar traducción a main exclusivamente, añadir aviso de privacidad y endurecer CSP.
+6. Media: mantener token Live Sheet obligatorio fuera de loopback o añadir una opción de bind explícita.
+7. Baja: con aprobación, eliminar duplicados confirmados y consolidar mapas/documentos aspiracionales.
 
 ## Verificación y límites
 

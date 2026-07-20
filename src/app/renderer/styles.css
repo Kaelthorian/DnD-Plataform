@@ -1992,6 +1992,21 @@
       color: #222;
     }
 
+    .item-resource-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .item-resource-buttons .feature-list-button {
+      width: auto;
+      min-width: 112px;
+    }
+
+    .item-resource-guidance {
+      font-size: 12px;
+    }
+
     .item-drawer.feat-readable-drawer .item-section-body {
       white-space: pre-line;
     }

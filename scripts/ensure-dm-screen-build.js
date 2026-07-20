@@ -21,10 +21,11 @@ const jsSourceFiles = [
   path.join(projectRoot, "src", "app", "renderer", "dm-screen", "vite.config.mjs"),
   path.join(projectRoot, "src", "app", "renderer", "dm-screen", "src", "main.jsx"),
   path.join(projectRoot, "src", "engine", "spells", "spell-data.js"),
+  path.join(projectRoot, "src", "engine", "items", "item-catalog.js"),
   path.join(projectRoot, "src", "data", "spells", "spells.json"),
   path.join(projectRoot, "src", "data", "bestiary", "bestiary-sublist-data.json"),
-  path.join(projectRoot, "vendor", "5etools-src-main", "data", "items.json"),
-  path.join(projectRoot, "vendor", "5etools-src-main", "data", "items-base.json")
+  path.join(projectRoot, "src", "data", "items", "items.json"),
+  path.join(projectRoot, "src", "data", "items", "items-base.json")
 ];
 const portableNodePath = path.join(projectRoot, ".tools", "node-v20.19.0-win-x64", "node.exe");
 const forceBuild = process.argv.includes("--force");

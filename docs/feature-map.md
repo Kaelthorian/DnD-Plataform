@@ -27,7 +27,7 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
   - Current audit baseline: 245 selector backgrounds, 135 structured vendor details after modern-source dedupe, and 110 text-fallback backgrounds.
 - Spells: `src/data/spells`
 - Feats: `src/data/feats`
-- Items: `src/data/items`
+- Items: `src/data/items/items.json` is the only active official top-level catalog; `items-base.json` contains shared type/property/mastery metadata. Maintenance uses `scripts/sync-items.js` and `scripts/validate-items.js`; vendor item JSON is not a runtime source.
 - Languages: `src/data/languages`
 
 ## Mechanics
@@ -49,6 +49,7 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
 - Resource use state normalization, spending, and reset math: `src/engine/resources/resource-state.js`
 - Proficiencies: `src/engine/proficiencies`
 - Attacks: `src/engine/attacks`
+- Items: stable identity, safe tag/type rendering and reusable profiles live in `src/engine/items/item-catalog.js`; numeric resource and spell-timing transitions live in `src/engine/items/item-resource-state.js`. Equipment, attunement, guided effects and combat adaptation remain in `src/app/renderer/index.html`.
 - Combat turn/resolution: `src/engine/combat`
   - `turn-economy.js`: Action, Bonus Action, Reaction, Movement, Object Interaction, Extra Attack y reservas.
   - `action-definitions.js`: acciones universales y perfiles de armas/hechizos.
@@ -63,7 +64,7 @@ Remaining gameplay-heavy inline sections inside `src/app/renderer/index.html` ar
 - Character sheet: `src/ui/sheet`
 - Skills: `src/ui/skills`
 - Attacks: `src/ui/attacks`
-- Inventory: `src/ui/inventory`
+- Inventory target: `src/ui/inventory`; the implemented Equipment picker/list/details are still in `src/app/renderer/index.html`, with loading and source-aware indexing in `renderer.js` and the DM library in `dm-screen/src/main.jsx`.
 - Modals and drawers: `src/ui/modals`
 - Selection menus: `src/ui/selectors`
 

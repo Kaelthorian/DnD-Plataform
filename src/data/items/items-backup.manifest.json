@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "backups": [
+    {
+      "createdAt": "2026-07-20T02:08:49.019Z",
+      "source": {
+        "path": "C:\\Users\\nicol\\Downloads\\items-sublist-data.json",
+        "sha256": "a1d136bd0749f3357689e7bb815cde996a7ba5305680710d427486a2f97fb2af",
+        "records": 1779
+      },
+      "reference": {
+        "path": "C:\\Users\\nicol\\Downloads\\items-sublist.md",
+        "sha256": "8d845d9ed36830bd3e4ad1fa30473a024b771b70be97ca2fbc899f2f70bd522a"
+      },
+      "baseline": {
+        "kind": "compressed-app-owned",
+        "activeRecords": 12974,
+        "items": {
+          "kind": "gzip",
+          "path": "backups/items.json-ff219ebc52b0c932a0c75697d41c8d2d0840ee6fe4255b03194a1cc7143b1a22.gz",
+          "relativeTo": "manifest",
+          "sha256": "ff219ebc52b0c932a0c75697d41c8d2d0840ee6fe4255b03194a1cc7143b1a22",
+          "compressedSha256": "b422ea44bf8db02afd724b881ff200c08842e827d4aea7918854c2d9fb902e99",
+          "bytes": 33764658
+        },
+        "baseItems": {
+          "kind": "gzip",
+          "path": "backups/items-base.json-e86f3d2241781c5e9ac21425c672a61e7dce18b28cc661e022b64372d02b3a20.gz",
+          "relativeTo": "manifest",
+          "sha256": "e86f3d2241781c5e9ac21425c672a61e7dce18b28cc661e022b64372d02b3a20",
+          "compressedSha256": "ba2539c174260eef0bd63db4edb8d58d65834428d0cb6685c131cfd210ba5aa5",
+          "bytes": 30167
+        }
+      },
+      "vendorBaseline": {
+        "items": {
+          "path": "C:\\Users\\nicol\\Desktop\\DnD-Plataform\\vendor\\5etools-src-main\\data\\items.json",
+          "sha256": "39c7ac5b27b91a0e2aae5c39603a19dbbd1289e0b1aa8663bab7a57ef5f315eb"
+        },
+        "baseItems": {
+          "path": "C:\\Users\\nicol\\Desktop\\DnD-Plataform\\vendor\\5etools-src-main\\data\\items-base.json",
+          "sha256": "5bb27be90ae9372149e39671fc0627de7d9d3b341ebb959219c69d71e9e001aa"
+        }
+      },
+      "outputs": {
+        "items": {
+          "path": "items.json",
+          "relativeTo": "manifest",
+          "sha256": "1a6c3293fae78228c08e010db652e5bdc8a8fe10ebf5e68236ba3c0f313aa81d",
+          "bytes": 10678661
+        },
+        "baseItems": {
+          "path": "items-base.json",
+          "relativeTo": "manifest",
+          "sha256": "e86f3d2241781c5e9ac21425c672a61e7dce18b28cc661e022b64372d02b3a20",
+          "bytes": 30167
+        }
+      },
+      "preview": {
+        "path": "sync-preview.json",
+        "relativeTo": "manifest",
+        "sha256": "81ee3eaf4eb7495572a8d9f04fa3ea5371259dcb54b688bd19af510f89bcd49e"
+      }
+    }
+  ]
+}

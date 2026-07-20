@@ -15,6 +15,7 @@ assert.match(script, /outputsNeedBuild\(jsOutputFiles, jsSourceFiles\)/, "JS out
 assert.doesNotMatch(script, /Math\.min\(getMtimeMs\(distCss\), getMtimeMs\(distJs\)\)/, "one stale output timestamp must not invalidate the other pipeline");
 assert.equal(buildCache.jsSourceFiles.some((filePath) => filePath.endsWith(path.join("src", "data", "spells", "spells.json"))), true, "spell catalog changes must invalidate the DM JS bundle");
 assert.equal(buildCache.jsSourceFiles.some((filePath) => filePath.endsWith(path.join("src", "engine", "spells", "spell-data.js"))), true, "shared spell helper changes must invalidate the DM JS bundle");
+assert.equal(buildCache.jsSourceFiles.some((filePath) => filePath.endsWith(path.join("src", "engine", "items", "item-catalog.js"))), true, "shared item renderer changes must invalidate the DM JS bundle");
 assert.equal(buildCache.jsOutputFiles.some((filePath) => filePath.endsWith(path.join("dist", "spells.js"))), true, "the generated spell chunk must be required");
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dnd-dm-build-cache-"));

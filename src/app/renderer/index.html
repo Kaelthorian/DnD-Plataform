@@ -313,6 +313,8 @@
   <script src="../../engine/conditions/statuses.js"></script>
   <script src="../../engine/actions/action-advisor.js"></script>
   <script src="../../engine/spells/spell-data.js"></script>
+  <script src="../../engine/items/item-catalog.js"></script>
+  <script src="../../engine/items/item-resource-state.js"></script>
   <script src="../../engine/combat/turn-economy.js"></script>
   <script src="../../engine/combat/action-definitions.js"></script>
   <script src="../../engine/combat/resolution-engine.js"></script>
@@ -4748,7 +4750,28 @@
       return "Armor/shield sin proficiency: tenes desventaja en D20 Tests que usen STR o DEX, y no podes castear spells.";
     }
 
-    function weaponAttackSelection(entry, item, slot, attackMode = "weapon") {
+    function normalizedAmmunitionName(value) {
+      const normalized = normalizeItemLookupName(itemNameFromRef(value));
+      if (normalized === "crossbow bolt") return "bolt";
+      return normalized;
+    }
+
+    function ammunitionBaseName(item) {
+      const canonicalBase = globalThis.dndItemCatalog?.ammunitionBaseName?.(item);
+      return normalizedAmmunitionName(canonicalBase || item?.baseItem || item?.name || "");
+    }
+
+    function compatibleAmmunitionEntries(weapon) {
+      const required = normalizedAmmunitionName(weapon?.ammoType);
+      if (!required) return [];
+      return equipmentEntries().filter((entry) => {
+        if (entry.quantity <= 0) return false;
+        const ammunition = findItemData(entry);
+        return ammunition && itemTypeAbbreviation(ammunition) === "A" && ammunitionBaseName(ammunition) === required;
+      });
+    }
+
+    function weaponAttackSelection(entry, item, slot, attackMode = "weapon", selectedAmmoEntry = null) {
       const ability = weaponAbilityModifier(item);
       const proficient = hasEquipmentProficiency(item);
       const armorPenalty = equippedArmorWithoutProficiency();
@@ -4759,19 +4782,21 @@
       const abilityDamageBonus = slot === "offHand" ? offHandAbilityBonus : ability;
       const styleDamageBonus = fightingStyleDamageBonus(item, slot, record, attackMode);
       const attackStyleBonus = fightingStyleAttackBonus(item);
-      const damageBonus = abilityDamageBonus + styleDamageBonus;
+      const ammoName = item?.ammoType ? itemNameFromRef(item.ammoType) : "";
+      const ammoEntry = selectedAmmoEntry || (ammoName ? compatibleAmmunitionEntries(item)[0] || null : null);
+      const ammunition = ammoEntry ? findItemData(ammoEntry) : null;
+      const magicAttackBonus = itemWeaponAttackBonus(item) + (ammunition ? itemWeaponAttackBonus(ammunition) : 0);
+      const magicDamageBonus = itemWeaponDamageBonus(item) + (ammunition ? itemWeaponDamageBonus(ammunition) : 0);
+      const damageBonus = abilityDamageBonus + styleDamageBonus + magicDamageBonus;
       const damageDice = record?.twoHanded && item.dmg2 ? item.dmg2 : item.dmg1 || "1d4";
       const damageExpression = `${damageDice}${damageBonus ? formatModifier(damageBonus) : ""}`;
       const nameParts = [];
       if (record?.twoHanded) nameParts.push("2M");
       else if (slot === "offHand") nameParts.push("Off");
       if (thrownAttack && itemTypeAbbreviation(item) !== "R") nameParts.push("Lanzada");
+      if (ammunition && (ammunition.baseItem || itemWeaponAttackBonus(ammunition) || itemWeaponDamageBonus(ammunition))) nameParts.push(ammunition.name);
       const styleLabels = fightingStyleDamageLabels(item, slot, record, attackMode);
       const abilityKey = itemTypeAbbreviation(item) === "R" || hasItemProperty(item, "F") ? "DEX" : "STR";
-      const ammoName = item?.ammoType ? itemNameFromRef(item.ammoType) : "";
-      const ammoEntry = ammoName
-        ? equipmentEntries().find((candidate) => normalizeItemLookupName(candidate.displayName) === normalizeItemLookupName(ammoName)) || null
-        : null;
       return {
         name: `${item.name || entry.displayName}${nameParts.length ? ` (${nameParts.join(", ")})` : ""}`,
         item,
@@ -4781,6 +4806,8 @@
         abilityDamageBonus,
         styleDamageBonus,
         attackStyleBonus,
+        magicAttackBonus,
+        magicDamageBonus,
         damage: damageExpression,
         damageLabel: damageExpression,
         damageType: (DAMAGE_TYPE_NAMES[item.dmgType] || item.dmgType || "").toLowerCase(),
@@ -4794,7 +4821,7 @@
         ammoRemaining: ammoEntry?.quantity ?? (ammoName ? 0 : null),
         actionType: slot === "offHand" ? ACTION_TYPES.bonus : ACTION_TYPES.action,
         actionCostLabel: slot === "offHand" ? "Consume: Accion Bonus (two-weapon fighting)." : "Consume: Accion.",
-        attackBonus: ability + prof + attackStyleBonus,
+        attackBonus: ability + prof + attackStyleBonus + magicAttackBonus,
         damageRollOptions: {
           greatWeaponFighting: greatWeaponFightingApplies(item, slot, record, attackMode)
         },
@@ -4802,6 +4829,7 @@
           proficient ? "weapon attack" : "sin prof",
           thrownAttack ? "thrown attack" : "",
           fightingStyleAttackBonus(item) ? "Archery" : "",
+          magicAttackBonus || magicDamageBonus ? t("item.magicBonus") : "",
           ...styleLabels,
           greatWeaponFightingApplies(item, slot, record, attackMode) ? "Great Weapon Fighting" : "",
           armorPenalty ? "desventaja por armadura/shield sin prof" : ""
@@ -4814,7 +4842,9 @@
       return equippedEntries()
         .filter(({ item, record }) => isWeaponItem(item) && ["mainHand", "offHand"].includes(record.slot))
         .flatMap(({ entry, item, record }) => {
-          const rows = [weaponAttackSelection(entry, item, record.slot)];
+          const ammunitionOptions = item?.ammoType ? compatibleAmmunitionEntries(item) : [];
+          const selectedAmmunition = ammunitionOptions.length ? ammunitionOptions : [null];
+          const rows = selectedAmmunition.map((ammoEntry) => weaponAttackSelection(entry, item, record.slot, "weapon", ammoEntry));
           if (hasItemProperty(item, "T") && itemTypeAbbreviation(item) !== "R") {
             rows.push(weaponAttackSelection(entry, item, record.slot, "thrown"));
           }
@@ -8038,6 +8068,7 @@
       const resources = (action.actionCost || []).map((cost) => combatCostLabel({ actionCost: [cost] }));
       if (action.category === ACTION_CATEGORIES.spells && action.attack?.level > 0) resources.push(`Spell Slot L${action.attack.castLevel || action.attack.level}`);
       if (action.resourceInfo?.name) resources.push(action.resourceInfo.name);
+      if (action.itemResourceCost > 0) resources.push(`${action.itemResourceName || t("item.resourceTitle")}: ${action.itemResourceCost}`);
       return resources;
     }
 
@@ -8077,6 +8108,11 @@
       const selectedOncePerTurnChoice = activeCombatResolution.action.optionalDamageChoices
         ?.find((choice) => choice.oncePerTurnKey && selectedOptionalDamage.includes(choice.key));
       if (selectedOncePerTurnChoice) actionPatch.oncePerTurnKey = selectedOncePerTurnChoice.oncePerTurnKey;
+      const itemResourceValidation = validateItemResourceAction(activeCombatResolution.action);
+      if (!itemResourceValidation.ok) {
+        showStatus(itemResourceValidation.reason);
+        return;
+      }
       const committed = confirmCombatResolution(activeCombatResolution, actionPatch);
       if (!committed.ok) {
         showStatus(committed.reason);
@@ -8104,7 +8140,12 @@
         }
         expendFeatureUse(action.resourceRow);
       }
-      const equipmentConsumed = Boolean(action.inventoryEntry || action.ammoEntry);
+      const itemResourceCommitted = consumeItemResourceForAction(action);
+      if (!itemResourceCommitted) {
+        showStatus(t("item.actionResourceUnavailable"));
+        return;
+      }
+      const equipmentConsumed = Boolean(action.inventoryEntry || action.ammoEntry || action.itemResourceCost);
       if (action.inventoryEntry) removeItemFromEquipment(action.inventoryEntry, 1);
       if (action.ammoEntry) removeItemFromEquipment(action.ammoEntry, 1);
       sheetMeta.combatTurn = committed.economy;
@@ -10194,6 +10235,8 @@
           : {};
       }
       if (!sheetMeta.equippedItems || typeof sheetMeta.equippedItems !== "object") sheetMeta.equippedItems = {};
+      if (!sheetMeta.itemResources || typeof sheetMeta.itemResources !== "object" || Array.isArray(sheetMeta.itemResources)) sheetMeta.itemResources = {};
+      if (!sheetMeta.itemEffects || typeof sheetMeta.itemEffects !== "object" || Array.isArray(sheetMeta.itemEffects)) sheetMeta.itemEffects = {};
       if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
       if (!Array.isArray(sheetMeta.activeStatuses)) sheetMeta.activeStatuses = [];
@@ -11037,26 +11080,124 @@
         .trim());
     }
 
+    function itemReferenceParts(reference) {
+      if (reference && typeof reference === "object") {
+        const storageName = reference.storageName || reference.rawName || reference.displayName || reference.name || "";
+        const parsed = itemReferenceParts(storageName);
+        return {
+          ...parsed,
+          name: reference.name || reference.displayName || parsed.name,
+          source: reference.catalogSource || reference.source || parsed.source,
+          variantToken: reference.catalogVariantToken || reference.variantToken || parsed.variantToken,
+          catalogId: reference.catalogId || parsed.catalogId,
+          hasStableReference: Boolean(
+            reference.hasStableReference
+            || reference.catalogId
+            || reference.catalogSource
+            || reference.source
+            || parsed.hasStableReference
+          ),
+          storageName
+        };
+      }
+
+      const storageName = String(reference || "").trim();
+      const suffix = storageName.match(/\s+\[([^\]]+)]\s*$/);
+      if (!suffix) {
+        return {
+          name: storageName,
+          source: "",
+          variantToken: "",
+          catalogId: "",
+          hasStableReference: false,
+          storageName
+        };
+      }
+      const tokens = suffix[1].split("|");
+      const source = (tokens.shift() || "").trim();
+      const variantToken = tokens.join("|").trim();
+      const catalogId = variantToken.startsWith("id:") ? variantToken.slice(3) : "";
+      return {
+        name: storageName.slice(0, suffix.index).trim(),
+        source,
+        variantToken: catalogId ? "" : variantToken,
+        catalogId,
+        hasStableReference: Boolean(source || variantToken || catalogId),
+        storageName
+      };
+    }
+
+    function itemEquipmentReference(item) {
+      if (!item?.name) return "";
+      const source = String(item.source || "legacy").trim();
+      const variantToken = catalogVariantToken(item);
+      const duplicateNameSource = (itemCatalogNameSourceCounts.get(itemNameSourceKey(item)) || 0) > 1;
+      const variantSuffix = variantToken && (variantToken !== "root" || duplicateNameSource) ? `|${variantToken}` : "";
+      return `${item.name} [${source}${variantSuffix}]`;
+    }
+
     function parseEquipmentLine(line) {
       const trimmed = String(line || "").trim();
       const match = trimmed.match(/^(\d+)\s+(.+)$/);
       const rawName = match ? match[2].trim() : trimmed;
-      const parentheticalQuantity = rawName.match(/\((\d+)\)\s*$/)?.[1];
+      const reference = itemReferenceParts(rawName);
+      const parentheticalQuantity = reference.name.match(/\((\d+)\)\s*$/)?.[1];
       const quantity = match ? Number.parseInt(match[1], 10) : Number.parseInt(parentheticalQuantity || "1", 10);
       return {
         quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
         rawName,
-        displayName: rawName
+        storageName: rawName,
+        displayName: reference.name,
+        catalogSource: reference.source,
+        catalogVariantToken: reference.variantToken,
+        catalogId: reference.catalogId,
+        hasStableReference: reference.hasStableReference
       };
     }
 
-    function findItemData(name) {
+    function missingHistoricalItem(reference) {
+      if (!reference.hasStableReference) return null;
+      return {
+        name: reference.name,
+        source: reference.source,
+        catalogVariantToken: reference.variantToken || "root",
+        catalogId: reference.catalogId || "",
+        unavailable: true,
+        removedFromCatalog: true,
+        __catalogUnavailable: true
+      };
+    }
+
+    function findItemData(nameOrReference) {
+      const reference = itemReferenceParts(nameOrReference);
+      if (reference.catalogId) {
+        return itemLookupByCatalogId.get(reference.catalogId) || missingHistoricalItem(reference);
+      }
+      if (reference.source) {
+        const probe = {
+          name: reference.name,
+          source: reference.source,
+          catalogVariantToken: reference.variantToken || "root"
+        };
+        const exact = itemLookupByIdentity.get(catalogItemIdentityKey(probe))
+          || itemLookupByIdentity.get(localItemIdentityKey(probe));
+        if (exact) return exact;
+        const nameSourceMatches = itemLookupByNameSource.get(itemNameSourceKey(reference.name, reference.source)) || [];
+        if (!reference.variantToken && nameSourceMatches.length === 1) return nameSourceMatches[0];
+        return missingHistoricalItem(reference);
+      }
+
+      const name = reference.name;
       const parenthetical = String(name || "").match(/\(([^)]+)\)/)?.[1] || "";
       if (parenthetical && !/same as above|any/i.test(parenthetical)) {
-        const exactParenthetical = itemLookupByName.get(normalizeItemLookupName(parenthetical)) || null;
+        const exactParenthetical = itemLookupByName.get(normalizeName(parenthetical))
+          || itemLookupByName.get(normalizeItemLookupName(parenthetical))
+          || null;
         if (exactParenthetical) return exactParenthetical;
       }
 
+      const exactName = itemLookupByName.get(normalizeName(name));
+      if (exactName) return exactName;
       const normalized = normalizeItemLookupName(name);
       if (!normalized) return null;
       const variants = new Set([
@@ -11103,8 +11244,17 @@
     }
 
     function splitRef(ref) {
-      const [abbreviation, source] = String(ref || "").split("|");
-      return { abbreviation, source: source || null };
+      const structured = globalThis.dndItemCatalog?.taggedReferenceParts?.(ref);
+      if (structured) {
+        return {
+          abbreviation: structured.code,
+          source: structured.source || null,
+          note: structured.note || ""
+        };
+      }
+      const value = ref && typeof ref === "object" ? ref.uid || ref.value || ref.id || "" : ref;
+      const [abbreviation, source] = String(value || "").split("|");
+      return { abbreviation, source: source || null, note: itemStructuredText(ref?.note || "") };
     }
 
     function itemNameFromRef(ref) {
@@ -11120,12 +11270,22 @@
       return Number.isFinite(quantity) && quantity > 1 ? `${quantity} ` : "";
     }
 
-    function itemTypeName(typeRef) {
+    function itemTypeData(typeRef) {
       const { abbreviation, source } = splitRef(typeRef);
-      const type = itemTypes.find((itemType) => itemType.abbreviation === abbreviation && itemType.source === source)
+      const direct = itemTypes.find((itemType) => itemType.abbreviation === abbreviation && itemType.source === source)
         || itemTypes.find((itemType) => itemType.abbreviation === abbreviation && itemType.source === "XPHB")
-        || itemTypes.find((itemType) => itemType.abbreviation === abbreviation);
-      return type?.name || "";
+        || itemTypes.find((itemType) => itemType.abbreviation === abbreviation)
+        || null;
+      return globalThis.dndItemCatalog?.resolveItemTypeMetadata?.(itemTypes, typeRef) || direct;
+    }
+
+    function itemTypeName(typeRef) {
+      return itemTypeData(typeRef)?.name || "";
+    }
+
+    function itemTypeDescription(item) {
+      const entries = itemTypeData(item?.type)?.entries;
+      return entries ? renderCatalogItemEntryText(entries, item) : "";
     }
 
     function propertyData(ref) {
@@ -11138,14 +11298,25 @@
 
     function propertyName(ref, item) {
       const property = propertyData(ref);
-      const name = property?.entries?.[0]?.name || property?.name || splitRef(ref).abbreviation;
-      if (splitRef(ref).abbreviation === "T" && item?.range) return `${name} (${item.range} ft.)`;
-      return name;
+      const reference = splitRef(ref);
+      const name = property?.entries?.[0]?.name || property?.name || reference.abbreviation;
+      const rangedName = reference.abbreviation === "T" && item?.range ? `${name} (${item.range} ft.)` : name;
+      return reference.note ? `${rangedName} (${reference.note})` : rangedName;
     }
 
-    function propertyDescription(ref) {
+    function renderCatalogItemEntryText(value, item) {
+      try {
+        const rendered = globalThis.dndItemCatalog?.renderEntryText?.(value, item);
+        if (rendered) return rendered;
+      } catch (_error) {
+        // Preserve the legacy readable fallback for malformed third-party entries.
+      }
+      return flattenEntryText(value);
+    }
+
+    function propertyDescription(ref, item) {
       const property = propertyData(ref);
-      return property ? flattenEntryText(property.entries) : "";
+      return property ? renderCatalogItemEntryText(property.entries, item) : "";
     }
 
     function masteryData(ref) {
@@ -11184,7 +11355,10 @@
     }
 
     function itemMasteryLine(item) {
-      return (item.mastery || []).map((ref) => `Mastery: ${splitRef(ref).abbreviation}`).join(", ");
+      return (item.mastery || []).map((ref) => {
+        const reference = splitRef(ref);
+        return `Mastery: ${reference.abbreviation}${reference.note ? ` (${reference.note})` : ""}`;
+      }).join(", ");
     }
 
     function sourceLine(item) {
@@ -11207,6 +11381,509 @@
       ].filter(Boolean).join(" - ");
     }
 
+    function automationProfileForItem(item) {
+      if (!item || isCatalogItemUnavailable(item)) return null;
+      try {
+        return globalThis.dndItemCatalog?.itemAutomationProfile?.(item) || null;
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function catalogBonusNumber(value) {
+      if (value == null || value === "") return 0;
+      const number = Number.parseFloat(String(value).replace(/^\+/, ""));
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function itemRequiresAttunement(item) {
+      const profile = automationProfileForItem(item);
+      return profile ? profile.attunement.required : Boolean(item?.reqAttune);
+    }
+
+    function itemAttunementState() {
+      if (!sheetMeta.itemAttunement || typeof sheetMeta.itemAttunement !== "object") sheetMeta.itemAttunement = {};
+      return sheetMeta.itemAttunement;
+    }
+
+    function deterministicAttunementTagMatch(key, value) {
+      const expected = String(Array.isArray(value) ? value[0] : value || "").split("|")[0];
+      if (key === "class") return normalizeName(getMainClassName() || getSelectedClassName()) === normalizeName(expected);
+      if (key === "race") return normalizeName(getSelectedRaceName()) === normalizeName(expected);
+      if (key === "background") return normalizeName(getFieldValueByNormalizedKey("background")) === normalizeName(expected);
+      if (key === "spellcasting") {
+        return Boolean(
+          spellcastingSourceForCharacter()
+          || getFieldValueByNormalizedKey("spellcasting class 2")
+          || getFieldValueByNormalizedKey("spellatkbonus 2")
+        );
+      }
+      return null;
+    }
+
+    function itemAttunementEligibility(item) {
+      const tags = automationProfileForItem(item)?.attunement?.tags || [];
+      if (!tags.length) return { eligible: true, manual: Boolean(itemRequiresAttunement(item)), reason: "" };
+      let hasManualCandidate = false;
+      for (const tag of tags) {
+        let failed = false;
+        let unknown = false;
+        Object.entries(tag || {}).forEach(([key, value]) => {
+          const result = deterministicAttunementTagMatch(key, value);
+          if (result === false) failed = true;
+          if (result == null) unknown = true;
+        });
+        if (!failed && !unknown) return { eligible: true, manual: false, reason: "" };
+        if (!failed && unknown) hasManualCandidate = true;
+      }
+      if (hasManualCandidate) return { eligible: true, manual: true, reason: t("item.attunementManualRequirement") };
+      return { eligible: false, manual: false, reason: t("item.attunementRequirementNotMet") };
+    }
+
+    function itemIsAttuned(item) {
+      if (!itemRequiresAttunement(item)) return true;
+      const catalogId = catalogItemId(item);
+      return Boolean(catalogId && itemAttunementState()[catalogId] === true);
+    }
+
+    function setItemAttuned(item, attuned) {
+      const catalogId = catalogItemId(item);
+      if (!catalogId || !itemRequiresAttunement(item) || isCatalogItemUnavailable(item) || !characterOwnsCatalogItem(item)) return;
+      const eligibility = itemAttunementEligibility(item);
+      if (attuned && !eligibility.eligible) {
+        showStatus(eligibility.reason);
+        return;
+      }
+      if (attuned) itemAttunementState()[catalogId] = true;
+      else delete itemAttunementState()[catalogId];
+      notifyEquipmentCombatStateChanged("item-attunement-changed");
+      refreshItemResourceControls(catalogId);
+    }
+
+    function itemMagicBonusesEnabled(item) {
+      return Boolean(item && !isCatalogItemUnavailable(item) && (!itemRequiresAttunement(item) || itemIsAttuned(item)));
+    }
+
+    function itemWeaponAttackBonus(item) {
+      if (!itemMagicBonusesEnabled(item)) return 0;
+      return automationProfileForItem(item)?.weapon?.attackBonus
+        ?? catalogBonusNumber(item?.bonusWeaponAttack ?? item?.bonusWeapon);
+    }
+
+    function itemWeaponDamageBonus(item) {
+      if (!itemMagicBonusesEnabled(item)) return 0;
+      return automationProfileForItem(item)?.weapon?.damageBonus
+        ?? catalogBonusNumber(item?.bonusWeaponDamage ?? item?.bonusWeapon);
+    }
+
+    function uniqueEquippedCatalogItems() {
+      const byKey = new Map();
+      equippedEntries().forEach(({ item, key, record }) => {
+        if (!item || isCatalogItemUnavailable(item)) return;
+        const existing = byKey.get(key);
+        if (!existing) byKey.set(key, { item, key, slots: new Set([record.slot]) });
+        else existing.slots.add(record.slot);
+      });
+      return [...byKey.values()];
+    }
+
+    function equippedSavingThrowBonus(ability) {
+      const target = String(ability || "").slice(0, 3).toUpperCase();
+      return uniqueEquippedCatalogItems().reduce((total, { item, slots }) => {
+        if (!itemMagicBonusesEnabled(item)) return total;
+        const profile = globalThis.dndItemCatalog?.savingThrowBonusProfile?.(item);
+        if (!profile || (profile.abilities?.length && !profile.abilities.includes(target))) return total;
+        if (!itemEquipmentModesMatch(profile.equipmentModes, slots)) return total;
+        return total + profile.bonus;
+      }, 0);
+    }
+
+    function equippedSpellcastingBonuses(ability = "") {
+      const characterClass = normalizeName(getMainClassName() || getSelectedClassName());
+      const characterAbility = String(ability || "").slice(0, 3).toUpperCase();
+      return uniqueEquippedCatalogItems().reduce((totals, { item, slots }) => {
+        if (!itemMagicBonusesEnabled(item)) return totals;
+        const profile = globalThis.dndItemCatalog?.spellcastingBonusProfile?.(item);
+        if (!profile || (profile.classes?.length && !profile.classes.includes(characterClass))) return totals;
+        if (profile.abilities?.length && !profile.abilities.includes(characterAbility)) return totals;
+        if (!itemEquipmentModesMatch(profile.equipmentModes, slots)) return totals;
+        totals.attack += profile.attackBonus || 0;
+        totals.saveDc += profile.saveDcBonus || 0;
+        return totals;
+      }, { attack: 0, saveDc: 0 });
+    }
+
+    function itemEquipmentModesMatch(modes, slots) {
+      const required = Array.isArray(modes) ? modes : [];
+      const equippedSlots = slots instanceof Set ? slots : new Set(Array.isArray(slots) ? slots : []);
+      return globalThis.dndItemCatalog?.equipmentModesMatch?.(required, [...equippedSlots]) || false;
+    }
+
+    function itemStructuredText(value) {
+      if (value == null || value === "") return "";
+      if (Array.isArray(value)) return value.map(itemStructuredText).filter(Boolean).join(", ");
+      if (typeof value === "object") {
+        const rendered = globalThis.dndItemCatalog?.renderEntryText?.(value) || flattenEntryText(value);
+        if (rendered) return strip5eTags(rendered);
+        return Object.entries(value)
+          .map(([key, entry]) => `${strip5eTags(key)}: ${itemStructuredText(entry)}`)
+          .filter((entry) => !entry.endsWith(": "))
+          .join(", ");
+      }
+      return strip5eTags(String(value));
+    }
+
+    function itemBonusLine(item) {
+      return [
+        ["bonusWeapon", item.bonusWeapon],
+        ["bonusWeaponAttack", item.bonusWeaponAttack],
+        ["bonusWeaponDamage", item.bonusWeaponDamage],
+        ["bonusAc", item.bonusAc],
+        ["bonusSavingThrow", item.bonusSavingThrow],
+        ["bonusSpellAttack", item.bonusSpellAttack],
+        ["bonusSpellSaveDc", item.bonusSpellSaveDc],
+        ["bonusSpellDamage", item.bonusSpellDamage],
+        ["bonusProficiencyBonus", item.bonusProficiencyBonus]
+      ].filter((entry) => entry[1] != null && entry[1] !== "")
+        .map(([name, value]) => `${name}: ${itemStructuredText(value)}`)
+        .join(", ");
+    }
+
+    function itemChargesRechargeLine(item) {
+      const profile = automationProfileForItem(item);
+      const charges = profile?.resources?.charges ?? item.charges;
+      const recharge = profile?.resources?.recharge ?? item.recharge;
+      const rechargeAmount = profile?.resources?.rechargeAmount ?? item.rechargeAmount;
+      const reload = profile?.resources?.reload ?? item.reload;
+      return [
+        charges != null ? `${t("item.charges")}: ${itemStructuredText(charges)}` : "",
+        recharge != null ? `${t("item.recharge")}: ${itemStructuredText(recharge)}` : "",
+        rechargeAmount != null ? `${t("item.rechargeAmount")}: ${itemStructuredText(rechargeAmount)}` : "",
+        reload != null ? `${t("item.reload")}: ${itemStructuredText(reload)}` : ""
+      ].filter(Boolean).join("; ");
+    }
+
+    function itemResourceStateStore() {
+      if (!sheetMeta.itemResources || typeof sheetMeta.itemResources !== "object" || Array.isArray(sheetMeta.itemResources)) {
+        sheetMeta.itemResources = {};
+      }
+      return sheetMeta.itemResources;
+    }
+
+    function refreshItemResourceControls(catalogId) {
+      const target = String(catalogId || "");
+      document.querySelectorAll(".item-resource-control[data-catalog-id]").forEach((section) => {
+        if (section.dataset.catalogId === target) section.dispatchEvent(new Event("dnd-item-resource-refresh"));
+      });
+    }
+
+    function itemResourceDefinition(item) {
+      const profile = automationProfileForItem(item);
+      return globalThis.dndItemResourceState?.resourceDefinition?.(profile) || null;
+    }
+
+    function itemResourceInfo(item, { persistInitialization = true } = {}) {
+      const catalogId = catalogItemId(item);
+      const definition = itemResourceDefinition(item);
+      if (!catalogId || !definition || isCatalogItemUnavailable(item)) return null;
+      const ensured = globalThis.dndItemResourceState?.ensureItemResourceState?.(
+        itemResourceStateStore(),
+        catalogId,
+        definition
+      );
+      if (!ensured?.state) return null;
+      if (ensured.changed) {
+        sheetMeta.itemResources = ensured.nextStore;
+        if (persistInitialization && typeof scheduleSave === "function") scheduleSave();
+      }
+      return { catalogId, ...definition, ...ensured.state };
+    }
+
+    function characterOwnsCatalogItem(item) {
+      const catalogId = catalogItemId(item);
+      if (!catalogId || isCatalogItemUnavailable(item)) return false;
+      return equipmentEntries().some((entry) => {
+        if (entry.quantity <= 0) return false;
+        return catalogItemId(findItemData(entry)) === catalogId;
+      });
+    }
+
+    function adjustItemResource(item, delta) {
+      if (!item || isCatalogItemUnavailable(item)) return false;
+      if (!characterOwnsCatalogItem(item)) return false;
+      if (Number(delta) < 0 && itemRequiresAttunement(item) && !itemIsAttuned(item)) return false;
+      const catalogId = catalogItemId(item);
+      const definition = itemResourceDefinition(item);
+      if (!catalogId || !definition) return false;
+      const adjusted = globalThis.dndItemResourceState?.adjustItemResourceState?.(
+        itemResourceStateStore(),
+        catalogId,
+        definition,
+        delta
+      );
+      if (!adjusted?.applied) return false;
+      sheetMeta.itemResources = adjusted.nextStore;
+      scheduleEquipmentMutationRefresh({
+        reason: "item-resource-changed",
+        panel: false,
+        armorClass: false,
+        prepared: false,
+        alerts: false,
+        combat: true,
+        save: true
+      });
+      refreshItemResourceControls(catalogId);
+      return true;
+    }
+
+    function itemResourceRawGuidance(item) {
+      const profile = automationProfileForItem(item);
+      const raw = profile?.resources?.raw || {};
+      const recovery = [
+        raw.recharge != null ? `${t("item.recharge")}: ${itemStructuredText(raw.recharge)}` : "",
+        raw.rechargeAmount != null ? `${t("item.rechargeAmount")}: ${itemStructuredText(raw.rechargeAmount)}` : "",
+        raw.reload != null ? `${t("item.reload")}: ${itemStructuredText(raw.reload)}` : ""
+      ].filter(Boolean).join("; ");
+      return recovery || t("item.resourceNoAutomaticRecovery");
+    }
+
+    function appendItemResourceControl(root, item) {
+      const profile = automationProfileForItem(item);
+      const raw = profile?.resources?.raw || {};
+      const definition = itemResourceDefinition(item);
+      const hasRawResource = raw.charges != null || raw.reload != null || raw.recharge != null || raw.rechargeAmount != null;
+      if (!hasRawResource || !characterOwnsCatalogItem(item)) return;
+
+      const section = document.createElement("section");
+      section.className = "item-section item-resource-control";
+      section.dataset.catalogId = catalogItemId(item);
+      appendText(section, "item-section-title", t("item.resourceTitle"));
+
+      if (!definition) {
+        appendText(section, "item-section-body", t("item.resourceNonNumeric", {
+          value: itemStructuredText(raw.charges ?? raw.reload ?? "-")
+        }), "p");
+        appendText(section, "item-section-body", t("item.resourceManualRecharge", {
+          rule: itemResourceRawGuidance(item)
+        }), "p");
+        root.appendChild(section);
+        return;
+      }
+
+      const status = appendText(section, "item-section-body item-resource-status", "", "p");
+      const guidance = appendText(section, "item-section-body", t("item.resourceManualRecharge", {
+        rule: itemResourceRawGuidance(item)
+      }), "p");
+      guidance.classList.add("item-resource-guidance");
+      const controls = document.createElement("div");
+      controls.className = "item-resource-buttons";
+      const spend = document.createElement("button");
+      spend.type = "button";
+      spend.className = "feature-list-button";
+      spend.textContent = t("item.resourceSpendOne");
+      const recover = document.createElement("button");
+      recover.type = "button";
+      recover.className = "feature-list-button";
+      recover.textContent = t("item.resourceRecoverOne");
+
+      const sync = () => {
+        const info = itemResourceInfo(item);
+        if (!info) return;
+        const kind = info.kind === "reload" ? t("item.reload") : t("item.charges");
+        status.textContent = t("item.resourceRemaining", { current: info.current, max: info.max, kind });
+        const attunementBlocked = itemRequiresAttunement(item) && !itemIsAttuned(item);
+        spend.disabled = info.current <= 0 || attunementBlocked;
+        spend.title = attunementBlocked ? t("item.actionRequiresAttunement") : t("item.resourceSpendOneHint");
+        recover.disabled = info.current >= info.max;
+        recover.title = t("item.resourceRecoverOneHint");
+      };
+      spend.addEventListener("click", () => {
+        adjustItemResource(item, -1);
+      });
+      recover.addEventListener("click", () => {
+        adjustItemResource(item, 1);
+      });
+      section.addEventListener("dnd-item-resource-refresh", sync);
+      controls.append(spend, recover);
+      section.appendChild(controls);
+      sync();
+      root.appendChild(section);
+    }
+
+    function itemResourceActionType(item) {
+      const description = automationProfileForItem(item)?.description || renderCatalogItemEntryText(item?.entries || [], item);
+      const inferUnique = globalThis.dndItemResourceState?.inferUniqueItemActionType;
+      return typeof inferUnique === "function" ? inferUnique(description) : "";
+    }
+
+    function attachedSpellItemActionType(spell, inferredItemType = "") {
+      const spellData = findSpellByName(spell?.name, null, spell?.source || "");
+      if (spellData) {
+        const resolveTiming = globalThis.dndItemResourceState?.spellTimingActionType;
+        return typeof resolveTiming === "function" ? resolveTiming(spellData, "") : spellActionTypes(spellData)[0] || "";
+      }
+      return inferredItemType || "";
+    }
+
+    function itemDescriptionGrantsSpellCasting(item) {
+      const description = automationProfileForItem(item)?.description || "";
+      return /\b(?:you can|you may|allows? you to) cast\b|\bcast one of (?:the )?(?:following )?spells?\b/i.test(description);
+    }
+
+    function itemResourceActionCost(type) {
+      if (type === ACTION_TYPES.bonus) return { type: "bonusAction", amount: 1 };
+      if (type === ACTION_TYPES.reaction) return { type: "reaction", amount: 1 };
+      if (type === ACTION_TYPES.objectInteraction) return { type: "objectInteraction", amount: 1 };
+      if (type === ACTION_TYPES.action) return { type: "action", amount: 1 };
+      return null;
+    }
+
+    function itemResourceActionDisabledReason(item, info, cost = 0) {
+      if (itemRequiresAttunement(item) && !itemIsAttuned(item)) return t("item.actionRequiresAttunement");
+      if (!info) return t("item.actionResourceUnavailable");
+      if (cost > 0 && info.current < cost) return t("item.actionNotEnoughCharges", { cost, current: info.current });
+      if (info.current <= 0) return t("item.actionNoCharges");
+      return "";
+    }
+
+    function chargedItemTurnActions(entry) {
+      const item = findItemData(entry);
+      if (!item || entry.quantity <= 0 || isCatalogItemUnavailable(item) || !characterOwnsCatalogItem(item)) return [];
+      const profile = automationProfileForItem(item);
+      const inferredItemType = itemResourceActionType(item);
+      const info = itemResourceInfo(item);
+      const attachedSpells = profile?.spells?.attached || [];
+      const rawResources = profile?.resources?.raw || {};
+      const hasManualResource = rawResources.charges != null || rawResources.reload != null;
+      if (!info && !hasManualResource && !attachedSpells.length) return [];
+      const catalogId = catalogItemId(item);
+      const reference = {
+        catalogId,
+        name: item.name,
+        source: item.source,
+        catalogVariantToken: catalogVariantToken(item)
+      };
+      const baseForType = (type) => ({
+        type,
+        actionCost: [itemResourceActionCost(type)].filter(Boolean),
+        resolutionSteps: [RESOLUTION_STEPS.selectTarget, RESOLUTION_STEPS.applyEffect, RESOLUTION_STEPS.confirmResult],
+        category: ACTION_CATEGORIES.items,
+        targetRequired: false,
+        allowOutsideTurn: type === ACTION_TYPES.reaction,
+        itemActionCatalogId: catalogId,
+        itemResourceReference: reference,
+        source: "inventory"
+      });
+      const grantsUnbucketedSpells = itemDescriptionGrantsSpellCasting(item);
+      const actions = attachedSpells.flatMap((spell) => {
+        if ((spell.usage || "always") === "always" && !grantsUnbucketedSpells) return [];
+        const type = attachedSpellItemActionType(spell, inferredItemType);
+        if (!type) return [];
+        const cost = globalThis.dndItemResourceState?.declaredAttachedSpellChargeCost?.(spell);
+        const consumesCharges = Boolean(cost && info);
+        const spellLabel = [spell.name, spell.source ? sourceLabel(spell.source) : ""].filter(Boolean).join(" - ");
+        const usage = spell.usage || "always";
+        const declaredCost = spell.cost != null ? String(spell.cost) : "-";
+        return [{
+          ...baseForType(type),
+          key: `inventory:charged-spell:${catalogId}:${normalizeName(spell.name)}:${normalizeName(usage)}:${declaredCost}`,
+          id: `inventory:charged-spell:${catalogId}:${normalizeName(spell.name)}:${normalizeName(usage)}:${declaredCost}`,
+          title: t("item.actionCastSpell", { spell: spell.name, item: item.name }),
+          detail: `${spellLabel}. ${t("item.spellUsageCost", { usage, cost: declaredCost })} ${consumesCharges ? t("item.actionManualAdjudication") : t("item.actionManualTracking")}`,
+          disabledReason: consumesCharges
+            ? itemResourceActionDisabledReason(item, info, cost)
+            : (itemRequiresAttunement(item) && !itemIsAttuned(item) ? t("item.actionRequiresAttunement") : ""),
+          ...(consumesCharges ? { itemResourceCatalogId: catalogId, itemResourceCost: cost } : {}),
+          itemResourceName: item.name
+        }];
+      });
+      if (inferredItemType && !isConsumableItem(item) && (info || hasManualResource)) {
+        actions.unshift({
+          ...baseForType(inferredItemType),
+          key: `inventory:charged-item:${catalogId}`,
+          id: `inventory:charged-item:${catalogId}`,
+          title: t("item.actionUseItem", { item: item.name }),
+          detail: `${info ? `${info.current}/${info.max} ${t("item.charges")}.` : itemChargesRechargeLine(item)} ${t("item.actionManualCostAndEffect")}`,
+          disabledReason: info
+            ? itemResourceActionDisabledReason(item, info)
+            : (itemRequiresAttunement(item) && !itemIsAttuned(item) ? t("item.actionRequiresAttunement") : ""),
+          ...(info ? { itemResourceCatalogId: catalogId } : {}),
+          itemResourceName: item.name
+        });
+      }
+      return actions;
+    }
+
+    function validateItemResourceAction(action) {
+      const actionCatalogId = action?.itemActionCatalogId || action?.itemResourceCatalogId;
+      if (!actionCatalogId) return { ok: true, item: null, info: null, cost: 0 };
+      const item = findItemData(action.itemResourceReference || { catalogId: action.itemResourceCatalogId });
+      if (!item || isCatalogItemUnavailable(item)) return { ok: false, reason: t("item.actionResourceUnavailable") };
+      if (!characterOwnsCatalogItem(item)) return { ok: false, reason: t("item.actionResourceUnavailable") };
+      if (itemRequiresAttunement(item) && !itemIsAttuned(item)) return { ok: false, reason: t("item.actionRequiresAttunement") };
+      if (!action.itemResourceCatalogId) return { ok: true, item, info: null, cost: 0 };
+      const info = itemResourceInfo(item);
+      const cost = Number.isSafeInteger(action.itemResourceCost) && action.itemResourceCost > 0 ? action.itemResourceCost : 0;
+      if (!info) return { ok: false, reason: t("item.actionResourceUnavailable") };
+      if (cost > 0 && info.current < cost) return { ok: false, reason: t("item.actionNotEnoughCharges", { cost, current: info.current }) };
+      if (info.current <= 0) return { ok: false, reason: t("item.actionNoCharges") };
+      return { ok: true, item, info, cost };
+    }
+
+    function consumeItemResourceForAction(action) {
+      const validation = validateItemResourceAction(action);
+      if (!validation.ok || validation.cost <= 0) return validation.ok;
+      return adjustItemResource(validation.item, -validation.cost);
+    }
+
+    function itemAttachedSpellsLine(item) {
+      const attached = automationProfileForItem(item)?.spells?.attached;
+      if (Array.isArray(attached) && attached.length) {
+        return attached.map((spell) => {
+          const label = [spell.name, sourceLabel(spell.source)].filter(Boolean).join(" [") + (spell.source ? "]" : "");
+          const usage = spell.usage || "always";
+          const cost = spell.cost != null ? String(spell.cost) : "-";
+          return `${label} (${t("item.spellUsageCost", { usage, cost })})`;
+        }).join(", ");
+      }
+      return (Array.isArray(item?.attachedSpells) ? item.attachedSpells : [])
+        .map((spell) => itemStructuredText(String(spell || "").split("|")[0]))
+        .filter(Boolean)
+        .join(", ");
+    }
+
+    function itemDefensesLine(item) {
+      const profile = automationProfileForItem(item)?.defenses;
+      const defenses = profile || {
+        resistances: item.resist || [],
+        immunities: item.immune || [],
+        vulnerabilities: item.vulnerable || [],
+        conditionImmunities: item.conditionImmune || [],
+        savingThrowBonus: catalogBonusNumber(item.bonusSavingThrow) || null
+      };
+      return [
+        defenses.resistances?.length ? `resist: ${itemStructuredText(defenses.resistances)}` : "",
+        defenses.immunities?.length ? `immune: ${itemStructuredText(defenses.immunities)}` : "",
+        defenses.vulnerabilities?.length ? `vulnerable: ${itemStructuredText(defenses.vulnerabilities)}` : "",
+        defenses.conditionImmunities?.length ? `conditionImmune: ${itemStructuredText(defenses.conditionImmunities)}` : "",
+        defenses.savingThrowBonus != null ? `bonusSavingThrow: ${formatModifier(defenses.savingThrowBonus)}` : ""
+      ].filter(Boolean).join("; ");
+    }
+
+    function itemVehicleLine(item) {
+      const vehicle = automationProfileForItem(item)?.vehicle;
+      if (!vehicle?.enabled && item.vehAc == null && item.vehHp == null && item.crew == null) return "";
+      return [
+        (vehicle?.armorClass ?? item.vehAc) != null ? `AC ${vehicle?.armorClass ?? item.vehAc}` : "",
+        (vehicle?.hitPoints ?? item.vehHp) != null ? `HP ${vehicle?.hitPoints ?? item.vehHp}` : "",
+        (vehicle?.damageThreshold ?? item.vehDmgThresh) != null ? `DT ${vehicle?.damageThreshold ?? item.vehDmgThresh}` : "",
+        (vehicle?.crew ?? item.crew) != null ? `crew ${itemStructuredText(vehicle?.crew ?? item.crew)}` : "",
+        (vehicle?.passengers ?? item.capPassenger) != null ? `passengers ${itemStructuredText(vehicle?.passengers ?? item.capPassenger)}` : "",
+        (vehicle?.cargo ?? item.capCargo) != null ? `cargo ${itemStructuredText(vehicle?.cargo ?? item.capCargo)}` : "",
+        (vehicle?.speed ?? item.vehSpeed ?? item.speed) != null ? `speed ${itemStructuredText(vehicle?.speed ?? item.vehSpeed ?? item.speed)}` : ""
+      ].filter(Boolean).join("; ");
+    }
+
     function itemDescriptionText(item) {
       if (!item) return "No encontre este item en los datos locales. El nombre puede ser generico o una variante del equipo inicial.";
       const header = [
@@ -11221,17 +11898,19 @@
       ].filter(Boolean).join("\n");
 
       const details = [];
-      if (item.entries) details.push(flattenEntryText(item.entries));
-      if (item.additionalEntries) details.push(flattenEntryText(item.additionalEntries));
+      if (item.entries) details.push(renderCatalogItemEntryText(item.entries, item));
+      if (item.additionalEntries) details.push(renderCatalogItemEntryText(item.additionalEntries, item));
+      const typeDescription = itemTypeDescription(item);
+      if (typeDescription) details.push(`${itemTypeName(item.type) || "Type rules"}. ${typeDescription}`);
       (item.property || []).forEach((ref) => {
         const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
-        const description = propertyDescription(ref);
+        const description = propertyDescription(ref, item);
         if (description) details.push(`${name}. ${description.replace(new RegExp(`^${name}\\.\\s*`, "i"), "")}`);
       });
       (item.mastery || []).forEach((ref) => {
         const mastery = masteryData(ref);
         const name = mastery?.name || splitRef(ref).abbreviation;
-        const description = mastery ? flattenEntryText(mastery.entries) : "";
+        const description = mastery ? renderCatalogItemEntryText(mastery.entries, item) : "";
         if (description) details.push(`Mastery: ${name}. ${description}`);
       });
 
@@ -12305,17 +12984,19 @@
     function itemDrawerDescriptionText(item) {
       if (!item) return "";
       const details = [];
-      if (item.entries) details.push(flattenEntryText(item.entries));
-      if (item.additionalEntries) details.push(flattenEntryText(item.additionalEntries));
+      if (item.entries) details.push(renderCatalogItemEntryText(item.entries, item));
+      if (item.additionalEntries) details.push(renderCatalogItemEntryText(item.additionalEntries, item));
+      const typeDescription = itemTypeDescription(item);
+      if (typeDescription) details.push(`${itemTypeName(item.type) || "Type rules"}. ${typeDescription}`);
       (item.property || []).forEach((ref) => {
         const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
-        const description = propertyDescription(ref);
+        const description = propertyDescription(ref, item);
         if (description) details.push(`${name}. ${description.replace(new RegExp(`^${name}\\.\\s*`, "i"), "")}`);
       });
       (item.mastery || []).forEach((ref) => {
         const mastery = masteryData(ref);
         const name = mastery?.name || splitRef(ref).abbreviation;
-        const description = mastery ? flattenEntryText(mastery.entries) : "";
+        const description = mastery ? renderCatalogItemEntryText(mastery.entries, item) : "";
         if (description) details.push(`Mastery: ${name}. ${description}`);
       });
       return details.filter(Boolean).join("\n\n");
@@ -12323,21 +13004,142 @@
 
     function renderItemDrawerDescriptionSections(container, item) {
       container.textContent = "";
-      if (item.entries) appendItemSection(container, "Descripcion", flattenEntryText(item.entries));
-      if (item.additionalEntries) appendItemSection(container, "Uso", flattenEntryText(item.additionalEntries));
+      if (item.entries) appendItemSection(container, "Descripcion", renderCatalogItemEntryText(item.entries, item));
+      if (item.additionalEntries) appendItemSection(container, "Uso", renderCatalogItemEntryText(item.additionalEntries, item));
+      const typeDescription = itemTypeDescription(item);
+      if (typeDescription) appendItemSection(container, itemTypeName(item.type) || "Type rules", typeDescription);
 
       (item.property || []).forEach((ref) => {
         const name = propertyName(ref, item).replace(/\s+\([^)]*\)$/, "");
-        const description = propertyDescription(ref);
+        const description = propertyDescription(ref, item);
         if (description) appendItemSection(container, name, description.replace(new RegExp(`^${name}\\.\\s*`, "i"), ""));
       });
 
       (item.mastery || []).forEach((ref) => {
         const mastery = masteryData(ref);
         const name = mastery?.name || splitRef(ref).abbreviation;
-        const description = mastery ? flattenEntryText(mastery.entries) : "";
+        const description = mastery ? renderCatalogItemEntryText(mastery.entries, item) : "";
         if (description) appendItemSection(container, `Mastery: ${name}`, description);
       });
+    }
+
+    function itemSpecificVariants(item) {
+      return catalogIndexEntries(item)
+        .slice(1)
+        .filter((variant) => !isCatalogItemUnavailable(variant));
+    }
+
+    function appendItemVariantPicker(root, item, onSelectVariant) {
+      const variants = itemSpecificVariants(item);
+      if (!variants.length || typeof onSelectVariant !== "function") return;
+      const section = document.createElement("section");
+      section.className = "item-section item-variant-picker";
+      const label = document.createElement("label");
+      label.className = "item-section-title";
+      label.textContent = t("item.selectVariant");
+      const select = document.createElement("select");
+      select.className = "item-picker-variant-select";
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = t("item.selectVariantPrompt");
+      select.appendChild(placeholder);
+      variants
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name) || String(a.source || "").localeCompare(String(b.source || "")))
+        .forEach((variant) => {
+          const option = document.createElement("option");
+          option.value = catalogItemId(variant);
+          option.textContent = `${variant.name} [${sourceLabel(variant.source)}]`;
+          select.appendChild(option);
+        });
+      select.addEventListener("change", () => {
+        const variant = itemLookupByCatalogId.get(select.value);
+        if (variant) onSelectVariant(variant);
+      });
+      section.append(label, select);
+      root.appendChild(section);
+    }
+
+    function appendItemAttunementControl(root, item) {
+      if (!itemRequiresAttunement(item)) return;
+      const section = document.createElement("section");
+      section.className = "item-section item-attunement-control";
+      appendText(section, "item-section-title", t("item.attunement"));
+      const rawRequirement = automationProfileForItem(item)?.attunement?.requirement || (item.reqAttune === true ? "" : item.reqAttune);
+      const requirement = itemStructuredText(rawRequirement);
+      if (requirement) appendText(section, "item-section-body", requirement, "p");
+      const eligibility = itemAttunementEligibility(item);
+      if (eligibility.manual) appendText(section, "item-section-body", eligibility.reason, "p");
+      const status = appendText(section, "item-section-body", itemIsAttuned(item) ? t("item.attuned") : t("item.notAttuned"), "p");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "feature-list-button";
+      const sync = () => {
+        const attuned = itemIsAttuned(item);
+        status.textContent = attuned ? t("item.attuned") : t("item.notAttuned");
+        button.textContent = attuned ? t("item.markNotAttuned") : t("item.markAttuned");
+      };
+      button.disabled = isCatalogItemUnavailable(item) || !characterOwnsCatalogItem(item) || !eligibility.eligible;
+      if (!characterOwnsCatalogItem(item)) button.title = t("item.attunementRequiresInventory");
+      else if (!eligibility.eligible) button.title = eligibility.reason;
+      button.addEventListener("click", () => {
+        setItemAttuned(item, !itemIsAttuned(item));
+        sync();
+      });
+      sync();
+      section.appendChild(button);
+      root.appendChild(section);
+    }
+
+    function itemEffectStateStore() {
+      if (!sheetMeta.itemEffects || typeof sheetMeta.itemEffects !== "object" || Array.isArray(sheetMeta.itemEffects)) sheetMeta.itemEffects = {};
+      return sheetMeta.itemEffects;
+    }
+
+    function itemEffectIsActive(item) {
+      const catalogId = catalogItemId(item);
+      return Boolean(catalogId && itemEffectStateStore()[catalogId]?.active === true);
+    }
+
+    function setItemEffectActive(item, active) {
+      const catalogId = catalogItemId(item);
+      if (!catalogId || isCatalogItemUnavailable(item) || !characterOwnsCatalogItem(item)) return false;
+      if (active) {
+        itemEffectStateStore()[catalogId] = {
+          active: true,
+          name: item.name,
+          source: item.source || "",
+          activatedAt: new Date().toISOString()
+        };
+      } else {
+        delete itemEffectStateStore()[catalogId];
+      }
+      scheduleEquipmentMutationRefresh({ reason: "item-guided-effect-changed" });
+      return true;
+    }
+
+    function appendItemEffectControl(root, item) {
+      if (!item || isCatalogItemUnavailable(item) || !characterOwnsCatalogItem(item)) return;
+      const section = document.createElement("section");
+      section.className = "item-section item-effect-control";
+      appendText(section, "item-section-title", t("item.effectTitle"));
+      appendText(section, "item-section-body", t("item.effectManualGuidance"), "p");
+      const status = appendText(section, "item-section-body", "", "p");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "feature-list-button";
+      const sync = () => {
+        const active = itemEffectIsActive(item);
+        status.textContent = active ? t("item.effectActive") : t("item.effectInactive");
+        button.textContent = active ? t("item.effectDeactivate") : t("item.effectActivate");
+      };
+      button.addEventListener("click", () => {
+        setItemEffectActive(item, !itemEffectIsActive(item));
+        sync();
+      });
+      sync();
+      section.appendChild(button);
+      root.appendChild(section);
     }
 
     function buildItemDrawerContent(item) {
@@ -12350,14 +13152,33 @@
       }
 
       appendText(root, "item-sheet-title", item.name, "h2");
-      appendText(root, "item-sheet-subtitle", [sourceLabel(item.source), item.page ? `p${item.page}` : ""].filter(Boolean).join(" - "));
+      const variantToken = catalogVariantToken(item);
+      appendText(root, "item-sheet-subtitle", [
+        sourceLabel(item.source),
+        item.page ? `p${item.page}` : "",
+        variantToken !== "root" ? variantToken : ""
+      ].filter(Boolean).join(" - "));
+
+      if (isCatalogItemUnavailable(item)) {
+        appendItemSection(root, t("item.unavailableTitle"), t("item.unavailable"));
+      }
 
       const stats = document.createElement("div");
       stats.className = "item-stat-grid";
       appendItemStat(stats, "Tipo", itemCategoryLine(item).replace(/\n/g, ", "));
       appendItemStat(stats, "Valor / peso", itemValueWeightLine(item));
-        appendItemStat(stats, t("item.damage"), itemDamageLine(item));
+      appendItemStat(stats, t("item.damage"), itemDamageLine(item));
       appendItemStat(stats, "Rango", item.range ? `${item.range} ft.` : "");
+      appendItemStat(stats, t("item.armorClass"), [
+        item.ac != null ? `AC ${itemStructuredText(item.ac)}` : "",
+        item.bonusAc != null ? `bonusAc ${itemStructuredText(item.bonusAc)}` : ""
+      ].filter(Boolean).join(", "));
+      appendItemStat(stats, t("item.bonuses"), itemBonusLine(item));
+      appendItemStat(stats, t("item.chargesRecharge"), itemChargesRechargeLine(item));
+      appendItemStat(stats, t("item.attunement"), itemRequiresAttunement(item)
+        ? (itemIsAttuned(item) ? t("item.attuned") : t("item.notAttuned"))
+        : "");
+      appendItemStat(stats, t("item.variants"), itemSpecificVariants(item).length ? String(itemSpecificVariants(item).length) : "");
       root.appendChild(stats);
 
       const properties = [...(item.property || []).map((ref) => propertyName(ref, item)), ...(item.mastery || []).map((ref) => `Mastery: ${splitRef(ref).abbreviation}`)];
@@ -12367,6 +13188,13 @@
         properties.forEach((property) => appendText(chips, "item-chip", property, "span"));
         root.appendChild(chips);
       }
+
+      appendItemSection(root, t("item.spells"), itemAttachedSpellsLine(item));
+      appendItemSection(root, t("item.defenses"), itemDefensesLine(item));
+      appendItemSection(root, t("item.vehicle"), itemVehicleLine(item));
+      appendItemAttunementControl(root, item);
+      appendItemResourceControl(root, item);
+      appendItemEffectControl(root, item);
 
       const descriptionContainer = document.createElement("div");
       descriptionContainer.className = "spell-description-blocks";
@@ -14017,7 +14845,17 @@
     }
 
     function equipmentItemKey(entry) {
-      return normalizeItemLookupName(entry.displayName);
+      const reference = itemReferenceParts(entry);
+      if (reference.hasStableReference) {
+        const item = findItemData(reference);
+        const catalogId = reference.catalogId || catalogItemId(item || {
+          name: reference.name,
+          source: reference.source,
+          catalogVariantToken: reference.variantToken || "root"
+        });
+        if (catalogId) return `catalog:${catalogId}`;
+      }
+      return normalizeItemLookupName(reference.name);
     }
 
     function hasItemProperty(item, abbreviation) {
@@ -14029,25 +14867,33 @@
     }
 
     function isArmorItem(item) {
+      if (isCatalogItemUnavailable(item)) return false;
       return Boolean(item?.armor || ["LA", "MA", "HA"].includes(itemTypeAbbreviation(item)));
     }
 
     function isShieldItem(item) {
+      if (isCatalogItemUnavailable(item)) return false;
       return itemTypeAbbreviation(item) === "S" || normalizeItemLookupName(item?.name || "") === "shield";
     }
 
     function isWeaponItem(item) {
+      if (isCatalogItemUnavailable(item)) return false;
       return Boolean(item?.weapon || item?.weaponCategory || ["M", "R"].includes(itemTypeAbbreviation(item)));
     }
 
     function isConsumableItem(item) {
+      if (isCatalogItemUnavailable(item)) return false;
       const typeName = itemTypeName(item?.type).toLowerCase();
-      return /\b(potion|scroll|ammunition|food|drink)\b/.test(typeName) || ["P", "SC", "A", "FD"].includes(itemTypeAbbreviation(item));
+      return automationProfileForItem(item)?.consumable === true
+        || /\b(potion|scroll|ammunition|food|drink)\b/.test(typeName)
+        || ["P", "SC", "A", "FD"].includes(itemTypeAbbreviation(item));
     }
 
     function isAccessoryItem(item) {
+      if (isCatalogItemUnavailable(item)) return false;
       const typeName = itemTypeName(item?.type).toLowerCase();
-      return (/\b(ring|wondrous|tattoo)\b/.test(typeName) || ["RG", "W"].includes(itemTypeAbbreviation(item)))
+      return !isConsumableItem(item)
+        && (item?.wondrous === true || /\b(ring|wondrous|tattoo)\b/.test(typeName) || ["RG", "W", "RD", "WD", "SCF", "INS"].includes(itemTypeAbbreviation(item)))
         && item?.rarity && item.rarity !== "none";
     }
 
@@ -14103,7 +14949,7 @@
       return combatMemoValue("equipped-entries", () => equipmentEntries()
         .flatMap((entry) => {
           const key = equipmentItemKey(entry);
-          const item = findItemData(entry.displayName);
+          const item = findItemData(entry);
           const record = equippedRecord(key);
           return recordSlots(record).map((slot) => ({ entry, key, item, record: { ...record, slot } }));
         })
@@ -14111,7 +14957,11 @@
     }
 
     function equippedInSlot(slot) {
-      return equippedEntries().find((item) => item.record.slot === slot) || null;
+      return equippedEntries().find((item) => (
+        item.record.slot === slot
+        && item.item
+        && !isCatalogItemUnavailable(item.item)
+      )) || null;
     }
 
     function mainHandUsesTwoHands() {
@@ -14220,28 +15070,41 @@
       Object.keys(equippedItems()).forEach((key) => {
         const quantity = quantities.get(key) || 0;
         const entry = entries.find((item) => equipmentItemKey(item) === key);
-        const item = entry ? findItemData(entry.displayName) : null;
+        const item = entry ? findItemData(entry) : null;
         if (quantity <= 0) {
           delete equippedItems()[key];
           changed = true;
           return;
+        }
+        const record = equippedRecord(key);
+        if (!item || isCatalogItemUnavailable(item)) {
+          if (record && record.unavailable !== true) {
+            equippedItems()[key] = { ...record, unavailable: true };
+            changed = true;
+          }
+          return;
+        }
+        if (record?.unavailable === true) {
+          const { unavailable: _unavailable, ...availableRecord } = record;
+          equippedItems()[key] = availableRecord;
+          changed = true;
         }
         if (!itemEquipKind(item)) {
           delete equippedItems()[key];
           changed = true;
           return;
         }
-        const record = equippedRecord(key);
-        if (record?.slot === "legacy") return;
-        const slots = recordSlots(record).slice(0, quantity);
+        const availableRecord = equippedRecord(key);
+        if (availableRecord?.slot === "legacy") return;
+        const slots = recordSlots(availableRecord).slice(0, quantity);
         if (!slots.length) {
           delete equippedItems()[key];
           changed = true;
           return;
         }
-        const twoHanded = Boolean(record.twoHanded && slots.includes("mainHand"));
-        if (record.slot !== undefined || recordSlots(record).length !== slots.length || Boolean(record.twoHanded) !== twoHanded) {
-          equippedItems()[key] = { ...record, slots, slot: undefined, twoHanded };
+        const twoHanded = Boolean(availableRecord.twoHanded && slots.includes("mainHand"));
+        if (availableRecord.slot !== undefined || recordSlots(availableRecord).length !== slots.length || Boolean(availableRecord.twoHanded) !== twoHanded) {
+          equippedItems()[key] = { ...availableRecord, slots, slot: undefined, twoHanded };
           changed = true;
         }
       });
@@ -14346,10 +15209,26 @@
     }
 
     function itemArmorClassBonus(item) {
-      const value = item?.bonusAc;
+      if (!itemMagicBonusesEnabled(item)) return 0;
+      const value = automationProfileForItem(item)?.armor?.bonusAc ?? item?.bonusAc;
       if (typeof value === "number" && Number.isFinite(value)) return value;
       const match = String(value || "").match(/[+-]?\d+/);
       return match ? Number.parseInt(match[0], 10) || 0 : 0;
+    }
+
+    function accessoryCanOccupyHand(item) {
+      if (!isAccessoryItem(item)) return false;
+      return (globalThis.dndItemCatalog?.persistentEquipmentModes?.(item) || []).includes("held");
+    }
+
+    function itemHeldArmorClassBonus(item) {
+      if (!itemMagicBonusesEnabled(item)) return 0;
+      return globalThis.dndItemCatalog?.persistentHeldArmorClassBonus?.(item) || 0;
+    }
+
+    function itemWornArmorClassBonus(item) {
+      if (!itemMagicBonusesEnabled(item)) return 0;
+      return globalThis.dndItemCatalog?.persistentWornArmorClassBonus?.(item) || 0;
     }
 
     function armorRuleFromItem(item) {
@@ -14366,9 +15245,10 @@
     function canEquipToSlot(entry, item, slot) {
       const kind = itemEquipKind(item);
       const key = equipmentItemKey(entry);
+      const handAccessory = kind === "accessory" && accessoryCanOccupyHand(item);
       if (!kind) return { ok: false, reason: "Ese item no tiene slot equipable." };
-      if (slot === "mainHand" && kind !== "weapon") return { ok: false, reason: "Solo armas pueden ir en main hand." };
-      if (slot === "offHand" && !["weapon", "shield"].includes(kind)) return { ok: false, reason: "Solo arma ligera o shield pueden ir en off hand." };
+      if (slot === "mainHand" && kind !== "weapon" && !handAccessory) return { ok: false, reason: "Solo armas o items que deban sostenerse pueden ir en main hand." };
+      if (slot === "offHand" && !["weapon", "shield"].includes(kind) && !handAccessory) return { ok: false, reason: "Solo arma ligera, shield o item sostenido pueden ir en off hand." };
       if (slot === "armor" && kind !== "armor") return { ok: false, reason: "Solo armaduras pueden ir en armadura." };
       if (slot === "accessory" && kind !== "accessory") return { ok: false, reason: "Solo accesorios pueden ir como accesorio." };
       if (slot === "offHand" && kind === "weapon" && !hasItemProperty(item, "L")) return { ok: false, reason: "El arma de off hand tiene que ser Light." };
@@ -14376,7 +15256,7 @@
       if (slot === "offHand" && mainHandUsesTwoHands()) return { ok: false, reason: "La main hand esta usando dos manos." };
 
       const occupied = equippedInSlot(slot);
-      if (occupied && occupied.key !== key) return { ok: false, reason: `${slotLabel(slot)} ya esta ocupado.` };
+      if (slot !== "accessory" && occupied && occupied.key !== key) return { ok: false, reason: `${slotLabel(slot)} ya esta ocupado.` };
       return { ok: true };
     }
 
@@ -14387,7 +15267,15 @@
       if (current?.slot && current.slot !== "legacy") return "";
       if (kind === "armor") return "armor";
       if (kind === "shield") return "offHand";
-      if (kind === "accessory") return "accessory";
+      if (kind === "accessory") {
+        const modes = globalThis.dndItemCatalog?.persistentEquipmentModes?.(item) || [];
+        if (modes.includes("held") && !modes.includes("worn")) {
+          if (!equippedInSlot("mainHand")) return "mainHand";
+          if (!equippedInSlot("offHand")) return "offHand";
+          return "mainHand";
+        }
+        return "accessory";
+      }
       if (kind === "weapon") {
         if (!equippedInSlot("mainHand")) return "mainHand";
         if (hasItemProperty(item, "L") && !equippedInSlot("offHand")) return "offHand";
@@ -14504,8 +15392,12 @@
     }
 
     function itemPickerItems() {
-      return dedupeModernByName(items, (item) => item?.name || "", (item) => item?.source || "")
-        .sort((a, b) => a.name.localeCompare(b.name));
+      return items
+        .filter((item) => !isCatalogItemUnavailable(item))
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name)
+          || String(a.source || "").localeCompare(String(b.source || ""))
+          || catalogVariantToken(a).localeCompare(catalogVariantToken(b)));
     }
 
     function pickerQuantity() {
@@ -14525,7 +15417,14 @@
           item.weaponCategory,
           item.rarity,
           itemFilterCategory(item),
-          sourceLabel(item.source)
+          sourceLabel(item.source),
+          catalogVariantToken(item),
+          ...itemSpecificVariants(item).flatMap((variant) => [
+            variant.name,
+            sourceLabel(variant.source),
+            variant.baseItem,
+            catalogVariantToken(variant)
+          ])
         ].filter(Boolean).join(" ")).includes(query);
       });
     }
@@ -14541,13 +15440,14 @@
         return;
       }
       const detail = buildItemDrawerContent(selectedPickerItem);
+      appendItemVariantPicker(detail, selectedPickerItem, selectPickerItem);
       detail.classList.add("item-picker-detail-sheet");
       itemPickerDetail.appendChild(detail);
     }
 
     function renderItemPickerList() {
       if (!itemPickerList) return;
-      const selectedKey = normalizeName(selectedPickerItem?.name || "");
+      const selectedKey = selectedPickerItem ? catalogItemId(selectedPickerItem) : "";
       const visibleItems = visibleItemPickerItems();
       itemPickerList.textContent = "";
       if (itemPickerCount) itemPickerCount.textContent = t("item.results", { count: visibleItems.length });
@@ -14563,7 +15463,7 @@
         visibleItems.forEach((item) => {
           const row = document.createElement("button");
           row.type = "button";
-          row.className = `item-picker-row ${normalizeName(item.name) === selectedKey ? "selected" : ""}`;
+          row.className = `item-picker-row ${catalogItemId(item) === selectedKey ? "selected" : ""}`;
 
           const name = document.createElement("span");
           name.className = "item-picker-row-name";
@@ -14575,7 +15475,11 @@
 
           const source = document.createElement("span");
           source.className = "item-picker-row-source";
-          source.textContent = sourceLabel(item.source);
+          const variantToken = catalogVariantToken(item);
+          source.textContent = [
+            sourceLabel(item.source),
+            variantToken !== "root" ? variantToken : ""
+          ].filter(Boolean).join(" - ");
 
           row.append(name, type, source);
           row.addEventListener("click", () => selectPickerItem(item));
@@ -14587,7 +15491,7 @@
 
     function selectPickerItem(item) {
       selectedPickerItem = item;
-      if (itemPickerAdd) itemPickerAdd.disabled = !item;
+      if (itemPickerAdd) itemPickerAdd.disabled = !item || isCatalogItemUnavailable(item);
       renderItemPickerList();
     }
 
@@ -14618,22 +15522,39 @@
       return `${quantity} ${name}`;
     }
 
+    function ammunitionPackContent(item) {
+      if (itemTypeAbbreviation(item) !== "A" || !Array.isArray(item?.packContents) || item.packContents.length !== 1) return null;
+      const content = item.packContents[0];
+      const reference = typeof content === "string" ? content : content?.item;
+      const quantity = typeof content === "object" ? Number(content.quantity) : 1;
+      if (!reference || !Number.isSafeInteger(quantity) || quantity <= 0) return null;
+      const [name = "", source = ""] = String(reference).split("|");
+      const catalogItem = findItemData({ name, source, catalogVariantToken: "root", hasStableReference: true });
+      return catalogItem && !isCatalogItemUnavailable(catalogItem) ? { item: catalogItem, quantity } : null;
+    }
+
     function addItemToEquipment(item, quantity) {
       const field = getFieldByKey("Equipment");
-      if (!field || !item?.name) return;
+      if (!field || !item?.name || isCatalogItemUnavailable(item)) return;
+      const ammunitionPack = ammunitionPackContent(item);
+      if (ammunitionPack) {
+        addItemToEquipment(ammunitionPack.item, quantity * ammunitionPack.quantity);
+        return;
+      }
       const lines = equipmentLines();
-      const targetKey = normalizeItemLookupName(item.name);
+      const referenceName = itemEquipmentReference(item);
+      const targetKey = equipmentItemKey(parseEquipmentLine(`${quantity} ${referenceName}`));
       let added = false;
       const nextLines = lines.map((line) => {
         const entry = parseEquipmentLine(line);
-        if (normalizeItemLookupName(entry.displayName) !== targetKey) return line;
+        if (equipmentItemKey(entry) !== targetKey) return line;
         added = true;
-        return formatEquipmentEntryLine(entry.quantity + quantity, entry.displayName);
+        return formatEquipmentEntryLine(entry.quantity + quantity, entry.storageName);
       });
-      if (!added) nextLines.push(formatEquipmentEntryLine(quantity, item.name));
+      if (!added) nextLines.push(formatEquipmentEntryLine(quantity, referenceName));
       field.value = nextLines.join("\n");
       scheduleEquipmentMutationRefresh({ reason: "equipment-added" });
-      showStatus("Item agregado");
+      showStatus(t("item.added"));
     }
 
     function removeItemFromEquipment(entry, quantity = 1) {
@@ -14648,7 +15569,7 @@
           return;
         }
         const nextQuantity = current.quantity - quantity;
-        if (nextQuantity > 0) nextLines.push(formatEquipmentEntryLine(nextQuantity, current.displayName));
+        if (nextQuantity > 0) nextLines.push(formatEquipmentEntryLine(nextQuantity, current.storageName));
         else delete equippedItems()[targetKey];
       });
 
@@ -14690,7 +15611,7 @@
       }
 
       entries.forEach((entry) => {
-        const item = findItemData(entry.displayName);
+        const item = findItemData(entry);
         const row = document.createElement("div");
         row.className = "equipment-row";
 
@@ -14702,6 +15623,7 @@
         name.type = "button";
         name.className = "equipment-name";
         name.textContent = item?.name || entry.displayName;
+        if (entry.hasStableReference && item?.source) name.textContent += ` [${sourceLabel(item.source)}]`;
         name.title = "Ver informacion del item";
         name.addEventListener("click", () => showItemDrawer(entry, item));
 
@@ -14715,14 +15637,22 @@
         const key = equipmentItemKey(entry);
         const equipKind = itemEquipKind(item);
         const record = equippedRecord(key);
-        if (record?.slot === "legacy") setEquipped(entry, item, preferredEquipSlot(entry, item));
+        if (record?.slot === "legacy" && equipKind) setEquipped(entry, item, preferredEquipSlot(entry, item));
         const nextRecord = equippedRecord(key);
         const equipped = Boolean(nextRecord);
-        equip.textContent = !equipKind ? "-" : equipped ? recordLabel(nextRecord) : "Equipar";
+        const unavailable = !item || isCatalogItemUnavailable(item);
+        equip.textContent = unavailable && equipped
+          ? t("item.clearUnavailableEquipment")
+          : unavailable
+            ? t("item.unavailableShort")
+            : !equipKind ? "-" : equipped ? recordLabel(nextRecord) : "Equipar";
         equip.classList.toggle("equipped", equipped);
-        equip.disabled = !equipKind;
-        equip.title = !equipKind ? "Este item no se equipa" : equipped ? "Desequipar item" : "Equipar item";
-        if (equipKind) equip.addEventListener("click", () => toggleEquipped(entry, item));
+        equip.disabled = unavailable ? !equipped : !equipKind;
+        equip.title = unavailable && equipped
+          ? t("item.clearUnavailableEquipmentHint")
+          : !equipKind ? "Este item no se equipa" : equipped ? "Desequipar item" : "Equipar item";
+        if (unavailable && equipped) equip.addEventListener("click", () => setEquipped(entry, item, ""));
+        else if (equipKind) equip.addEventListener("click", () => toggleEquipped(entry, item));
 
         const remove = document.createElement("button");
         remove.type = "button";
@@ -18389,6 +19319,19 @@
         });
       });
 
+      uniqueEquippedCatalogItems().forEach(({ item }) => {
+        if (!itemMagicBonusesEnabled(item)) return;
+        const defenses = globalThis.dndItemCatalog?.persistentDefenseProfile?.(item);
+        if (!defenses) return;
+        const parts = [
+          defenses.resistances?.length ? `Resistances: ${uniqueReadableValues(defenses.resistances).join(", ")}` : "",
+          defenses.immunities?.length ? `Immunities: ${uniqueReadableValues(defenses.immunities).join(", ")}` : "",
+          defenses.vulnerabilities?.length ? `Vulnerabilities: ${uniqueReadableValues(defenses.vulnerabilities).join(", ")}` : "",
+          defenses.conditionImmunities?.length ? `Condition immunities: ${uniqueReadableValues(defenses.conditionImmunities).join(", ")}` : ""
+        ].filter(Boolean);
+        if (parts.length) passive.push(`${item.name}: ${parts.join("; ")}`);
+      });
+
       return {
         passive: uniqueReadableValues(passive),
         active: uniqueReadableValues(active),
@@ -18493,7 +19436,24 @@
       const shield = equippedInSlot("offHand")?.item || null;
       if (!shield || !isShieldItem(shield)) return 0;
       const base = Number.isFinite(shield.ac) ? shield.ac : 2;
-      return base + itemArmorClassBonus(shield);
+      return base + itemHeldArmorClassBonus(shield);
+    }
+
+    function equippedAccessoryArmorClassBonus() {
+      return equippedEntries()
+        .filter(({ item, record }) => record.slot === "accessory" && isAccessoryItem(item))
+        .reduce((total, { item }) => total + itemWornArmorClassBonus(item), 0);
+    }
+
+    function equippedHeldArmorClassBonus() {
+      const counted = new Set();
+      return equippedEntries()
+        .filter(({ item, key, record }) => {
+          if (!item || isShieldItem(item) || !["mainHand", "offHand"].includes(record.slot) || counted.has(key)) return false;
+          counted.add(key);
+          return true;
+        })
+        .reduce((total, { item }) => total + itemHeldArmorClassBonus(item), 0);
     }
 
     function naturalArmorCandidates(dexModifier, conModifier) {
@@ -18599,6 +19559,8 @@
       const chaModifier = abilityModifier(getFieldByKey("CHA")?.value || "");
       const equippedArmor = equippedInSlot("armor")?.item || null;
       const shieldBonus = equippedShieldArmorClassBonus();
+      const accessoryBonus = equippedAccessoryArmorClassBonus();
+      const heldBonus = equippedHeldArmorClassBonus();
       const raceBonus = armorClassBonusFromRace();
       const featureBonus = armorClassBonusFromFeatures(equippedArmor);
       const effects = activeStatusEffects();
@@ -18627,7 +19589,7 @@
       });
 
       const best = Math.max(...candidates.map((candidate) => candidate.ac + (candidate.allowsShield ? shieldBonus : 0)));
-      return String(best + raceBonus + featureBonus + statusBonus);
+      return String(best + accessoryBonus + heldBonus + raceBonus + featureBonus + statusBonus);
     }
 
     function updateArmorClass() {
@@ -18763,8 +19725,9 @@
       }
 
       const bonus = proficiencyBonusForLevel(level);
-      setFieldValue("SpellSaveDC  2", String(8 + bonus + abilityModifierValue));
-      setFieldValue("SpellAtkBonus 2", formatModifier(bonus + abilityModifierValue));
+      const itemBonuses = equippedSpellcastingBonuses(ability);
+      setFieldValue("SpellSaveDC  2", String(8 + bonus + abilityModifierValue + itemBonuses.saveDc));
+      setFieldValue("SpellAtkBonus 2", formatModifier(bonus + abilityModifierValue + itemBonuses.attack));
     }
 
     function hasActiveFeat(name) {
@@ -18870,7 +19833,9 @@
           const formatted = formatModifier(modifier);
           setFieldValue(config.modifier, formatted);
           config.saves.forEach((target) => {
-            const value = modifier == null ? null : derivedFieldValue(modifier, target.proficiency, false);
+            const value = modifier == null
+              ? null
+              : derivedFieldValue(modifier, target.proficiency, false) + equippedSavingThrowBonus(ability);
             setFieldValue(target.field, formatModifier(value));
           });
           config.skills.forEach((target) => {
@@ -19098,22 +20063,34 @@
       });
 
       turnActionRegistry.register({
+        id: "inventory:charged-items",
+        order: 24,
+        getActions() {
+          return { actions: equipmentEntries().flatMap(chargedItemTurnActions) };
+        }
+      });
+
+      turnActionRegistry.register({
         id: "inventory:consumables",
         order: 25,
         getActions() {
           return { actions: equipmentEntries().flatMap((entry) => {
-            const item = findItemData(entry.displayName);
-            if (!item || !isConsumableItem(item) || entry.quantity <= 0) return [];
+            const item = findItemData(entry);
+            if (!item || itemTypeAbbreviation(item) === "A" || !isConsumableItem(item) || entry.quantity <= 0) return [];
             const description = itemDescriptionText(item);
             const healing = /\bregains?\b[^.]{0,80}\bHit Points?\b|\bhealing\b/i.test(description);
-            const expression = description.match(diceExpressionRegex("i"))?.[0] || "";
+            const healingSentence = healing
+              ? sentenceList(description).find((sentence) => /\bregains?\b[^.]{0,100}\bHit Points?\b/i.test(sentence)) || ""
+              : "";
+            const expression = healingSentence.match(diceExpressionRegex("i"))?.[0] || "";
+            const type = itemResourceActionType(item) || ACTION_TYPES.none;
             return [{
               key: `inventory:use:${equipmentItemKey(entry)}`,
               id: `inventory:use:${equipmentItemKey(entry)}`,
-              type: ACTION_TYPES.action,
+              type,
               title: `Use ${item.name || entry.displayName}`,
               detail: `${entry.quantity} available. ${turnActionShortDescription(description)}`,
-              actionCost: [{ type: "action", amount: 1 }],
+              actionCost: [itemResourceActionCost(type)].filter(Boolean),
               resolutionSteps: [
                 RESOLUTION_STEPS.selectTarget,
                 ...(expression ? [RESOLUTION_STEPS.damageRoll] : []),

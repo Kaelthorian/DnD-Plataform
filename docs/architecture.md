@@ -10,7 +10,7 @@ flowchart LR
   DM[DM Screen\nReact bundle] -->|window.dndSheet| PL
   PL -->|IPC invoke/events| MAIN[Electron main]
   MAIN --> SAVE[Save service\ncharacter-sheet.json]
-  MAIN --> DATA[Data loader\nsrc/data + vendor data]
+  MAIN --> DATA[Data loader\ncatálogos app-owned + metadata vendor]
   MAIN --> LIVE[Live Sheet server\nWebSocket memory state]
   MAIN --> OBS[Obsidian service\nselected local vault]
   MAIN --> TRANS[Translation service\nMyMemory HTTPS]
@@ -42,7 +42,15 @@ La ventana central mantiene un indice `Map` inmutable del catalogo y una fotogra
 
 ### Carga de catalogos y PDF
 
-`items:load` delega el catalogo vendor grande a `src/services/workers/item-data-worker.js`. El worker valida `mtime` y tamano de ambos JSON, reutiliza `userData/data-cache/items-catalog-v1.bin` cuando coincide y vuelve a compilarlo automaticamente cuando cambia la fuente. `data-loader.js` conserva ademas la promesa en memoria para solicitudes repetidas del mismo proceso.
+`items:load` delega el catálogo app-owned a `src/services/workers/item-data-worker.js`. El worker lee `src/data/items/items.json` y `items-base.json`, valida `mtime` y tamaño, reutiliza `userData/data-cache/items-catalog-v2.bin` cuando coincide y vuelve a compilarlo automáticamente cuando cambia cualquiera de las dos fuentes. `data-loader.js` conserva además la promesa en memoria para solicitudes repetidas del mismo proceso.
+
+`items.json.item` es la única colección oficial de primer nivel. Su identidad estable es `catalogId` (nombre+fuente+variante); `tombstone` conserva bajas compactas y nunca es seleccionable. Los `variants[].specificVariant` tienen identidad propia y se seleccionan desde su padre, pero no se convierten en filas superiores ni entran en el conteo activo de 1.779. `items-base.json` aporta properties/types/masteries y grupos, no un segundo catálogo `baseitem`. Esta separación evita que una sincronización estricta reintroduzca registros ausentes de la fuente canónica.
+
+La mutación del catálogo ocurre fuera del runtime: `sync-items.js` calcula preview, aplica sólo con `--apply`, crea un backup gzip content-addressed y permite restaurarlo mediante un manifiesto v2 portable con rutas relativas y hashes; el restore escribe siempre en los targets actuales y conserva lectura de manifiestos v1. No recorre ni modifica saves de usuario. Equipment reconstruye la identidad desde nombre, fuente y variante (o acepta `catalogId` cuando existe), mientras las notas oficiales del DM persisten `catalogId` y snapshot. Las bajas quedan históricas/no disponibles y el homebrew permanece fuera de esta sincronización.
+
+`src/engine/items/item-catalog.js` concentra identidad, materialización declarativa, metadata heredada, perfiles y conversión segura de tags 5etools. `item-resource-state.js` implementa el ledger puro de cargas/reload y la clasificación de casting time: inicializa, migra y limita valores por `catalogId`; `index.html` persiste ese store en `__sheetMeta.itemResources` y sólo descuenta costes explícitos al confirmar una resolución. Adaptadores deterministas aplican CA persistente segura, bonos de saves/ataque/CD de conjuros, consumibles, munición compatible y conjuros anexos; las defensas se integran al resumen visible. La sintonización valida tags de clase/raza/background/spellcasting que la hoja puede demostrar y deja requisitos narrativos como confirmación manual.
+
+Los efectos abiertos pueden marcarse activos en `__sheetMeta.itemEffects` sin inventar modificadores. Recargas con dados, condiciones/duraciones, bonus de daño contextual o pools ambiguos permanecen como ajuste guiado. Como el ledger se identifica por catálogo y no por instancia, varias copias comparten contador; los usos `daily`/`rest`/`will` (incluida la distinción fuente `1`/`1e`) muestran uso y costo pero quedan manuales hasta definir IDs de inventario y semántica de pool. Tampoco existe todavía un límite global de tres sintonizaciones ni migración automática de packs de munición legacy.
 
 La Character Sheet inicia esa carga junto con los demas datasets, pero no bloquea el primer render del PDF. Al completarse reconstruye equipo, AC, spells y combate; `pruneEquippedItems()` no elimina selecciones mientras el catalogo esta pendiente. PDF.js usa su worker empaquetado y las paginas visibles se procesan con concurrencia maxima dos para no saturar memoria/GPU.
 
@@ -50,15 +58,15 @@ No guardar el catalogo en `localStorage`: es sincrono, tiene cuota limitada y bl
 
 ### DM Screen
 
-`src/app/renderer/dm-screen/src/main.jsx` contiene el tablero React, bibliotecas, stat blocks, mapas/VTT, audio, jugadores en vivo, importación de personajes y Obsidian. El Sound Bar guarda archivos locales en IndexedDB y enlaces YouTube como JSON atómico mediante `src/services/dm-sound-link-service.js`, a través de IPC; así los enlaces no dependen del perfil de caché de Chromium. Los enlaces persisten con nombre editable y Play abre un `YoutubeNote` visible, persistente, móvil y redimensionable; el iframe transmite el video sin extraer ni descargar previamente todo su contenido. Vite genera `dm-screen/dist/`, que es runtime generado e ignorado y debe regenerarse después de cambiar el source. El estado ligero del tablero usa `localStorage`; imágenes de mapas y audio usan IndexedDB.
+`src/app/renderer/dm-screen/src/main.jsx` contiene el tablero React, bibliotecas, stat blocks, mapas/VTT, audio, jugadores en vivo, importación de personajes y Obsidian. La biblioteca de items importa sólo la colección activa app-owned. Una nota oficial persiste `catalogId` y snapshot: si una sincronización retira el registro, la nota conserva el detalle histórico marcado como unavailable, mientras el picker deja de ofrecerlo; `entryCustom` mantiene homebrew en una ruta distinta. El Sound Bar guarda archivos locales en IndexedDB y enlaces YouTube como JSON atómico mediante `src/services/dm-sound-link-service.js`, a través de IPC; así los enlaces no dependen del perfil de caché de Chromium. Los enlaces persisten con nombre editable y Play abre un `YoutubeNote` visible, persistente, móvil y redimensionable; el iframe transmite el video sin extraer ni descargar previamente todo su contenido. Vite genera `dm-screen/dist/`, que es runtime generado e ignorado y debe regenerarse después de cambiar el source. El estado ligero del tablero usa `localStorage`; imágenes de mapas y audio usan IndexedDB.
 
 ## Datos y estado
 
-- `src/data`: classes, races, backgrounds, spells y bestiary propio/normalizado.
-- `vendor/5etools-src-main/data`: feats, items, languages, conditions y datos de clase/race empaquetados selectivamente.
+- `src/data`: classes, races, backgrounds, spells, items y bestiary propio/normalizado. `src/data/items` incluye catálogo activo y metadata; preview, backups y manifiesto son artefactos de desarrollo excluidos explícitamente del paquete Electron.
+- `vendor/5etools-src-main/data`: feats, languages, conditions y datos de clase/race empaquetados selectivamente; los JSON de items se conservan intactos como baseline de desarrollo, no como fuente activa empaquetada.
 - `Tokens`: imágenes resueltas por source/name desde main.
 - `character-sheet.json`: store v2 con seis slots. El servicio migra el objeto legado a `slot-1`, escribe atómicamente y conserva `character-sheet.json.bak` como último JSON válido.
-- `__sheetMeta`: elecciones y estado generado asociado a una hoja; es parte del contrato de compatibilidad.
+- `__sheetMeta`: elecciones y estado generado asociado a una hoja; es parte del contrato de compatibilidad. En items, `itemResources`, `itemAttunement` e `itemEffects` se indexan hoy por `catalogId`, no por instancia física.
 
 ## Flujo de Live Sheet
 
@@ -87,3 +95,5 @@ Inglés es fuente y default de la interfaz del jugador; español debe mantener p
 - Cambios de saves o protocolo: mantener versión/compatibilidad y añadir migración/pruebas.
 
 La dirección deseada es extracción incremental, no una arquitectura ya completada. Las carpetas con solo README no prueban que el subsistema esté implementado allí.
+
+Los datos estructurados de un item no equivalen a automatización completa. Los adaptadores genéricos existentes cubren inventario/equipo, CA persistente segura, bonificadores de arma/saves/spell attack/spell DC, munición, consumibles, cargas numéricas y costes explícitos de conjuros anexos. Defensas equipadas se resumen pero no alteran daño/HP; condiciones, recargas aleatorias, descansos, targets, geometría, daño condicionado, efectos de mundo y excepciones abiertas se muestran como detalle o flujo manual guiado salvo que otro subsistema probado tenga una regla inequívoca.

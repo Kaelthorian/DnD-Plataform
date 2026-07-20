@@ -19,7 +19,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 | Pipeline y rollback | `src/engine/combat/resolution-engine.js` |
 | Acciones universales/perfiles | `src/engine/combat/action-definitions.js` |
 | Tiradas reales | `rollD20WithMode()`, `rollDiceExpression()`, `summarizeD20Roll()` y `showDiceTray()` en `index.html` |
-| Armas/inventario | campo PDF `Equipment`, `__sheetMeta.equippedItems`, datos vendor y `weaponAttackSelection()` |
+| Armas/inventario | campo PDF `Equipment`, `__sheetMeta.equippedItems`, catálogo app-owned `src/data/items/items.json` y `weaponAttackSelection()` |
 | Hechizos | `src/data/spells/spells.json`, `src/engine/spells/spell-data.js`, campos/checkboxes del PDF, `spellAttackSelections()` y `castPreparedSpell()` |
 | Features/raza/clase/subclase/feats | entradas generadas del renderer y registros vendor; `featureActionItemsFromEntries()` |
 | Condiciones | `__sheetMeta.activeStatuses` y `src/engine/conditions/statuses.js` |
@@ -46,7 +46,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 
 ## Rendimiento y caché
 
-- `renderer.js` construye `itemLookupByName` una vez al recibir el catálogo. `findItemData()` debe resolver por `Map`, nunca con `items.filter(...)`.
+- `renderer.js` construye índices una vez al recibir `items.json.item`. `findItemData()` debe preferir la referencia estable `catalogId` y resolver por `Map`; el fallback legado por nombre no debe convertir tombstones ni `itemGroup` en opciones activas, ni promover variantes anidadas a filas superiores. Las variantes específicas sólo se ofrecen desde su padre.
 - `collectCurrentTurnActions()` conserva una fotografía por `combatActionCacheRevision`; dentro de una pasada, `combatMemoValue()` comparte entradas de equipo, spells, features, feats, estados y Extra Attack.
 - `updateDerivedStats()`, cambios de campos, recursos, estados, inicio/fin de turno y commits invalidan la fotografía. Equipment evita el pipeline global: `scheduleEquipmentMutationRefresh()` agrupa lista, AC, ataques preparados, alertas y combate después del siguiente paint; `notifyEquipmentCombatStateChanged()` delega en esa transacción.
 - Los refrescos derivados se agrupan con `scheduleTurnActionsPanelRefresh()`/`requestAnimationFrame`. Confirmar una acción actualiza solo paneles afectados y no ejecuta el pipeline global de stats.
@@ -74,6 +74,7 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 - Un cast directo que reemplaza Concentration exige dos pulsaciones dentro de diez segundos y realiza esa comprobación antes de interrumpir un descanso o gastar recursos. El stepper de combate conserva su confirmación explícita y transmite esa decisión al commit del spell. El contador `CON` de Prepared Spells permite terminarla manualmente; completar un Long Rest también la termina, pero iniciar o interrumpir el descanso no.
 - Triggers de Reaction/Ready, efectos start/end, ongoing damage, recharge, summons/transformaciones y maniobras posteriores a una tirada no generan prompts automáticos.
 - Los riders opcionales exponen fórmula y tipo, pero el jugador/DM confirma target, alcance y trigger. Buffs con cargas o targets compartidos (por ejemplo Flame Arrows o Crusader's Mantle) no mantienen un ledger autoritativo por criatura.
+- Que un item sincronizado declare cargas, saves, spells, resistencias o acciones no implica que el motor pueda ejecutarlos sin contexto. Sólo se automatizan perfiles deterministas soportados por inventario/equipo/recursos/condiciones; targets, geometría, efectos de mundo y elecciones abiertas permanecen guiados y visibles en el detalle.
 - Live Sheet sólo reenvía las tiradas confirmadas. Falta el protocolo autoritativo host/DM para validar y aplicar economía, HP y efectos compartidos.
 
 ## Prueba manual
@@ -88,4 +89,4 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 8. Probar Movement, Difficult Terrain, Stand Up, Drop Prone, Dash, un consumible y un arma con ammo registrada.
 9. Guardar/cambiar de slot/volver. Confirmar que turno y combat log corresponden al slot.
 
-Validación automática: `node scripts/validate-spells.js`, `node tests/engine/combat.test.js`, `node tests/renderer/combat-ui.test.js`, `node tests/renderer/combat-performance.test.js`, `node tests/renderer/combat-equipment-refresh.test.js`, `node tests/services/data-loader-cache.test.js`, `npm test` y `git diff --check`.
+Validación automática: `npm run test:items`, `node scripts/validate-spells.js`, `node tests/engine/combat.test.js`, `node tests/renderer/combat-ui.test.js`, `node tests/renderer/combat-performance.test.js`, `node tests/renderer/combat-equipment-refresh.test.js`, `node tests/services/data-loader-cache.test.js`, `npm test` y `git diff --check`.
