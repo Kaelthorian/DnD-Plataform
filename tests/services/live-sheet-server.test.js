@@ -8,7 +8,8 @@ const {
   generateSessionToken,
   normalizeConnectionTarget,
   buildDirectInternetDiagnostics,
-  websocketSelfTest
+  websocketSelfTest,
+  sanitizeSharedNote
 } = require("../../src/services/live-sheet-server");
 
 function getFreePort() {
@@ -767,6 +768,71 @@ async function testRaisedHandQueue() {
   });
 }
 
+async function testSharedNotesBroadcastAndReplay() {
+  const sanitized = sanitizeSharedNote({
+    id: "note/shared-1",
+    title: "Cave Clue",
+    category: "session",
+    body: "## Clue\n\nA hidden door.",
+    tags: ["cave", "cave", "clues"],
+    tasks: [{ id: "task-1", text: "Check the wall", completed: false }],
+    links: [{ id: "link-1", label: "Goblin Cave", type: "Location" }]
+  }, { playerId: "alice", playerName: "Alice" });
+  assert.strictEqual(sanitized.id, "note-shared-1");
+  assert.deepStrictEqual(sanitized.tags, ["cave", "clues"]);
+  assert.strictEqual(sanitized.sharedBy.playerName, "Alice");
+
+  await withServer({ tokenEnabled: false }, async (server, port) => {
+    const alice = await openSocket(port);
+    const bob = await openSocket(port);
+    sendAs(alice, "alice", "Alice", { type: "player:hello" });
+    sendAs(bob, "bob", "Bob", { type: "player:hello" });
+    await nextMessages(alice, 2);
+    await nextMessages(bob, 2);
+
+    const sharedNote = {
+      id: "note-shared-1",
+      title: "Cave Clue",
+      category: "session",
+      body: "## Clue\n\nA hidden door.",
+      tags: ["cave", "clues"],
+      tasks: [{ id: "task-1", text: "Check the wall", completed: false }],
+      links: [{ id: "link-1", label: "Goblin Cave", type: "Location" }],
+      createdAt: "2026-07-21T00:00:00.000Z",
+      updatedAt: "2026-07-21T00:00:00.000Z"
+    };
+    const bobUpdate = nextMessage(bob);
+    const aliceAck = nextMessage(alice);
+    sendAs(alice, "alice", "Alice", { type: "player:note:share", note: sharedNote });
+    const [bobMessage, ack] = await Promise.all([bobUpdate, aliceAck]);
+    assert.strictEqual(bobMessage.type, "dm:notes:upsert");
+    assert.strictEqual(bobMessage.note.title, "Cave Clue");
+    assert.strictEqual(bobMessage.note.sharedBy.playerId, "alice");
+    assert.strictEqual(ack.type, "server:ack");
+    assert.strictEqual(ack.receivedType, "player:note:share");
+
+    const carol = await openSocket(port);
+    sendAs(carol, "carol", "Carol", { type: "player:hello" });
+    const [carolWelcome, carolHand, carolNotes] = await nextMessages(carol, 3);
+    assert.strictEqual(carolWelcome.type, "server:welcome");
+    assert.strictEqual(carolHand.type, "dm:hand:state");
+    assert.strictEqual(carolNotes.type, "dm:notes:state");
+    assert.strictEqual(carolNotes.notes[0].id, "note-shared-1");
+
+    const bobRemove = nextMessage(bob);
+    const aliceRemoveAck = nextMessage(alice);
+    sendAs(alice, "alice", "Alice", { type: "player:note:unshare", noteId: "note-shared-1" });
+    const [removeMessage, removeAck] = await Promise.all([bobRemove, aliceRemoveAck]);
+    assert.strictEqual(removeMessage.type, "dm:notes:remove");
+    assert.strictEqual(removeMessage.noteId, "note-shared-1");
+    assert.strictEqual(removeAck.receivedType, "player:note:unshare");
+    assert.strictEqual(server.sharedNotes.size, 0);
+    alice.close();
+    bob.close();
+    carol.close();
+  });
+}
+
 (async () => {
   await testStrongSessionTokens();
   await testConnectionTargetNormalization();
@@ -781,6 +847,7 @@ async function testRaisedHandQueue() {
   await testDmAudioBroadcast();
   await testYouTubeAudioBroadcastAndResume();
   await testRaisedHandQueue();
+  await testSharedNotesBroadcastAndReplay();
   console.log("live-sheet-server tests passed");
 })().catch((error) => {
   console.error(error);

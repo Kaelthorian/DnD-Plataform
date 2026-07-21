@@ -10,7 +10,7 @@ const dmStyles = fs.readFileSync(path.join(root, "src/app/renderer/dm-screen/sty
 
 assert.ok(sheetStyles.includes(".app-resize-corner"), "sheet resize-corner standard is missing");
 assert.ok(dmStyles.includes(".app-resize-corner"), "DM Screen resize-corner standard is missing");
-assert.ok(sheetHtml.includes("turn-actions-resize-corner app-resize-corner"), "combat window does not use the shared corner");
+assert.ok(!sheetHtml.includes("turn-actions-resize-corner app-resize-corner"), "full-screen combat should not expose a resize corner");
 assert.ok(sheetHtml.includes("familiar-note-resize-corner app-resize-corner"), "companion notes do not use the shared corner");
 assert.ok(sheetHtml.includes("floating-sheet-window-resize-corner app-resize-corner"), "shared sheet windows do not use the standard corner");
 assert.ok(sheetHtml.includes('resizeCorner.className = "floating-sheet-window-resize floating-sheet-window-resize-corner app-resize-corner"'), "dynamic status window does not use the standard corner");
@@ -21,4 +21,4 @@ assert.match(dmSource, /edge === "corner"\s*\? ""\s*:\s*"bg-amber-500\/0/);
 assert.doesNotMatch(dmSource, /onResizeCorner/);
 assert.doesNotMatch(dmSource, /bottom-1 right-1 h-5 w-5 cursor-nwse-resize/);
 
-console.log("Resizable window corner standard verified across both renderers.");
+console.log("Resizable window corner standard verified for resizable surfaces; full-screen combat correctly has no resize corner.");

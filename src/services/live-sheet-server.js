@@ -19,6 +19,11 @@ const MAX_HAND_QUEUE = 40;
 const MAX_LIVE_STATUS_IDS = 48;
 const MAX_HOMEBREW_ITEMS = 120;
 const MAX_HOMEBREW_ITEM_ENTRIES = 48;
+const MAX_SHARED_NOTES = 120;
+const MAX_SHARED_NOTE_BODY_LENGTH = 24000;
+const MAX_SHARED_NOTE_TAGS = 16;
+const MAX_SHARED_NOTE_TASKS = 48;
+const MAX_SHARED_NOTE_LINKS = 24;
 const VTT_ANONYMOUS_MONSTER_NAME = "???";
 
 function isPlainObject(value) {
@@ -86,6 +91,71 @@ function sanitizeHomebrewItems(value) {
       return sanitized;
     })
     .filter(Boolean);
+}
+
+const SHARED_NOTE_CATEGORIES = new Set([
+  "session",
+  "npcs",
+  "quests",
+  "locations",
+  "loot",
+  "combat",
+  "handouts",
+  "custom"
+]);
+
+function sanitizeSharedNote(value, { playerId = "", playerName = "" } = {}) {
+  if (!isPlainObject(value)) return null;
+  const id = sanitizePlayerId(value.id);
+  const title = sanitizeText(value.title, 160);
+  if (!id || !title) return null;
+  const tags = [...new Set((Array.isArray(value.tags) ? value.tags : [])
+    .map((tag) => sanitizeText(tag, 32).toLowerCase())
+    .filter(Boolean))].slice(0, MAX_SHARED_NOTE_TAGS);
+  const tasks = (Array.isArray(value.tasks) ? value.tasks : [])
+    .slice(0, MAX_SHARED_NOTE_TASKS)
+    .map((task) => {
+      if (!isPlainObject(task)) return null;
+      const text = sanitizeText(task.text, 240);
+      return text ? { id: sanitizePlayerId(task.id) || crypto.randomUUID(), text, completed: Boolean(task.completed) } : null;
+    })
+    .filter(Boolean);
+  const links = (Array.isArray(value.links) ? value.links : [])
+    .slice(0, MAX_SHARED_NOTE_LINKS)
+    .map((link) => {
+      if (!isPlainObject(link)) return null;
+      const label = sanitizeText(link.label, 120);
+      if (!label) return null;
+      return {
+        id: sanitizePlayerId(link.id) || crypto.randomUUID(),
+        label,
+        type: sanitizeText(link.type, 40) || "Session"
+      };
+    })
+    .filter(Boolean);
+  const category = sanitizeText(value.category, 32).toLowerCase();
+  const color = sanitizeText(value.color, 16).toLowerCase();
+  const normalizedPlayerId = sanitizePlayerId(playerId);
+  return {
+    id,
+    title,
+    category: SHARED_NOTE_CATEGORIES.has(category) ? category : "session",
+    folderId: sanitizePlayerId(value.folderId),
+    body: sanitizeMultilineText(value.body, MAX_SHARED_NOTE_BODY_LENGTH),
+    tags,
+    color: ["gray", "red", "amber", "green", "blue", "purple"].includes(color) ? color : "amber",
+    tasks,
+    links,
+    pinned: Boolean(value.pinned),
+    archived: Boolean(value.archived),
+    createdAt: sanitizeText(value.createdAt, 40) || new Date().toISOString(),
+    updatedAt: sanitizeText(value.updatedAt, 40) || new Date().toISOString(),
+    shared: true,
+    sharedBy: {
+      playerId: normalizedPlayerId,
+      playerName: sanitizeText(playerName) || "Jugador"
+    }
+  };
 }
 
 function sanitizePlayerId(value) {
@@ -749,6 +819,7 @@ class LiveSheetServer extends EventEmitter {
     };
     this.vttState = { active: false, updatedAt: new Date().toISOString() };
     this.raisedHands = new Map();
+    this.sharedNotes = new Map();
     this.selfTests = {
       local: null,
       tailscale: null
@@ -985,6 +1056,7 @@ class LiveSheetServer extends EventEmitter {
     this.directInternetConfig = { publicHost: "", routerWanAddress: "" };
     this.selfTests = { local: null, tailscale: null };
     this.raisedHands.clear();
+    this.sharedNotes.clear();
     for (const socket of server.clients || []) {
       if (socket.readyState !== WebSocket.CLOSED) {
         socket.terminate();
@@ -1241,9 +1313,16 @@ class LiveSheetServer extends EventEmitter {
           reason: "sync",
           raisedHands: this.getRaisedHands()
         });
+        if (this.sharedNotes.size) {
+          sendJson(socket, {
+            version: 1,
+            type: "dm:notes:state",
+            notes: [...this.sharedNotes.values()]
+          });
+        }
       }
       if (
-        !["roll:event", "vtt:ping", "player:hand"].includes(validated.messageType)
+        !["roll:event", "vtt:ping", "player:hand", "player:note:share", "player:note:unshare"].includes(validated.messageType)
         || !previous
         || !previous.connected
         || previous.playerName !== validated.playerName
@@ -1303,6 +1382,53 @@ class LiveSheetServer extends EventEmitter {
           raisedHands: handResult.raisedHands
         });
       }
+      if (validated.messageType === "player:note:share") {
+        const note = sanitizeSharedNote(validated.note, {
+          playerId: validated.playerId,
+          playerName: validated.playerName
+        });
+        if (note) {
+          this.sharedNotes.set(note.id, note);
+          while (this.sharedNotes.size > MAX_SHARED_NOTES) {
+            const oldestId = this.sharedNotes.keys().next().value;
+            if (!oldestId) break;
+            this.sharedNotes.delete(oldestId);
+          }
+          this.broadcastToPlayers({
+            version: 1,
+            type: "dm:notes:upsert",
+            note
+          }, validated.playerId);
+          sendJson(socket, {
+            version: 1,
+            type: "server:ack",
+            receivedType: "player:note:share",
+            noteId: note.id,
+            serverTime: now
+          });
+        }
+      }
+      if (validated.messageType === "player:note:unshare") {
+        const noteId = sanitizePlayerId(validated.noteId);
+        if (noteId && this.sharedNotes.delete(noteId)) {
+          this.broadcastToPlayers({
+            version: 1,
+            type: "dm:notes:remove",
+            noteId,
+            removedBy: {
+              playerId: validated.playerId,
+              playerName: validated.playerName
+            }
+          }, validated.playerId);
+        }
+        sendJson(socket, {
+          version: 1,
+          type: "server:ack",
+          receivedType: "player:note:unshare",
+          noteId,
+          serverTime: now
+        });
+      }
       this.emitStatus();
     });
 
@@ -1326,7 +1452,7 @@ class LiveSheetServer extends EventEmitter {
 
   validatePayload(payload) {
     if (!isPlainObject(payload)) return { ok: false, error: "Payload invalido." };
-    if (!["player:hello", "sheet:update", "roll:event", "vtt:ping", "player:hand"].includes(payload.type) || payload.version !== 1) {
+    if (!["player:hello", "sheet:update", "roll:event", "vtt:ping", "player:hand", "player:note:share", "player:note:unshare"].includes(payload.type) || payload.version !== 1) {
       return { ok: false, error: "Tipo de mensaje no compatible." };
     }
     const playerId = sanitizePlayerId(payload.playerId);
@@ -1336,6 +1462,10 @@ class LiveSheetServer extends EventEmitter {
     if (payload.type === "roll:event" && !roll) return { ok: false, error: "Falta tirada." };
     const ping = payload.type === "vtt:ping" ? sanitizeVttPing(payload.ping) : null;
     if (payload.type === "vtt:ping" && !ping) return { ok: false, error: "Falta ping de mapa." };
+    const note = payload.type === "player:note:share" ? sanitizeSharedNote(payload.note) : null;
+    if (payload.type === "player:note:share" && !note) return { ok: false, error: "Falta nota compartida." };
+    const noteId = payload.type === "player:note:unshare" ? sanitizePlayerId(payload.noteId) : "";
+    if (payload.type === "player:note:unshare" && !noteId) return { ok: false, error: "Falta identificador de nota." };
     return {
       ok: true,
       messageType: payload.type,
@@ -1345,7 +1475,9 @@ class LiveSheetServer extends EventEmitter {
       data: payload.type === "sheet:update" ? sanitizeLiveSheetData(payload.data) : null,
       roll,
       ping,
-      handRaised: payload.type === "player:hand" ? sanitizeHandRaised(payload.raised ?? payload.handRaised) : false
+      handRaised: payload.type === "player:hand" ? sanitizeHandRaised(payload.raised ?? payload.handRaised) : false,
+      note,
+      noteId
     };
   }
 }
@@ -1365,6 +1497,7 @@ module.exports = {
   localLanAddresses,
   sanitizeSheetPatch,
   sanitizeHomebrewItems,
+  sanitizeSharedNote,
   websocketSelfTest,
   LiveSheetServer,
   liveSheetServer: new LiveSheetServer()

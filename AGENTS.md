@@ -1,5 +1,7 @@
 # DnD-Plataform: guía para agentes
 
+Las notas del jugador forman un workspace completo de renderer: la persistencia privada es por save slot y el compartir con jugadores usa los mensajes validados de Live Sheet. Consulta `docs/PLAYER_NOTES.md` antes de modificar esa superficie.
+
 Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas de Dungeon Master. El código es JavaScript/CommonJS en main, preload, servicios y hoja de personaje; el DM Screen usa React/Vite. Inglés es el idioma canónico de la interfaz del jugador y español es la traducción opcional.
 
 ## Antes de cambiar código
@@ -20,6 +22,7 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - `src/engine/effects`: instancias serializables y dispatch genérico; los adaptadores de HP/targets permanecen en el renderer.
 - `src/engine/combat`: economía de turno, acciones declarativas, resolución transaccional y combat log. Las tiradas y adaptadores de sheet permanecen en `src/app/renderer/index.html`.
 - `src/app/renderer`: hoja de personaje y DM Screen. Ambos contienen monolitos; extraer por subsistema, con pruebas, no mediante reescritura total.
+- La pantalla de combate del jugador es una superficie completa de tres columnas: `renderer.js` actualiza iniciativa publica y portaliza el VTT conectado al `#combatMapViewport` de `index.html`; no crear una segunda conexion ni exponer HP/AC privados del DM.
 - `src/data`: datos propios declarativos. El catálogo oficial activo de ítems vive en `src/data/items`; el snapshot vendor es sólo baseline de desarrollo.
 - `vendor/5etools-src-main`: snapshot externo de referencia y datos empaquetados. No editar por defecto.
 
@@ -34,7 +37,7 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - Recursos de ítems: conservar pools legacy en `__sheetMeta.itemResources[catalogId]`; los declarativos usan `itemResources[catalogId::resourceId]`. Descontar sólo costos declarados después del commit y mantener `dawn`, `shortRest` y `longRest` como eventos distintos.
 - Automatización de ítems: `src/data/items/item-automation.json` es un overlay separado del sync. Aplicar sólo reglas estructuradas deterministas; `__sheetMeta.activeItemEffects` guarda instancias y `itemEffects` sigue como marcador legacy. Targets/posición VTT quedan guiados. Ver `docs/ITEM_AUTOMATION.md`.
 - Rendimiento de datos: conservar el worker/caché versionado de items y el índice en memoria; `localStorage` no es válido para catálogos grandes. Toda caché derivada debe invalidarse al cambiar sus JSON fuente.
-- UI redimensionable: toda ventana o nota con resize debe usar la esquina inferior derecha `app-resize-corner` en ambos renderers. Start Combat fija el patrón de arrastre, colapsado, resize, geometría persistente y estilo DM; `itemDrawer`, Character Statuses y Free Dice lo reutilizan mediante el chrome/controlador `floating-sheet-window`. El contenido de esas ventanas usa superficies neutras oscuras y acento ámbar: no reintroducir fotos de hoja/Spellbook ni paneles blancos. No aplicar ese indicador de ventana a textareas ni a formas del mapa.
+- UI redimensionable: ventanas y notas con resize siguen usando la esquina inferior derecha `app-resize-corner`. Combat es una pantalla completa con separadores ajustables que empujan las columnas y el dock de acciones, sin arrastre ni controles de popup; su geometria se guarda bajo `dnd-character-sheet-combat-board-v1`. `itemDrawer`, Character Statuses y Free Dice reutilizan el chrome/controlador `floating-sheet-window`. El contenido usa superficies neutras oscuras y acento ambar; no reintroducir fotos de hoja/Spellbook ni paneles blancos. No aplicar ese indicador de ventana a textareas ni a formas del mapa.
 
 ## Comandos
 

@@ -56,31 +56,33 @@
 
   function formatCombatLogEvent(event = {}) {
     const lines = [];
-    const target = event.target ? ` ${event.target}` : "";
-    lines.push(`${event.actor} uses ${event.action}${target ? ` on${target}` : ""}.`);
-    if (event.formulas?.length) lines.push(`Formula${event.formulas.length === 1 ? "" : "s"}: ${event.formulas.join(" | ")}.`);
-    if (event.dice?.length) lines.push(`Dice: ${event.dice.map((die) => typeof die === "object" ? JSON.stringify(die) : die).join(", ")}.`);
-    if (event.modifiers?.length) lines.push(`Modifiers: ${event.modifiers.map((modifier) => (
-      modifier && typeof modifier === "object"
-        ? `${modifier.label || "Modifier"} ${Number(modifier.value) >= 0 ? "+" : ""}${modifier.value}`
-        : String(modifier)
-    )).join(", ")}.`);
-    if (event.rollMode && event.rollMode !== "normal") lines.push(`Roll mode: ${event.rollMode}.`);
-    if (event.attackTotal != null) lines.push(`Hit Roll: ${event.attackTotal}${event.hit == null ? " (DM resolution pending)" : event.hit ? " — Hit" : " — Miss"}.`);
+    const target = event.target ? ` -> ${event.target}` : "";
+    lines.push(`${event.actor}: ${event.action}${target}`);
+
+    if (event.attackTotal != null) {
+      const outcome = event.hit == null ? "DM" : event.hit ? "Hit" : "Miss";
+      lines.push(`Attack: ${event.attackTotal} - ${outcome}`);
+    }
+
     if (event.damageComponents?.length) {
       event.damageComponents.forEach((component) => {
         const label = component.type ? component.type[0].toUpperCase() + component.type.slice(1) : "Damage";
-        lines.push(`${label}: ${component.formula || "roll"} = ${component.total}.`);
+        lines.push(`${label}: ${component.formula || "roll"} = ${component.total}`);
       });
-      lines.push(`Total: ${event.damageComponents.reduce((sum, component) => sum + component.total, 0)}.`);
-    } else if (event.damage != null) lines.push(`Damage: ${event.damage}${event.damageType ? ` ${event.damageType}` : ""}.`);
-    if (event.healing != null) lines.push(`Healing: ${event.healing}.`);
-    if (event.savingThrows?.length) lines.push(`Saving Throw: ${event.savingThrows.join("; ")}.`);
-    if (event.resourcesConsumed?.length) lines.push(`Resources: ${event.resourcesConsumed.join(", ")}.`);
-    if (event.effectsApplied?.length) lines.push(`Effects: ${event.effectsApplied.join(", ")}.`);
-    if (event.attacksRemaining != null) lines.push(`${event.attacksRemaining} attack${event.attacksRemaining === 1 ? "" : "s"} remain${event.attacksRemaining === 1 ? "s" : ""} in this Attack action.`);
-    if (event.pendingDmResolution) lines.push("Pending DM resolution.");
-    if (event.detail) lines.push(event.detail);
+      lines.push(`Damage total: ${event.damageComponents.reduce((sum, component) => sum + component.total, 0)}`);
+    } else if (event.damage != null) {
+      lines.push(`${event.damageType || "Damage"}: ${event.damage}`);
+    }
+
+    if (event.healing != null) lines.push(`Healing: ${event.healing}`);
+    if (event.savingThrows?.length) lines.push(`Save: ${event.savingThrows.join("; ")}`);
+    if (event.formulas?.length && event.attackTotal == null && !event.damageComponents?.length && event.damage == null) {
+      lines.push(`Roll: ${event.formulas.join(" | ")}`);
+    }
+    if (event.resourcesConsumed?.length) lines.push(`Cost: ${event.resourcesConsumed.join(", ")}`);
+    if (event.effectsApplied?.length) lines.push(`Effects: ${event.effectsApplied.join(", ")}`);
+    if (event.attacksRemaining != null) lines.push(`Attacks left: ${event.attacksRemaining}`);
+    if (event.pendingDmResolution) lines.push("Pending DM resolution");
     return lines.join("\n");
   }
 

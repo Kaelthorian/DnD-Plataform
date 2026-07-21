@@ -23,6 +23,49 @@
     const app = document.getElementById("app");
     const loading = document.getElementById("loading");
     const status = document.getElementById("status");
+    const appSidebar = document.getElementById("appSidebar");
+    const sidebarMenuButton = document.getElementById("sidebarMenuButton");
+    const sidebarMenuClose = document.getElementById("sidebarMenuClose");
+    const sidebarMenuPanel = document.getElementById("sidebarMenuPanel");
+    const sidebarSheetButton = document.getElementById("sidebarSheetButton");
+    const sidebarNotesButton = document.getElementById("sidebarNotesButton");
+    const notesWorkspace = document.getElementById("notesWorkspace");
+    const notesNewButton = document.getElementById("notesNewButton");
+    const notesNewTabButton = document.getElementById("notesNewTabButton");
+    const notesBackButton = document.getElementById("notesBackButton");
+    const notesCategoryList = document.getElementById("notesCategoryList");
+    const notesFolderList = document.getElementById("notesFolderList");
+    const notesLibraryList = document.getElementById("notesLibraryList");
+    const notesTabs = document.getElementById("notesTabs");
+    const notesSearchInput = document.getElementById("notesSearchInput");
+    const notesTitleInput = document.getElementById("notesTitleInput");
+    const notesBodyInput = document.getElementById("notesBodyInput");
+    const notesStarButton = document.getElementById("notesStarButton");
+    const notesEditorStatus = document.getElementById("notesEditorStatus");
+    const notesLastEdited = document.getElementById("notesLastEdited");
+    const notesCreated = document.getElementById("notesCreated");
+    const notesId = document.getElementById("notesId");
+    const notesCategorySelect = document.getElementById("notesCategorySelect");
+    const notesFolderSelect = document.getElementById("notesFolderSelect");
+    const notesTags = document.getElementById("notesTags");
+    const notesTagInput = document.getElementById("notesTagInput");
+    const notesAddTagButton = document.getElementById("notesAddTagButton");
+    const notesLabelColors = document.getElementById("notesLabelColors");
+    const notesLinksList = document.getElementById("notesLinksList");
+    const notesAddLinkButton = document.getElementById("notesAddLinkButton");
+    const notesShareToggle = document.getElementById("notesShareToggle");
+    const notesShareStatus = document.getElementById("notesShareStatus");
+    const notesTemplateList = document.getElementById("notesTemplateList");
+    const notesCloseTemplatesButton = document.getElementById("notesCloseTemplatesButton");
+    const notesTaskList = document.getElementById("notesTaskList");
+    const notesTaskInput = document.getElementById("notesTaskInput");
+    const notesAddTaskButton = document.getElementById("notesAddTaskButton");
+    const notesPinButton = document.getElementById("notesPinButton");
+    const notesArchiveButton = document.getElementById("notesArchiveButton");
+    const notesDuplicateButton = document.getElementById("notesDuplicateButton");
+    const notesExportButton = document.getElementById("notesExportButton");
+    const notesDeleteButton = document.getElementById("notesDeleteButton");
+    const sidebarViewButtons = [...document.querySelectorAll("[data-sidebar-view]")];
     const topControlsMenu = document.getElementById("topControlsMenu");
     const topControlsLauncher = document.getElementById("topControlsLauncher");
     const topControlsPanel = document.getElementById("topControlsPanel");
@@ -47,11 +90,7 @@
     const turnActionsButton = document.getElementById("turnActionsButton");
     const turnActionsBackdrop = document.getElementById("turnActionsBackdrop");
     const turnActionsPanel = document.getElementById("turnActionsPanel");
-    const turnActionsHeader = document.getElementById("turnActionsHeader");
     const turnActionsTranslate = document.getElementById("turnActionsTranslate");
-    const turnActionsCollapse = document.getElementById("turnActionsCollapse");
-    const turnActionsResizeHandles = Array.from(document.querySelectorAll("[data-combat-resize-edge]"));
-    const turnActionsClose = document.getElementById("turnActionsClose");
     const turnActionsBody = document.getElementById("turnActionsBody");
     const turnActionsNewTurn = document.getElementById("turnActionsNewTurn");
     const turnActionsActionOrb = document.getElementById("turnActionsActionOrb");
@@ -68,6 +107,21 @@
     const combatLogSection = document.getElementById("combatLogSection");
     const combatLogList = document.getElementById("combatLogList");
     const combatLogClear = document.getElementById("combatLogClear");
+    const combatMapViewport = document.getElementById("combatMapViewport");
+    const combatMapEmpty = document.getElementById("combatMapEmpty");
+    const combatMapStatus = document.getElementById("combatMapStatus");
+    const combatInitiativeList = document.getElementById("combatInitiativeList");
+    const combatRoundLabel = document.getElementById("combatRoundLabel");
+    const combatActiveName = document.getElementById("combatActiveName");
+    const combatActiveMeta = document.getElementById("combatActiveMeta");
+    const combatMapLiveIndicator = document.querySelector(".combat-map-live-indicator");
+    const combatBoardMain = document.getElementById("combatBoardMain");
+    const combatInitiativePanel = document.querySelector(".combat-initiative-panel");
+    const combatMapPanel = document.querySelector(".combat-map-panel");
+    const combatContextPanel = document.querySelector(".combat-context-panel");
+    const combatInitiativeSplitter = document.getElementById("combatInitiativeSplitter");
+    const combatContextSplitter = document.getElementById("combatContextSplitter");
+    const combatActionSplitter = document.getElementById("combatActionSplitter");
     const optionMenu = document.getElementById("optionMenu");
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
@@ -165,12 +219,48 @@
     let fieldLookupCache = null;
     const LIVE_SHEET_CLIENT_SETTINGS_KEY = "dnd-character-sheet-live-client-v1";
     const LIVE_SHEET_PLAYER_ID_KEY = "dnd-character-sheet-live-player-id-v1";
+    const PLAYER_NOTES_STORAGE_KEY = "dnd-character-sheet-player-notes-v1";
+    const PLAYER_NOTES_CATEGORIES = Object.freeze(["session", "npcs", "quests", "locations", "loot", "combat", "handouts", "custom"]);
+    const PLAYER_NOTE_COLORS = Object.freeze(["gray", "red", "amber", "green", "blue", "purple"]);
+    const PLAYER_NOTE_TEMPLATES = Object.freeze({
+      session: {
+        title: "Session Recap",
+        category: "session",
+        body: "## Summary\n\nWhat happened in this session?\n\n## Clues\n\n- \n\n## NPCs met\n\n- \n\n## Loot\n\n- \n"
+      },
+      npc: {
+        title: "NPC Profile",
+        category: "npcs",
+        body: "## NPC Profile\n\nName: \nRole: \n\n## Appearance\n\n\n## Goals\n\n- \n\n## Secrets\n\n- \n"
+      },
+      quest: {
+        title: "Quest Log",
+        category: "quests",
+        body: "## Quest\n\nObjective: \n\n## Leads\n\n- \n\n## Rewards\n\n- \n"
+      },
+      encounter: {
+        title: "Encounter Notes",
+        category: "combat",
+        body: "## Encounter\n\nLocation: \n\n## Enemies\n\n- \n\n## Tactics\n\n- \n\n## Aftermath\n\n"
+      }
+    });
+    let playerNotesStore = null;
+    let playerNotesFilter = "all";
+    let playerNotesFolderFilter = "";
+    let playerNotesSearch = "";
+    let playerNotesActiveId = "";
+    let playerNotesOpenIds = [];
+    let playerNotesSaveTimer = null;
+    let playerNotesShareTimer = null;
+    let playerNotesInitialized = false;
     let liveSheetClientSocket = null;
     let liveSheetClientSendTimer = null;
     let liveSheetClientManualDisconnect = false;
     let liveVttState = null;
     let liveVttImageDataUrl = "";
     let liveVttElements = null;
+    let liveVttOriginalParent = null;
+    let liveVttCombatSurfaceActive = false;
     let liveVttPings = [];
     let liveVttBaseLayout = null;
     let liveVttView = { scale: 1, x: 0, y: 0 };
@@ -179,6 +269,9 @@
     let liveVttHandRaised = false;
     let liveVttHandStateReason = "sync";
     let liveVttHandQueue = [];
+    const COMBAT_BOARD_LAYOUT_KEY = "dnd-character-sheet-combat-board-v1";
+    let combatBoardLayout = loadCombatBoardLayout();
+    let combatBoardResizeState = null;
     let liveDmAudioPlayers = [];
     const liveDmAudioPlayersById = new Map();
     let liveDmYoutubePanel = null;
@@ -192,6 +285,185 @@
     const LIVE_VTT_PING_TTL_MS = 5000;
     const LIVE_VTT_MIN_ZOOM = 1;
     const LIVE_VTT_MAX_ZOOM = 4;
+
+    const COMBAT_BOARD_MIN_WIDTHS = Object.freeze({ initiative: 220, map: 320, context: 240 });
+    const COMBAT_BOARD_MIN_HEIGHTS = Object.freeze({ board: 250, actions: 220 });
+
+    function clampCombatBoardValue(value, min, max) {
+      return Math.min(max, Math.max(min, Number(value) || 0));
+    }
+
+    function normalizeCombatBoardLayout(layout = {}) {
+      return {
+        initiativeRatio: clampCombatBoardValue(layout.initiativeRatio, 0.16, 0.46) || 0.22,
+        contextRatio: clampCombatBoardValue(layout.contextRatio, 0.16, 0.42) || 0.25,
+        actionRatio: clampCombatBoardValue(layout.actionRatio, 0.2, 0.58) || 0.34
+      };
+    }
+
+    function loadCombatBoardLayout() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(COMBAT_BOARD_LAYOUT_KEY) || "{}");
+        return normalizeCombatBoardLayout(parsed);
+      } catch (_error) {
+        return normalizeCombatBoardLayout();
+      }
+    }
+
+    function persistCombatBoardLayout() {
+      try {
+        localStorage.setItem(COMBAT_BOARD_LAYOUT_KEY, JSON.stringify(combatBoardLayout));
+      } catch (_error) {
+        // Layout persistence is optional; keep the current session usable.
+      }
+    }
+
+    function applyCombatBoardLayout({ persist = false } = {}) {
+      if (!combatBoardMain) return;
+      const boardRect = combatBoardMain.getBoundingClientRect();
+      if (boardRect.width <= 0) return;
+
+      const availableWidth = Math.max(1, boardRect.width - 20 - 40 - 16);
+      const minimumWidth = COMBAT_BOARD_MIN_WIDTHS.initiative + COMBAT_BOARD_MIN_WIDTHS.map + COMBAT_BOARD_MIN_WIDTHS.context;
+      if (availableWidth >= minimumWidth) {
+        let initiativeWidth = availableWidth * combatBoardLayout.initiativeRatio;
+        let contextWidth = availableWidth * combatBoardLayout.contextRatio;
+        const maximumSideWidth = availableWidth - COMBAT_BOARD_MIN_WIDTHS.map;
+        if (initiativeWidth + contextWidth > maximumSideWidth) {
+          const overflow = initiativeWidth + contextWidth - maximumSideWidth;
+          const initiativeReduction = overflow * (initiativeWidth / Math.max(1, initiativeWidth + contextWidth));
+          initiativeWidth -= initiativeReduction;
+          contextWidth -= overflow - initiativeReduction;
+        }
+        initiativeWidth = clampCombatBoardValue(initiativeWidth, COMBAT_BOARD_MIN_WIDTHS.initiative, maximumSideWidth - COMBAT_BOARD_MIN_WIDTHS.context);
+        contextWidth = clampCombatBoardValue(contextWidth, COMBAT_BOARD_MIN_WIDTHS.context, maximumSideWidth - initiativeWidth);
+        combatBoardLayout.initiativeRatio = initiativeWidth / availableWidth;
+        combatBoardLayout.contextRatio = contextWidth / availableWidth;
+        combatBoardMain.style.setProperty("--combat-initiative-size", `${initiativeWidth}px`);
+        combatBoardMain.style.setProperty("--combat-context-size", `${contextWidth}px`);
+        combatInitiativeSplitter?.setAttribute("aria-valuenow", String(Math.round(initiativeWidth)));
+        combatContextSplitter?.setAttribute("aria-valuenow", String(Math.round(contextWidth)));
+      }
+
+      const panelRect = turnActionsPanel?.getBoundingClientRect?.();
+      const headerRect = document.getElementById("turnActionsHeader")?.getBoundingClientRect?.();
+      if (panelRect && headerRect && panelRect.height > 0) {
+        const availableHeight = Math.max(1, panelRect.height - headerRect.height - 8);
+        const maximumActionHeight = Math.max(COMBAT_BOARD_MIN_HEIGHTS.actions, availableHeight - COMBAT_BOARD_MIN_HEIGHTS.board);
+        const actionHeight = clampCombatBoardValue(
+          availableHeight * combatBoardLayout.actionRatio,
+          COMBAT_BOARD_MIN_HEIGHTS.actions,
+          maximumActionHeight
+        );
+        combatBoardLayout.actionRatio = actionHeight / availableHeight;
+        turnActionsPanel.style.setProperty("--combat-action-size", `${actionHeight}px`);
+        combatActionSplitter?.setAttribute("aria-valuenow", String(Math.round(actionHeight)));
+      }
+      if (persist) persistCombatBoardLayout();
+    }
+
+    function combatBoardResizeKeyDelta(event, type) {
+      const amount = event.shiftKey ? 0.05 : 0.02;
+      if (type === "initiative") return event.key === "ArrowRight" ? amount : event.key === "ArrowLeft" ? -amount : 0;
+      if (type === "context") return event.key === "ArrowLeft" ? amount : event.key === "ArrowRight" ? -amount : 0;
+      return event.key === "ArrowUp" ? amount : event.key === "ArrowDown" ? -amount : 0;
+    }
+
+    function handleCombatBoardResizeKey(event, type) {
+      const delta = combatBoardResizeKeyDelta(event, type);
+      if (!delta) return;
+      event.preventDefault();
+      if (type === "initiative") combatBoardLayout.initiativeRatio += delta;
+      else if (type === "context") combatBoardLayout.contextRatio += delta;
+      else combatBoardLayout.actionRatio += delta;
+      combatBoardLayout = normalizeCombatBoardLayout(combatBoardLayout);
+      applyCombatBoardLayout({ persist: true });
+      globalThis.dndCharacterSheetVttSurface?.refreshLayout?.();
+    }
+
+    function startCombatBoardResize(event, type) {
+      if (event.button != null && event.button !== 0) return;
+      const initiativeRect = combatInitiativePanel?.getBoundingClientRect?.();
+      const mapRect = combatMapPanel?.getBoundingClientRect?.();
+      const contextRect = combatContextPanel?.getBoundingClientRect?.();
+      const boardRect = combatBoardMain?.getBoundingClientRect?.();
+      const actionRect = document.querySelector(".combat-action-dock")?.getBoundingClientRect?.();
+      if (!initiativeRect || !mapRect || !contextRect || !boardRect || !actionRect) return;
+      combatBoardResizeState = {
+        type,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        initiativeWidth: initiativeRect.width,
+        mapWidth: mapRect.width,
+        contextWidth: contextRect.width,
+        boardHeight: boardRect.height,
+        actionHeight: actionRect.height
+      };
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      document.body.classList.add("combat-board-resizing");
+      event.preventDefault();
+    }
+
+    function moveCombatBoardResize(event) {
+      const state = combatBoardResizeState;
+      if (!state || state.pointerId !== event.pointerId) return;
+      if (state.type === "initiative" || state.type === "context") {
+        const totalWidth = state.initiativeWidth + state.mapWidth + state.contextWidth;
+        if (state.type === "initiative") {
+          const nextInitiative = clampCombatBoardValue(
+            state.initiativeWidth + event.clientX - state.startX,
+            COMBAT_BOARD_MIN_WIDTHS.initiative,
+            totalWidth - COMBAT_BOARD_MIN_WIDTHS.map - COMBAT_BOARD_MIN_WIDTHS.context
+          );
+          combatBoardLayout.initiativeRatio = nextInitiative / totalWidth;
+        } else {
+          const nextContext = clampCombatBoardValue(
+            state.contextWidth - event.clientX + state.startX,
+            COMBAT_BOARD_MIN_WIDTHS.context,
+            totalWidth - COMBAT_BOARD_MIN_WIDTHS.initiative - COMBAT_BOARD_MIN_WIDTHS.map
+          );
+          combatBoardLayout.contextRatio = nextContext / totalWidth;
+        }
+      } else {
+        const totalHeight = state.boardHeight + state.actionHeight;
+        const nextActionHeight = clampCombatBoardValue(
+          state.actionHeight - event.clientY + state.startY,
+          COMBAT_BOARD_MIN_HEIGHTS.actions,
+          totalHeight - COMBAT_BOARD_MIN_HEIGHTS.board
+        );
+        combatBoardLayout.actionRatio = nextActionHeight / totalHeight;
+      }
+      combatBoardLayout = normalizeCombatBoardLayout(combatBoardLayout);
+      applyCombatBoardLayout();
+      globalThis.dndCharacterSheetVttSurface?.refreshLayout?.();
+      event.preventDefault();
+    }
+
+    function stopCombatBoardResize(event) {
+      if (!combatBoardResizeState || (event?.pointerId != null && event.pointerId !== combatBoardResizeState.pointerId)) return;
+      combatBoardResizeState = null;
+      document.body.classList.remove("combat-board-resizing");
+      persistCombatBoardLayout();
+    }
+
+    function setupCombatBoardResize() {
+      [[combatInitiativeSplitter, "initiative"], [combatContextSplitter, "context"], [combatActionSplitter, "actions"]]
+        .filter(([splitter]) => splitter)
+        .forEach(([splitter, type]) => {
+          splitter.addEventListener("pointerdown", (event) => startCombatBoardResize(event, type));
+          splitter.addEventListener("keydown", (event) => handleCombatBoardResizeKey(event, type));
+        });
+      window.addEventListener("pointermove", moveCombatBoardResize);
+      window.addEventListener("pointerup", stopCombatBoardResize);
+      window.addEventListener("pointercancel", stopCombatBoardResize);
+      applyCombatBoardLayout();
+    }
+
+    globalThis.dndCombatBoardSurface = {
+      apply: applyCombatBoardLayout,
+      setup: setupCombatBoardResize
+    };
 
     function liveVttCombatTargetRoster() {
       const state = liveVttState;
@@ -224,7 +496,7 @@
     globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster;
 
     async function openDmScreen() {
-      setAppSettingsMenuOpen(false);
+      closeSidebarMenu();
       try {
         if (saveTimer) {
           clearTimeout(saveTimer);
@@ -885,6 +1157,30 @@
       return elements;
     }
 
+    function setLiveVttCombatSurface(active) {
+      liveVttCombatSurfaceActive = Boolean(active);
+      const elements = ensureLiveVttWindow();
+      if (liveVttCombatSurfaceActive && combatMapViewport) {
+        if (elements.root.parentNode !== combatMapViewport) {
+          liveVttOriginalParent = elements.root.parentNode;
+          combatMapViewport.appendChild(elements.root);
+        }
+        elements.root.dataset.combatSurface = "true";
+      } else {
+        const returnParent = liveVttOriginalParent?.isConnected ? liveVttOriginalParent : document.body;
+        if (elements.root.parentNode === combatMapViewport) returnParent.appendChild(elements.root);
+        delete elements.root.dataset.combatSurface;
+      }
+      renderCombatBoard(liveVttState?.combat);
+      requestAnimationFrame(updateLiveVttLayout);
+    }
+
+    globalThis.dndCharacterSheetVttSurface = {
+      setCombatSurface: setLiveVttCombatSurface,
+      getState: () => liveVttState,
+      refreshLayout: () => requestAnimationFrame(updateLiveVttLayout)
+    };
+
     function liveVttContainedRect(containerWidth, containerHeight, naturalWidth, naturalHeight) {
       const safeContainerWidth = Math.max(1, Number(containerWidth) || 1);
       const safeContainerHeight = Math.max(1, Number(containerHeight) || 1);
@@ -1311,6 +1607,94 @@
       elements.combatTrack.replaceChildren(...nodes);
       elements.combat.setAttribute("aria-label", t("live.combatRound", { round }));
       elements.combat.hidden = false;
+    }
+
+    function renderCombatInitiative(combat) {
+      if (!combatInitiativeList) return;
+      const participants = Array.isArray(combat?.participants)
+        ? combat.participants.filter((participant) => !participant?.hidden && !participant?.playerHidden)
+        : [];
+      const activeIndex = participants.findIndex((participant) => participant.id === combat?.activeId);
+      if (combatRoundLabel) {
+        combatRoundLabel.textContent = combat?.active
+          ? t("combat.round", { round: Math.max(1, Number(combat.round) || 1) })
+          : t("combat.waitingForDm");
+      }
+      if (!participants.length) {
+        const empty = document.createElement("div");
+        empty.className = "combat-panel-empty";
+        empty.textContent = combat?.active ? t("combat.initiativeEmpty") : t("combat.connectInitiative");
+        combatInitiativeList.replaceChildren(empty);
+        return;
+      }
+
+      const rows = participants.map((participant, index) => {
+        const row = document.createElement("article");
+        row.className = "combat-initiative-row";
+        row.dataset.active = String(activeIndex >= 0 && index === activeIndex);
+        row.dataset.kind = participant.kind === "character" ? "character" : "monster";
+
+        const portrait = document.createElement("div");
+        portrait.className = "combat-initiative-portrait";
+        const initials = document.createElement("span");
+        initials.textContent = liveVttInitials(participant.name);
+        portrait.appendChild(initials);
+        resolveLiveVttTokenImage(participant, portrait);
+
+        const copy = document.createElement("div");
+        copy.className = "combat-initiative-copy";
+        const name = document.createElement("strong");
+        name.className = "combat-initiative-name";
+        name.textContent = participant.name || t("combat.unknownCombatant");
+        const kind = document.createElement("span");
+        kind.className = "combat-initiative-kind";
+        kind.textContent = participant.kind === "character" ? t("combat.character") : t("combat.enemy");
+        copy.append(name, kind);
+
+        const initiative = document.createElement("span");
+        initiative.className = "combat-initiative-value";
+        initiative.textContent = participant.initiative === "" || participant.initiative == null
+          ? "-"
+          : String(participant.initiative);
+        row.append(portrait, copy, initiative);
+
+        const hpRatio = liveVttHpRatio(participant);
+        if (hpRatio !== null) {
+          const health = document.createElement("div");
+          health.className = "combat-initiative-health";
+          const fill = document.createElement("span");
+          fill.style.width = `${Math.round(hpRatio * 100)}%`;
+          health.appendChild(fill);
+          row.appendChild(health);
+        }
+        return row;
+      });
+      combatInitiativeList.replaceChildren(...rows);
+    }
+
+    function renderCombatBoard(combat) {
+      const hasMap = Boolean(liveVttState?.active && liveVttState.image?.dataUrl);
+      if (combatMapEmpty) combatMapEmpty.hidden = hasMap;
+      if (combatMapStatus) combatMapStatus.textContent = hasMap ? t("combat.mapConnected") : t("combat.mapWaiting");
+      if (combatMapLiveIndicator) combatMapLiveIndicator.dataset.connected = String(hasMap);
+
+      const participants = Array.isArray(combat?.participants)
+        ? combat.participants.filter((participant) => !participant?.hidden && !participant?.playerHidden)
+        : [];
+      const activeParticipant = participants.find((participant) => participant.id === combat?.activeId);
+      if (combatActiveName) combatActiveName.textContent = activeParticipant?.name || t("combat.noActiveActor");
+      if (combatActiveMeta) {
+        if (!activeParticipant) {
+          combatActiveMeta.textContent = combat?.active ? t("combat.activeWaiting") : t("combat.activeWaiting");
+        } else {
+          const kind = activeParticipant.kind === "character" ? t("combat.character") : t("combat.enemy");
+          const initiative = activeParticipant.initiative === "" || activeParticipant.initiative == null
+            ? ""
+            : t("combat.initiativeValue", { initiative: activeParticipant.initiative });
+          combatActiveMeta.textContent = [kind, initiative].filter(Boolean).join(" • ");
+        }
+      }
+      renderCombatInitiative(combat);
     }
 
     function renderLiveVttMarkers(element, markers, sourceViewport, layout = null) {
@@ -1823,6 +2207,7 @@
         elements.markers.replaceChildren();
         elements.pings.replaceChildren();
         renderLiveVttCombat(null);
+        renderCombatBoard(null);
         liveVttPings = [];
         return;
       }
@@ -1843,6 +2228,7 @@
       renderLiveVttFog(elements.fog, state.fogOfWar);
       renderLiveVttTokens(elements.tokens, state.tokens, state.sourceViewport);
       renderLiveVttCombat(state.combat);
+      renderCombatBoard(state.combat);
       renderLiveVttMarkers(elements.markers, state.markers, state.sourceViewport);
       elements.root.hidden = false;
       requestAnimationFrame(updateLiveVttLayout);
@@ -1941,7 +2327,7 @@
         liveSheetClientBackdrop.hidden = false;
         liveSheetClientBackdrop.setAttribute("aria-hidden", "false");
       }
-      setAppSettingsMenuOpen(false);
+      closeSidebarMenu();
       setLiveSheetClientStatus(liveSheetClientSocket?.readyState === WebSocket.OPEN ? "live.connected" : "live.disconnected", liveSheetClientSocket?.readyState === WebSocket.OPEN ? "ok" : "neutral");
       requestAnimationFrame(() => {
         (liveSheetDmIp?.value ? liveSheetPlayerName : liveSheetDmIp)?.focus?.();
@@ -2093,6 +2479,15 @@
           if (payload?.type === "dm:hand:queue") {
             renderLiveVttHandQueue(payload.raisedHands);
           }
+          if (payload?.type === "dm:notes:state") {
+            playerNotesHandleSharedState(payload.notes);
+          }
+          if (payload?.type === "dm:notes:upsert") {
+            playerNotesHandleIncoming(payload.note);
+          }
+          if (payload?.type === "dm:notes:remove") {
+            playerNotesHandleIncomingRemove(payload.noteId);
+          }
           if (payload?.type === "player:roll") {
             window.showLiveSheetRoll?.(payload.roll);
           }
@@ -2178,6 +2573,850 @@
 
     function isTopControlsMenuOpen() {
       return Boolean(topControlsMenu?.classList.contains("open"));
+    }
+
+    function isSidebarMenuOpen() {
+      return Boolean(sidebarMenuPanel && !sidebarMenuPanel.hidden);
+    }
+
+    function setSidebarView(view = "sheet") {
+      const nextView = ["combat", "notes"].includes(view) ? view : "sheet";
+      sidebarViewButtons.forEach((button) => {
+        const active = button.dataset.sidebarView === nextView;
+        button.classList.toggle("is-active", active);
+        if (active) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
+      });
+      if (notesWorkspace) {
+        const notesOpen = nextView === "notes";
+        notesWorkspace.hidden = !notesOpen;
+        notesWorkspace.setAttribute("aria-hidden", notesOpen ? "false" : "true");
+        if (notesOpen) {
+          playerNotesLoadForActiveSlot();
+          playerNotesRender();
+        }
+      }
+    }
+
+    function playerNotesNow() {
+      return new Date().toISOString();
+    }
+
+    function playerNotesNewId(prefix = "note") {
+      const random = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      return `${prefix}-${String(random).replace(/[^a-zA-Z0-9-]/g, "-")}`;
+    }
+
+    function playerNotesStorageKey(slotId = activeSaveSlotId) {
+      return `${PLAYER_NOTES_STORAGE_KEY}:${slotId || "slot-1"}`;
+    }
+
+    function playerNotesEmptyStore() {
+      return {
+        version: 1,
+        folders: [{ id: "campaign", name: "Campaign" }],
+        notes: []
+      };
+    }
+
+    function playerNotesNormalizeTask(task) {
+      if (!task || typeof task !== "object") return null;
+      const text = String(task.text || "").trim().slice(0, 240);
+      if (!text) return null;
+      return {
+        id: String(task.id || playerNotesNewId("task")).replace(/[^a-zA-Z0-9-]/g, "-").slice(0, 120),
+        text,
+        completed: Boolean(task.completed)
+      };
+    }
+
+    function playerNotesNormalizeLink(link) {
+      if (!link || typeof link !== "object") return null;
+      const label = String(link.label || "").trim().slice(0, 120);
+      if (!label) return null;
+      return {
+        id: String(link.id || playerNotesNewId("link")).replace(/[^a-zA-Z0-9-]/g, "-").slice(0, 120),
+        label,
+        type: String(link.type || "Session").trim().slice(0, 40) || "Session"
+      };
+    }
+
+    function playerNotesNormalizeNote(note = {}) {
+      const now = playerNotesNow();
+      const category = PLAYER_NOTES_CATEGORIES.includes(String(note.category || "").toLowerCase())
+        ? String(note.category).toLowerCase()
+        : "session";
+      const color = PLAYER_NOTE_COLORS.includes(String(note.color || "").toLowerCase())
+        ? String(note.color).toLowerCase()
+        : "amber";
+      return {
+        id: String(note.id || playerNotesNewId()).replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 120),
+        title: String(note.title || "Untitled Note").trim().slice(0, 160) || "Untitled Note",
+        category,
+        folderId: String(note.folderId || "").replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 80),
+        body: String(note.body || "").replace(/\r\n?/g, "\n").slice(0, 24000),
+        tags: [...new Set((Array.isArray(note.tags) ? note.tags : [])
+          .map((tag) => String(tag || "").trim().toLowerCase().slice(0, 32))
+          .filter(Boolean))].slice(0, 16),
+        color,
+        tasks: (Array.isArray(note.tasks) ? note.tasks : []).map(playerNotesNormalizeTask).filter(Boolean).slice(0, 48),
+        links: (Array.isArray(note.links) ? note.links : []).map(playerNotesNormalizeLink).filter(Boolean).slice(0, 24),
+        pinned: Boolean(note.pinned),
+        archived: Boolean(note.archived),
+        shared: Boolean(note.shared),
+        sharedBy: note.sharedBy && typeof note.sharedBy === "object"
+          ? { playerId: String(note.sharedBy.playerId || "").slice(0, 120), playerName: String(note.sharedBy.playerName || "Jugador").slice(0, 80) }
+          : null,
+        createdAt: String(note.createdAt || now).slice(0, 40),
+        updatedAt: String(note.updatedAt || now).slice(0, 40)
+      };
+    }
+
+    function playerNotesNormalizeStore(raw) {
+      const store = raw && typeof raw === "object" ? raw : playerNotesEmptyStore();
+      const folders = (Array.isArray(store.folders) ? store.folders : [])
+        .map((folder) => {
+          if (!folder || typeof folder !== "object") return null;
+          const name = String(folder.name || "").trim().slice(0, 80);
+          if (!name) return null;
+          return {
+            id: String(folder.id || playerNotesNewId("folder")).replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 80),
+            name
+          };
+        })
+        .filter(Boolean);
+      if (!folders.length) folders.push({ id: "campaign", name: "Campaign" });
+      const folderIds = new Set(folders.map((folder) => folder.id));
+      const notes = [...new Map((Array.isArray(store.notes) ? store.notes : [])
+        .map(playerNotesNormalizeNote)
+        .map((note) => [note.id, { ...note, folderId: folderIds.has(note.folderId) ? note.folderId : "" }])).values()]
+        .slice(0, 240);
+      return { version: 1, folders, notes };
+    }
+
+    function playerNotesSaveStore() {
+      if (!playerNotesStore) return;
+      try {
+        localStorage.setItem(playerNotesStorageKey(), JSON.stringify(playerNotesStore));
+      } catch (error) {
+        console.warn("Could not save player notes.", error);
+      }
+    }
+
+    function playerNotesDefaultNote() {
+      const now = playerNotesNow();
+      return playerNotesNormalizeNote({
+        id: playerNotesNewId(),
+        title: "Session Notes",
+        category: "session",
+        folderId: "campaign",
+        body: "## Summary\n\nWrite down what happens during the adventure.\n\n## Clues\n\n- \n\n## To Do\n\n- [ ] Add your first task",
+        tags: ["session"],
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+
+    function playerNotesLoadForActiveSlot() {
+      let raw = null;
+      try {
+        raw = JSON.parse(localStorage.getItem(playerNotesStorageKey()) || "null");
+      } catch (error) {
+        console.warn("Could not load player notes.", error);
+      }
+      playerNotesStore = playerNotesNormalizeStore(raw);
+      if (!playerNotesStore.notes.length) {
+        playerNotesStore.notes.push(playerNotesDefaultNote());
+        playerNotesSaveStore();
+      }
+      const noteIds = new Set(playerNotesStore.notes.map((note) => note.id));
+      playerNotesOpenIds = playerNotesOpenIds.filter((id) => noteIds.has(id));
+      if (!playerNotesOpenIds.length) playerNotesOpenIds = [playerNotesStore.notes[0].id];
+      if (!noteIds.has(playerNotesActiveId)) playerNotesActiveId = playerNotesOpenIds[0];
+    }
+
+    function playerNotesActiveNote() {
+      return playerNotesStore?.notes?.find((note) => note.id === playerNotesActiveId) || null;
+    }
+
+    function playerNotesVisibleNotes() {
+      const query = playerNotesSearch.trim().toLowerCase();
+      return (playerNotesStore?.notes || [])
+        .filter((note) => {
+          if (note.archived) return false;
+          if (playerNotesFilter === "shared" && !note.shared) return false;
+          if (PLAYER_NOTES_CATEGORIES.includes(playerNotesFilter) && note.category !== playerNotesFilter) return false;
+          if (playerNotesFolderFilter && note.folderId !== playerNotesFolderFilter) return false;
+          if (!query) return true;
+          return [note.title, note.body, ...(note.tags || [])].join(" ").toLowerCase().includes(query);
+        })
+        .sort((left, right) => Number(right.pinned) - Number(left.pinned) || String(right.updatedAt).localeCompare(String(left.updatedAt)));
+    }
+
+    function playerNotesFormatDate(value) {
+      if (!value) return "-";
+      try {
+        return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+      } catch (_error) {
+        return String(value);
+      }
+    }
+
+    function playerNotesRenderCategories() {
+      const notes = playerNotesStore?.notes || [];
+      notesCategoryList?.querySelectorAll("[data-notes-category]").forEach((button) => {
+        const category = button.dataset.notesCategory || "all";
+        button.classList.toggle("is-active", category === playerNotesFilter && !playerNotesFolderFilter);
+      });
+      const allCount = notes.filter((note) => !note.archived).length;
+      const sharedCount = notes.filter((note) => !note.archived && note.shared).length;
+      document.getElementById("notesAllCount")?.replaceChildren(document.createTextNode(String(allCount)));
+      document.getElementById("notesSharedCount")?.replaceChildren(document.createTextNode(String(sharedCount)));
+      notesCategoryList?.querySelectorAll("[data-notes-count]").forEach((badge) => {
+        const category = badge.dataset.notesCount;
+        badge.textContent = String(notes.filter((note) => !note.archived && note.category === category).length);
+      });
+    }
+
+    function playerNotesRenderFolders() {
+      if (!notesFolderList) return;
+      notesFolderList.replaceChildren(...(playerNotesStore?.folders || []).map((folder) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `notes-folder-button${playerNotesFolderFilter === folder.id ? " is-active" : ""}`;
+        button.dataset.notesFolder = folder.id;
+        const icon = document.createElement("span");
+        icon.className = "notes-folder-icon";
+        icon.textContent = "▰";
+        const label = document.createElement("span");
+        label.textContent = folder.name;
+        const count = document.createElement("span");
+        count.className = "notes-category-count";
+        count.textContent = String((playerNotesStore?.notes || []).filter((note) => note.folderId === folder.id && !note.archived).length);
+        button.append(icon, label, count);
+        return button;
+      }));
+    }
+
+    function playerNotesRenderLibrary() {
+      if (!notesLibraryList) return;
+      notesLibraryList.replaceChildren(...playerNotesVisibleNotes().map((note) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `notes-library-note-button${note.id === playerNotesActiveId ? " is-active" : ""}`;
+        button.dataset.notesId = note.id;
+        const dot = document.createElement("span");
+        dot.className = "notes-library-note-dot";
+        dot.style.background = note.color === "gray" ? "#737a7b" : note.color === "red" ? "#e16152" : note.color === "green" ? "#5aaf59" : note.color === "blue" ? "#4f87cc" : note.color === "purple" ? "#8758c4" : "#e5a925";
+        const title = document.createElement("span");
+        title.textContent = note.title;
+        const meta = document.createElement("span");
+        meta.className = "notes-library-note-meta";
+        meta.textContent = note.shared ? (note.sharedBy?.playerName || t("notes.sharedNotes")) : note.category;
+        button.append(dot, title, meta);
+        return button;
+      }));
+    }
+
+    function playerNotesRenderTabs() {
+      if (!notesTabs) return;
+      notesTabs.replaceChildren(...playerNotesOpenIds
+        .map((id) => playerNotesStore?.notes?.find((note) => note.id === id))
+        .filter(Boolean)
+        .map((note) => {
+          const tab = document.createElement("div");
+          tab.className = `notes-tab${note.id === playerNotesActiveId ? " is-active" : ""}`;
+          tab.dataset.notesId = note.id;
+          tab.setAttribute("role", "tab");
+          tab.setAttribute("aria-selected", note.id === playerNotesActiveId ? "true" : "false");
+          const label = document.createElement("span");
+          label.className = "notes-tab-label";
+          label.textContent = note.title;
+          const close = document.createElement("button");
+          close.type = "button";
+          close.className = "notes-tab-close";
+          close.dataset.notesCloseId = note.id;
+          close.setAttribute("aria-label", t("common.close"));
+          close.textContent = "×";
+          tab.append(label, close);
+          return tab;
+        }));
+    }
+
+    function playerNotesRenderTags(note) {
+      if (!notesTags) return;
+      notesTags.replaceChildren(...(note?.tags || []).map((tag) => {
+        const chip = document.createElement("span");
+        chip.className = "notes-tag";
+        chip.dataset.color = note.color;
+        chip.appendChild(document.createTextNode(tag));
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.dataset.notesRemoveTag = tag;
+        remove.setAttribute("aria-label", `${t("notes.delete")} ${tag}`);
+        remove.textContent = "×";
+        chip.appendChild(remove);
+        return chip;
+      }));
+    }
+
+    function playerNotesRenderLinks(note) {
+      if (!notesLinksList) return;
+      notesLinksList.replaceChildren(...(note?.links || []).map((link) => {
+        const row = document.createElement("div");
+        row.className = "notes-link-row";
+        const icon = document.createElement("span");
+        icon.className = "notes-link-icon";
+        icon.textContent = "●";
+        const label = document.createElement("span");
+        label.className = "notes-link-label";
+        label.textContent = link.label;
+        const type = document.createElement("span");
+        type.className = "notes-link-type";
+        type.textContent = link.type;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "notes-link-delete";
+        remove.dataset.notesRemoveLink = link.id;
+        remove.setAttribute("aria-label", `${t("notes.delete")} ${link.label}`);
+        remove.textContent = "×";
+        row.append(icon, label, type, remove);
+        return row;
+      }));
+    }
+
+    function playerNotesRenderTasks(note) {
+      if (!notesTaskList) return;
+      notesTaskList.replaceChildren(...(note?.tasks || []).map((task) => {
+        const row = document.createElement("div");
+        row.className = "notes-task-row";
+        row.dataset.completed = String(task.completed);
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.completed;
+        checkbox.dataset.notesTaskId = task.id;
+        const label = document.createElement("span");
+        label.className = "notes-task-label";
+        label.textContent = task.text;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "notes-task-delete";
+        remove.dataset.notesRemoveTask = task.id;
+        remove.setAttribute("aria-label", `${t("notes.delete")} ${task.text}`);
+        remove.textContent = "×";
+        row.append(checkbox, label, remove);
+        return row;
+      }));
+    }
+
+    function playerNotesSetEditorDisabled(disabled) {
+      [notesTitleInput, notesBodyInput, notesStarButton, notesShareToggle, notesPinButton, notesArchiveButton, notesDuplicateButton, notesExportButton, notesDeleteButton, notesTagInput, notesAddTagButton, notesAddLinkButton, notesAddTaskButton, notesCategorySelect, notesFolderSelect]
+        .filter(Boolean)
+        .forEach((element) => { element.disabled = disabled; });
+      notesWorkspace?.querySelectorAll("[data-note-command], [data-note-color], [data-note-template]").forEach((element) => { element.disabled = disabled; });
+    }
+
+    function playerNotesRenderDetails() {
+      const note = playerNotesActiveNote();
+      playerNotesSetEditorDisabled(!note);
+      if (!note) {
+        if (notesTitleInput) notesTitleInput.value = "";
+        if (notesBodyInput) notesBodyInput.value = "";
+        if (notesLastEdited) notesLastEdited.textContent = "-";
+        if (notesCreated) notesCreated.textContent = "-";
+        if (notesId) notesId.textContent = "-";
+        if (notesShareStatus) notesShareStatus.textContent = "";
+        playerNotesRenderTags(null);
+        playerNotesRenderLinks(null);
+        playerNotesRenderTasks(null);
+        return;
+      }
+      if (notesTitleInput && notesTitleInput.value !== note.title) notesTitleInput.value = note.title;
+      if (notesBodyInput && notesBodyInput.value !== note.body) notesBodyInput.value = note.body;
+      if (notesStarButton) {
+        notesStarButton.classList.toggle("is-active", note.pinned);
+        notesStarButton.textContent = note.pinned ? "★" : "☆";
+      }
+      if (notesPinButton) notesPinButton.classList.toggle("is-active", note.pinned);
+      if (notesArchiveButton) {
+        notesArchiveButton.classList.toggle("is-active", note.archived);
+        notesArchiveButton.querySelector("span:last-child")?.replaceChildren(document.createTextNode(note.archived ? t("notes.unarchived") : t("notes.archive")));
+      }
+      if (notesLastEdited) notesLastEdited.textContent = playerNotesFormatDate(note.updatedAt);
+      if (notesCreated) notesCreated.textContent = playerNotesFormatDate(note.createdAt);
+      if (notesId) notesId.textContent = note.id.slice(0, 18);
+      if (notesShareToggle) notesShareToggle.checked = note.shared;
+      if (notesCategorySelect) notesCategorySelect.value = note.category;
+      if (notesFolderSelect) {
+        notesFolderSelect.replaceChildren(...(playerNotesStore?.folders || []).map((folder) => {
+          const option = document.createElement("option");
+          option.value = folder.id;
+          option.textContent = folder.name;
+          return option;
+        }));
+        notesFolderSelect.value = note.folderId || "";
+      }
+      if (notesShareStatus) {
+        notesShareStatus.dataset.tone = "";
+        notesShareStatus.textContent = note.shared
+          ? (note.sharedBy?.playerName ? t("notes.sharedBy", { name: note.sharedBy.playerName }) : t("notes.shared"))
+          : t("notes.unshared");
+      }
+      notesLabelColors?.querySelectorAll("[data-note-color]").forEach((button) => button.classList.toggle("is-active", button.dataset.noteColor === note.color));
+      playerNotesRenderTags(note);
+      playerNotesRenderLinks(note);
+      playerNotesRenderTasks(note);
+    }
+
+    function playerNotesRender() {
+      if (!playerNotesStore) playerNotesLoadForActiveSlot();
+      playerNotesRenderCategories();
+      playerNotesRenderFolders();
+      playerNotesRenderLibrary();
+      playerNotesRenderTabs();
+      playerNotesRenderDetails();
+    }
+
+    function playerNotesPersist(note = playerNotesActiveNote(), { share = true } = {}) {
+      if (!note || !playerNotesStore) return;
+      note.updatedAt = playerNotesNow();
+      clearTimeout(playerNotesSaveTimer);
+      playerNotesSaveTimer = setTimeout(() => {
+        playerNotesSaveStore();
+        if (notesEditorStatus) notesEditorStatus.textContent = t("notes.saved");
+      }, 180);
+      if (share && note.shared) playerNotesScheduleShare(note);
+    }
+
+    function playerNotesScheduleShare(note) {
+      clearTimeout(playerNotesShareTimer);
+      playerNotesShareTimer = setTimeout(() => {
+        if (!note?.shared) return;
+        if (!sendLiveSheetMessage({ type: "player:note:share", note })) {
+          if (notesShareStatus) {
+            notesShareStatus.dataset.tone = "error";
+            notesShareStatus.textContent = t("notes.shareRequiresConnection");
+          }
+        }
+      }, 180);
+    }
+
+    function playerNotesUpdate(patch, options = {}) {
+      const note = playerNotesActiveNote();
+      if (!note) return;
+      Object.assign(note, patch);
+      playerNotesPersist(note, options);
+      playerNotesRenderLibrary();
+      playerNotesRenderTabs();
+      playerNotesRenderDetails();
+    }
+
+    function playerNotesSetActive(id) {
+      const note = playerNotesStore?.notes?.find((entry) => entry.id === id);
+      if (!note) return;
+      playerNotesActiveId = note.id;
+      if (!playerNotesOpenIds.includes(note.id)) playerNotesOpenIds.push(note.id);
+      playerNotesRender();
+    }
+
+    function playerNotesCreate(templateKey = "session") {
+      const template = PLAYER_NOTE_TEMPLATES[templateKey] || PLAYER_NOTE_TEMPLATES.session;
+      const now = playerNotesNow();
+      const note = playerNotesNormalizeNote({
+        id: playerNotesNewId(),
+        title: template.title,
+        category: template.category,
+        folderId: playerNotesStore?.folders?.[0]?.id || "",
+        body: template.body,
+        tags: [template.category === "session" ? "session" : template.category],
+        createdAt: now,
+        updatedAt: now
+      });
+      playerNotesStore.notes.unshift(note);
+      playerNotesActiveId = note.id;
+      playerNotesOpenIds = [...new Set([note.id, ...playerNotesOpenIds])].slice(0, 12);
+      playerNotesSaveStore();
+      playerNotesRender();
+      if (notesEditorStatus) notesEditorStatus.textContent = t("notes.noteCreated");
+    }
+
+    function playerNotesDuplicate() {
+      const source = playerNotesActiveNote();
+      if (!source) return;
+      const note = playerNotesNormalizeNote({
+        ...source,
+        id: playerNotesNewId(),
+        title: t("notes.duplicateTitle", { title: source.title }),
+        shared: false,
+        sharedBy: null,
+        createdAt: playerNotesNow(),
+        updatedAt: playerNotesNow()
+      });
+      playerNotesStore.notes.unshift(note);
+      playerNotesActiveId = note.id;
+      playerNotesOpenIds = [...new Set([note.id, ...playerNotesOpenIds])].slice(0, 12);
+      playerNotesSaveStore();
+      playerNotesRender();
+    }
+
+    function playerNotesDelete() {
+      const note = playerNotesActiveNote();
+      if (!note || !window.confirm(`${t("notes.delete")} "${note.title}"?`)) return;
+      if (note.shared) sendLiveSheetMessage({ type: "player:note:unshare", noteId: note.id });
+      playerNotesStore.notes = playerNotesStore.notes.filter((entry) => entry.id !== note.id);
+      playerNotesOpenIds = playerNotesOpenIds.filter((id) => id !== note.id);
+      if (!playerNotesOpenIds.length && playerNotesStore.notes.length) playerNotesOpenIds = [playerNotesStore.notes[0].id];
+      playerNotesActiveId = playerNotesOpenIds[0] || "";
+      playerNotesSaveStore();
+      playerNotesRender();
+      if (notesEditorStatus) notesEditorStatus.textContent = t("notes.deleted");
+    }
+
+    function playerNotesToggleArchive() {
+      const note = playerNotesActiveNote();
+      if (!note) return;
+      note.archived = !note.archived;
+      playerNotesPersist(note);
+      playerNotesRender();
+      if (notesEditorStatus) notesEditorStatus.textContent = t(note.archived ? "notes.archived" : "notes.unarchived");
+    }
+
+    function playerNotesExport() {
+      const note = playerNotesActiveNote();
+      if (!note) return;
+      const markdown = [
+        `# ${note.title}`,
+        "",
+        note.body,
+        "",
+        note.tags.length ? `Tags: ${note.tags.map((tag) => `#${tag}`).join(" ")}` : "",
+        note.tasks.length ? `\n## Tasks\n${note.tasks.map((task) => `- [${task.completed ? "x" : " "}] ${task.text}`).join("\n")}` : ""
+      ].filter(Boolean).join("\n");
+      const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${note.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "note"}.md`;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      if (notesEditorStatus) notesEditorStatus.textContent = t("notes.exported");
+    }
+
+    function playerNotesInsert(command) {
+      const note = playerNotesActiveNote();
+      if (!note || !notesBodyInput) return;
+      if (["undo", "redo"].includes(command)) {
+        notesBodyInput.focus();
+        document.execCommand(command);
+        return;
+      }
+      const start = notesBodyInput.selectionStart;
+      const end = notesBodyInput.selectionEnd;
+      const selected = notesBodyInput.value.slice(start, end) || "text";
+      const wrappers = {
+        bold: ["**", "**"],
+        italic: ["*", "*"],
+        underline: ["__", "__"],
+        strike: ["~~", "~~"],
+        highlight: ["==", "=="],
+        code: ["`", "`"],
+        quote: ["> ", ""]
+      };
+      let replacement = selected;
+      if (wrappers[command]) replacement = `${wrappers[command][0]}${selected}${wrappers[command][1]}`;
+      if (command === "heading") replacement = `## ${selected}`;
+      if (command === "bullet") replacement = `- ${selected}`;
+      if (command === "numbered") replacement = `1. ${selected}`;
+      if (command === "task") replacement = `- [ ] ${selected}`;
+      if (command === "link") {
+        const url = window.prompt("URL", "https://");
+        if (!url) return;
+        replacement = `[${selected}](${url.trim()})`;
+      }
+      if (command === "table") replacement = "| Item | Details |\n| --- | --- |\n|  |  |";
+      notesBodyInput.setRangeText(replacement, start, end, "select");
+      notesBodyInput.focus();
+      playerNotesUpdate({ body: notesBodyInput.value });
+      notesBodyInput.setSelectionRange(start, start + replacement.length);
+    }
+
+    function playerNotesAddTag(rawTag = notesTagInput?.value) {
+      const note = playerNotesActiveNote();
+      const tag = String(rawTag || "").trim().toLowerCase().replace(/^#/, "").slice(0, 32);
+      if (!note || !tag || note.tags.includes(tag)) return;
+      note.tags = [...note.tags, tag].slice(0, 16);
+      if (notesTagInput) notesTagInput.value = "";
+      playerNotesUpdate({ tags: note.tags });
+    }
+
+    function playerNotesAddTask(rawText = notesTaskInput?.value) {
+      const note = playerNotesActiveNote();
+      const text = String(rawText || "").trim().slice(0, 240);
+      if (!note || !text) return;
+      note.tasks = [...note.tasks, { id: playerNotesNewId("task"), text, completed: false }].slice(0, 48);
+      if (notesTaskInput) notesTaskInput.value = "";
+      playerNotesUpdate({ tasks: note.tasks });
+    }
+
+    function playerNotesAddLink() {
+      const note = playerNotesActiveNote();
+      if (!note) return;
+      const label = window.prompt(t("notes.linkPrompt"), "");
+      if (!label?.trim()) return;
+      const type = window.prompt("Type", "Session") || "Session";
+      note.links = [...note.links, { id: playerNotesNewId("link"), label: label.trim().slice(0, 120), type: type.trim().slice(0, 40) || "Session" }].slice(0, 24);
+      playerNotesUpdate({ links: note.links });
+    }
+
+    function playerNotesAddFolder() {
+      if (!playerNotesStore) return;
+      const name = window.prompt(t("notes.folderPrompt"), "");
+      if (!name?.trim()) return;
+      const folder = { id: playerNotesNewId("folder"), name: name.trim().slice(0, 80) };
+      playerNotesStore.folders.push(folder);
+      playerNotesFolderFilter = folder.id;
+      playerNotesFilter = "all";
+      playerNotesSaveStore();
+      playerNotesRender();
+    }
+
+    function playerNotesToggleShare() {
+      const note = playerNotesActiveNote();
+      if (!note || !notesShareToggle) return;
+      if (notesShareToggle.checked) {
+        if (!liveSheetClientSocket || liveSheetClientSocket.readyState !== WebSocket.OPEN) {
+          notesShareToggle.checked = false;
+          if (notesShareStatus) {
+            notesShareStatus.dataset.tone = "error";
+            notesShareStatus.textContent = t("notes.shareRequiresConnection");
+          }
+          return;
+        }
+        note.shared = true;
+        note.sharedBy = { playerId: liveSheetPlayerId(), playerName: defaultLiveSheetPlayerName() };
+        playerNotesPersist(note);
+        playerNotesScheduleShare(note);
+      } else {
+        note.shared = false;
+        note.sharedBy = null;
+        sendLiveSheetMessage({ type: "player:note:unshare", noteId: note.id });
+        playerNotesPersist(note, { share: false });
+      }
+      playerNotesRenderDetails();
+      if (notesEditorStatus) notesEditorStatus.textContent = t(note.shared ? "notes.shared" : "notes.unshared");
+    }
+
+    function playerNotesApplyTemplate(templateKey) {
+      const note = playerNotesActiveNote();
+      const template = PLAYER_NOTE_TEMPLATES[templateKey];
+      if (!note || !template) return;
+      note.title = template.title;
+      note.category = template.category;
+      note.body = template.body;
+      note.tags = [template.category];
+      note.tasks = [];
+      playerNotesUpdate(note);
+      if (notesEditorStatus) notesEditorStatus.textContent = t("notes.templateApplied");
+    }
+
+    function playerNotesHandleIncoming(notePayload) {
+      const incoming = playerNotesNormalizeNote(notePayload);
+      if (!incoming?.id) return;
+      const existingIndex = playerNotesStore?.notes?.findIndex((note) => note.id === incoming.id) ?? -1;
+      if (existingIndex >= 0) playerNotesStore.notes.splice(existingIndex, 1, incoming);
+      else playerNotesStore?.notes?.unshift(incoming);
+      if (!playerNotesOpenIds.includes(incoming.id)) playerNotesOpenIds.push(incoming.id);
+      playerNotesSaveStore();
+      if (!playerNotesActiveId) playerNotesActiveId = incoming.id;
+      playerNotesRender();
+      if (notesShareStatus && incoming.id === playerNotesActiveId) notesShareStatus.textContent = t("notes.sharedBy", { name: incoming.sharedBy?.playerName || "Jugador" });
+    }
+
+    function playerNotesHandleSharedState(notePayloads) {
+      const incomingNotes = (Array.isArray(notePayloads) ? notePayloads : []).map(playerNotesNormalizeNote).filter(Boolean);
+      const incomingIds = new Set(incomingNotes.map((note) => note.id));
+      if (!playerNotesStore) playerNotesLoadForActiveSlot();
+      playerNotesStore.notes = playerNotesStore.notes.filter((note) => !note.shared || incomingIds.has(note.id));
+      incomingNotes.forEach((note) => {
+        const index = playerNotesStore.notes.findIndex((entry) => entry.id === note.id);
+        if (index >= 0) playerNotesStore.notes.splice(index, 1, note);
+        else playerNotesStore.notes.unshift(note);
+      });
+      playerNotesSaveStore();
+      if (!playerNotesActiveId && incomingNotes[0]) playerNotesActiveId = incomingNotes[0].id;
+      if (!notesWorkspace?.hidden) playerNotesRender();
+    }
+
+    function playerNotesHandleIncomingRemove(noteId) {
+      const id = String(noteId || "");
+      const note = playerNotesStore?.notes?.find((entry) => entry.id === id);
+      if (!note || !note.shared) return;
+      playerNotesStore.notes = playerNotesStore.notes.filter((entry) => entry.id !== id);
+      playerNotesOpenIds = playerNotesOpenIds.filter((entry) => entry !== id);
+      if (playerNotesActiveId === id) playerNotesActiveId = playerNotesOpenIds[0] || playerNotesStore.notes[0]?.id || "";
+      playerNotesSaveStore();
+      playerNotesRender();
+    }
+
+    function playerNotesInit() {
+      if (playerNotesInitialized) return;
+      playerNotesInitialized = true;
+      playerNotesLoadForActiveSlot();
+      sidebarNotesButton?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeSidebarMenu();
+        if (typeof closeTurnActionsPanel === "function") closeTurnActionsPanel();
+        setSidebarView("notes");
+      });
+      notesNewButton?.addEventListener("click", () => playerNotesCreate());
+      notesNewTabButton?.addEventListener("click", () => playerNotesCreate());
+      notesBackButton?.addEventListener("click", () => {
+        if (typeof closeTurnActionsPanel === "function") closeTurnActionsPanel();
+        setSidebarView("sheet");
+      });
+      notesCategoryList?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-notes-category]");
+        if (!button) return;
+        playerNotesFilter = button.dataset.notesCategory || "all";
+        playerNotesFolderFilter = "";
+        playerNotesRender();
+      });
+      notesFolderList?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-notes-folder]");
+        if (!button) return;
+        playerNotesFolderFilter = button.dataset.notesFolder || "";
+        playerNotesFilter = "all";
+        playerNotesRender();
+      });
+      notesLibraryList?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-notes-id]");
+        if (button) playerNotesSetActive(button.dataset.notesId);
+      });
+      notesTabs?.addEventListener("click", (event) => {
+        const closeId = event.target.closest("[data-notes-close-id]")?.dataset.notesCloseId;
+        if (closeId) {
+          event.stopPropagation();
+          playerNotesOpenIds = playerNotesOpenIds.filter((id) => id !== closeId);
+          if (playerNotesActiveId === closeId) playerNotesActiveId = playerNotesOpenIds[0] || playerNotesStore?.notes?.[0]?.id || "";
+          playerNotesRender();
+          return;
+        }
+        const tab = event.target.closest("[data-notes-id]");
+        if (tab) playerNotesSetActive(tab.dataset.notesId);
+      });
+      notesSearchInput?.addEventListener("input", () => {
+        playerNotesSearch = notesSearchInput.value || "";
+        playerNotesRenderLibrary();
+      });
+      notesTitleInput?.addEventListener("input", () => playerNotesUpdate({ title: notesTitleInput.value.slice(0, 160) }, { share: true }));
+      notesBodyInput?.addEventListener("input", () => playerNotesUpdate({ body: notesBodyInput.value.slice(0, 24000) }, { share: true }));
+      notesCategorySelect?.addEventListener("change", () => playerNotesUpdate({ category: notesCategorySelect.value }));
+      notesFolderSelect?.addEventListener("change", () => playerNotesUpdate({ folderId: notesFolderSelect.value }));
+      notesStarButton?.addEventListener("click", () => playerNotesUpdate({ pinned: !playerNotesActiveNote()?.pinned }));
+      notesPinButton?.addEventListener("click", () => playerNotesUpdate({ pinned: !playerNotesActiveNote()?.pinned }));
+      notesArchiveButton?.addEventListener("click", playerNotesToggleArchive);
+      notesDuplicateButton?.addEventListener("click", playerNotesDuplicate);
+      notesExportButton?.addEventListener("click", playerNotesExport);
+      notesDeleteButton?.addEventListener("click", playerNotesDelete);
+      notesWorkspace?.querySelectorAll("[data-note-command]").forEach((button) => button.addEventListener("click", () => playerNotesInsert(button.dataset.noteCommand)));
+      notesTagInput?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          playerNotesAddTag();
+        }
+      });
+      notesAddTagButton?.addEventListener("click", () => playerNotesAddTag());
+      notesTags?.addEventListener("click", (event) => {
+        const tag = event.target.closest("[data-notes-remove-tag]")?.dataset.notesRemoveTag;
+        if (!tag) return;
+        const note = playerNotesActiveNote();
+        if (note) playerNotesUpdate({ tags: note.tags.filter((entry) => entry !== tag) });
+      });
+      notesLabelColors?.addEventListener("click", (event) => {
+        const color = event.target.closest("[data-note-color]")?.dataset.noteColor;
+        if (color) playerNotesUpdate({ color });
+      });
+      notesAddLinkButton?.addEventListener("click", playerNotesAddLink);
+      notesLinksList?.addEventListener("click", (event) => {
+        const id = event.target.closest("[data-notes-remove-link]")?.dataset.notesRemoveLink;
+        const note = playerNotesActiveNote();
+        if (id && note) playerNotesUpdate({ links: note.links.filter((link) => link.id !== id) });
+      });
+      notesShareToggle?.addEventListener("change", playerNotesToggleShare);
+      notesTemplateList?.addEventListener("click", (event) => {
+        const template = event.target.closest("[data-note-template]")?.dataset.noteTemplate;
+        if (template) playerNotesApplyTemplate(template);
+      });
+      notesCloseTemplatesButton?.addEventListener("click", () => {
+        notesTemplateList?.closest(".notes-template-card")?.setAttribute("hidden", "");
+      });
+      notesAddTaskButton?.addEventListener("click", () => playerNotesAddTask());
+      notesTaskInput?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          playerNotesAddTask();
+        }
+      });
+      notesTaskList?.addEventListener("change", (event) => {
+        const id = event.target.closest("[data-notes-task-id]")?.dataset.notesTaskId;
+        const note = playerNotesActiveNote();
+        if (!id || !note) return;
+        note.tasks = note.tasks.map((task) => task.id === id ? { ...task, completed: Boolean(event.target.checked) } : task);
+        playerNotesUpdate({ tasks: note.tasks });
+      });
+      notesTaskList?.addEventListener("click", (event) => {
+        const id = event.target.closest("[data-notes-remove-task]")?.dataset.notesRemoveTask;
+        const note = playerNotesActiveNote();
+        if (id && note) playerNotesUpdate({ tasks: note.tasks.filter((task) => task.id !== id) });
+      });
+      document.getElementById("notesAddFolderButton")?.addEventListener("click", playerNotesAddFolder);
+      document.addEventListener("keydown", (event) => {
+        if (!notesWorkspace || notesWorkspace.hidden) return;
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          notesSearchInput?.focus();
+        }
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b" && document.activeElement !== notesBodyInput) {
+          event.preventDefault();
+          playerNotesInsert("bold");
+        }
+        if (event.key === "Escape") setSidebarView("sheet");
+      });
+      globalThis.dndPlayerNotes = {
+        loadForActiveSlot: () => {
+          playerNotesLoadForActiveSlot();
+          if (!notesWorkspace?.hidden) playerNotesRender();
+        },
+        clearActiveSlot: () => {
+          try { localStorage.removeItem(playerNotesStorageKey()); } catch (_error) { /* Ignore cleanup failures. */ }
+          playerNotesLoadForActiveSlot();
+          playerNotesRender();
+        },
+        receiveShared: playerNotesHandleIncoming,
+        removeShared: playerNotesHandleIncomingRemove
+      };
+      playerNotesRender();
+    }
+
+    globalThis.dndCharacterSheetNavigation = { setView: setSidebarView };
+
+    function setSidebarMenuOpen(open) {
+      const nextOpen = Boolean(open);
+      if (sidebarMenuPanel) sidebarMenuPanel.hidden = !nextOpen;
+      if (sidebarMenuButton) {
+        sidebarMenuButton.setAttribute("aria-expanded", String(nextOpen));
+        const label = t(nextOpen ? "sidebar.closeMenu" : "sidebar.openMenu");
+        sidebarMenuButton.setAttribute("aria-label", label);
+        sidebarMenuButton.setAttribute("title", label);
+      }
+      appSidebar?.classList.toggle("menu-open", nextOpen);
+      setTopControlsMenuOpen(nextOpen);
+      setAppSettingsMenuOpen(nextOpen);
+    }
+
+    function closeSidebarMenu() {
+      setSidebarMenuOpen(false);
     }
 
     function setTopControlsMenuOpen(open) {
@@ -2314,7 +3553,7 @@
         runUpdaterAction(downloadReleaseButton.dataset.updaterAction || "check").catch(console.error);
       });
       checkUpdatesButton?.addEventListener("click", () => {
-        setAppSettingsMenuOpen(false);
+        closeSidebarMenu();
         runUpdaterAction("check").catch(console.error);
       });
 
@@ -3165,6 +4404,7 @@
       await runWithConcurrency(pageMarkers, 2, ({ pageNumber, marker }) => renderPage(pdf, pageNumber, marker));
 
       applyData(await loadData());
+      playerNotesInit();
       syncAutoCantrips();
       pruneInvalidSpellSourceSelections();
       pruneDuplicateSpellSelections();
@@ -3188,6 +4428,21 @@
         scheduleCombatActionCacheWarmup?.();
         scheduleTurnActionsPanelRefresh();
       });
+      sidebarMenuButton?.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+      sidebarMenuButton?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setSidebarMenuOpen(!isSidebarMenuOpen());
+      });
+      sidebarMenuClose?.addEventListener("click", () => closeSidebarMenu());
+      sidebarSheetButton?.addEventListener("click", () => {
+        closeSidebarMenu();
+        if (typeof closeTurnActionsPanel === "function") closeTurnActionsPanel();
+        setSidebarView("sheet");
+        app?.focus?.({ preventScroll: true });
+      });
       topControlsLauncher?.addEventListener("pointerdown", (event) => {
         event.stopPropagation();
       });
@@ -3210,7 +4465,7 @@
         button.addEventListener("click", () => {
           playerI18n.setLanguage(button.dataset.playerLanguage || "en");
           syncSettingsControls();
-          requestAnimationFrame(() => applyCombatWindowLayout());
+          requestAnimationFrame(() => globalThis.dndCombatBoardSurface?.apply?.());
         });
       });
       dmScreenButton?.addEventListener("click", openDmScreen);
@@ -3235,30 +4490,31 @@
         clearAllFields().catch(console.error);
       });
       saveSlotSelect?.addEventListener("change", (event) => {
-        setTopControlsMenuOpen(false);
-        switchSaveSlot(event.target.value).catch(console.error);
+        closeSidebarMenu();
+        switchSaveSlot(event.target.value)
+          .then(() => globalThis.dndPlayerNotes?.loadForActiveSlot?.())
+          .catch(console.error);
       });
       [clearFieldsButton, characterReadyButton, turnActionsButton]
         .filter(Boolean)
-        .forEach((button) => button.addEventListener("click", () => setTopControlsMenuOpen(false)));
+        .forEach((button) => button.addEventListener("click", () => closeSidebarMenu()));
       longRestButton?.addEventListener("click", longRestSpellResources);
       shortRestButton?.addEventListener("click", shortRestResources);
       characterReadyButton?.addEventListener("click", toggleCharacterReady);
       turnActionsButton?.addEventListener("click", () => {
+        setSidebarView("combat");
         globalThis.dndRestRuntime?.interrupt?.("initiative");
         openTurnActionsPanel().catch(console.error);
       });
-      turnActionsClose?.addEventListener("click", closeTurnActionsPanel);
       turnActionsTranslate?.addEventListener("click", () => toggleTurnActionTranslations().catch(console.error));
-      turnActionsCollapse?.addEventListener("click", toggleTurnActionsPanelCollapsed);
-      turnActionsHeader?.addEventListener("pointerdown", startCombatWindowMove);
-      turnActionsResizeHandles.forEach((handle) => {
-        handle.addEventListener("pointerdown", (event) => startCombatWindowResize(event, handle.dataset.combatResizeEdge || "corner"));
-      });
       turnActionsNewTurn?.addEventListener("click", startNewCombatTurn);
       turnActionsEndTurn?.addEventListener("click", requestEndCombatTurn);
       combatLogClear?.addEventListener("click", clearCombatLog);
-      window.addEventListener("resize", () => applyCombatWindowLayout());
+      setupCombatBoardResize();
+      window.addEventListener("resize", () => {
+        applyCombatBoardLayout();
+        globalThis.dndCharacterSheetVttSurface?.refreshLayout?.();
+      });
       app.addEventListener("pointerdown", handleLockedSheetEvent, true);
       app.addEventListener("keydown", handleLockedSheetEvent, true);
       app.addEventListener("beforeinput", handleLockedSheetEvent, true);
@@ -3281,20 +4537,18 @@
       app.addEventListener("input", (event) => scheduleUnlessEquipmentField(event, scheduleAlertsPanelRefresh));
       app.addEventListener("change", (event) => scheduleUnlessEquipmentField(event, scheduleAlertsPanelRefresh));
       document.addEventListener("pointerdown", (event) => {
-        if (!isTopControlsMenuOpen() || topControlsMenu?.contains(event.target)) return;
-        setTopControlsMenuOpen(false);
-      });
-      document.addEventListener("pointerdown", (event) => {
-        if (!isAppSettingsMenuOpen() || appSettingsMenu?.contains(event.target)) return;
-        setAppSettingsMenuOpen(false);
+        if (!isSidebarMenuOpen() || sidebarMenuPanel?.contains(event.target) || sidebarMenuButton?.contains(event.target)) return;
+        closeSidebarMenu();
       });
       document.addEventListener("keydown", (event) => {
-        if (event.key !== "Escape" || !isTopControlsMenuOpen()) return;
-        setTopControlsMenuOpen(false);
+        if (event.key !== "Escape" || !isSidebarMenuOpen()) return;
+        closeSidebarMenu();
+        sidebarMenuButton?.focus();
       });
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape" || !isAppSettingsMenuOpen()) return;
         setAppSettingsMenuOpen(false);
+        appSettingsLauncher?.focus();
       });
       app.addEventListener("input", (event) => scheduleUnlessEquipmentField(event, scheduleTurnActionsPanelRefresh));
       app.addEventListener("change", (event) => scheduleUnlessEquipmentField(event, scheduleTurnActionsPanelRefresh));

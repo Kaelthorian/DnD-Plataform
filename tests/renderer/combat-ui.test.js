@@ -22,10 +22,29 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
   "turnActionsEndTurn",
   "turnActionsHeader",
   "turnActionsTranslate",
-  "turnActionsCollapse",
+  "combatBoardMain",
+  "combatInitiativeSplitter",
+  "combatContextSplitter",
+  "combatActionSplitter",
   "combatResolution",
-  "combatLogList"
+  "combatLogList",
+  "turnActionsResourcesDock",
+  "combatMapViewport",
+  "combatMapEmpty",
+  "combatActiveName"
 ].forEach((id) => assert.ok(html.includes(`id="${id}"`), `missing #${id}`));
+
+[
+  "appSidebar",
+  "sidebarSheetButton",
+  "sidebarFreeDiceButton",
+  "sidebarMenuButton",
+  "sidebarMenuPanel",
+  "topControlsPanel",
+  "appSettingsPanel",
+  "longRestButton",
+  "shortRestButton"
+].forEach((id) => assert.ok(html.includes(`id="${id}"`), `missing sidebar integration #${id}`));
 
 [
   "function openCombatResolution",
@@ -37,6 +56,7 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
   "createAttackActionDefinition",
   "createSpellActionDefinition",
   "combatOptionalDamageChoices",
+  "function combatActionIcon",
   "removeItemFromEquipment(action.ammoEntry, 1)"
 ].forEach((needle) => assert.ok(html.includes(needle), `missing combat integration: ${needle}`));
 
@@ -70,31 +90,76 @@ assert.ok(renderer.includes("function liveVttCombatTargetRoster"), "live VTT tar
 assert.ok(renderer.includes("globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster"), "live VTT target roster is not exposed to Start Combat");
 
 [
-  "function normalizeCombatWindowLayout",
-  "function applyCombatWindowLayout",
-  "function toggleTurnActionsPanelCollapsed",
-  "function startCombatWindowMove",
-  "function startCombatWindowResize",
-  "function handleCombatWindowPointerMove",
+  "globalThis.dndCombatBoardSurface",
   "function toggleTurnActionTranslations",
   "function renderTurnActionTranslatableText",
-  "dnd-character-sheet-combat-window-v1",
-  'data-combat-resize-edge="right"',
-  'data-combat-resize-edge="bottom"',
-  'data-combat-resize-edge="corner"'
-].forEach((needle) => assert.ok(html.includes(needle), `missing floating combat window integration: ${needle}`));
+  'document.body.classList.add("combat-screen-open")',
+  'turnActionsPanel?.classList.add("is-combat-screen")',
+  "globalThis.dndCombatBoardSurface?.apply?.()"
+].forEach((needle) => assert.ok(html.includes(needle), `missing full-screen combat integration: ${needle}`));
+
+[
+  "combat-board-main",
+  "combat-action-dock",
+  "combat-map-panel",
+  "combat-initiative-panel",
+  "combat-resource-sidebar-body",
+  "combat-context-panel",
+  'data-i18n="combat.mapTitle"'
+].forEach((needle) => assert.ok(html.includes(needle), `missing combat board surface: ${needle}`));
+
+[
+  "function setLiveVttCombatSurface",
+  "function startCombatBoardResize",
+  "function moveCombatBoardResize",
+  "function setupCombatBoardResize",
+  "dnd-character-sheet-combat-board-v1",
+  "function renderCombatInitiative",
+  "function renderCombatBoard",
+  "globalThis.dndCharacterSheetVttSurface",
+  "refreshLayout",
+  "renderCombatBoard(state.combat)"
+].forEach((needle) => assert.ok(renderer.includes(needle), `missing live VTT combat board integration: ${needle}`));
+
+assert.ok(html.includes('setAttribute("role", "tablist")'), "combat action tablist semantics are missing");
+assert.ok(html.includes("let activeTurnActionCategory = ACTION_CATEGORIES.attacks"), "combat action tab state is missing");
+assert.ok(html.includes("turn-actions-tab-panel"), "combat action tab panels are missing");
 
 assert.ok(renderer.includes('turnActionsEndTurn?.addEventListener("click", requestEndCombatTurn)'), "End Turn is not wired");
 assert.ok(renderer.includes('turnActionsTranslate?.addEventListener("click", () => toggleTurnActionTranslations().catch(console.error))'), "combat translation is not wired");
 assert.ok(renderer.includes('combatLogClear?.addEventListener("click", clearCombatLog)'), "combat log clear is not wired");
-assert.ok(renderer.includes('turnActionsCollapse?.addEventListener("click", toggleTurnActionsPanelCollapsed)'), "combat collapse is not wired");
-assert.ok(renderer.includes('turnActionsHeader?.addEventListener("pointerdown", startCombatWindowMove)'), "combat drag is not wired");
-assert.ok(renderer.includes('startCombatWindowResize(event, handle.dataset.combatResizeEdge || "corner")'), "combat resize is not wired");
+assert.ok(!html.includes('id="turnActionsCollapse"'), "obsolete combat collapse control should be removed");
+assert.ok(!html.includes('id="turnActionsClose"'), "obsolete combat close control should be removed");
+assert.ok(!renderer.includes("turnActionsCollapse?.addEventListener"), "obsolete combat collapse listener should be removed");
+assert.ok(!renderer.includes("turnActionsClose?.addEventListener"), "obsolete combat close listener should be removed");
+assert.ok(!renderer.includes("startCombatWindowMove"), "combat should no longer be draggable as a popup");
+assert.ok(!renderer.includes("startCombatWindowResize"), "combat should no longer be resizable as a popup");
 assert.ok(styles.includes(".combat-resolution"), "resolution UI styles missing");
 assert.ok(styles.includes(".combat-log-entry"), "combat log styles missing");
-assert.ok(styles.includes(".turn-actions-panel.is-collapsed"), "combat collapsed styles missing");
+assert.ok(styles.includes(".combat-log-headline"), "combat log headline styles missing");
+assert.ok(styles.includes(".turn-actions-resources-dock"), "combat resources sidebar styles missing");
+assert.ok(styles.includes(".combat-action-icon"), "combat action icon styles missing");
+assert.ok(styles.includes(".combat-board-splitter"), "combat vertical splitters styling is missing");
+assert.ok(styles.includes(".combat-action-splitter"), "combat action splitter styling is missing");
+assert.ok(styles.includes(".combat-board-resizing"), "combat resize interaction styling is missing");
 assert.ok(styles.includes(".turn-actions-translate"), "combat translation styles missing");
 assert.ok(styles.includes("var(--dm-amber)"), "DM Screen visual language is missing");
+assert.ok(styles.includes(".turn-actions-panel.is-combat-screen"), "full-screen combat surface styles are missing");
+assert.ok(styles.includes("body.combat-screen-open"), "combat screen overflow lock is missing");
+assert.ok(styles.includes(".combat-map-viewport"), "combat map viewport styles are missing");
+assert.ok(styles.includes('.live-vtt-window[data-combat-surface="true"]'), "live VTT combat portal styles are missing");
+assert.ok(styles.includes(".combat-initiative-row[data-active=\"true\"]"), "initiative active row styling is missing");
+assert.ok(styles.includes(".turn-actions-tabs"), "combat action tabs styling is missing");
+assert.ok(styles.includes(".turn-actions-tab[aria-selected=\"true\"]"), "active combat action tab styling is missing");
+assert.ok(styles.includes("@media (min-width: 721px) and (max-width: 1271px)"), "sheet sidebar spacing breakpoint is missing");
+assert.ok(styles.includes(".app-sidebar"), "character sheet sidebar styles are missing");
+assert.ok(styles.includes(".app-sidebar-dice-button"), "sidebar dice button styles are missing");
+assert.ok(styles.includes(".sidebar-menu-panel"), "sidebar menu styles are missing");
+assert.ok(renderer.includes("function setSidebarView"), "sidebar view state is not wired");
+assert.ok(renderer.includes("sidebarMenuButton?.addEventListener(\"click\""), "sidebar menu toggle is not wired");
+assert.ok(renderer.includes("sidebarSheetButton?.addEventListener(\"click\""), "player sheet navigation is not wired");
+assert.ok(html.includes('id="sidebarFreeDiceButton"'), "sidebar free dice button is missing");
+assert.ok(html.includes("toggleFreeDiceMenu()"), "free dice menu toggle is not wired");
 assert.match(styles, /\.turn-actions-orb\s*\{[\s\S]*?min-width:\s*34px[\s\S]*?max-width:\s*34px[\s\S]*?flex:\s*0 0 34px/, "top combat orbs should keep a fixed size");
 
 const equipmentProviderStart = html.indexOf('id: "equipment:attacks"');

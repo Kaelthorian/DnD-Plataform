@@ -460,7 +460,7 @@ assert.deepEqual(nextConcentrationTurn.concentration, { name: "Fly" });
 assert.notStrictEqual(nextConcentrationTurn.concentration, concentrationCommit.economy.concentration);
 assert.equal(economyEngine.startTurn(concentrationCommit.economy, { concentration: null }).concentration, null);
 
-// 25. Combat log preserves exact roll/resource breakdown fields.
+// 25. Combat log stays concise while preserving the useful outcome fields.
 const event = combatLog.createCombatLogEvent({
   actor: "Kael",
   action: "Shortsword",
@@ -476,13 +476,13 @@ const event = combatLog.createCombatLogEvent({
   attacksRemaining: 1
 });
 const formatted = combatLog.formatCombatLogEvent(event);
-assert.match(formatted, /Hit Roll: 19/);
-assert.match(formatted, /Formulas: d20 \+ 3 DEX \+ 2 Proficiency \| 1d6 \+ 3/);
-assert.match(formatted, /Dice: 14, 5/);
-assert.match(formatted, /Modifiers: 3, 2, 3/);
-assert.match(formatted, /Damage: 8 Piercing/);
-assert.match(formatted, /Resources: Action/);
-assert.match(formatted, /1 attack remains/);
+assert.match(formatted, /Attack: 19 - Hit/);
+assert.doesNotMatch(formatted, /Formulas:/);
+assert.doesNotMatch(formatted, /Dice:/);
+assert.doesNotMatch(formatted, /Modifiers:/);
+assert.match(formatted, /Piercing: 8/);
+assert.match(formatted, /Cost: Action/);
+assert.match(formatted, /Attacks left: 1/);
 
 // 26. Compound damage is authoritative while legacy damageRoll remains available.
 const compoundAction = actions.createAttackActionDefinition({
@@ -510,7 +510,7 @@ const compoundLog = combatLog.formatCombatLogEvent(combatLog.createCombatLogEven
 }));
 assert.match(compoundLog, /Bludgeoning: 2d8\+4 = 13/);
 assert.match(compoundLog, /Radiant: 2d8 = 9/);
-assert.match(compoundLog, /Total: 22/);
+assert.match(compoundLog, /Damage total: 22/);
 
 // Universal list includes every required baseline action and no generic free-action counter.
 const universalNames = new Set(actions.createUniversalActionDefinitions({ speed: 30 }).map((entry) => entry.name));

@@ -1,14 +1,21 @@
 # Combate del Character Sheet
 
-La ventana accesible desde el botón central de espadas es un ejecutor de turno local. Deriva opciones del personaje real, reserva costes mientras una acción está abierta y sólo confirma recursos al completar el flujo.
+La entrada principal es el botón **Combat** de la barra lateral de `src/app/renderer/index.html`. El botón **Player sheet** cierra esta superficie y devuelve la vista a la planilla; ambos controles reutilizan el mismo panel y estado de combate existentes.
 
-## Ventana flotante
+La pantalla accesible desde el botón **Combat** de la barra lateral es un ejecutor de turno local. Deriva opciones del personaje real, reserva costes mientras una acción está abierta y sólo confirma recursos al completar el flujo.
 
-- La superficie usa el lenguaje visual neutral/ámbar del DM Screen sin cambiar el motor ni los proveedores de acciones.
-- El encabezado mueve la ventana; los bordes derecho, inferior y la esquina inferior derecha ajustan su tamaño.
-- El control `−`/`+` colapsa o expande el contenido. La posición, tamaño y estado colapsado se conservan en `localStorage` bajo `dnd-character-sheet-combat-window-v1`.
-- La geometría se limita al viewport al abrir y al redimensionar la aplicación. El panel es flotante y no bloquea la interacción con la hoja.
-- Al elegir una acción, la ventana entra en modo de resolución enfocado: oculta temporalmente el catálogo, muestra los pasos numerados con estados actual/pending/completo y vuelve al catálogo al confirmar o cancelar.
+## Pantalla de combate
+
+- La superficie ocupa el viewport completo, usa el lenguaje visual neutral/ámbar del DM Screen y no se muestra como popup flotante.
+- El encabezado no arrastra ni redimensiona la pantalla. Solo contiene la traduccion; la salida se hace desde **Player sheet**, la barra lateral o Escape. La geometria se guarda en `localStorage` bajo `dnd-character-sheet-combat-board-v1`.
+- Mientras la pantalla está activa se bloquea el scroll de la planilla. **Player sheet** cierra combate y devuelve la vista a la hoja.
+- Al elegir una acción, la pantalla entra en modo de resolución enfocado: oculta temporalmente el catálogo, muestra los pasos numerados con estados actual/pending/completo y vuelve al catálogo al confirmar o cancelar.
+
+La superficie sigue la distribucion del tablero de combate. El panel lateral izquierdo agrupa las esferas de economia y los recursos; los separadores verticales redimensionan ese panel, el mapa y el registro; el separador horizontal redimensiona el dock de acciones, empujando las otras cajas y respetando anchos/alturas minimos. El texto usa columnas flexibles, wrapping y scroll interno para adaptarse al espacio.
+
+La superficie sigue la distribucion del tablero de combate: izquierda para economia y recursos, centro para el mapa VTT y derecha para el combatiente activo y el registro. Las acciones quedan en un dock inferior para conservar el flujo actual sin tapar el mapa. `renderer.js` reutiliza la ventana VTT existente y la mueve al `#combatMapViewport` mientras combate esta abierto; al cerrar, la devuelve a su posicion normal. Si no hay conexion o mapa activo, el centro muestra un estado vacio y la iniciativa no inventa datos privados del DM.
+
+El catalogo inferior se divide en tabs por categoria (`Attacks`, `Spells`, `Actions`, `Bonus Actions`, `Movement`, `Reactions`, `Items` y `Features`). Solo el panel activo ocupa espacio visible, pero los paneles ocultos siguen en el DOM para conservar la traduccion masiva y los mismos handlers de resolucion.
 
 ## Entradas y fuentes de verdad
 
@@ -81,7 +88,9 @@ La ventana accesible desde el botón central de espadas es un ejecutor de turno 
 
 ## Prueba manual
 
-1. Abrir una hoja con el arma A equipada y pulsar las espadas. Confirmar que su tarjeta sólo muestra daño/tipo y rango. Con Start Combat abierto, desequipar A y equipar el arma B; confirmar que las acciones cambian inmediatamente. Cerrar la ventana, volver a equipar A y reabrirla; confirmar que muestra A y no conserva B. Verificar además los cinco recursos y `End Turn`, y mover, redimensionar y colapsar la ventana para comprobar la persistencia de geometría.
+Ademas de las acciones, verificar en una sesion conectada al DM que el mapa VTT se portaliza al centro de Combate, que la iniciativa publica y el combatiente activo se actualizan con los parches recibidos, y que **Player sheet** restaura la ventana VTT original.
+
+1. Abrir una hoja con el arma A equipada y pulsar **Combat** en la barra lateral. Confirmar que la pantalla ocupa el viewport completo y que su tarjeta sólo muestra daño/tipo y rango. Desequipar A y equipar el arma B; confirmar que las acciones cambian inmediatamente. Pulsar **Player sheet**, volver a **Combat** y confirmar que muestra B. Verificar además los cinco recursos, `End Turn` y los separadores ajustables.
 2. Preparar Booming Blade, Green-Flame Blade o True Strike con un arma compatible equipada. Confirmar que aparece una acción por arma, que el ataque usa el bonus correcto y que el daño combina el arma con el dado "on hit" del nivel actual sin tirar el rider secundario.
 3. Lanzar Hex o Hunter's Mark, confirmar el cast sin damage roll y abrir un ataque posterior: el rider debe aparecer como daño opcional. Terminar Concentration y confirmar que desaparece. Repetir con Zephyr Strike y comprobar que su rider de un uso se consume al confirmarlo.
 4. Abrir un arma, elegir target en el dropdown y confirmar que no existe campo de AC. Tirar Hit, resolver Hit/Miss con el DM y verificar que Damage estaba bloqueado antes. Confirmar además que el catálogo de acciones queda oculto durante la resolución y vuelve al cancelar. Probar natural 1/20 cuando sea posible.

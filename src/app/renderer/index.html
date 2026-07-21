@@ -15,56 +15,115 @@
     </span>
     <button class="download-release-button" id="downloadReleaseButton" type="button" data-i18n="release.download">Download</button>
   </div>
-  <div class="top-controls-menu" id="topControlsMenu">
-    <button class="top-controls-launcher" id="topControlsLauncher" type="button" aria-label="Open controls" aria-expanded="false" aria-controls="topControlsPanel" data-i18n-aria-label="controls.open">
-      <span class="top-controls-launcher-line"></span>
-      <span class="top-controls-launcher-line"></span>
-      <span class="top-controls-launcher-line"></span>
-    </button>
-    <div class="top-controls-panel" id="topControlsPanel" hidden>
-      <div class="save-slot-control" id="saveSlotControl">
-        <label class="save-slot-label" id="saveSlotLabel" for="saveSlotSelect" data-i18n="top.character">Character</label>
-        <select class="save-slot-select" id="saveSlotSelect"></select>
-      </div>
-      <button class="clear-fields-button" id="clearFieldsButton" type="button" data-i18n="top.clearFields">Clear fields</button>
-      <button class="character-ready-button" id="characterReadyButton" type="button" data-i18n="top.characterReady.unlocked">🔓 Character Ready</button>
+  <aside class="app-sidebar" id="appSidebar" aria-label="Character sheet navigation" data-i18n-aria-label="sidebar.navigation">
+    <div class="app-sidebar-brand" aria-hidden="true">
+      <svg class="app-sidebar-brand-icon" viewBox="0 0 32 32" focusable="false">
+        <path d="M7 5.5 15.9 15m10.1-9.5L17.1 15M7 26.5 15.9 17m10.1 9.5L17.1 17" />
+        <path d="M11 5.5 5.5 11 11 16.5M21 5.5l5.5 5.5-5.5 5.5M11 15.5 5.5 21l5.5 5.5M21 15.5l5.5 5.5-5.5 5.5" />
+      </svg>
     </div>
-  </div>
-  <div class="rest-controls" aria-label="Rest controls" data-i18n-aria-label="top.restControls">
-    <button class="long-rest-button" id="longRestButton" type="button" aria-label="Start long rest" title="Start long rest" data-i18n-aria-label="top.longRest.start" data-i18n-title="top.longRest.start">
-      <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M7.5 3.5h9a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18V6a2.5 2.5 0 0 1 2.5-2.5Z" />
-        <path d="M5 8h14M8 5.8h3" />
-      </svg>
-    </button>
-    <button class="turn-actions-button" id="turnActionsButton" type="button" aria-label="Start combat" title="Start combat" data-i18n-aria-label="top.startCombat" data-i18n-title="top.startCombat">
-      <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="m5 4 6 6m-4.5-1.5 2-2m-5 5 2-2M19 4l-6 6m4.5-1.5-2-2m5 5-2-2M8 13l8 8M16 13 8 21" />
-      </svg>
-    </button>
-    <button class="long-rest-button short-rest-button" id="shortRestButton" type="button" aria-label="Start short rest" title="Start short rest" data-i18n-aria-label="top.shortRest.start" data-i18n-title="top.shortRest.start">
-      <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 3.5c1.9 2.2 3.8 4.4 3.8 7.1A3.8 3.8 0 1 1 8.2 10.6C8.2 8.4 9.7 6.2 12 3.5Z" />
-        <path d="m5 18.5 14 2M19 18.5 5 20.5" />
-      </svg>
-    </button>
-  </div>
-  <div class="app-settings-menu" id="appSettingsMenu">
-    <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Open settings" aria-expanded="false" aria-controls="appSettingsPanel" data-i18n-aria-label="settings.open">&#9881;</button>
-    <div class="app-settings-panel" id="appSettingsPanel" hidden>
-      <div class="app-settings-title" data-i18n="settings.title">Settings</div>
-      <div class="app-settings-language" id="playerLanguageControl" role="group" aria-label="Language" data-i18n-aria-label="settings.language">
-        <div class="app-settings-language-label" data-i18n="settings.language">Language</div>
-        <div class="app-settings-language-options">
-          <button class="app-settings-language-button" type="button" data-player-language="en" data-i18n="settings.language.english">English</button>
-          <button class="app-settings-language-button" type="button" data-player-language="es" data-i18n="settings.language.spanish">Español</button>
+    <nav class="app-sidebar-nav" aria-label="Main navigation" data-i18n-aria-label="sidebar.navigation">
+      <button class="app-sidebar-button" id="turnActionsButton" type="button" aria-label="Start combat" title="Start combat" data-sidebar-view="combat" data-i18n-aria-label="sidebar.combat" data-i18n-title="sidebar.combat">
+        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m5 4 6 6m-4.5-1.5 2-2m-5 5 2-2M19 4l-6 6m4.5-1.5-2-2m5 5-2-2M8 13l8 8M16 13 8 21" />
+        </svg>
+        <span class="app-sidebar-label" data-i18n="sidebar.combat">Combat</span>
+      </button>
+      <button class="app-sidebar-button is-active" id="sidebarSheetButton" type="button" aria-label="Player sheet" title="Player sheet" aria-current="page" data-sidebar-view="sheet" data-i18n-aria-label="sidebar.sheet" data-i18n-title="sidebar.sheet">
+        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 3.5h9.5L19 7v13.5H6zM15 3.5V7h4M9 11h7M9 14h7M9 17h4" />
+        </svg>
+        <span class="app-sidebar-label" data-i18n="sidebar.sheet">Player sheet</span>
+      </button>
+      <button class="app-sidebar-button app-sidebar-dice-button" id="sidebarFreeDiceButton" type="button" aria-label="Free dice" title="Free dice" data-i18n-aria-label="dice.freeTitle" data-i18n-title="dice.freeTitle">
+        <svg class="app-sidebar-icon app-sidebar-dice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m12 3 8 5v8l-8 5-8-5V8l8-5Z" />
+          <path d="M12 3v8m8-3-8 3m0 0L4 8m8 3v10m-4-7 4 2.5 4-2.5" />
+          <circle cx="12" cy="7" r=".8" fill="currentColor" stroke="none" />
+        </svg>
+        <span class="app-sidebar-label" data-i18n="dice.freeTitle">Free dice</span>
+      </button>
+      <button class="app-sidebar-button app-sidebar-notes-button" id="sidebarNotesButton" type="button" aria-label="Notes" title="Notes" data-sidebar-view="notes" data-i18n-aria-label="notes.title" data-i18n-title="notes.title">
+        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M5 4.5h14v15H5z" />
+          <path d="M8 8h8M8 11.5h8M8 15h5" />
+          <path d="m16 15 3 3" />
+        </svg>
+        <span class="app-sidebar-label" data-i18n="notes.title">Notes</span>
+      </button>
+    </nav>
+    <div class="app-sidebar-footer">
+      <button class="app-sidebar-button app-sidebar-menu-button" id="sidebarMenuButton" type="button" aria-label="Open menu" title="Open menu" aria-expanded="false" aria-controls="sidebarMenuPanel" data-i18n-aria-label="sidebar.openMenu" data-i18n-title="sidebar.openMenu">
+        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+        <span class="app-sidebar-label" data-i18n="sidebar.menu">Menu</span>
+      </button>
+    </div>
+  </aside>
+  <div class="sidebar-menu-panel" id="sidebarMenuPanel" hidden>
+    <div class="sidebar-menu-header">
+      <div class="sidebar-menu-title" data-i18n="sidebar.menu">Menu</div>
+      <button class="sidebar-menu-close" id="sidebarMenuClose" type="button" aria-label="Close menu" title="Close menu" data-i18n-aria-label="sidebar.closeMenu" data-i18n-title="sidebar.closeMenu">X</button>
+    </div>
+    <div class="sidebar-menu-body">
+      <section class="sidebar-menu-section">
+        <div class="sidebar-menu-section-title" data-i18n="sidebar.characterTools">Character tools</div>
+        <div class="top-controls-menu" id="topControlsMenu">
+          <button class="top-controls-launcher" id="topControlsLauncher" type="button" aria-label="Open controls" aria-expanded="false" aria-controls="topControlsPanel" data-i18n-aria-label="controls.open" hidden tabindex="-1">
+            <span class="top-controls-launcher-line"></span>
+            <span class="top-controls-launcher-line"></span>
+            <span class="top-controls-launcher-line"></span>
+          </button>
+          <div class="top-controls-panel" id="topControlsPanel" hidden>
+            <div class="save-slot-control" id="saveSlotControl">
+              <label class="save-slot-label" id="saveSlotLabel" for="saveSlotSelect" data-i18n="top.character">Character</label>
+              <select class="save-slot-select" id="saveSlotSelect"></select>
+            </div>
+            <button class="clear-fields-button" id="clearFieldsButton" type="button" data-i18n="top.clearFields">Clear fields</button>
+            <button class="character-ready-button" id="characterReadyButton" type="button" data-i18n="top.characterReady.unlocked">🔓 Character Ready</button>
+          </div>
         </div>
-      </div>
-      <button class="app-settings-action-button" id="dmScreenButton" type="button" data-i18n="settings.dmScreen">DM screen</button>
-      <button class="app-settings-action-button" id="liveSheetClientButton" type="button" data-i18n="settings.connectToDm">Connect to DM</button>
-      <button class="app-settings-action-button" id="generateSheetCodeButton" type="button" data-i18n="settings.generateCode">Generate code</button>
-      <button class="app-settings-action-button" id="importCharacterButton" type="button" data-i18n="settings.importCharacter">Import character</button>
-      <button class="app-settings-action-button" id="checkUpdatesButton" type="button" data-i18n="settings.checkUpdates">Check for updates</button>
+      </section>
+      <section class="sidebar-menu-section">
+        <div class="sidebar-menu-section-title" data-i18n="sidebar.restControls">Rest controls</div>
+        <div class="rest-controls" aria-label="Rest controls" data-i18n-aria-label="top.restControls">
+          <button class="long-rest-button" id="longRestButton" type="button" aria-label="Start long rest" title="Start long rest" data-i18n-aria-label="top.longRest.start" data-i18n-title="top.longRest.start">
+            <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M7.5 3.5h9a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18V6a2.5 2.5 0 0 1 2.5-2.5Z" />
+              <path d="M5 8h14M8 5.8h3" />
+            </svg>
+            <span class="sidebar-rest-label" data-i18n="top.longRest">Long rest</span>
+          </button>
+          <button class="long-rest-button short-rest-button" id="shortRestButton" type="button" aria-label="Start short rest" title="Start short rest" data-i18n-aria-label="top.shortRest.start" data-i18n-title="top.shortRest.start">
+            <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 3.5c1.9 2.2 3.8 4.4 3.8 7.1A3.8 3.8 0 1 1 8.2 10.6C8.2 8.4 9.7 6.2 12 3.5Z" />
+              <path d="m5 18.5 14 2M19 18.5 5 20.5" />
+            </svg>
+            <span class="sidebar-rest-label" data-i18n="top.shortRest">Short rest</span>
+          </button>
+        </div>
+      </section>
+      <section class="sidebar-menu-section">
+        <div class="app-settings-menu" id="appSettingsMenu">
+          <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Open settings" aria-expanded="false" aria-controls="appSettingsPanel" data-i18n-aria-label="settings.open" hidden tabindex="-1">&#9881;</button>
+          <div class="app-settings-panel" id="appSettingsPanel" hidden>
+            <div class="app-settings-title" data-i18n="settings.title">Settings</div>
+            <div class="app-settings-language" id="playerLanguageControl" role="group" aria-label="Language" data-i18n-aria-label="settings.language">
+              <div class="app-settings-language-label" data-i18n="settings.language">Language</div>
+              <div class="app-settings-language-options">
+                <button class="app-settings-language-button" type="button" data-player-language="en" data-i18n="settings.language.english">English</button>
+                <button class="app-settings-language-button" type="button" data-player-language="es" data-i18n="settings.language.spanish">Español</button>
+              </div>
+            </div>
+            <button class="app-settings-action-button" id="dmScreenButton" type="button" data-i18n="settings.dmScreen">DM screen</button>
+            <button class="app-settings-action-button" id="liveSheetClientButton" type="button" data-i18n="settings.connectToDm">Connect to DM</button>
+            <button class="app-settings-action-button" id="generateSheetCodeButton" type="button" data-i18n="settings.generateCode">Generate code</button>
+            <button class="app-settings-action-button" id="importCharacterButton" type="button" data-i18n="settings.importCharacter">Import character</button>
+            <button class="app-settings-action-button" id="checkUpdatesButton" type="button" data-i18n="settings.checkUpdates">Check for updates</button>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
   <div class="live-sheet-client-backdrop" id="liveSheetClientBackdrop" aria-hidden="true" hidden>
@@ -233,7 +292,7 @@
   <div class="familiar-note-root" id="familiarNoteRoot" aria-live="polite"></div>
   <div class="damage-tooltip" id="damageTooltip"></div>
   <div class="turn-actions-backdrop" id="turnActionsBackdrop" aria-hidden="true">
-    <aside class="turn-actions-panel" id="turnActionsPanel" role="dialog" aria-modal="false" aria-labelledby="turnActionsTitle">
+    <section class="turn-actions-panel" id="turnActionsPanel" role="region" aria-labelledby="turnActionsTitle">
       <div class="turn-actions-header" id="turnActionsHeader">
         <div class="turn-actions-heading">
           <div class="turn-actions-title" id="turnActionsTitle" data-i18n="turn.title">Start combat</div>
@@ -241,51 +300,253 @@
         </div>
         <div class="turn-actions-window-controls">
           <button class="turn-actions-translate" id="turnActionsTranslate" type="button" data-i18n="translation.translateDescriptions">Translate descriptions</button>
-          <button class="turn-actions-collapse" id="turnActionsCollapse" type="button" aria-label="Collapse combat window" title="Collapse combat window" data-i18n-aria-label="turn.collapseWindow" data-i18n-title="turn.collapseWindow" aria-expanded="true">−</button>
-          <button class="turn-actions-close" id="turnActionsClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
         </div>
       </div>
-      <div class="turn-actions-turnbar" aria-live="polite">
-        <div class="turn-actions-counter">
-          <span class="turn-actions-orb" id="turnActionsActionOrb">1</span>
-          <span id="turnActionsActionLabel" data-i18n="turn.actions">Actions</span>
-        </div>
-        <div class="turn-actions-counter">
-          <span class="turn-actions-orb" id="turnActionsBonusOrb">1</span>
-          <span id="turnActionsBonusLabel" data-i18n="turn.bonusActions">Bonus actions</span>
-        </div>
-        <div class="turn-actions-counter">
-          <span class="turn-actions-orb" id="turnActionsReactionOrb">1</span>
-          <span data-i18n="turn.reaction">Reaction</span>
-        </div>
-        <div class="turn-actions-counter">
-          <span class="turn-actions-orb wide" id="turnActionsMovementOrb">30/30</span>
-          <span data-i18n="turn.movement">Movement</span>
-        </div>
-        <div class="turn-actions-counter">
-          <span class="turn-actions-orb" id="turnActionsObjectOrb">1</span>
-          <span data-i18n="turn.objectInteraction">Object</span>
-        </div>
-        <div class="turn-actions-counter" id="turnActionsAttacksCounter" hidden>
-          <span class="turn-actions-orb" id="turnActionsAttacksOrb">1</span>
-          <span data-i18n="turn.attacksRemaining">Attacks</span>
-        </div>
+      <div class="combat-board-main" id="combatBoardMain">
+        <aside class="combat-initiative-panel combat-resource-sidebar" aria-labelledby="combatInitiativeTitle">
+          <div class="combat-panel-heading">
+            <div class="combat-panel-eyebrow" id="combatInitiativeTitle" data-i18n="turn.resources">Combat resources</div>
+            <div class="combat-round-label" data-i18n="combat.initiativeHint">Initiative is shown on the VTT.</div>
+          </div>
+          <div class="combat-resource-sidebar-body">
+            <div class="turn-actions-turnbar" aria-live="polite">
+              <div class="turn-actions-counter">
+                <span class="turn-actions-orb" id="turnActionsActionOrb">1</span>
+                <span id="turnActionsActionLabel" data-i18n="turn.actions">Actions</span>
+              </div>
+              <div class="turn-actions-counter">
+                <span class="turn-actions-orb" id="turnActionsBonusOrb">1</span>
+                <span id="turnActionsBonusLabel" data-i18n="turn.bonusActions">Bonus actions</span>
+              </div>
+              <div class="turn-actions-counter">
+                <span class="turn-actions-orb" id="turnActionsReactionOrb">1</span>
+                <span data-i18n="turn.reaction">Reaction</span>
+              </div>
+              <div class="turn-actions-counter">
+                <span class="turn-actions-orb wide" id="turnActionsMovementOrb">30/30</span>
+                <span data-i18n="turn.movement">Movement</span>
+              </div>
+              <div class="turn-actions-counter">
+                <span class="turn-actions-orb" id="turnActionsObjectOrb">1</span>
+                <span data-i18n="turn.objectInteraction">Object</span>
+              </div>
+              <div class="turn-actions-counter" id="turnActionsAttacksCounter" hidden>
+                <span class="turn-actions-orb" id="turnActionsAttacksOrb">1</span>
+                <span data-i18n="turn.attacksRemaining">Attacks</span>
+              </div>
+            </div>
+            <div class="turn-actions-resources-dock" id="turnActionsResourcesDock" aria-live="polite"></div>
+          </div>
+        </aside>
+        <div class="combat-board-splitter" id="combatInitiativeSplitter" data-combat-split="initiative" role="separator" aria-orientation="vertical" aria-label="Resize resource panel" tabindex="0" data-i18n-aria-label="combat.resizeInitiative"></div>
+        <section class="combat-map-panel" aria-labelledby="combatMapTitle">
+          <div class="combat-map-panel-header">
+            <div>
+              <div class="combat-panel-eyebrow" id="combatMapTitle" data-i18n="combat.mapTitle">VTT map</div>
+              <div class="combat-map-status" id="combatMapStatus" data-i18n="combat.mapWaiting">Waiting for a map from the DM.</div>
+            </div>
+            <span class="combat-map-live-indicator" aria-hidden="true"></span>
+          </div>
+          <div class="combat-map-viewport" id="combatMapViewport">
+            <div class="combat-map-empty" id="combatMapEmpty">
+              <div class="combat-map-empty-icon" aria-hidden="true">&#9672;</div>
+              <strong data-i18n="combat.mapEmptyTitle">The VTT map will appear here</strong>
+              <span data-i18n="combat.mapEmptyDetail">Connect to the DM to receive the current scene.</span>
+            </div>
+          </div>
+        </section>
+        <div class="combat-board-splitter" id="combatContextSplitter" data-combat-split="context" role="separator" aria-orientation="vertical" aria-label="Resize combat log panel" tabindex="0" data-i18n-aria-label="combat.resizeContext"></div>
+        <aside class="combat-context-panel" aria-labelledby="combatContextTitle">
+          <section class="combat-active-card">
+            <div class="combat-panel-heading">
+              <div class="combat-panel-eyebrow" id="combatContextTitle" data-i18n="combat.activeActor">Active turn</div>
+              <div class="combat-active-name" id="combatActiveName" data-i18n="combat.noActiveActor">No active combatant</div>
+              <div class="combat-active-meta" id="combatActiveMeta" data-i18n="combat.activeWaiting">The DM has not started an initiative round.</div>
+            </div>
+            <div class="combat-active-badge" aria-hidden="true">&#9876;</div>
+          </section>
+          <section class="combat-log" id="combatLogSection">
+            <div class="combat-log-header">
+              <h3 data-i18n="turn.combatLog">Combat Log</h3>
+              <button type="button" id="combatLogClear" data-i18n="turn.clearLog">Clear</button>
+            </div>
+            <div class="combat-log-list" id="combatLogList"></div>
+          </section>
+        </aside>
+      </div>
+      <div class="combat-action-splitter" id="combatActionSplitter" data-combat-split="actions" role="separator" aria-orientation="horizontal" aria-label="Resize action panel" tabindex="0" data-i18n-aria-label="combat.resizeActions"></div>
+      <div class="combat-action-dock">
+      <section class="combat-resolution" id="combatResolution" hidden aria-live="polite"></section>
+      <div class="turn-actions-body" id="turnActionsBody"></div>
+      <div class="turn-actions-actionbar">
         <button class="turn-actions-new-turn" id="turnActionsNewTurn" type="button" data-i18n="turn.newTurn">New turn</button>
         <button class="turn-actions-end-turn" id="turnActionsEndTurn" type="button" data-i18n="turn.endTurn">End Turn</button>
       </div>
-      <section class="combat-resolution" id="combatResolution" hidden aria-live="polite"></section>
-      <div class="turn-actions-body" id="turnActionsBody"></div>
-      <section class="combat-log" id="combatLogSection">
-        <div class="combat-log-header">
-          <h3 data-i18n="turn.combatLog">Combat Log</h3>
-          <button type="button" id="combatLogClear" data-i18n="turn.clearLog">Clear</button>
+      </div>
+    </section>
+  </div>
+  <div class="notes-workspace" id="notesWorkspace" aria-hidden="true" hidden>
+    <aside class="notes-library-panel" aria-label="Notes library" data-i18n-aria-label="notes.library">
+      <div class="notes-library-brand">
+        <span class="notes-library-brand-icon" aria-hidden="true">&#9670;</span>
+        <div>
+          <strong data-i18n="notes.title">Notes</strong>
+          <span data-i18n="notes.subtitle">Campaign notebook</span>
         </div>
-        <div class="combat-log-list" id="combatLogList"></div>
-      </section>
-      <span class="turn-actions-resize turn-actions-resize-right" data-combat-resize-edge="right" aria-hidden="true"></span>
-      <span class="turn-actions-resize turn-actions-resize-bottom" data-combat-resize-edge="bottom" aria-hidden="true"></span>
-      <span class="turn-actions-resize turn-actions-resize-corner app-resize-corner" data-combat-resize-edge="corner" aria-hidden="true"></span>
+      </div>
+      <button class="notes-new-button" id="notesNewButton" type="button">
+        <span class="notes-button-icon" aria-hidden="true">+</span>
+        <span data-i18n="notes.newNote">New Note</span>
+      </button>
+      <nav class="notes-category-list" id="notesCategoryList" aria-label="Note categories" data-i18n-aria-label="notes.categories">
+        <button class="notes-category-button is-active" type="button" data-notes-category="all"><span class="notes-category-icon" aria-hidden="true">&#9632;</span><span data-i18n="notes.allNotes">All Notes</span><span class="notes-category-count" id="notesAllCount">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="session"><span class="notes-category-icon" aria-hidden="true">&#9633;</span><span data-i18n="notes.sessionNotes">Session Notes</span><span class="notes-category-count" data-notes-count="session">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="npcs"><span class="notes-category-icon" aria-hidden="true">&#9823;</span><span data-i18n="notes.npcs">NPCs</span><span class="notes-category-count" data-notes-count="npcs">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="quests"><span class="notes-category-icon" aria-hidden="true">&#9876;</span><span data-i18n="notes.quests">Quests</span><span class="notes-category-count" data-notes-count="quests">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="locations"><span class="notes-category-icon" aria-hidden="true">&#9678;</span><span data-i18n="notes.locations">Locations</span><span class="notes-category-count" data-notes-count="locations">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="loot"><span class="notes-category-icon" aria-hidden="true">&#9635;</span><span data-i18n="notes.loot">Loot</span><span class="notes-category-count" data-notes-count="loot">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="combat"><span class="notes-category-icon" aria-hidden="true">&#9876;</span><span data-i18n="notes.combatNotes">Combat Notes</span><span class="notes-category-count" data-notes-count="combat">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="handouts"><span class="notes-category-icon" aria-hidden="true">&#9638;</span><span data-i18n="notes.handouts">Handouts</span><span class="notes-category-count" data-notes-count="handouts">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="shared"><span class="notes-category-icon" aria-hidden="true">&#9673;</span><span data-i18n="notes.sharedNotes">Shared Notes</span><span class="notes-category-count" id="notesSharedCount">0</span></button>
+      </nav>
+      <div class="notes-library-section-heading">
+        <span data-i18n="notes.folders">Folders</span>
+        <button class="notes-icon-button" id="notesAddFolderButton" type="button" aria-label="Add folder" data-i18n-aria-label="notes.addFolder">+</button>
+      </div>
+      <div class="notes-folder-list" id="notesFolderList"></div>
+      <div class="notes-library-list" id="notesLibraryList" aria-live="polite"></div>
+      <div class="notes-library-footer">
+        <span class="notes-sync-dot" aria-hidden="true"></span>
+        <span data-i18n="notes.autosaved">Auto-saved locally</span>
+      </div>
     </aside>
+    <section class="notes-main-panel" aria-labelledby="notesWorkspaceTitle">
+      <header class="notes-tabs-header">
+        <button class="notes-back-button" id="notesBackButton" type="button" aria-label="Back to sheet" data-i18n-aria-label="notes.backToSheet">&#8592;</button>
+        <div class="notes-tabs" id="notesTabs" role="tablist" aria-label="Open notes" data-i18n-aria-label="notes.openNotes"></div>
+        <button class="notes-new-tab-button" id="notesNewTabButton" type="button" aria-label="New note tab" data-i18n-aria-label="notes.newNote">+</button>
+        <h1 id="notesWorkspaceTitle" class="visually-hidden" data-i18n="notes.title">Notes</h1>
+      </header>
+      <div class="notes-command-bar">
+        <label class="notes-search-wrap" for="notesSearchInput">
+          <span aria-hidden="true">&#8981;</span>
+          <input id="notesSearchInput" type="search" placeholder="Search notes..." data-i18n-placeholder="notes.searchPlaceholder">
+          <kbd data-i18n="notes.shortcutSearch">Ctrl K</kbd>
+        </label>
+        <div class="notes-command-actions">
+          <button class="notes-command-button" id="notesPinButton" type="button"><span aria-hidden="true">&#9875;</span><span data-i18n="notes.pin">Pin</span></button>
+          <button class="notes-command-button" id="notesArchiveButton" type="button"><span aria-hidden="true">&#9635;</span><span data-i18n="notes.archive">Archive</span></button>
+          <button class="notes-command-button" id="notesDuplicateButton" type="button"><span aria-hidden="true">&#9707;</span><span data-i18n="notes.duplicate">Duplicate</span></button>
+          <button class="notes-command-button" id="notesExportButton" type="button"><span aria-hidden="true">&#8681;</span><span data-i18n="notes.export">Export</span></button>
+          <button class="notes-command-button notes-danger-button" id="notesDeleteButton" type="button"><span aria-hidden="true">&#128465;</span><span data-i18n="notes.delete">Delete</span></button>
+        </div>
+      </div>
+      <div class="notes-workspace-body">
+        <section class="notes-editor-column">
+          <div class="notes-editor-toolbar" role="toolbar" aria-label="Note formatting" data-i18n-aria-label="notes.formatting">
+            <button type="button" data-note-command="undo" aria-label="Undo" data-i18n-aria-label="notes.undo">&#8630;</button>
+            <button type="button" data-note-command="redo" aria-label="Redo" data-i18n-aria-label="notes.redo">&#8631;</button>
+            <span class="notes-toolbar-divider"></span>
+            <button type="button" data-note-command="heading" aria-label="Heading" data-i18n-aria-label="notes.heading">H2</button>
+            <button type="button" data-note-command="bold" aria-label="Bold" data-i18n-aria-label="notes.bold"><strong>B</strong></button>
+            <button type="button" data-note-command="italic" aria-label="Italic" data-i18n-aria-label="notes.italic"><em>I</em></button>
+            <button type="button" data-note-command="underline" aria-label="Underline" data-i18n-aria-label="notes.underline"><u>U</u></button>
+            <button type="button" data-note-command="strike" aria-label="Strikethrough" data-i18n-aria-label="notes.strike"><s>S</s></button>
+            <span class="notes-toolbar-divider"></span>
+            <button type="button" data-note-command="bullet" aria-label="Bulleted list" data-i18n-aria-label="notes.bullets">&#8226;</button>
+            <button type="button" data-note-command="numbered" aria-label="Numbered list" data-i18n-aria-label="notes.numbered">1.</button>
+            <button type="button" data-note-command="task" aria-label="Task" data-i18n-aria-label="notes.task">&#9745;</button>
+            <button type="button" data-note-command="quote" aria-label="Quote" data-i18n-aria-label="notes.quote">&#8220;</button>
+            <button type="button" data-note-command="code" aria-label="Code" data-i18n-aria-label="notes.code">&lt;/&gt;</button>
+            <button type="button" data-note-command="highlight" aria-label="Highlight" data-i18n-aria-label="notes.highlight">&#9998;</button>
+            <button type="button" data-note-command="link" aria-label="Link" data-i18n-aria-label="notes.link">&#128279;</button>
+            <button type="button" data-note-command="table" aria-label="Table" data-i18n-aria-label="notes.table">&#9638;</button>
+          </div>
+          <article class="notes-paper">
+            <div class="notes-paper-heading-row">
+              <span class="notes-paper-icon" aria-hidden="true">&#9638;</span>
+              <input class="notes-title-input" id="notesTitleInput" type="text" maxlength="160" placeholder="Note title" data-i18n-placeholder="notes.titlePlaceholder">
+              <button class="notes-star-button" id="notesStarButton" type="button" aria-label="Favorite note" data-i18n-aria-label="notes.favorite">&#9733;</button>
+            </div>
+            <div class="notes-paper-rule" aria-hidden="true"></div>
+            <textarea class="notes-body-input" id="notesBodyInput" spellcheck="true" placeholder="Start writing your note..." data-i18n-placeholder="notes.bodyPlaceholder"></textarea>
+          </article>
+          <div class="notes-editor-status" id="notesEditorStatus" aria-live="polite"></div>
+        </section>
+        <aside class="notes-details-panel" aria-label="Note details" data-i18n-aria-label="notes.details">
+          <section class="notes-info-card">
+            <div class="notes-card-title" data-i18n="notes.noteInfo">Note Info</div>
+            <dl>
+              <div><dt data-i18n="notes.lastEdited">Last edited</dt><dd id="notesLastEdited">-</dd></div>
+              <div><dt data-i18n="notes.created">Created</dt><dd id="notesCreated">-</dd></div>
+              <div><dt data-i18n="notes.autosave">Auto-save</dt><dd><span class="notes-live-dot"></span><span data-i18n="notes.on">On</span></dd></div>
+              <div><dt data-i18n="notes.noteId">Note ID</dt><dd id="notesId">-</dd></div>
+            </dl>
+            <div class="notes-classification-grid">
+              <label><span data-i18n="notes.category">Category</span><select id="notesCategorySelect">
+                <option value="session" data-i18n="notes.sessionNotes">Session Notes</option>
+                <option value="npcs" data-i18n="notes.npcs">NPCs</option>
+                <option value="quests" data-i18n="notes.quests">Quests</option>
+                <option value="locations" data-i18n="notes.locations">Locations</option>
+                <option value="loot" data-i18n="notes.loot">Loot</option>
+                <option value="combat" data-i18n="notes.combatNotes">Combat Notes</option>
+                <option value="handouts" data-i18n="notes.handouts">Handouts</option>
+                <option value="custom" data-i18n="notes.custom">Custom</option>
+              </select></label>
+              <label><span data-i18n="notes.folder">Folder</span><select id="notesFolderSelect"></select></label>
+            </div>
+          </section>
+          <section class="notes-detail-card">
+            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tags">Tags</div><button class="notes-icon-button" id="notesAddTagButton" type="button" aria-label="Add tag" data-i18n-aria-label="notes.addTag">+</button></div>
+            <div class="notes-tags" id="notesTags"></div>
+            <input class="notes-inline-input" id="notesTagInput" type="text" maxlength="32" placeholder="Add tag and press Enter" data-i18n-placeholder="notes.tagPlaceholder">
+            <div class="notes-label-title" data-i18n="notes.label">Label</div>
+            <div class="notes-label-colors" id="notesLabelColors" role="radiogroup" aria-label="Note label" data-i18n-aria-label="notes.label">
+              <button type="button" data-note-color="gray" aria-label="Gray" data-i18n-aria-label="notes.gray"></button>
+              <button type="button" data-note-color="red" aria-label="Red" data-i18n-aria-label="notes.red"></button>
+              <button type="button" data-note-color="amber" aria-label="Amber" data-i18n-aria-label="notes.amber"></button>
+              <button type="button" data-note-color="green" aria-label="Green" data-i18n-aria-label="notes.green"></button>
+              <button type="button" data-note-color="blue" aria-label="Blue" data-i18n-aria-label="notes.blue"></button>
+              <button type="button" data-note-color="purple" aria-label="Purple" data-i18n-aria-label="notes.purple"></button>
+            </div>
+          </section>
+          <section class="notes-detail-card">
+            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.linkedEntities">Linked Entities</div><button class="notes-icon-button" id="notesAddLinkButton" type="button" aria-label="Add linked entity" data-i18n-aria-label="notes.addLink">+</button></div>
+            <div class="notes-links-list" id="notesLinksList"></div>
+          </section>
+          <section class="notes-detail-card notes-share-card">
+            <label class="notes-share-toggle"><input id="notesShareToggle" type="checkbox"><span><strong data-i18n="notes.shareNote">Share with connected players</strong><small data-i18n="notes.shareHint">Everyone connected to this session can read and update this note.</small></span></label>
+            <div class="notes-share-status" id="notesShareStatus" aria-live="polite"></div>
+          </section>
+          <div class="notes-bottom-cards">
+            <section class="notes-detail-card notes-template-card">
+              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.templates">Templates</div><button class="notes-icon-button" id="notesCloseTemplatesButton" type="button" aria-label="Hide templates" data-i18n-aria-label="notes.hideTemplates">&#215;</button></div>
+              <div class="notes-template-list" id="notesTemplateList">
+                <button type="button" data-note-template="session"><span aria-hidden="true">&#128218;</span><span data-i18n="notes.templateSession">Session Recap</span></button>
+                <button type="button" data-note-template="npc"><span aria-hidden="true">&#9823;</span><span data-i18n="notes.templateNpc">NPC Profile</span></button>
+                <button type="button" data-note-template="quest"><span aria-hidden="true">&#9876;</span><span data-i18n="notes.templateQuest">Quest Log</span></button>
+                <button type="button" data-note-template="encounter"><span aria-hidden="true">&#9876;</span><span data-i18n="notes.templateEncounter">Encounter Notes</span></button>
+              </div>
+            </section>
+            <section class="notes-detail-card notes-task-card">
+              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tasks">Tasks &amp; Reminders</div><button class="notes-icon-button" id="notesAddTaskButton" type="button" aria-label="Add task" data-i18n-aria-label="notes.addTask">+</button></div>
+              <div class="notes-task-list" id="notesTaskList"></div>
+              <div class="notes-task-entry"><span aria-hidden="true">+</span><input id="notesTaskInput" type="text" maxlength="240" placeholder="Add new task" data-i18n-placeholder="notes.taskPlaceholder"></div>
+            </section>
+          </div>
+        </aside>
+      </div>
+      <footer class="notes-status-bar">
+        <span><span class="notes-sync-dot" aria-hidden="true"></span><span data-i18n="notes.allChangesSaved">All changes saved locally</span></span>
+        <span><kbd data-i18n="notes.shortcutBold">Ctrl B</kbd> <span data-i18n="notes.bold">Bold</span></span>
+        <span><kbd data-i18n="notes.shortcutHelp">Ctrl /</kbd> <span data-i18n="notes.showShortcuts">Show shortcuts</span></span>
+        <span class="notes-status-spacer"></span>
+        <span data-i18n="notes.rollInitiative">Roll Initiative</span>
+        <button class="notes-status-icon" type="button" aria-label="Notifications" data-i18n-aria-label="notes.notifications">&#128276;</button>
+        <button class="notes-status-icon" type="button" aria-label="Help" data-i18n-aria-label="notes.help">?</button>
+        <button class="notes-status-icon" type="button" aria-label="Settings" data-i18n-aria-label="settings.open">&#9881;</button>
+      </footer>
+    </section>
   </div>
   <div class="character-import-backdrop" id="characterImportBackdrop" aria-hidden="true" hidden>
     <div class="character-import-modal" role="dialog" aria-modal="true" aria-labelledby="characterImportTitle">
@@ -407,6 +668,7 @@
     const characterImportCode = document.getElementById("characterImportCode");
     const characterImportSlotSelect = document.getElementById("characterImportSlotSelect");
     const characterImportError = document.getElementById("characterImportError");
+    const turnActionsResourcesDock = document.getElementById("turnActionsResourcesDock");
     const {
       ACTION_TYPES,
       ACTION_TYPE_LABELS,
@@ -456,19 +718,14 @@
     const turnActionRegistry = createActionRegistry();
     const COMBAT_LOG_KEY = "dnd-character-sheet-combat-log-v1";
     const COMBAT_LOG_LIMIT = 100;
-    const COMBAT_WINDOW_LAYOUT_KEY = "dnd-character-sheet-combat-window-v1";
-    const COMBAT_WINDOW_MIN_WIDTH = 420;
-    const COMBAT_WINDOW_MIN_HEIGHT = 300;
-    const COMBAT_WINDOW_MARGIN = 8;
     const FLOATING_SHEET_WINDOW_MARGIN = 8;
     const floatingSheetWindowControllers = new Map();
     let floatingSheetWindowZIndex = 60;
     let activeCombatResolution = null;
     let combatLogEntries = loadCombatLogEntries();
-    let combatWindowLayout = loadCombatWindowLayout();
-    let combatWindowPointerAction = null;
     let turnActionDescriptionsTranslated = false;
     let turnActionTranslationPending = false;
+    let activeTurnActionCategory = ACTION_CATEGORIES.attacks;
     let combatCollectionMemo = null;
     let combatActionCache = null;
     let combatActionCacheRevision = 0;
@@ -6030,7 +6287,7 @@
       if (!menu) return;
       menu.hidden = !open;
       menu.classList.toggle("visible", Boolean(open));
-      document.querySelectorAll(".status-dice-button").forEach((button) => button.classList.toggle("active", Boolean(open)));
+      document.querySelectorAll(".app-sidebar-dice-button").forEach((button) => button.classList.toggle("active", Boolean(open)));
       if (open) {
         renderDiceLog();
         renderFreeDiceSelection();
@@ -6065,6 +6322,12 @@
         if (event.key === "Escape" && isFreeDiceMenuOpen()) setFreeDiceMenuOpen(false);
       });
     }
+
+    document.getElementById("sidebarFreeDiceButton")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleFreeDiceMenu();
+    });
 
     function liveRollDisplayName() {
       if (!window.isLiveSheetConnected?.()) return "";
@@ -7880,7 +8143,17 @@
       combatLogEntries.slice(0, 20).forEach((event) => {
         const row = document.createElement("article");
         row.className = "combat-log-entry";
-        row.textContent = formatCombatLogEvent(event);
+        const lines = formatCombatLogEvent(event).split("\n");
+        const headline = document.createElement("strong");
+        headline.className = "combat-log-headline";
+        headline.textContent = lines.shift() || "Combat event";
+        row.appendChild(headline);
+        if (lines.length) {
+          const details = document.createElement("div");
+          details.className = "combat-log-details";
+          details.textContent = lines.join("\n");
+          row.appendChild(details);
+        }
         combatLogList.appendChild(row);
       });
     }
@@ -8386,6 +8659,8 @@
       const visibleResolutionSteps = action.resolutionSteps.filter((step) => step !== RESOLUTION_STEPS.applyEffect);
       const completedSteps = visibleResolutionSteps.map((step) => combatResolutionStepCompleted(session, step));
       const currentStepIndex = Math.max(0, completedSteps.findIndex((completed) => !completed));
+      combatResolution.dataset.currentStep = String(currentStepIndex + 1);
+      combatResolution.dataset.stepCount = String(visibleResolutionSteps.length);
       visibleResolutionSteps.forEach((step, index) => {
         const pill = document.createElement("div");
         pill.className = "combat-resolution-step";
@@ -8394,6 +8669,8 @@
         const current = !done && index === currentStepIndex;
         pill.classList.toggle("is-complete", done);
         pill.classList.toggle("is-current", current);
+        pill.classList.toggle("is-upcoming", !done && !current);
+        if (current) pill.setAttribute("aria-current", "step");
         const number = document.createElement("span");
         number.className = "combat-resolution-step-number";
         number.textContent = done ? "✓" : String(index + 1);
@@ -8456,6 +8733,7 @@
           const name = String(target.name || "").trim();
           if (!id || !name) return;
           const label = document.createElement("label");
+          label.className = "combat-resolution-checkbox";
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.checked = selected.has(id);
@@ -8525,7 +8803,8 @@
       if (Array.isArray(action.optionalDamageChoices) && action.optionalDamageChoices.length) {
         action.optionalDamageChoices.forEach((choice) => {
           const label = document.createElement("label");
-          label.textContent = t("turn.optionalDamage", { name: choice.name, damage: choice.damage });
+          label.className = "combat-resolution-checkbox";
+          const choiceText = document.createTextNode(t("turn.optionalDamage", { name: choice.name, damage: choice.damage }));
           const input = document.createElement("input");
           input.type = "checkbox";
           input.checked = session.results.variant?.optionalDamageKeys?.includes(choice.key) || false;
@@ -8539,7 +8818,7 @@
               damageRoll: null
             });
           });
-          label.appendChild(input);
+          label.append(input, choiceText);
           fields.appendChild(label);
         });
       }
@@ -8660,7 +8939,7 @@
       workspace.className = "combat-resolution-workspace";
       if (fields.children.length) {
         const detailsSection = document.createElement("section");
-        detailsSection.className = "combat-resolution-section";
+        detailsSection.className = "combat-resolution-section combat-resolution-details";
         const detailsTitle = document.createElement("h4");
         detailsTitle.textContent = t("turn.resolutionDetails");
         detailsSection.append(detailsTitle, fields);
@@ -8668,7 +8947,7 @@
       }
       if (controls.children.length) {
         const rollsSection = document.createElement("section");
-        rollsSection.className = "combat-resolution-section";
+        rollsSection.className = "combat-resolution-section combat-resolution-rolls";
         const rollsTitle = document.createElement("h4");
         rollsTitle.textContent = t("turn.resolutionRolls");
         rollsSection.append(rollsTitle, controls);
@@ -8841,9 +9120,42 @@
       return section;
     }
 
+    const COMBAT_ACTION_ICON_PATHS = Object.freeze({
+      sword: ["M5 19 19 5", "M7 17l-2 2", "M9 15l-2-2", "M11 13l-2-2", "M13 11l-2-2"],
+      bow: ["M7 3c8 4 8 14 0 18", "M7 12h14", "M17 9l4 3-4 3"],
+      magic: ["M12 2v20", "M4 12h16", "M6 6l12 12", "M18 6 6 18"],
+      shield: ["M12 3 19 6v5c0 5-3 8-7 10-4-2-7-5-7-10V6Z", "M9 12l2 2 4-5"],
+      spark: ["M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8Z"]
+    });
+
+    function combatActionIcon(action = {}) {
+      const name = `${action.title || ""} ${action.attack?.weaponName || ""} ${action.attack?.name || ""}`.toLowerCase();
+      const source = String(action.source || "").toLowerCase();
+      const key = source === "equipment"
+        ? /bow|crossbow|sling|ranged|disparo/.test(name) ? "bow" : "sword"
+        : action.category === ACTION_CATEGORIES.spells || source === "spells"
+          ? "magic"
+          : action.category === ACTION_CATEGORIES.reactions
+            ? "shield"
+            : "spark";
+      const wrapper = document.createElement("span");
+      wrapper.className = `combat-action-icon combat-action-icon-${key}`;
+      wrapper.setAttribute("aria-hidden", "true");
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("focusable", "false");
+      (COMBAT_ACTION_ICON_PATHS[key] || COMBAT_ACTION_ICON_PATHS.spark).forEach((d) => {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", d);
+        icon.appendChild(path);
+      });
+      wrapper.appendChild(icon);
+      return wrapper;
+    }
+
     function renderTurnActionGroups(actions = [], stateOverride = null) {
       const container = document.createElement("section");
-      container.className = "turn-actions-groups";
+      container.className = "turn-actions-categories";
       const categoryOrder = [
         [ACTION_CATEGORIES.attacks, t("turn.category.attacks")],
         [ACTION_CATEGORIES.spells, t("turn.category.spells")],
@@ -8854,9 +9166,53 @@
         [ACTION_CATEGORIES.items, t("turn.category.items")],
         [ACTION_CATEGORIES.features, t("turn.category.features")]
       ];
-      categoryOrder.forEach(([category, label]) => {
-        const items = actions.filter((action) => combatCategoryForAction(action) === category);
-        if (!items.length) return;
+      const populatedCategories = categoryOrder
+        .map(([category, label]) => ({
+          category,
+          label,
+          items: actions.filter((action) => combatCategoryForAction(action) === category)
+        }))
+        .filter((entry) => entry.items.length);
+      if (!populatedCategories.length) return container;
+      if (!populatedCategories.some((entry) => entry.category === activeTurnActionCategory)) {
+        activeTurnActionCategory = populatedCategories[0].category;
+      }
+
+      const tabs = document.createElement("div");
+      tabs.className = "turn-actions-tabs";
+      tabs.setAttribute("role", "tablist");
+      tabs.setAttribute("aria-label", t("turn.categories"));
+      const panels = document.createElement("div");
+      panels.className = "turn-actions-tab-panels";
+
+      populatedCategories.forEach(({ category, label, items }) => {
+        const tabId = `turn-actions-tab-${category}`;
+        const panelId = `turn-actions-panel-${category}`;
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "turn-actions-tab";
+        tab.id = tabId;
+        tab.dataset.category = category;
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-controls", panelId);
+        tab.setAttribute("aria-selected", String(category === activeTurnActionCategory));
+        tab.tabIndex = category === activeTurnActionCategory ? 0 : -1;
+        tab.textContent = `${label} (${items.length})`;
+        tab.addEventListener("click", () => {
+          if (activeTurnActionCategory === category) return;
+          activeTurnActionCategory = category;
+          refreshTurnActionsPanel();
+        });
+        tabs.appendChild(tab);
+
+        const panel = document.createElement("section");
+        panel.className = "turn-actions-tab-panel";
+        panel.id = panelId;
+        panel.dataset.category = category;
+        panel.setAttribute("role", "tabpanel");
+        panel.setAttribute("aria-labelledby", tabId);
+        panel.hidden = category !== activeTurnActionCategory;
+
         const group = document.createElement("div");
         group.className = "turn-actions-group";
         const title = document.createElement("h3");
@@ -8876,6 +9232,7 @@
           row.classList.toggle("disabled", disabled);
           row.title = disabledReason;
           if (!disabled) row.addEventListener("click", () => spendTurnAction(action));
+          row.appendChild(combatActionIcon(action));
           const rowTitle = document.createElement("div");
           rowTitle.className = "turn-actions-row-title";
           renderTurnActionTranslatableText(rowTitle, action.title, "action-title", action.key || action.id || action.title);
@@ -8901,8 +9258,10 @@
           list.appendChild(row);
         });
         group.appendChild(list);
-        container.appendChild(group);
+        panel.appendChild(group);
+        panels.appendChild(panel);
       });
+      container.append(tabs, panels);
       return container;
     }
 
@@ -8984,13 +9343,14 @@
       if (!turnActionsBody) return;
       const startedAt = performance.now();
       turnActionsBody.textContent = "";
+      if (turnActionsResourcesDock) turnActionsResourcesDock.textContent = "";
       const summary = collectCurrentTurnActions();
       updateTurnActionCounters(summary.actions, summary.combatState);
       const resourceSection = renderTurnActionResources(summary.resources);
       const statusSection = renderTurnActionStatuses();
       const actionGroups = renderTurnActionGroups(summary.actions, summary.combatState);
-      if (resourceSection) turnActionsBody.appendChild(resourceSection);
-      if (statusSection) turnActionsBody.appendChild(statusSection);
+      if (resourceSection && turnActionsResourcesDock) turnActionsResourcesDock.appendChild(resourceSection);
+      if (statusSection && turnActionsResourcesDock) turnActionsResourcesDock.appendChild(statusSection);
       if (summary.actions.length) turnActionsBody.appendChild(actionGroups);
       if (!summary.resources.length && !summary.actions.length) {
         const empty = document.createElement("div");
@@ -9005,163 +9365,15 @@
       combatPerformanceSamples.splice(30);
     }
 
-    function defaultCombatWindowLayout() {
-      const viewportWidth = window.innerWidth || 1200;
-      const viewportHeight = window.innerHeight || 800;
-      const width = Math.min(1080, Math.max(Math.min(COMBAT_WINDOW_MIN_WIDTH, viewportWidth - COMBAT_WINDOW_MARGIN * 2), viewportWidth - 40));
-      const height = Math.min(820, Math.max(Math.min(COMBAT_WINDOW_MIN_HEIGHT, viewportHeight - COMBAT_WINDOW_MARGIN * 2), viewportHeight - 40));
-      return {
-        x: Math.max(COMBAT_WINDOW_MARGIN, (viewportWidth - width) / 2),
-        y: Math.max(COMBAT_WINDOW_MARGIN, (viewportHeight - height) / 2),
-        width,
-        height,
-        collapsed: false
-      };
-    }
-
-    function normalizeCombatWindowLayout(layout = {}) {
-      const defaults = defaultCombatWindowLayout();
-      const viewportWidth = window.innerWidth || 1200;
-      const viewportHeight = window.innerHeight || 800;
-      const availableWidth = Math.max(1, viewportWidth - COMBAT_WINDOW_MARGIN * 2);
-      const availableHeight = Math.max(1, viewportHeight - COMBAT_WINDOW_MARGIN * 2);
-      const minWidth = Math.min(COMBAT_WINDOW_MIN_WIDTH, availableWidth);
-      const minHeight = Math.min(COMBAT_WINDOW_MIN_HEIGHT, availableHeight);
-      const width = viewportClamp(Number(layout.width) || defaults.width, minWidth, availableWidth);
-      const height = viewportClamp(Number(layout.height) || defaults.height, minHeight, availableHeight);
-      const collapsed = Boolean(layout.collapsed);
-      const visibleHeight = collapsed ? 54 : height;
-      return {
-        x: viewportClamp(Number.isFinite(Number(layout.x)) ? Number(layout.x) : defaults.x, COMBAT_WINDOW_MARGIN, Math.max(COMBAT_WINDOW_MARGIN, viewportWidth - width - COMBAT_WINDOW_MARGIN)),
-        y: viewportClamp(Number.isFinite(Number(layout.y)) ? Number(layout.y) : defaults.y, COMBAT_WINDOW_MARGIN, Math.max(COMBAT_WINDOW_MARGIN, viewportHeight - visibleHeight - COMBAT_WINDOW_MARGIN)),
-        width,
-        height,
-        collapsed
-      };
-    }
-
-    function loadCombatWindowLayout() {
-      try {
-        const raw = localStorage.getItem(COMBAT_WINDOW_LAYOUT_KEY);
-        return normalizeCombatWindowLayout(raw ? JSON.parse(raw) : {});
-      } catch (error) {
-        console.warn("Could not load combat window layout.", error);
-        return normalizeCombatWindowLayout();
-      }
-    }
-
-    function persistCombatWindowLayout() {
-      try {
-        localStorage.setItem(COMBAT_WINDOW_LAYOUT_KEY, JSON.stringify(combatWindowLayout));
-      } catch (error) {
-        console.warn("Could not save combat window layout.", error);
-      }
-    }
-
-    function applyCombatWindowLayout({ persist = false } = {}) {
-      if (!turnActionsPanel) return;
-      combatWindowLayout = normalizeCombatWindowLayout(combatWindowLayout);
-      turnActionsPanel.style.left = `${combatWindowLayout.x}px`;
-      turnActionsPanel.style.top = `${combatWindowLayout.y}px`;
-      turnActionsPanel.style.width = `${combatWindowLayout.width}px`;
-      turnActionsPanel.style.height = combatWindowLayout.collapsed ? "auto" : `${combatWindowLayout.height}px`;
-      turnActionsPanel.classList.toggle("is-collapsed", combatWindowLayout.collapsed);
-      if (turnActionsCollapse) {
-        const label = t(combatWindowLayout.collapsed ? "turn.expandWindow" : "turn.collapseWindow");
-        turnActionsCollapse.textContent = combatWindowLayout.collapsed ? "+" : "−";
-        turnActionsCollapse.title = label;
-        turnActionsCollapse.setAttribute("aria-label", label);
-        turnActionsCollapse.setAttribute("aria-expanded", String(!combatWindowLayout.collapsed));
-      }
-      if (persist) persistCombatWindowLayout();
-    }
-
-    function toggleTurnActionsPanelCollapsed() {
-      combatWindowLayout = { ...combatWindowLayout, collapsed: !combatWindowLayout.collapsed };
-      applyCombatWindowLayout({ persist: true });
-    }
-
-    function startCombatWindowMove(event) {
-      if (event.button !== 0 || event.target?.closest?.("button, input, select, textarea, a")) return;
-      if (!turnActionsBackdrop?.classList.contains("visible")) return;
-      combatWindowPointerAction = {
-        kind: "move",
-        pointerId: event.pointerId,
-        startClientX: event.clientX,
-        startClientY: event.clientY,
-        startX: combatWindowLayout.x,
-        startY: combatWindowLayout.y
-      };
-      turnActionsPanel?.classList.add("is-interacting");
-      document.addEventListener("pointermove", handleCombatWindowPointerMove);
-      document.addEventListener("pointerup", stopCombatWindowPointerAction);
-      document.addEventListener("pointercancel", stopCombatWindowPointerAction);
-      event.preventDefault();
-    }
-
-    function startCombatWindowResize(event, edge = "corner") {
-      if (event.button !== 0 || combatWindowLayout.collapsed) return;
-      combatWindowPointerAction = {
-        kind: "resize",
-        edge,
-        pointerId: event.pointerId,
-        startClientX: event.clientX,
-        startClientY: event.clientY,
-        startWidth: combatWindowLayout.width,
-        startHeight: combatWindowLayout.height
-      };
-      turnActionsPanel?.classList.add("is-interacting");
-      document.addEventListener("pointermove", handleCombatWindowPointerMove);
-      document.addEventListener("pointerup", stopCombatWindowPointerAction);
-      document.addEventListener("pointercancel", stopCombatWindowPointerAction);
-      event.preventDefault();
-      event.stopPropagation();
-    }
-
-    function handleCombatWindowPointerMove(event) {
-      const action = combatWindowPointerAction;
-      if (!action || action.pointerId !== event.pointerId) return;
-      const deltaX = event.clientX - action.startClientX;
-      const deltaY = event.clientY - action.startClientY;
-      if (action.kind === "move") {
-        combatWindowLayout = { ...combatWindowLayout, x: action.startX + deltaX, y: action.startY + deltaY };
-      } else {
-        const viewportWidth = window.innerWidth || 1200;
-        const viewportHeight = window.innerHeight || 800;
-        const availableWidth = Math.max(1, viewportWidth - COMBAT_WINDOW_MARGIN * 2);
-        const availableHeight = Math.max(1, viewportHeight - COMBAT_WINDOW_MARGIN * 2);
-        const minWidth = Math.min(COMBAT_WINDOW_MIN_WIDTH, availableWidth);
-        const minHeight = Math.min(COMBAT_WINDOW_MIN_HEIGHT, availableHeight);
-        combatWindowLayout = {
-          ...combatWindowLayout,
-          width: action.edge === "right" || action.edge === "corner"
-            ? viewportClamp(action.startWidth + deltaX, minWidth, Math.max(minWidth, viewportWidth - combatWindowLayout.x - COMBAT_WINDOW_MARGIN))
-            : combatWindowLayout.width,
-          height: action.edge === "bottom" || action.edge === "corner"
-            ? viewportClamp(action.startHeight + deltaY, minHeight, Math.max(minHeight, viewportHeight - combatWindowLayout.y - COMBAT_WINDOW_MARGIN))
-            : combatWindowLayout.height
-        };
-      }
-      applyCombatWindowLayout();
-      event.preventDefault();
-    }
-
-    function stopCombatWindowPointerAction(event = null) {
-      if (!combatWindowPointerAction) return;
-      if (event?.pointerId !== undefined && event.pointerId !== combatWindowPointerAction.pointerId) return;
-      combatWindowPointerAction = null;
-      turnActionsPanel?.classList.remove("is-interacting");
-      document.removeEventListener("pointermove", handleCombatWindowPointerMove);
-      document.removeEventListener("pointerup", stopCombatWindowPointerAction);
-      document.removeEventListener("pointercancel", stopCombatWindowPointerAction);
-      persistCombatWindowLayout();
-    }
-
     async function openTurnActionsPanel() {
       if (!turnActionsBackdrop) return;
-      applyCombatWindowLayout();
+      globalThis.dndCharacterSheetNavigation?.setView?.("combat");
+      document.body.classList.add("combat-screen-open");
+      turnActionsPanel?.classList.add("is-combat-screen");
       turnActionsBackdrop.classList.add("visible");
       turnActionsBackdrop.setAttribute("aria-hidden", "false");
+      globalThis.dndCombatBoardSurface?.apply?.();
+      globalThis.dndCharacterSheetVttSurface?.setCombatSurface?.(true);
       if (!itemCatalogReady) {
         turnActionsBody.textContent = "";
         const loadingMessage = document.createElement("div");
@@ -9171,14 +9383,17 @@
         await waitForItemCatalog();
       }
       refreshTurnActionsPanel();
-      turnActionsClose?.focus();
+      turnActionsTranslate?.focus();
     }
 
     function closeTurnActionsPanel() {
       if (!turnActionsBackdrop) return;
-      stopCombatWindowPointerAction();
       turnActionsBackdrop.classList.remove("visible");
       turnActionsBackdrop.setAttribute("aria-hidden", "true");
+      turnActionsPanel?.classList.remove("is-combat-screen");
+      document.body.classList.remove("combat-screen-open");
+      globalThis.dndCharacterSheetVttSurface?.setCombatSurface?.(false);
+      globalThis.dndCharacterSheetNavigation?.setView?.("sheet");
     }
 
     function refreshTurnActionsPanelIfVisible() {
@@ -9940,18 +10155,6 @@
         renderStatusDock();
       });
       launcherRow.appendChild(addButton);
-
-      const diceButton = document.createElement("button");
-      diceButton.type = "button";
-      diceButton.className = `status-dice-button${isFreeDiceMenuOpen() ? " active" : ""}`;
-      diceButton.textContent = "\uD83C\uDFB2";
-      diceButton.title = "Tirar dados libres";
-      diceButton.setAttribute("aria-label", "Tirar dados libres");
-      diceButton.addEventListener("click", (event) => {
-        event.stopPropagation();
-        toggleFreeDiceMenu();
-      });
-      launcherRow.appendChild(diceButton);
 
       const picker = document.createElement("div");
       picker.className = `status-picker${open ? " visible" : ""}`;
