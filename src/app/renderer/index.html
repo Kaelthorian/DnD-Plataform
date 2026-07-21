@@ -24,39 +24,25 @@
     </div>
     <nav class="app-sidebar-nav" aria-label="Main navigation" data-i18n-aria-label="sidebar.navigation">
       <button class="app-sidebar-button is-active" id="sidebarSheetButton" type="button" aria-label="Player sheet" title="Player sheet" aria-current="page" data-sidebar-view="sheet" data-i18n-aria-label="sidebar.sheet" data-i18n-title="sidebar.sheet">
-        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M6 3.5h9.5L19 7v13.5H6zM15 3.5V7h4M9 11h7M9 14h7M9 17h4" />
-        </svg>
+        <span data-app-icon="file" data-icon-class="app-sidebar-icon" aria-hidden="true"></span>
         <span class="app-sidebar-label" data-i18n="sidebar.sheet">Player sheet</span>
       </button>
       <button class="app-sidebar-button" id="turnActionsButton" type="button" aria-label="Start combat" title="Start combat" data-sidebar-view="combat" data-i18n-aria-label="sidebar.combat" data-i18n-title="sidebar.combat">
-        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="m5 4 6 6m-4.5-1.5 2-2m-5 5 2-2M19 4l-6 6m4.5-1.5-2-2m5 5-2-2M8 13l8 8M16 13 8 21" />
-        </svg>
+        <span data-app-icon="combat" data-icon-class="app-sidebar-icon" aria-hidden="true"></span>
         <span class="app-sidebar-label" data-i18n="sidebar.combat">Combat</span>
       </button>
       <button class="app-sidebar-button app-sidebar-notes-button" id="sidebarNotesButton" type="button" aria-label="Notes" title="Notes" data-sidebar-view="notes" data-i18n-aria-label="notes.title" data-i18n-title="notes.title">
-        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M5 4.5h14v15H5z" />
-          <path d="M8 8h8M8 11.5h8M8 15h5" />
-          <path d="m16 15 3 3" />
-        </svg>
+        <span data-app-icon="spellbook" data-icon-class="app-sidebar-icon" aria-hidden="true"></span>
         <span class="app-sidebar-label" data-i18n="notes.title">Notes</span>
       </button>
       <button class="app-sidebar-button app-sidebar-dice-button" id="sidebarFreeDiceButton" type="button" aria-label="Free dice" title="Free dice" data-i18n-aria-label="dice.freeTitle" data-i18n-title="dice.freeTitle">
-        <svg class="app-sidebar-icon app-sidebar-dice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="m12 3 8 5v8l-8 5-8-5V8l8-5Z" />
-          <path d="M12 3v8m8-3-8 3m0 0L4 8m8 3v10m-4-7 4 2.5 4-2.5" />
-          <circle cx="12" cy="7" r=".8" fill="currentColor" stroke="none" />
-        </svg>
+        <span data-app-icon="dice" data-icon-class="app-sidebar-icon app-sidebar-dice-icon" aria-hidden="true"></span>
         <span class="app-sidebar-label" data-i18n="dice.freeTitle">Free dice</span>
       </button>
     </nav>
     <div class="app-sidebar-footer">
       <button class="app-sidebar-button app-sidebar-menu-button" id="sidebarMenuButton" type="button" aria-label="Open menu" title="Open menu" aria-expanded="false" aria-controls="sidebarMenuPanel" data-i18n-aria-label="sidebar.openMenu" data-i18n-title="sidebar.openMenu">
-        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
+        <span data-app-icon="menu" data-icon-class="app-sidebar-icon" aria-hidden="true"></span>
         <span class="app-sidebar-label" data-i18n="sidebar.menu">Menu</span>
       </button>
     </div>
@@ -64,7 +50,7 @@
   <div class="sidebar-menu-panel" id="sidebarMenuPanel" hidden>
     <div class="sidebar-menu-header">
       <div class="sidebar-menu-title" data-i18n="sidebar.menu">Menu</div>
-      <button class="sidebar-menu-close" id="sidebarMenuClose" type="button" aria-label="Close menu" title="Close menu" data-i18n-aria-label="sidebar.closeMenu" data-i18n-title="sidebar.closeMenu">X</button>
+      <button class="sidebar-menu-close" id="sidebarMenuClose" type="button" aria-label="Close menu" title="Close menu" data-i18n-aria-label="sidebar.closeMenu" data-i18n-title="sidebar.closeMenu"><span data-app-icon="x" aria-hidden="true"></span></button>
     </div>
     <div class="sidebar-menu-body">
       <section class="sidebar-menu-section">
@@ -81,7 +67,7 @@
               <select class="save-slot-select" id="saveSlotSelect"></select>
             </div>
             <button class="clear-fields-button" id="clearFieldsButton" type="button" data-i18n="top.clearFields">Clear fields</button>
-            <button class="character-ready-button" id="characterReadyButton" type="button" data-i18n="top.characterReady.unlocked">🔓 Character Ready</button>
+            <button class="character-ready-button" id="characterReadyButton" type="button"><span data-app-icon="unlock" aria-hidden="true"></span><span data-i18n="top.characterReady.unlocked">Character Ready</span></button>
           </div>
         </div>
       </section>
@@ -89,24 +75,18 @@
         <div class="sidebar-menu-section-title" data-i18n="sidebar.restControls">Rest controls</div>
         <div class="rest-controls" aria-label="Rest controls" data-i18n-aria-label="top.restControls">
           <button class="long-rest-button" id="longRestButton" type="button" aria-label="Start long rest" title="Start long rest" data-i18n-aria-label="top.longRest.start" data-i18n-title="top.longRest.start">
-            <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M7.5 3.5h9a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18V6a2.5 2.5 0 0 1 2.5-2.5Z" />
-              <path d="M5 8h14M8 5.8h3" />
-            </svg>
+            <span data-app-icon="longRest" data-icon-class="rest-control-icon" aria-hidden="true"></span>
             <span class="sidebar-rest-label" data-i18n="top.longRest">Long rest</span>
           </button>
           <button class="long-rest-button short-rest-button" id="shortRestButton" type="button" aria-label="Start short rest" title="Start short rest" data-i18n-aria-label="top.shortRest.start" data-i18n-title="top.shortRest.start">
-            <svg class="rest-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 3.5c1.9 2.2 3.8 4.4 3.8 7.1A3.8 3.8 0 1 1 8.2 10.6C8.2 8.4 9.7 6.2 12 3.5Z" />
-              <path d="m5 18.5 14 2M19 18.5 5 20.5" />
-            </svg>
+            <span data-app-icon="campfire" data-icon-class="rest-control-icon" aria-hidden="true"></span>
             <span class="sidebar-rest-label" data-i18n="top.shortRest">Short rest</span>
           </button>
         </div>
       </section>
       <section class="sidebar-menu-section">
         <div class="app-settings-menu" id="appSettingsMenu">
-          <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Open settings" aria-expanded="false" aria-controls="appSettingsPanel" data-i18n-aria-label="settings.open" hidden tabindex="-1">&#9881;</button>
+          <button class="app-settings-launcher" id="appSettingsLauncher" type="button" aria-label="Open settings" title="Open settings" aria-expanded="false" aria-controls="appSettingsPanel" data-i18n-aria-label="settings.open" data-i18n-title="settings.open" hidden tabindex="-1"><span data-app-icon="settings" aria-hidden="true"></span></button>
           <div class="app-settings-panel" id="appSettingsPanel" hidden>
             <div class="app-settings-title" data-i18n="settings.title">Settings</div>
             <div class="app-settings-language" id="playerLanguageControl" role="group" aria-label="Language" data-i18n-aria-label="settings.language">
@@ -121,6 +101,10 @@
             <button class="app-settings-action-button" id="generateSheetCodeButton" type="button" data-i18n="settings.generateCode">Generate code</button>
             <button class="app-settings-action-button" id="importCharacterButton" type="button" data-i18n="settings.importCharacter">Import character</button>
             <button class="app-settings-action-button" id="checkUpdatesButton" type="button" data-i18n="settings.checkUpdates">Check for updates</button>
+            <details class="app-settings-credits">
+              <summary data-i18n="settings.iconCredits">Icon credits</summary>
+              <p data-i18n="settings.iconCreditsBody">General interface icons use Lucide (ISC). Fantasy icons credit Game Icons and its contributors, including Lorc and Delapouite (CC BY 3.0). Local emblems and the parchment texture are original DnD Plataform assets.</p>
+            </details>
           </div>
         </div>
       </section>
@@ -133,7 +117,7 @@
           <div class="live-sheet-client-title" id="liveSheetClientTitle" data-i18n="live.title">Connect to DM</div>
           <div class="live-sheet-client-subtitle" data-i18n="live.subtitle">LAN, Tailscale, or direct Internet connection to the DM host</div>
         </div>
-        <button class="live-sheet-client-close" id="liveSheetClientClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        <button class="live-sheet-client-close" id="liveSheetClientClose" type="button" aria-label="Close" title="Close" data-i18n-aria-label="common.close" data-i18n-title="common.close"><span data-app-icon="x" aria-hidden="true"></span></button>
       </div>
       <div class="live-sheet-client-body">
         <label class="live-sheet-client-label" for="liveSheetConnectionMode" data-i18n="live.mode">Connection mode</label>
@@ -193,14 +177,14 @@
         <div class="free-dice-subtitle" data-i18n="dice.freeSubtitle">D2, d3, d4, d6, d10, percentile d10, d12, d20, d30, d60, and d100</div>
       </div>
       <div class="floating-sheet-window-controls">
-        <button class="free-dice-collapse floating-sheet-window-collapse" id="freeDiceCollapse" type="button" aria-label="Collapse window" data-i18n-aria-label="window.collapse" data-floating-window-collapse>−</button>
-        <button class="free-dice-close floating-sheet-window-close" id="freeDiceClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        <button class="free-dice-collapse floating-sheet-window-collapse" id="freeDiceCollapse" type="button" aria-label="Collapse window" title="Collapse window" data-i18n-aria-label="window.collapse" data-i18n-title="window.collapse" data-floating-window-collapse><span data-app-icon="minus" aria-hidden="true"></span></button>
+        <button class="free-dice-close floating-sheet-window-close" id="freeDiceClose" type="button" aria-label="Close" title="Close" data-i18n-aria-label="common.close" data-i18n-title="common.close"><span data-app-icon="x" aria-hidden="true"></span></button>
       </div>
     </div>
     <div class="free-dice-picker">
       <select class="free-dice-select" id="freeDiceSelect" aria-label="Die type" data-i18n-aria-label="dice.type"></select>
       <button class="free-dice-step" id="freeDiceMinus" type="button" aria-label="Remove die" data-i18n-aria-label="dice.remove">-</button>
-      <button class="free-dice-step" id="freeDicePlus" type="button" aria-label="Add die" data-i18n-aria-label="dice.add">+</button>
+      <button class="free-dice-step" id="freeDicePlus" type="button" aria-label="Add die" title="Add die" data-i18n-aria-label="dice.add" data-i18n-title="dice.add"><span data-app-icon="plus" aria-hidden="true"></span></button>
     </div>
     <div class="free-dice-selection" id="freeDiceSelection"></div>
     <button class="free-dice-roll" id="freeDiceRoll" type="button" disabled data-i18n="dice.roll">Roll</button>
@@ -222,8 +206,8 @@
         <div class="item-drawer-meta" id="itemDrawerMeta"></div>
       </div>
       <div class="floating-sheet-window-controls">
-        <button class="item-drawer-collapse floating-sheet-window-collapse" id="itemDrawerCollapse" type="button" aria-label="Collapse window" data-i18n-aria-label="window.collapse" data-floating-window-collapse>−</button>
-        <button class="item-drawer-close floating-sheet-window-close" id="itemDrawerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        <button class="item-drawer-collapse floating-sheet-window-collapse" id="itemDrawerCollapse" type="button" aria-label="Collapse window" title="Collapse window" data-i18n-aria-label="window.collapse" data-i18n-title="window.collapse" data-floating-window-collapse><span data-app-icon="minus" aria-hidden="true"></span></button>
+        <button class="item-drawer-close floating-sheet-window-close" id="itemDrawerClose" type="button" aria-label="Close" title="Close" data-i18n-aria-label="common.close" data-i18n-title="common.close"><span data-app-icon="x" aria-hidden="true"></span></button>
       </div>
     </div>
     <div class="item-drawer-body" id="itemDrawerBody"></div>
@@ -239,7 +223,7 @@
             <div class="item-picker-title" id="itemPickerTitle" data-i18n="item.addItem">Add item</div>
             <div class="item-picker-count" id="itemPickerCount" aria-live="polite"></div>
           </div>
-          <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+          <button class="item-picker-close" id="itemPickerClose" type="button" aria-label="Close" title="Close" data-i18n-aria-label="common.close" data-i18n-title="common.close"><span data-app-icon="x" aria-hidden="true"></span></button>
         </div>
         <input class="item-picker-search" id="itemPickerSearch" type="search" placeholder="Search item" data-i18n-placeholder="item.searchPlaceholder">
         <div class="item-picker-filters" id="itemPickerFilters" aria-label="Item filters" data-i18n-aria-label="item.filters">
@@ -276,7 +260,7 @@
           <div class="familiar-picker-title" id="familiarPickerTitle" data-i18n="familiar.title">Find Familiar</div>
           <div class="familiar-picker-subtitle" data-i18n="familiar.subtitle">Choose the form you want to summon.</div>
         </div>
-        <button class="familiar-picker-close" id="familiarPickerClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        <button class="familiar-picker-close" id="familiarPickerClose" type="button" aria-label="Close" title="Close" data-i18n-aria-label="common.close" data-i18n-title="common.close"><span data-app-icon="x" aria-hidden="true"></span></button>
       </div>
       <div class="familiar-picker-list" id="familiarPickerList"></div>
       <label class="familiar-picker-other">
@@ -354,7 +338,7 @@
           </div>
           <div class="combat-map-viewport" id="combatMapViewport">
             <div class="combat-map-empty" id="combatMapEmpty">
-              <div class="combat-map-empty-icon" aria-hidden="true">&#9672;</div>
+              <div class="combat-map-empty-icon" data-app-icon="map" data-icon-size="42" aria-hidden="true"></div>
               <strong data-i18n="combat.mapEmptyTitle">The VTT map will appear here</strong>
               <span data-i18n="combat.mapEmptyDetail">Connect to the DM to receive the current scene.</span>
             </div>
@@ -368,7 +352,7 @@
               <div class="combat-active-name" id="combatActiveName" data-i18n="combat.noActiveActor">No active combatant</div>
               <div class="combat-active-meta" id="combatActiveMeta" data-i18n="combat.activeWaiting">The DM has not started an initiative round.</div>
             </div>
-            <div class="combat-active-badge" aria-hidden="true">&#9876;</div>
+            <div class="combat-active-badge" data-app-icon="combat" data-icon-size="28" aria-hidden="true"></div>
           </section>
           <section class="combat-log" id="combatLogSection">
             <div class="combat-log-header">
@@ -393,30 +377,31 @@
   <div class="notes-workspace" id="notesWorkspace" aria-hidden="true" hidden>
     <aside class="notes-library-panel" aria-label="Notes library" data-i18n-aria-label="notes.library">
       <div class="notes-library-brand">
-        <span class="notes-library-brand-icon" aria-hidden="true">&#9670;</span>
+        <img class="notes-library-brand-icon" src="../../assets/icons/d20-logo.svg" alt="" aria-hidden="true">
         <div>
           <strong data-i18n="notes.title">Notes</strong>
           <span data-i18n="notes.subtitle">Campaign notebook</span>
         </div>
       </div>
       <button class="notes-new-button" id="notesNewButton" type="button">
-        <span class="notes-button-icon" aria-hidden="true">+</span>
+        <span class="notes-button-icon" data-app-icon="plus" aria-hidden="true"></span>
         <span data-i18n="notes.newNote">New Note</span>
       </button>
       <nav class="notes-category-list" id="notesCategoryList" aria-label="Note categories" data-i18n-aria-label="notes.categories">
-        <button class="notes-category-button is-active" type="button" data-notes-category="all"><span class="notes-category-icon" aria-hidden="true">&#9632;</span><span data-i18n="notes.allNotes">All Notes</span><span class="notes-category-count" id="notesAllCount">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="session"><span class="notes-category-icon" aria-hidden="true">&#9633;</span><span data-i18n="notes.sessionNotes">Session Notes</span><span class="notes-category-count" data-notes-count="session">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="npcs"><span class="notes-category-icon" aria-hidden="true">&#9823;</span><span data-i18n="notes.npcs">NPCs</span><span class="notes-category-count" data-notes-count="npcs">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="quests"><span class="notes-category-icon" aria-hidden="true">&#9876;</span><span data-i18n="notes.quests">Quests</span><span class="notes-category-count" data-notes-count="quests">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="locations"><span class="notes-category-icon" aria-hidden="true">&#9678;</span><span data-i18n="notes.locations">Locations</span><span class="notes-category-count" data-notes-count="locations">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="loot"><span class="notes-category-icon" aria-hidden="true">&#9635;</span><span data-i18n="notes.loot">Loot</span><span class="notes-category-count" data-notes-count="loot">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="combat"><span class="notes-category-icon" aria-hidden="true">&#9876;</span><span data-i18n="notes.combatNotes">Combat Notes</span><span class="notes-category-count" data-notes-count="combat">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="handouts"><span class="notes-category-icon" aria-hidden="true">&#9638;</span><span data-i18n="notes.handouts">Handouts</span><span class="notes-category-count" data-notes-count="handouts">0</span></button>
-        <button class="notes-category-button" type="button" data-notes-category="shared"><span class="notes-category-icon" aria-hidden="true">&#9673;</span><span data-i18n="notes.sharedNotes">Shared Notes</span><span class="notes-category-count" id="notesSharedCount">0</span></button>
+        <button class="notes-category-button is-active" type="button" data-notes-category="all"><span class="notes-category-icon" data-app-icon="dice" aria-hidden="true"></span><span data-i18n="notes.allNotes">All Notes</span><span class="notes-category-count" id="notesAllCount">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="session"><span class="notes-category-icon" data-app-icon="session" aria-hidden="true"></span><span data-i18n="notes.sessionNotes">Session Notes</span><span class="notes-category-count" data-notes-count="session">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="npcs"><span class="notes-category-icon" data-app-icon="npc" aria-hidden="true"></span><span data-i18n="notes.npcs">NPCs</span><span class="notes-category-count" data-notes-count="npcs">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="quests"><span class="notes-category-icon" data-app-icon="quest" aria-hidden="true"></span><span data-i18n="notes.quests">Quests</span><span class="notes-category-count" data-notes-count="quests">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="locations"><span class="notes-category-icon" data-app-icon="location" aria-hidden="true"></span><span data-i18n="notes.locations">Locations</span><span class="notes-category-count" data-notes-count="locations">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="loot"><span class="notes-category-icon" data-app-icon="loot" aria-hidden="true"></span><span data-i18n="notes.loot">Loot</span><span class="notes-category-count" data-notes-count="loot">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="combat"><span class="notes-category-icon" data-app-icon="combat" aria-hidden="true"></span><span data-i18n="notes.combatNotes">Combat Notes</span><span class="notes-category-count" data-notes-count="combat">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="handouts"><span class="notes-category-icon" data-app-icon="handout" aria-hidden="true"></span><span data-i18n="notes.handouts">Handouts</span><span class="notes-category-count" data-notes-count="handouts">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="custom"><span class="notes-category-icon" data-app-icon="custom" aria-hidden="true"></span><span data-i18n="notes.custom">Custom</span><span class="notes-category-count" data-notes-count="custom">0</span></button>
+        <button class="notes-category-button" type="button" data-notes-category="shared"><span class="notes-category-icon" data-app-icon="link" aria-hidden="true"></span><span data-i18n="notes.sharedNotes">Shared Notes</span><span class="notes-category-count" id="notesSharedCount">0</span></button>
       </nav>
       <div class="notes-library-section-heading">
         <span data-i18n="notes.folders">Folders</span>
-        <button class="notes-icon-button" id="notesAddFolderButton" type="button" aria-label="Add folder" data-i18n-aria-label="notes.addFolder">+</button>
+        <button class="notes-icon-button" id="notesAddFolderButton" type="button" aria-label="Add folder" title="Add folder" data-i18n-aria-label="notes.addFolder" data-i18n-title="notes.addFolder"><span data-app-icon="plus" aria-hidden="true"></span></button>
       </div>
       <div class="notes-folder-list" id="notesFolderList"></div>
       <div class="notes-library-list" id="notesLibraryList" aria-live="polite"></div>
@@ -427,23 +412,23 @@
     </aside>
     <section class="notes-main-panel" aria-labelledby="notesWorkspaceTitle">
       <header class="notes-tabs-header">
-        <button class="notes-back-button" id="notesBackButton" type="button" aria-label="Back to sheet" data-i18n-aria-label="notes.backToSheet">&#8592;</button>
+        <button class="notes-back-button" id="notesBackButton" type="button" aria-label="Back to sheet" title="Back to sheet" data-i18n-aria-label="notes.backToSheet" data-i18n-title="notes.backToSheet"><span data-app-icon="arrowLeft" aria-hidden="true"></span></button>
         <div class="notes-tabs" id="notesTabs" role="tablist" aria-label="Open notes" data-i18n-aria-label="notes.openNotes"></div>
-        <button class="notes-new-tab-button" id="notesNewTabButton" type="button" aria-label="New note tab" data-i18n-aria-label="notes.newNote">+</button>
+        <button class="notes-new-tab-button" id="notesNewTabButton" type="button" aria-label="New note tab" title="New note" data-i18n-aria-label="notes.newNote" data-i18n-title="notes.newNote"><span data-app-icon="plus" aria-hidden="true"></span></button>
         <h1 id="notesWorkspaceTitle" class="visually-hidden" data-i18n="notes.title">Notes</h1>
       </header>
       <div class="notes-command-bar">
         <label class="notes-search-wrap" for="notesSearchInput">
-          <span aria-hidden="true">&#8981;</span>
+          <span data-app-icon="search" aria-hidden="true"></span>
           <input id="notesSearchInput" type="search" placeholder="Search notes..." data-i18n-placeholder="notes.searchPlaceholder">
           <kbd data-i18n="notes.shortcutSearch">Ctrl K</kbd>
         </label>
         <div class="notes-command-actions">
-          <button class="notes-command-button" id="notesPinButton" type="button"><span aria-hidden="true">&#9875;</span><span data-i18n="notes.pin">Pin</span></button>
-          <button class="notes-command-button" id="notesArchiveButton" type="button"><span aria-hidden="true">&#9635;</span><span data-i18n="notes.archive">Archive</span></button>
-          <button class="notes-command-button" id="notesDuplicateButton" type="button"><span aria-hidden="true">&#9707;</span><span data-i18n="notes.duplicate">Duplicate</span></button>
-          <button class="notes-command-button" id="notesExportButton" type="button"><span aria-hidden="true">&#8681;</span><span data-i18n="notes.export">Export</span></button>
-          <button class="notes-command-button notes-danger-button" id="notesDeleteButton" type="button"><span aria-hidden="true">&#128465;</span><span data-i18n="notes.delete">Delete</span></button>
+          <button class="notes-command-button" id="notesPinButton" type="button"><span data-app-icon="pin" aria-hidden="true"></span><span data-i18n="notes.pin">Pin</span></button>
+          <button class="notes-command-button" id="notesArchiveButton" type="button"><span data-app-icon="archive" aria-hidden="true"></span><span data-i18n="notes.archive">Archive</span></button>
+          <button class="notes-command-button" id="notesDuplicateButton" type="button"><span data-app-icon="copy" aria-hidden="true"></span><span data-i18n="notes.duplicate">Duplicate</span></button>
+          <button class="notes-command-button" id="notesExportButton" type="button"><span data-app-icon="export" aria-hidden="true"></span><span data-i18n="notes.export">Export</span></button>
+          <button class="notes-command-button notes-danger-button" id="notesDeleteButton" type="button"><span data-app-icon="trash" aria-hidden="true"></span><span data-i18n="notes.delete">Delete</span></button>
         </div>
       </div>
       <div class="notes-workspace-body">
@@ -459,31 +444,32 @@
         </section>
         <section class="notes-editor-column">
           <div class="notes-editor-toolbar" role="toolbar" aria-label="Note formatting" data-i18n-aria-label="notes.formatting">
-            <button type="button" data-note-command="undo" aria-label="Undo" data-i18n-aria-label="notes.undo">&#8630;</button>
-            <button type="button" data-note-command="redo" aria-label="Redo" data-i18n-aria-label="notes.redo">&#8631;</button>
+            <button type="button" data-note-command="undo" aria-label="Undo" title="Undo" data-i18n-aria-label="notes.undo" data-i18n-title="notes.undo"><span data-app-icon="undo" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="redo" aria-label="Redo" title="Redo" data-i18n-aria-label="notes.redo" data-i18n-title="notes.redo"><span data-app-icon="redo" aria-hidden="true"></span></button>
             <span class="notes-toolbar-divider"></span>
-            <button type="button" data-note-command="heading" aria-label="Heading" data-i18n-aria-label="notes.heading">H2</button>
-            <button type="button" data-note-command="bold" aria-label="Bold" data-i18n-aria-label="notes.bold"><strong>B</strong></button>
-            <button type="button" data-note-command="italic" aria-label="Italic" data-i18n-aria-label="notes.italic"><em>I</em></button>
-            <button type="button" data-note-command="underline" aria-label="Underline" data-i18n-aria-label="notes.underline"><u>U</u></button>
-            <button type="button" data-note-command="strike" aria-label="Strikethrough" data-i18n-aria-label="notes.strike"><s>S</s></button>
+            <button type="button" data-note-command="heading" aria-label="Heading" title="Heading" data-i18n-aria-label="notes.heading" data-i18n-title="notes.heading">H2</button>
+            <button type="button" data-note-command="bold" aria-label="Bold" title="Bold" data-i18n-aria-label="notes.bold" data-i18n-title="notes.bold"><strong>B</strong></button>
+            <button type="button" data-note-command="italic" aria-label="Italic" title="Italic" data-i18n-aria-label="notes.italic" data-i18n-title="notes.italic"><em>I</em></button>
+            <button type="button" data-note-command="underline" aria-label="Underline" title="Underline" data-i18n-aria-label="notes.underline" data-i18n-title="notes.underline"><u>U</u></button>
+            <button type="button" data-note-command="strike" aria-label="Strikethrough" title="Strikethrough" data-i18n-aria-label="notes.strike" data-i18n-title="notes.strike"><s>S</s></button>
             <span class="notes-toolbar-divider"></span>
-            <button type="button" data-note-command="bullet" aria-label="Bulleted list" data-i18n-aria-label="notes.bullets">&#8226;</button>
-            <button type="button" data-note-command="numbered" aria-label="Numbered list" data-i18n-aria-label="notes.numbered">1.</button>
-            <button type="button" data-note-command="task" aria-label="Task" data-i18n-aria-label="notes.task">&#9745;</button>
-            <button type="button" data-note-command="quote" aria-label="Quote" data-i18n-aria-label="notes.quote">&#8220;</button>
-            <button type="button" data-note-command="code" aria-label="Code" data-i18n-aria-label="notes.code">&lt;/&gt;</button>
-            <button type="button" data-note-command="highlight" aria-label="Highlight" data-i18n-aria-label="notes.highlight">&#9998;</button>
-            <button type="button" data-note-command="link" aria-label="Link" data-i18n-aria-label="notes.link">&#128279;</button>
-            <button type="button" data-note-command="table" aria-label="Table" data-i18n-aria-label="notes.table">&#9638;</button>
+            <button type="button" data-note-command="bullet" aria-label="Bulleted list" title="Bulleted list" data-i18n-aria-label="notes.bullets" data-i18n-title="notes.bullets"><span data-app-icon="list" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="numbered" aria-label="Numbered list" title="Numbered list" data-i18n-aria-label="notes.numbered" data-i18n-title="notes.numbered"><span data-app-icon="listOrdered" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="task" aria-label="Task" title="Task" data-i18n-aria-label="notes.task" data-i18n-title="notes.task"><span data-app-icon="checklist" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="quote" aria-label="Quote" title="Quote" data-i18n-aria-label="notes.quote" data-i18n-title="notes.quote"><span data-app-icon="quote" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="code" aria-label="Code" title="Code" data-i18n-aria-label="notes.code" data-i18n-title="notes.code"><span data-app-icon="code" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="highlight" aria-label="Highlight" title="Highlight" data-i18n-aria-label="notes.highlight" data-i18n-title="notes.highlight"><span data-app-icon="highlighter" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="link" aria-label="Link" title="Link" data-i18n-aria-label="notes.link" data-i18n-title="notes.link"><span data-app-icon="link" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="image" aria-label="Insert image" title="Insert image" data-i18n-aria-label="notes.image" data-i18n-title="notes.image"><span data-app-icon="image" aria-hidden="true"></span></button>
+            <button type="button" data-note-command="table" aria-label="Table" title="Table" data-i18n-aria-label="notes.table" data-i18n-title="notes.table"><span data-app-icon="table" aria-hidden="true"></span></button>
             <span class="notes-toolbar-spacer"></span>
             <button type="button" id="notesPreviewToggle" aria-label="Preview note" data-i18n="notes.preview" data-i18n-aria-label="notes.preview">Preview</button>
           </div>
           <article class="notes-paper">
             <div class="notes-paper-heading-row">
-              <span class="notes-paper-icon" aria-hidden="true">&#9638;</span>
+              <span class="notes-paper-icon" data-app-icon="spellbook" data-icon-size="28" aria-hidden="true"></span>
               <input class="notes-title-input" id="notesTitleInput" type="text" maxlength="160" placeholder="Note title" data-i18n-placeholder="notes.titlePlaceholder">
-              <button class="notes-star-button" id="notesStarButton" type="button" aria-label="Favorite note" data-i18n-aria-label="notes.favorite">&#9733;</button>
+              <button class="notes-star-button" id="notesStarButton" type="button" aria-label="Favorite note" title="Favorite note" data-i18n-aria-label="notes.favorite" data-i18n-title="notes.favorite"><span data-app-icon="star" aria-hidden="true"></span></button>
             </div>
             <div class="notes-paper-rule" aria-hidden="true"></div>
             <textarea class="notes-body-input" id="notesBodyInput" spellcheck="true" placeholder="Start writing your note..." data-i18n-placeholder="notes.bodyPlaceholder"></textarea>
@@ -498,6 +484,7 @@
               <div><dt data-i18n="notes.lastEdited">Last edited</dt><dd id="notesLastEdited">-</dd></div>
               <div><dt data-i18n="notes.created">Created</dt><dd id="notesCreated">-</dd></div>
               <div><dt data-i18n="notes.autosave">Auto-save</dt><dd><span class="notes-live-dot"></span><span data-i18n="notes.on">On</span></dd></div>
+              <div><dt data-i18n="notes.wordCount">Word count</dt><dd id="notesWordCount">0</dd></div>
               <div><dt data-i18n="notes.noteId">Note ID</dt><dd id="notesId">-</dd></div>
             </dl>
             <div class="notes-classification-grid">
@@ -515,7 +502,7 @@
             </div>
           </section>
           <section class="notes-detail-card">
-            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tags">Tags</div><button class="notes-icon-button" id="notesAddTagButton" type="button" aria-label="Add tag" data-i18n-aria-label="notes.addTag">+</button></div>
+            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tags">Tags</div><button class="notes-icon-button" id="notesAddTagButton" type="button" aria-label="Add tag" title="Add tag" data-i18n-aria-label="notes.addTag" data-i18n-title="notes.addTag"><span data-app-icon="plus" aria-hidden="true"></span></button></div>
             <div class="notes-tags" id="notesTags"></div>
             <div class="notes-tag-library" id="notesTagLibrary" aria-label="Available tags" data-i18n-aria-label="notes.availableTags"></div>
             <div class="notes-tag-creator">
@@ -524,12 +511,12 @@
             </div>
             <div class="notes-label-title" data-i18n="notes.label">Label</div>
             <div class="notes-label-colors" id="notesLabelColors" role="radiogroup" aria-label="Note label" data-i18n-aria-label="notes.label">
-              <button type="button" data-note-color="gray" aria-label="Gray" data-i18n-aria-label="notes.gray"></button>
-              <button type="button" data-note-color="red" aria-label="Red" data-i18n-aria-label="notes.red"></button>
-              <button type="button" data-note-color="amber" aria-label="Amber" data-i18n-aria-label="notes.amber"></button>
-              <button type="button" data-note-color="green" aria-label="Green" data-i18n-aria-label="notes.green"></button>
-              <button type="button" data-note-color="blue" aria-label="Blue" data-i18n-aria-label="notes.blue"></button>
-              <button type="button" data-note-color="purple" aria-label="Purple" data-i18n-aria-label="notes.purple"></button>
+              <button type="button" data-note-color="gray" aria-label="Gray" title="Gray" data-i18n-aria-label="notes.gray" data-i18n-title="notes.gray"></button>
+              <button type="button" data-note-color="red" aria-label="Red" title="Red" data-i18n-aria-label="notes.red" data-i18n-title="notes.red"></button>
+              <button type="button" data-note-color="amber" aria-label="Amber" title="Amber" data-i18n-aria-label="notes.amber" data-i18n-title="notes.amber"></button>
+              <button type="button" data-note-color="green" aria-label="Green" title="Green" data-i18n-aria-label="notes.green" data-i18n-title="notes.green"></button>
+              <button type="button" data-note-color="blue" aria-label="Blue" title="Blue" data-i18n-aria-label="notes.blue" data-i18n-title="notes.blue"></button>
+              <button type="button" data-note-color="purple" aria-label="Purple" title="Purple" data-i18n-aria-label="notes.purple" data-i18n-title="notes.purple"></button>
             </div>
           </section>
           <section class="notes-detail-card">
@@ -537,7 +524,7 @@
             <div class="notes-linked-tools">
               <div class="notes-linked-tags-label" data-i18n="notes.noteTags">Note tags</div>
               <div class="notes-linked-tags" id="notesLinkedTags"></div>
-              <button class="notes-icon-button notes-linked-add" id="notesAddLinkButton" type="button" aria-label="Add linked entity" data-i18n-aria-label="notes.addLink">+</button>
+              <button class="notes-icon-button notes-linked-add" id="notesAddLinkButton" type="button" aria-label="Add linked entity" title="Add linked entity" data-i18n-aria-label="notes.addLink" data-i18n-title="notes.addLink"><span data-app-icon="plus" aria-hidden="true"></span></button>
             </div>
             <div class="notes-links-list" id="notesLinksList"></div>
           </section>
@@ -547,18 +534,19 @@
           </section>
           <div class="notes-bottom-cards">
             <section class="notes-detail-card notes-template-card">
-              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.templates">Templates</div><button class="notes-icon-button" id="notesCloseTemplatesButton" type="button" aria-label="Hide templates" data-i18n-aria-label="notes.hideTemplates">&#215;</button></div>
+              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.templates">Templates</div><button class="notes-icon-button" id="notesCloseTemplatesButton" type="button" aria-label="Hide templates" title="Hide templates" data-i18n-aria-label="notes.hideTemplates" data-i18n-title="notes.hideTemplates"><span data-app-icon="x" aria-hidden="true"></span></button></div>
               <div class="notes-template-list" id="notesTemplateList">
-                <button type="button" data-note-template="session"><span aria-hidden="true">&#128218;</span><span data-i18n="notes.templateSession">Session Recap</span></button>
-                <button type="button" data-note-template="npc"><span aria-hidden="true">&#9823;</span><span data-i18n="notes.templateNpc">NPC Profile</span></button>
-                <button type="button" data-note-template="quest"><span aria-hidden="true">&#9876;</span><span data-i18n="notes.templateQuest">Quest Log</span></button>
-                <button type="button" data-note-template="encounter"><span aria-hidden="true">&#9876;</span><span data-i18n="notes.templateEncounter">Encounter Notes</span></button>
+                <button type="button" data-note-template="session"><span data-app-icon="session" aria-hidden="true"></span><span data-i18n="notes.templateSession">Session Recap</span></button>
+                <button type="button" data-note-template="npc"><span data-app-icon="npc" aria-hidden="true"></span><span data-i18n="notes.templateNpc">NPC Profile</span></button>
+                <button type="button" data-note-template="quest"><span data-app-icon="quest" aria-hidden="true"></span><span data-i18n="notes.templateQuest">Quest Log</span></button>
+                <button type="button" data-note-template="encounter"><span data-app-icon="combat" aria-hidden="true"></span><span data-i18n="notes.templateEncounter">Encounter Notes</span></button>
               </div>
             </section>
             <section class="notes-detail-card notes-task-card">
               <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tasks">Tasks &amp; Reminders</div></div>
               <div class="notes-task-list" id="notesTaskList"></div>
-              <div class="notes-task-entry"><button class="notes-task-add-button" id="notesAddTaskButton" type="button" aria-label="Add task" data-i18n-aria-label="notes.addTask">+</button><input id="notesTaskInput" type="text" maxlength="240" placeholder="Add new task" data-i18n-placeholder="notes.taskPlaceholder"></div>
+              <div class="notes-task-entry"><button class="notes-task-add-button" id="notesAddTaskButton" type="button" aria-label="Add task" title="Add task" data-i18n-aria-label="notes.addTask" data-i18n-title="notes.addTask"><span data-app-icon="plus" aria-hidden="true"></span></button><input id="notesTaskInput" type="text" maxlength="240" placeholder="Add new task" data-i18n-placeholder="notes.taskPlaceholder"></div>
+              <label class="notes-reminder-entry"><span data-app-icon="clock" aria-hidden="true"></span><span class="visually-hidden" data-i18n="notes.reminder">Reminder</span><input id="notesTaskReminderInput" type="datetime-local" aria-label="Reminder" data-i18n-aria-label="notes.reminder"></label>
             </section>
           </div>
         </aside>
@@ -568,10 +556,10 @@
         <span><kbd data-i18n="notes.shortcutBold">Ctrl B</kbd> <span data-i18n="notes.bold">Bold</span></span>
         <span><kbd data-i18n="notes.shortcutHelp">Ctrl /</kbd> <span data-i18n="notes.showShortcuts">Show shortcuts</span></span>
         <span class="notes-status-spacer"></span>
-        <span data-i18n="notes.rollInitiative">Roll Initiative</span>
-        <button class="notes-status-icon" type="button" aria-label="Notifications" data-i18n-aria-label="notes.notifications">&#128276;</button>
-        <button class="notes-status-icon" type="button" aria-label="Help" data-i18n-aria-label="notes.help">?</button>
-        <button class="notes-status-icon" type="button" aria-label="Settings" data-i18n-aria-label="settings.open">&#9881;</button>
+        <span><span data-app-icon="dice" aria-hidden="true"></span><span data-i18n="notes.rollInitiative">Roll Initiative</span></span>
+        <button class="notes-status-icon" id="notesNotificationsButton" type="button" aria-label="Notifications" title="Notifications" data-i18n-aria-label="notes.notifications" data-i18n-title="notes.notifications"><span data-app-icon="bell" aria-hidden="true"></span></button>
+        <button class="notes-status-icon" id="notesHelpButton" type="button" aria-label="Help" title="Help" data-i18n-aria-label="notes.help" data-i18n-title="notes.help"><span data-app-icon="help" aria-hidden="true"></span></button>
+        <button class="notes-status-icon" id="notesSettingsButton" type="button" aria-label="Settings" title="Settings" data-i18n-aria-label="settings.open" data-i18n-title="settings.open"><span data-app-icon="settings" aria-hidden="true"></span></button>
       </footer>
     </section>
   </div>
@@ -582,7 +570,7 @@
           <div class="character-import-title" id="characterImportTitle" data-i18n="import.title">Import character</div>
           <div class="character-import-subtitle" data-i18n="import.subtitle">Paste a code and choose which save slot to load it into.</div>
         </div>
-        <button class="character-import-close" id="characterImportClose" type="button" aria-label="Close" data-i18n-aria-label="common.close">X</button>
+        <button class="character-import-close" id="characterImportClose" type="button" aria-label="Close" title="Close" data-i18n-aria-label="common.close" data-i18n-title="common.close"><span data-app-icon="x" aria-hidden="true"></span></button>
       </div>
       <div class="character-import-body">
         <label class="character-import-label" for="characterImportCode" data-i18n="import.codeLabel">Character code</label>
@@ -618,6 +606,8 @@
   <script src="../../engine/rests/long-rest.js"></script>
   <script src="../../engine/rests/short-rest.js"></script>
   <script src="../../engine/obsidian-markdown.js"></script>
+  <script src="./components/icons/dnd-icons.js"></script>
+  <script src="./components/icons/app-icons.js"></script>
   <script src="./i18n.js"></script>
   <script src="./renderer.js"></script>
   <script>
@@ -11199,7 +11189,11 @@
     function updateInteractionState() {
       characterReadyButton?.classList.toggle("active", isCharacterReady());
       if (characterReadyButton) {
-        characterReadyButton.textContent = isCharacterReady() ? t("top.characterReady.locked") : t("top.characterReady.unlocked");
+        const ready = isCharacterReady();
+        const icon = window.AppIcon?.({ name: ready ? "lock" : "unlock", size: 18 });
+        const label = document.createElement("span");
+        label.textContent = t(ready ? "top.characterReady.locked" : "top.characterReady.unlocked");
+        characterReadyButton.replaceChildren(...(icon ? [icon, label] : [label]));
       }
       if (clearFieldsButton) clearFieldsButton.disabled = isCharacterReady();
       longRestButton?.classList.toggle("active", isLongRestActive());

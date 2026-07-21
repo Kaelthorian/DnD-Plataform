@@ -6,10 +6,11 @@ Mapa operativo para evitar búsquedas globales repetidas.
 
 | Necesidad | Empezar aquí | Continuar en |
 | --- | --- | --- |
-| Notas del jugador y colaboración Live Sheet | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `src/engine/obsidian-markdown.js`, `src/services/live-sheet-server.js`, `docs/PLAYER_NOTES.md` |
+| Notas del jugador y colaboración Live Sheet | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `components/icons`, `src/assets`, `src/engine/obsidian-markdown.js`, `src/services/live-sheet-server.js`, `docs/PLAYER_NOTES.md` |
 | Arranque, ventanas, IPC, updater | `src/app/main/main.js` | `src/app/preload/preload.js` |
 | Hoja de personaje y navegación lateral | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `i18n.js`; la barra lateral reutiliza el panel de combate existente y agrupa las herramientas, descansos y ajustes en un único menú |
-| DM Screen/tablero/VTT/audio | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config; los archivos locales usan IndexedDB y los enlaces YouTube usan IPC persistido |
+| DM Screen/tablero/VTT/audio | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen/src/components/icons`, `dm-screen.html`, Vite config; los archivos locales usan IndexedDB y los enlaces YouTube usan IPC persistido |
+| Iconografía global y créditos | `docs/ICON_SYSTEM.md` | Adaptador clásico en `src/app/renderer/components/icons`; adaptador React en `src/app/renderer/dm-screen/src/components/icons`; subconjunto Game Icons reproducible con `scripts/generate-dm-icon-data.js` |
 | Save slots/migración | `src/services/save-service.js` | helpers de slots en `index.html`, test de save service |
 | Live Sheet, estados, audio y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`; el DM Screen entrega homebrew mediante `dm:sheet:patch` y el Character Sheet resuelve snapshots en `__sheetMeta.homebrewItems`; los archivos de audio viajan como data URL y YouTube solo como ID validado |
 | Enlaces de música YouTube | `src/services/dm-sound-link-service.js` | IPC `dm-sound-links:*` en main/preload; JSON atómico en `userData`; main identifica requests `youtube-nocookie.com` con el repositorio canónico como referente HTTP |
@@ -25,7 +26,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 | Rests/recursos | `src/engine/rests/rest-state.js`, `src/engine/rests/short-rest.js`, `src/engine/rests/long-rest.js`, `src/engine/resources` | migración y wiring en `index.html`; estado privado no viaja al Live Sheet |
 | Condiciones/acciones | `src/engine/conditions/statuses.js`, `src/engine/actions/action-advisor.js` | UI en `index.html` |
 | Combate interactivo | `src/engine/combat/turn-economy.js`, `resolution-engine.js`, `action-definitions.js` | adaptadores/UI/log, shell de tres columnas y tabs de categorias en `src/app/renderer/index.html`; `renderer.js` portaliza el VTT al mapa central y actualiza iniciativa publica; `docs/COMBAT.md` |
-| Build DM Screen | `scripts/ensure-dm-screen-build.js` | Comprueba por separado CSS y todos los inputs/chunks JS (incluidos catálogo y helper de spells) antes de invocar Tailwind/Vite; `dist/` es runtime generado e ignorado |
+| Build DM Screen | `scripts/ensure-dm-screen-build.js` | Comprueba por separado CSS y todos los inputs/chunks JS, incluidos los componentes y datos curados de iconos, antes de invocar Tailwind/Vite; `dist/` es runtime generado e ignorado |
 | Packaging/publicación | `package.json`, `scripts/run-electron-builder.js` | `crear-instalador.bat` solo con cautela |
 
 El picker React de Items del DM Screen esta en `src/app/renderer/dm-screen/src/main.jsx`: compone `entries`, reglas heredadas de tipo, propiedad y maestria, y miembros de grupos para que una entrada valida no termine con un detalle visual vacio.
@@ -34,6 +35,9 @@ El picker React de Items del DM Screen esta en `src/app/renderer/dm-screen/src/m
 
 - `src/app/main`, `src/app/preload`: frontera privilegiada Electron.
 - `src/app/renderer`: dos aplicaciones de UI y assets.
+- `src/app/renderer/components/icons`: capa SVG sin framework para la hoja del jugador. `app-icons.js` concentra iconos comunes y `dnd-icons.js` nombres semánticos de fantasía; no requiere React ni imports dinámicos.
+- `src/app/renderer/dm-screen/src/components/icons`: capa React tipada por declaraciones `.d.ts`; `AppIcon.jsx` registra imports estáticos de Lucide, `dndIcons.jsx` expone nombres semánticos y `game-icon-data.js` contiene sólo Game Icons usados para funcionamiento offline.
+- `src/assets`: recursos locales compartidos empaquetados explícitamente por `package.json`; contiene emblemas SVG originales y la textura WebP del editor de notas.
 - `src/services`: IO y networking testeables sin UI. `dm-sound-link-service.js` guarda solo metadatos validados de enlaces YouTube y no debe almacenar audio ni credenciales.
 - `src/services/workers`: trabajo CPU/IO aislado del proceso main; actualmente parsea y cachea el catalogo grande de items. No accede al DOM ni al estado de hoja.
 - `src/engine`: módulos ya extraídos; varios subdirectorios solo contienen README.
@@ -62,6 +66,7 @@ El picker React de Items del DM Screen esta en `src/app/renderer/dm-screen/src/m
 - Todas las ventanas redimensionables usan el contrato visual `app-resize-corner`: la hoja lo define en `src/app/renderer/styles.css` para ventanas `floating-sheet-window` y notas de compañero; el DM Screen lo define en `dm-screen/styles.css` y lo aplica mediante `ResizeHandle`. La pantalla completa de combate no usa este indicador. Los bordes derecho/inferior siguen siendo áreas funcionales invisibles. Textareas y formas del mapa quedan fuera de este patrón de ventanas.
 - La coleccion de combate usa una fotografia revisionada y memoizacion por pasada. Los cambios de campos/meta deben llamar `invalidateCombatActionCache(...)`; las mutaciones directas de `__sheetMeta.equippedItems` pasan por `notifyEquipmentCombatStateChanged()` y la transacción de Equipment para refrescar o recalentar Start Combat una sola vez. Las tarjetas de armas usan `turnActionWeaponSummary()` y no incluyen propiedades ni descripción completa. No reintroducir escaneos de `items` ni validaciones que llamen `combatTurnState()` por cada tarjeta.
 - `dm-screen/src/main.jsx`: buscar el componente o helper por concepto (`LivePlayersPanel`, `Map`, `Obsidian`, `Sound`, `characterFromSheetData`). `SoundBarPanel` conserva archivos locales en IndexedDB y enlaces YouTube mediante `dm-sound-link-service` (`readYoutubeLinkAsSoundAsset`); Play abre un `YoutubeNote` visible, persistente y redimensionable en el tablero. Live Sheet comparte solo un video ID validado y `renderer.js` presenta a cada jugador un reproductor compacto visible con controles. Los tokens del mapa capturan sus propios eventos de puntero: actualizan la previsualización al arrastrar y persisten la posición al soltar.
+- La navegación, pickers, ventanas de notas, audio, jugadores, dados y controles de mapa del DM Screen usan `AppIcon`/`AppIconButton`; las categorías fantásticas consumen `dndIcons.jsx`. `dm-icon-button` fija estados hover, focus-visible y disabled y un objetivo mínimo de 36 px. Regenerar el subconjunto de Game Icons con `npm run icons:generate` después de modificar su lista curada.
 - No editar manualmente `dm-screen/dist`; regenerar con `npm run build:dm-screen` después de cambiar source/config.
 - `npm start` ejecuta `scripts/ensure-dm-screen-build.js`: CSS y JS tienen comprobaciones de vigencia independientes; los imports JSON/helper y la presencia de todos los chunks Vite forman parte de la vigencia del bundle JS. Los chunks `items.js`/`items-base.js` se invalidan con `src/data/items`, no con el snapshot vendor.
 

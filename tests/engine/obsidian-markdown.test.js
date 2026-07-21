@@ -36,4 +36,13 @@ assert.strictEqual(emptyHeading[0]?.text, "");
   assert.ok(blocks.length >= 4, "note template should produce Markdown blocks");
 });
 
+const table = engine.parseObsidianMarkdown("| Item | Details |\n| --- | --- |\n| Key | Opens the vault |");
+assert.strictEqual(table[0]?.type, "table");
+assert.deepStrictEqual(table[0]?.headers, ["Item", "Details"]);
+assert.deepStrictEqual(table[0]?.rows?.[0], ["Key", "Opens the vault"]);
+
+const underline = engine.tokenizeObsidianInline("Read the __secret__ name.");
+assert.strictEqual(underline[1]?.type, "underline");
+assert.strictEqual(underline[1]?.text, "secret");
+
 console.log("Obsidian Markdown empty-block progress verified");

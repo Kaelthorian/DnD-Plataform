@@ -41,6 +41,15 @@
     };
   }
 
+  function splitObsidianTableRow(line) {
+    return String(line || "").trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+  }
+
+  function isObsidianTableDivider(line) {
+    const cells = splitObsidianTableRow(line);
+    return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+  }
+
   function parseObsidianMarkdown(markdown) {
     const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
     const blocks = [];
@@ -76,6 +85,18 @@
       if (heading) {
         blocks.push({ type: "heading", level: heading[1].length, text: heading[2].trim() });
         index += 1;
+        continue;
+      }
+
+      if (line.includes("|") && index + 1 < lines.length && isObsidianTableDivider(lines[index + 1])) {
+        const headers = splitObsidianTableRow(line);
+        const rows = [];
+        index += 2;
+        while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
+          rows.push(splitObsidianTableRow(lines[index]).slice(0, headers.length));
+          index += 1;
+        }
+        blocks.push({ type: "table", headers, rows });
         continue;
       }
 
@@ -133,6 +154,7 @@
         const nextLine = lines[index];
         if (!nextLine.trim()) break;
         if (isObsidianBlockStart(nextLine)) break;
+        if (nextLine.includes("|") && index + 1 < lines.length && isObsidianTableDivider(lines[index + 1])) break;
         paragraph.push(nextLine.trim());
         index += 1;
       }
@@ -150,7 +172,7 @@
   function tokenizeObsidianInline(text) {
     const parts = [];
     const source = String(text || "");
-    const pattern = /(!\[\[[^\]]+\]\]|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\)|~~[^~]+~~|==[^=]+==|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+    const pattern = /(!\[\[[^\]]+\]\]|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\)|~~[^~]+~~|==[^=]+==|__[^_]+__|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
     let lastIndex = 0;
     let match;
     while ((match = pattern.exec(source))) {
@@ -163,6 +185,7 @@
         parts.push({ type: "link", label: linkMatch?.[1] || token, href: linkMatch?.[2] || "" });
       } else if (token.startsWith("~~")) parts.push({ type: "strike", text: token.slice(2, -2) });
       else if (token.startsWith("==")) parts.push({ type: "highlight", text: token.slice(2, -2) });
+      else if (token.startsWith("__")) parts.push({ type: "underline", text: token.slice(2, -2) });
       else if (token.startsWith("`")) parts.push({ type: "code", text: token.slice(1, -1) });
       else if (token.startsWith("**")) parts.push({ type: "bold", text: token.slice(2, -2) });
       else if (token.startsWith("*")) parts.push({ type: "italic", text: token.slice(1, -1) });

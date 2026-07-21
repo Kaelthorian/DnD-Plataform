@@ -24,7 +24,7 @@ assert.match(dmScreenSource, /function addResourcePickerEntry\(entry\)[\s\S]*upd
 assert.match(dmScreenSource, /function CharacterEquipmentBlock[\s\S]*onChooseItem\?\.\(\)[\s\S]*\+ Sumar item/);
 assert.match(dmScreenSource, /activeNote\.kind === "character" \? \([\s\S]*?<CharacterNote[\s\S]*?onChooseEquipmentItem=\{openLiveCharacterEquipmentPicker\}/);
 assert.match(dmScreenSource, /const remoteCharacterLevel = clamp\(Math\.trunc\(parseCharacterNumber\(character\.level, 1\)\), 1, 20\)/);
-assert.match(dmScreenSource, /aria-label="Bajar nivel"[\s\S]*?commitCharacterField\("CharacterLevel", String\(remoteCharacterLevel - 1\)\)/);
-assert.match(dmScreenSource, /aria-label="Subir nivel"[\s\S]*?commitCharacterField\("CharacterLevel", String\(remoteCharacterLevel \+ 1\)\)/);
+assert.match(dmScreenSource, /label="Bajar nivel"[\s\S]*?commitCharacterField\("CharacterLevel", String\(remoteCharacterLevel - 1\)\)/);
+assert.match(dmScreenSource, /label="Subir nivel"[\s\S]*?commitCharacterField\("CharacterLevel", String\(remoteCharacterLevel \+ 1\)\)/);
 assert.match(sheetSource, /function handleLockedSheetEvent\(event\) \{\s*if \(isApplyingLiveSheetPatch\) return;/);
 assert.match(sheetSource, /function applyLiveSheetPatch\(patch\)[\s\S]*?isApplyingLiveSheetPatch = true;[\s\S]*?finally \{\s*isApplyingLiveSheetPatch = false;/);

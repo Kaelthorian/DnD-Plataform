@@ -7,6 +7,8 @@ const html = fs.readFileSync(path.join(root, "src/app/renderer/index.html"), "ut
 const renderer = fs.readFileSync(path.join(root, "src/app/renderer/renderer.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "utf8");
 const server = fs.readFileSync(path.join(root, "src/services/live-sheet-server.js"), "utf8");
+const appIcons = fs.readFileSync(path.join(root, "src/app/renderer/components/icons/app-icons.js"), "utf8");
+const dndIcons = fs.readFileSync(path.join(root, "src/app/renderer/components/icons/dnd-icons.js"), "utf8");
 
 [
   "sidebarNotesButton",
@@ -28,6 +30,8 @@ const server = fs.readFileSync(path.join(root, "src/services/live-sheet-server.j
   "notesCategoryBrowserList",
   "notesTemplateList",
   "notesTaskList",
+  "notesTaskReminderInput",
+  "notesWordCount",
   "notesShareToggle"
 ].forEach((id) => assert.ok(html.includes(`id="${id}"`), `player notes UI is missing ${id}`));
 
@@ -41,6 +45,10 @@ assert.ok(renderer.includes("tokenizeObsidianInline"), "player notes do not use 
 assert.ok(renderer.includes("playerNotesPreviewCache"), "player note Markdown previews are not cached");
 assert.ok(renderer.includes("playerNotesRenderActiveSelection"), "player note selection does not have a targeted render path");
 assert.ok(renderer.includes("playerNotesScheduleShare"), "player notes sharing is not wired");
+assert.ok(renderer.includes("playerNotesInsertImage"), "local note image insertion is not wired");
+assert.ok(renderer.includes("attachments: []"), "local note attachments are not persisted with the notes store");
+assert.ok(renderer.includes("playerNotesWordTotal"), "player notes word count is not wired");
+assert.ok(renderer.includes("reminderAt"), "player note reminders are not persisted");
 assert.ok(renderer.includes('payload?.type === "dm:notes:upsert"'), "incoming shared notes are not handled");
 assert.ok(renderer.includes('payload?.type === "dm:notes:remove"'), "shared note removal is not handled");
 assert.ok(styles.includes(".notes-workspace"), "player notes workspace styles are missing");
@@ -50,6 +58,15 @@ assert.ok(styles.includes(".notes-tag-library"), "player notes tag library style
 assert.ok(styles.includes(".notes-folder-row"), "player notes folder tree styles are missing");
 assert.ok(styles.includes(".notes-category-browser"), "player notes category browser styles are missing");
 assert.ok(styles.includes(".notes-body-preview"), "player notes Obsidian preview styles are missing");
+assert.ok(styles.includes("../../assets/textures/parchment.webp"), "player notes do not use the local parchment texture");
+assert.ok(html.includes('data-note-command="image"'), "player notes image command is missing");
+assert.ok(html.includes("components/icons/app-icons.js"), "the reusable AppIcon layer is not loaded");
+assert.ok(appIcons.includes("@typedef {Object} AppIconProps"), "AppIcon props are not typed");
+["DiceIcon", "QuestIcon", "NpcIcon", "LocationIcon", "LootIcon", "SpellbookIcon", "CombatIcon", "PotionIcon", "TreasureIcon"]
+  .forEach((name) => assert.ok(dndIcons.includes(`${name}:`), `semantic D&D icon export is missing ${name}`));
+assert.ok(fs.existsSync(path.join(root, "src/assets/icons/d20-logo.svg")), "local d20 emblem is missing");
+assert.ok(fs.existsSync(path.join(root, "src/assets/icons/dragon-emblem.svg")), "local dragon emblem is missing");
+assert.ok(fs.existsSync(path.join(root, "src/assets/textures/parchment.webp")), "local parchment texture is missing");
 assert.ok(html.includes("../../engine/obsidian-markdown.js"), "shared Obsidian Markdown engine is not loaded by the sheet");
 assert.ok(server.includes('"player:note:share"'), "live sheet server does not accept shared notes");
 assert.ok(server.includes('"dm:notes:state"'), "live sheet server does not replay shared notes");

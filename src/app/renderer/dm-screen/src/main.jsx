@@ -1,6 +1,18 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
+import { AppIcon, AppIconButton } from "./components/icons/AppIcon.jsx";
+import {
+  CampaignIcon,
+  CombatIcon,
+  CreatureIcon,
+  DiceIcon,
+  LocationIcon,
+  MagicIcon,
+  NpcIcon,
+  SpellbookIcon,
+  TreasureIcon
+} from "./components/icons/dndIcons.jsx";
 import "../../../../engine/spells/spell-data.js";
 import "../../../../engine/items/item-catalog.js";
 import "../../../../engine/conditions/statuses.js";
@@ -4291,16 +4303,7 @@ function DiceGlyph({ sides, className = "h-10 w-10" }) {
 
   switch (sides) {
     case 20:
-      return (
-        <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
-          <polygon {...props} points="24 5 40 15 36 35 24 43 12 35 8 15" />
-          <polyline {...props} points="24 5 17 19 24 27 31 19 24 5" />
-          <polyline {...props} points="8 15 17 19 12 35" />
-          <polyline {...props} points="40 15 31 19 36 35" />
-          <polyline {...props} points="12 35 24 27 36 35" />
-          <line {...props} x1="17" y1="19" x2="31" y2="19" />
-        </svg>
-      );
+      return <DiceIcon className={className} />;
     case 12:
       return (
         <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
@@ -5179,14 +5182,7 @@ function TokenImageCropperModal({ sourceImage, title = "Token", onCancel, onConf
             <h2 className="truncate font-serif text-lg font-bold uppercase tracking-wide text-amber-400">Ajustar token</h2>
             <p className="mt-1 text-xs text-neutral-500">Arrastra la imagen y ajusta el zoom.</p>
           </div>
-          <button
-            className="h-7 w-7 shrink-0 rounded-sm border border-neutral-700 bg-neutral-900 text-sm font-bold text-neutral-200 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-            type="button"
-            aria-label="Cerrar recorte"
-            onClick={onCancel}
-          >
-            X
-          </button>
+          <AppIconButton icon="close" label="Cerrar recorte" onClick={onCancel} />
         </div>
         <div className="space-y-4 px-4 py-4">
           <div className="flex justify-center">
@@ -5323,14 +5319,7 @@ function TokenImageLibraryPickerModal({
               <h2 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Elegir imagen de token</h2>
               <p className="text-sm text-neutral-500">{visibleTokens.length} de {tokens.length} imágenes</p>
             </div>
-            <button
-              className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-              type="button"
-              aria-label="Cerrar"
-              onClick={onClose}
-            >
-              X
-            </button>
+            <AppIconButton icon="close" label="Cerrar selector de imagen de token" onClick={onClose} />
           </header>
           <div className="border-b border-neutral-800 bg-neutral-950 px-4 py-3">
             <input
@@ -5506,53 +5495,41 @@ function MonsterStatBlockHeader({ monster, title = "", onRename = null, onDragSt
             </button>
           ) : null}
           {onMonsterTokenImageChange && monster?.tokenImage?.dataUrl ? (
-            <button
-              className="absolute -right-1 -top-1 h-5 w-5 rounded-full border border-neutral-600 bg-neutral-950 text-[10px] font-bold text-neutral-200 shadow hover:bg-red-950 hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-400"
-              type="button"
-              title="Restaurar token automatico"
+            <AppIconButton
+              icon="reset"
+              label="Restaurar token automatico"
+              className="absolute -right-2 -top-2 rounded-full border-neutral-600 bg-neutral-950 text-neutral-200 shadow hover:bg-red-950 hover:text-red-100"
               onClick={(event) => {
                 event.stopPropagation();
                 onMonsterTokenImageChange(null);
               }}
-            >
-              X
-            </button>
+            />
           ) : null}
         </div>
         <div className="flex gap-1">
           {onMinimize ? (
-            <button
-              className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-              type="button"
-              aria-label={`Minimizar ${monster.name}`}
+            <AppIconButton
+              icon="minimize"
+              label={`Minimizar ${monster.name}`}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={onMinimize}
-            >
-              -
-            </button>
+            />
           ) : null}
           {onDuplicate ? (
-            <button
-              className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-              type="button"
-              aria-label={`Duplicar ${monster.name}`}
+            <AppIconButton
+              icon="copy"
+              label={`Duplicar ${monster.name}`}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={onDuplicate}
-            >
-              ⧉
-            </button>
+            />
           ) : null}
           {onClose ? (
-            <button
-              className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-              type="button"
-              aria-label={`Cerrar ${monster.name}. Shift+click cierra todo el grupo`}
-              title="Click cierra este item. Shift+click cierra todo el grupo."
+            <AppIconButton
+              icon="close"
+              label={`Cerrar ${monster.name}. Shift+click cierra todo el grupo`}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => onClose(event)}
-            >
-              X
-            </button>
+            />
           ) : null}
         </div>
       </div>
@@ -5766,14 +5743,7 @@ function GlobalDiceTray({
                 {expression || "Hace click en los dados para armar la tirada."}
               </p>
             </div>
-            <button
-              className="text-3xl leading-none text-neutral-400 transition hover:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-red-500/60"
-              type="button"
-              aria-label="Cerrar roller"
-              onClick={onClose}
-            >
-              ×
-            </button>
+            <AppIconButton icon="close" label="Cerrar dados" className="border-transparent bg-transparent text-neutral-400" onClick={onClose} />
           </header>
 
           <div className="border-b border-neutral-700/80 px-4 py-4">
@@ -5870,9 +5840,10 @@ function GlobalDiceTray({
         className="relative inline-flex h-14 w-14 items-center justify-center rounded-full border border-red-400/70 bg-red-700 text-white shadow-[0_12px_32px_rgba(0,0,0,0.45)] transition hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300/70"
         type="button"
         aria-label={isOpen ? "Cerrar menu de dados" : "Abrir menu de dados"}
+        title={isOpen ? "Cerrar menu de dados" : "Abrir menu de dados"}
         onClick={onToggle}
       >
-        <DiceGlyph sides={20} className="h-8 w-8" />
+        <DiceIcon className="h-8 w-8" />
         {selectedDiceCount ? (
           <span className="absolute -right-1 -top-1 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-neutral-950 bg-white px-1 text-[11px] font-black leading-none text-neutral-950">
             {selectedDiceCount}
@@ -6039,15 +6010,7 @@ function MonsterNote({
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{noteDisplayName(note)}</span>
           <span className="block truncate text-[11px] text-neutral-500">CR {formatCr(note.monster)} | {monsterEdition(note.monster)}</span>
         </button>
-        <button
-          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-          type="button"
-          aria-label={`Cerrar ${noteDisplayName(note)}`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => onClose(noteActionId, event)}
-        >
-          X
-        </button>
+        <AppIconButton icon="close" label={`Cerrar ${noteDisplayName(note)}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
       </article>
     );
   }
@@ -6263,15 +6226,7 @@ function ResourceNote({
             {itemUnavailable ? "Unavailable catalog snapshot" : isSpell ? spellSubtitle : itemCategoryLine || itemPrimaryLabel}
           </span>
         </button>
-        <button
-          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-          type="button"
-          aria-label={`Cerrar ${noteDisplayName(note)}`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => onClose(noteActionId, event)}
-        >
-          X
-        </button>
+        <AppIconButton icon="close" label={`Cerrar ${noteDisplayName(note)}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
         {isHomebrewItem && onGiveHomebrewItem ? (
           <button
             className="h-7 shrink-0 border border-amber-500 bg-amber-500 px-2 text-[10px] font-bold uppercase text-neutral-950 hover:bg-amber-400"
@@ -6326,12 +6281,12 @@ function ResourceNote({
             {!isSpell && itemPageText ? <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">{itemPageText}</div> : null}
           </div>
           <div className="flex gap-1">
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>⧉</button>
+            <AppIconButton icon="minimize" label={`Minimizar ${noteDisplayName(note)}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)} />
+            <AppIconButton icon="copy" label={`Duplicar ${noteDisplayName(note)}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)} />
             {isHomebrewItem && onGiveHomebrewItem ? (
-              <button className="h-7 border border-amber-500 bg-amber-500 px-2 text-[10px] font-bold uppercase text-neutral-950 hover:bg-amber-400" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onGiveHomebrewItem(noteActionId)}>Dar</button>
+              <button className="min-h-9 border border-amber-500 bg-amber-500 px-2 text-[10px] font-bold uppercase text-neutral-950 hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onGiveHomebrewItem(noteActionId)}>Dar</button>
             ) : null}
-            <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+            <AppIconButton icon="close" label={`Cerrar ${noteDisplayName(note)}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
           </div>
         </div>
       </header>
@@ -6483,15 +6438,7 @@ function TextNote({
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{title}</span>
           <span className="block truncate text-[11px] text-neutral-500">Text note</span>
         </button>
-        <button
-          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-          type="button"
-          aria-label={`Cerrar ${title}`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => onClose(noteActionId, event)}
-        >
-          X
-        </button>
+        <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
       </article>
     );
   }
@@ -6518,9 +6465,9 @@ function TextNote({
           <p className="mt-2 text-sm italic text-neutral-500">Text note</p>
         </div>
         <div className="flex shrink-0 gap-1">
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>D</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+          <AppIconButton icon="minimize" label={`Minimizar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)} />
+          <AppIconButton icon="copy" label={`Duplicar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)} />
+          <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
         </div>
       </header>
       {tabBar}
@@ -6538,15 +6485,13 @@ function TextNote({
               <figcaption className="truncate border-t border-neutral-800 px-2 py-1 text-[11px] text-neutral-500">
                 {image.name || "Imagen pegada"}
               </figcaption>
-              <button
-                className="absolute right-1 top-1 h-6 w-6 border border-neutral-700 bg-neutral-950/90 text-xs font-bold text-neutral-200 hover:border-red-400 hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-red-400/40"
-                type="button"
-                aria-label="Quitar imagen"
+              <AppIconButton
+                icon="trash"
+                label="Quitar imagen"
+                className="absolute right-1 top-1 border-neutral-700 bg-neutral-950/90 text-neutral-200 hover:border-red-400 hover:text-red-200"
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={() => onTextImageRemove?.(noteActionId, image.id)}
-              >
-                X
-              </button>
+              />
             </figure>
           ))}
         </div>
@@ -6609,15 +6554,7 @@ function YoutubeNote({
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{title}</span>
           <span className="block truncate text-[11px] text-neutral-500">YouTube</span>
         </button>
-        <button
-          className="h-7 w-7 shrink-0 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700"
-          type="button"
-          aria-label={`Cerrar ${title}`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => onClose(noteActionId, event)}
-        >
-          X
-        </button>
+        <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
       </article>
     );
   }
@@ -6647,8 +6584,8 @@ function YoutubeNote({
           </p>
         </div>
         <div className="flex shrink-0 gap-1">
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+          <AppIconButton icon="minimize" label={`Minimizar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)} />
+          <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
         </div>
       </header>
       {tabBar}
@@ -7011,14 +6948,12 @@ function MapTokenTracker({
             >
               {groups.length ? (
                 <div className="flex items-center justify-between gap-2 border-b border-neutral-900 bg-neutral-900/70 px-3 py-1.5">
-                  <button
-                    className="h-6 w-6 shrink-0 border border-neutral-700 bg-neutral-950 text-[11px] font-black text-amber-300 hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                    type="button"
-                    title={isCollapsed ? "Expandir grupo" : "Colapsar grupo"}
+                  <AppIconButton
+                    icon={isCollapsed ? "plus" : "minus"}
+                    label={isCollapsed ? "Expandir grupo" : "Colapsar grupo"}
+                    className="shrink-0 border-neutral-700 bg-neutral-950 text-amber-300"
                     onClick={() => toggleGroupCollapsed(section)}
-                  >
-                    {isCollapsed ? "+" : "-"}
-                  </button>
+                  />
                   <div className="min-w-0 flex-1">
                     {section.ungrouped ? (
                       <span className="block truncate text-[11px] font-black uppercase tracking-wide text-neutral-400">{section.name}</span>
@@ -7047,13 +6982,13 @@ function MapTokenTracker({
                   </button>
                   {!section.ungrouped ? (
                     <button
-                      className={`h-6 w-7 shrink-0 border text-sm font-black leading-none focus:outline-none focus:ring-1 ${section.inCombat ? "border-red-400/80 bg-red-950/80 text-red-200 hover:bg-red-900 focus:ring-red-400" : "border-neutral-700 bg-neutral-950 text-neutral-500 hover:border-neutral-500 hover:text-neutral-200 focus:ring-neutral-500"}`}
+                      className={`inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center border focus-visible:outline focus-visible:outline-2 ${section.inCombat ? "border-red-400/80 bg-red-950/80 text-red-200 hover:bg-red-900 focus-visible:outline-red-400" : "border-neutral-700 bg-neutral-950 text-neutral-500 hover:border-neutral-500 hover:text-neutral-200 focus-visible:outline-neutral-500"}`}
                       type="button"
                       aria-label={section.inCombat ? "Marcar grupo fuera de combate" : "Marcar grupo en combate"}
                       title={section.inCombat ? "En combate: click para sacar de combate" : "Fuera de combate: click para entrar en combate"}
                       onClick={() => onTokenGroupCombatChange?.(section.id, !section.inCombat, section.sourcePageId || activePageId)}
                     >
-                      {"\u2694"}
+                      <CombatIcon size={18} />
                     </button>
                   ) : null}
                   {!section.ungrouped ? (
@@ -7067,14 +7002,12 @@ function MapTokenTracker({
                     </button>
                   ) : null}
                   {!section.ungrouped ? (
-                    <button
-                      className="h-6 w-6 shrink-0 border border-neutral-700 bg-neutral-950 text-[11px] font-bold text-neutral-400 hover:border-red-400 hover:bg-red-950/50 hover:text-red-100 focus:outline-none focus:ring-1 focus:ring-red-400"
-                      type="button"
-                      title="Eliminar grupo"
+                    <AppIconButton
+                      icon="trash"
+                      label="Eliminar grupo"
+                      className="shrink-0 border-neutral-700 bg-neutral-950 text-neutral-400 hover:border-red-400 hover:bg-red-950/50 hover:text-red-100"
                       onClick={() => removeGroup(section)}
-                    >
-                      X
-                    </button>
+                    />
                   ) : null}
                 </div>
               ) : null}
@@ -8049,15 +7982,7 @@ function MapNote({
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{title}</span>
           <span className="block truncate text-[11px] text-neutral-500">Map note</span>
         </button>
-        <button
-          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-          type="button"
-          aria-label={`Cerrar ${title}`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => onClose(noteActionId, event)}
-        >
-          X
-        </button>
+        <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
       </article>
     );
   }
@@ -8094,10 +8019,10 @@ function MapNote({
           >
             {isSharedVttMap ? "LIVE" : "Share"}
           </button>
-          <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => openFilePicker(event, "add")}>MAP +</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>D</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+          <button className="inline-flex min-h-9 items-center gap-1.5 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => openFilePicker(event, "add")}><AppIcon name="plus" size={15} /> Mapa</button>
+          <AppIconButton icon="minimize" label={`Minimizar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)} />
+          <AppIconButton icon="copy" label={`Duplicar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)} />
+          <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
         </div>
       </header>
       {tabBar}
@@ -8131,14 +8056,12 @@ function MapNote({
                     </CtrlEditableText>
                   </button>
                   {pages.length > 1 ? (
-                    <button
-                      className="h-7 w-7 border-l border-neutral-800 text-xs font-bold text-neutral-500 hover:bg-red-950/40 hover:text-red-200 focus:outline-none focus:ring-1 focus:ring-red-400/50"
-                      type="button"
-                      aria-label={`Cerrar ${page.name || `Mapa ${index + 1}`}`}
+                    <AppIconButton
+                      icon="close"
+                      label={`Cerrar ${page.name || `Mapa ${index + 1}`}`}
+                      className="shrink-0 rounded-none border-y-0 border-r-0 border-l-neutral-800 bg-transparent text-neutral-500 hover:bg-red-950/40 hover:text-red-200"
                       onClick={() => onMapPageClose?.(noteActionId, page.id)}
-                    >
-                      X
-                    </button>
+                    />
                   ) : null}
                 </div>
               );
@@ -9010,16 +8933,13 @@ function CharacterStatusBlock({ statuses = [], canEdit = false, onChange = null 
                   <span className="block text-[11px] text-neutral-400">{positive ? "Buff" : "Debuff"}</span>
                 </span>
                 {canEdit ? (
-                  <button
-                    className="h-7 w-7 border border-neutral-700 bg-neutral-950 text-xs font-bold text-neutral-400 hover:border-red-500 hover:bg-red-950/50 hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-400/50"
-                    type="button"
-                    title={`Remove ${status.name}`}
-                    aria-label={`Remove ${status.name}`}
+                  <AppIconButton
+                    icon="close"
+                    label={`Remove ${status.name}`}
+                    className="border-neutral-700 bg-neutral-950 text-neutral-400 hover:border-red-500 hover:bg-red-950/50 hover:text-red-100"
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={() => onChange?.(activeIds.filter((id) => id !== status.id))}
-                  >
-                    X
-                  </button>
+                  />
                 ) : null}
               </div>
             );
@@ -9228,15 +9148,7 @@ function CharacterNote({
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{noteDisplayName(note)}</span>
           <span className="block truncate text-[11px] text-neutral-500">{subtitle || "Character"}</span>
         </button>
-        <button
-          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-          type="button"
-          aria-label={`Cerrar ${noteDisplayName(note)}`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => onClose(noteActionId, event)}
-        >
-          X
-        </button>
+        <AppIconButton icon="close" label={`Cerrar ${noteDisplayName(note)}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
       </article>
     );
   }
@@ -9287,31 +9199,25 @@ function CharacterNote({
             <strong className="text-neutral-200">Level</strong>{" "}
             {canEditRemoteSheet ? (
               <span className="inline-flex items-center gap-1">
-                <button
-                  className="flex h-5 w-5 items-center justify-center border border-neutral-700 bg-neutral-900 font-bold text-amber-300 hover:border-amber-500 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-35"
-                  type="button"
-                  aria-label="Bajar nivel"
-                  title="Bajar nivel"
+                <AppIconButton
+                  icon="minus"
+                  label="Bajar nivel"
+                  className="border-neutral-700 bg-neutral-900 text-amber-300"
                   disabled={remoteCharacterLevel <= 1}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => commitCharacterField("CharacterLevel", String(remoteCharacterLevel - 1))}
-                >
-                  −
-                </button>
+                />
                 <CtrlEditableText value={String(remoteCharacterLevel)} onCommit={(value) => commitCharacterField("CharacterLevel", String(clamp(Math.trunc(parseCharacterNumber(value, remoteCharacterLevel)), 1, 20)))}>
                   {remoteCharacterLevel}
                 </CtrlEditableText>
-                <button
-                  className="flex h-5 w-5 items-center justify-center border border-neutral-700 bg-neutral-900 font-bold text-amber-300 hover:border-amber-500 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-35"
-                  type="button"
-                  aria-label="Subir nivel"
-                  title="Subir nivel"
+                <AppIconButton
+                  icon="plus"
+                  label="Subir nivel"
+                  className="border-neutral-700 bg-neutral-900 text-amber-300"
                   disabled={remoteCharacterLevel >= 20}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => commitCharacterField("CharacterLevel", String(remoteCharacterLevel + 1))}
-                >
-                  +
-                </button>
+                />
               </span>
             ) : (
               <span>{character.level || "--"}</span>
@@ -9456,118 +9362,35 @@ function formatLiveTimestamp(value) {
 }
 
 function MapIcon({ className = "" }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M4 6.5 9.5 4l5 2 5.5-2.5v14l-5.5 2.5-5-2-5.5 2.5v-14Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.5 4v14M14.5 6v14"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <AppIcon name="map" className={className} />;
 }
 
 function MultiplayerIcon({ className = "" }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M9 11.2a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3.4 20c.5-3.2 2.6-5.2 5.6-5.2s5.1 2 5.6 5.2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M16 10.6a3 3 0 1 0-1.1-5.8"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M15.9 14.9c2.4.3 4 2.1 4.5 5.1"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <AppIcon name="users" className={className} />;
 }
 
 function SoundIcon({ className = "" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 9.5h4l5-4v13l-5-4H4v-5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M16 9c1.1 1.5 1.1 4.5 0 6M18.7 6.5c2.4 3.2 2.4 7.8 0 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
+  return <AppIcon name="volume" className={className} />;
 }
 
 function PlayIcon({ className = "" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor" />
-    </svg>
-  );
+  return <AppIcon name="play" className={className} />;
 }
 
 function PauseIcon({ className = "" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M7 5.5h3.5v13H7v-13ZM13.5 5.5H17v13h-3.5v-13Z" fill="currentColor" />
-    </svg>
-  );
+  return <AppIcon name="pause" className={className} />;
 }
 
 function UploadIcon({ className = "" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 16V4m0 0 4.5 4.5M12 4 7.5 8.5M5 18.5h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <AppIcon name="upload" className={className} />;
 }
 
 function LinkIcon({ className = "" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="m9.5 14.5 5-5m-7.9 7.9-1.1 1.1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0m5 5a3.5 3.5 0 0 1-5 0m8-8 1.1-1.1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <AppIcon name="link" className={className} />;
 }
 
 function TrashIcon({ className = "" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 7h14M9 7V5h6v2m-8 0 .7 12h8.6L17 7M10 10.5v5M14 10.5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <AppIcon name="trash" className={className} />;
 }
 
 function LivePlayersPanel({
@@ -9677,26 +9500,20 @@ function LivePlayersPanel({
             <span className={`border px-2 py-1 text-[11px] font-bold uppercase ${running ? "border-emerald-500/40 text-emerald-300" : "border-neutral-700 text-neutral-500"}`}>
               {running ? "Hosting" : "Stopped"}
             </span>
-            <button
-              className="h-7 w-7 border border-neutral-700 bg-neutral-950 text-amber-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-              type="button"
+            <AppIconButton
+              icon="map"
+              label="Crear mapa VTT"
+              className="border-neutral-700 bg-neutral-950 text-amber-300"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={onAddMapNote}
-              aria-label="Crear mapa VTT"
-              title="Crear mapa VTT"
-            >
-              <MapIcon className="mx-auto h-4 w-4" />
-            </button>
-            <button
-              className="h-7 w-7 border border-neutral-700 bg-neutral-950 text-sm font-bold text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-              type="button"
+            />
+            <AppIconButton
+              icon={collapsed ? "plus" : "minus"}
+              label={collapsed ? "Expand live players panel" : "Collapse live players panel"}
+              className="border-neutral-700 bg-neutral-950 text-neutral-300"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={onToggleCollapsed}
-              aria-label={collapsed ? "Expand live players panel" : "Collapse live players panel"}
-              title={collapsed ? "Expand" : "Collapse"}
-            >
-              {collapsed ? "+" : "-"}
-            </button>
+            />
           </div>
         </div>
       </header>
@@ -9997,7 +9814,7 @@ function SoundButtonRow({ sound, busy, active, paused, onRename, onPlay, onPause
         </p>
       </div>
       <button
-        className={`flex h-8 w-8 items-center justify-center border bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-sky-500 text-sky-200 hover:bg-sky-950/40" : "border-neutral-700 text-neutral-500"}`}
+        className={`flex h-9 w-9 items-center justify-center border bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-40 ${active ? "border-sky-500 text-sky-200 hover:bg-sky-950/40" : "border-neutral-700 text-neutral-500"}`}
         type="button"
         aria-label={`Pausar ${sound.name || "audio"}`}
         title="Pausar audio"
@@ -10007,7 +9824,7 @@ function SoundButtonRow({ sound, busy, active, paused, onRename, onPlay, onPause
         <PauseIcon className="h-4 w-4" />
       </button>
       <button
-        className="flex h-8 w-8 items-center justify-center border border-neutral-700 bg-neutral-900 text-red-300 hover:border-red-500 hover:bg-red-950/40 focus:outline-none focus:ring-2 focus:ring-red-500/40 disabled:cursor-wait disabled:opacity-50"
+        className="flex h-9 w-9 items-center justify-center border border-neutral-700 bg-neutral-900 text-red-300 hover:border-red-500 hover:bg-red-950/40 focus:outline-none focus:ring-2 focus:ring-red-500/40 disabled:cursor-wait disabled:opacity-50"
         type="button"
         aria-label={`Eliminar ${sound.name || "audio"}`}
         title="Eliminar audio"
@@ -10144,15 +9961,7 @@ function SoundBarPanel({
             <LinkIcon className="h-4 w-4" />
             <span>Enlace</span>
           </button>
-          <button
-            className="h-8 w-8 border border-neutral-700 bg-neutral-950 text-sm font-bold text-neutral-300 hover:border-amber-500 hover:text-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-            type="button"
-            onClick={onToggleCollapsed}
-            aria-label="Colapsar sound bar"
-            title="Colapsar"
-          >
-            -
-          </button>
+          <AppIconButton icon="minus" label="Colapsar sound bar" className="border-neutral-700 bg-neutral-950 text-neutral-300" onClick={onToggleCollapsed} />
         </div>
       </header>
       {error ? <p className="border-b border-red-500/30 bg-red-950/40 px-3 py-2 text-xs text-red-200">{error}</p> : null}
@@ -10228,25 +10037,22 @@ function MonsterPicker({
           <header className="border-b-2 border-amber-500 bg-neutral-950 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add Monster</h1>
+                <h1 className="flex items-center gap-2 font-serif text-xl font-bold uppercase tracking-wide text-amber-500"><CreatureIcon size={24} /> Add Monster</h1>
                 <p className="text-sm text-neutral-500">{bestiary.length} monsters</p>
               </div>
-              <button
-                className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-                type="button"
-                aria-label="Cerrar"
-                onClick={onClose}
-              >
-                X
-              </button>
+              <AppIconButton icon="close" label="Cerrar selector de monstruos" onClick={onClose} />
             </div>
-            <input
-              className="mt-4 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              value={searchQuery}
-              onChange={(event) => onSearch(event.target.value)}
-              placeholder="Search by name, CR, edition, type"
-              autoFocus
-            />
+            <label className="relative mt-4 block">
+              <span className="sr-only">Search monsters</span>
+              <AppIcon name="search" size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <input
+                className="h-10 w-full border border-neutral-700 bg-neutral-900 pl-10 pr-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                value={searchQuery}
+                onChange={(event) => onSearch(event.target.value)}
+                placeholder="Search by name, CR, edition, type"
+                autoFocus
+              />
+            </label>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <label className="text-xs font-bold uppercase text-neutral-500">
                 Edition
@@ -10391,22 +10197,13 @@ function NpcTokenPicker({
                 <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add NPC</h1>
                 <p className="text-sm text-neutral-500">{tokens.length} tokens</p>
               </div>
-              <button
-                className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-                type="button"
-                aria-label="Cerrar"
-                onClick={onClose}
-              >
-                X
-              </button>
+              <AppIconButton icon="close" label="Cerrar selector de tokens" onClick={onClose} />
             </div>
-            <input
-              className="mt-4 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              value={searchQuery}
-              onChange={(event) => onSearch(event.target.value)}
-              placeholder="Search tokens"
-              autoFocus
-            />
+            <label className="relative mt-4 block">
+              <span className="sr-only">Search tokens</span>
+              <AppIcon name="search" size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <input className="h-10 w-full border border-neutral-700 bg-neutral-900 pl-10 pr-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20" value={searchQuery} onChange={(event) => onSearch(event.target.value)} placeholder="Search tokens" autoFocus />
+            </label>
           </header>
           <div className="min-h-0 flex-1 overflow-auto bg-neutral-900">
             {loading ? <p className="px-4 py-6 text-sm text-neutral-500">Cargando tokens...</p> : null}
@@ -10480,15 +10277,13 @@ function ResourcePicker({ isOpen, kind, entries, selectedEntry, searchQuery, sor
                 <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">{title}</h1>
                 <p className="text-sm text-neutral-500">{entries.length} {isSpell ? "spells" : "items"}</p>
               </div>
-              <button className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onClick={onClose}>X</button>
+              <AppIconButton icon="close" label={`Cerrar ${title}`} onClick={onClose} />
             </div>
-            <input
-              className="mt-4 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              value={searchQuery}
-              onChange={(event) => onSearch(event.target.value)}
-              placeholder={`Search ${isSpell ? "spells" : "items"}`}
-              autoFocus
-            />
+            <label className="relative mt-4 block">
+              <span className="sr-only">{`Search ${isSpell ? "spells" : "items"}`}</span>
+              <AppIcon name="search" size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <input className="h-10 w-full border border-neutral-700 bg-neutral-900 pl-10 pr-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20" value={searchQuery} onChange={(event) => onSearch(event.target.value)} placeholder={`Search ${isSpell ? "spells" : "items"}`} autoFocus />
+            </label>
             <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
               <label className="text-xs font-bold uppercase text-neutral-500">
                 Order by
@@ -11018,15 +10813,7 @@ function ObsidianNote({
           <span className="block truncate font-serif text-sm font-bold uppercase tracking-wide text-amber-500">{title}</span>
           <span className="block truncate text-[11px] text-neutral-500">{relativePath}</span>
         </button>
-        <button
-          className="h-7 w-7 shrink-0 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
-          type="button"
-          aria-label={`Cerrar ${title}`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => onClose(noteActionId, event)}
-        >
-          X
-        </button>
+        <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
       </article>
     );
   }
@@ -11065,9 +10852,9 @@ function ObsidianNote({
               <button className="h-7 border border-neutral-600 bg-neutral-800 px-2 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onOpenInObsidian(noteActionId)}>Open</button>
             </>
           )}
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-xs font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>D</button>
-          <button className="h-7 w-7 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
+          <AppIconButton icon="minimize" label={`Minimizar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)} />
+          <AppIconButton icon="copy" label={`Duplicar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)} />
+          <AppIconButton icon="close" label={`Cerrar ${title}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)} />
         </div>
       </header>
       {tabBar}
@@ -11146,7 +10933,7 @@ function ObsidianPicker({
                 <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add Obsidian Note</h1>
                 <p className="truncate text-sm text-neutral-500">{hasVault ? vault.name : "No vault selected"}</p>
               </div>
-              <button className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onClick={onClose}>X</button>
+              <AppIconButton icon="close" label="Cerrar selector de Obsidian" onClick={onClose} />
             </div>
             <div className="mt-4 flex gap-2">
               <button className="h-9 border border-neutral-700 bg-neutral-900 px-3 text-sm font-bold text-amber-500 hover:border-amber-500 hover:bg-neutral-800" type="button" onClick={onSelectVault}>
@@ -11164,13 +10951,11 @@ function ObsidianPicker({
               ) : null}
             </div>
             {hasVault ? (
-              <input
-                className="mt-4 h-10 w-full border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                value={searchQuery}
-                onChange={(event) => onSearch(event.target.value)}
-                placeholder="Search title, file name, path, excerpt"
-                autoFocus
-              />
+              <label className="relative mt-4 block">
+                <span className="sr-only">Search Obsidian notes</span>
+                <AppIcon name="search" size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+                <input className="h-10 w-full border border-neutral-700 bg-neutral-900 pl-10 pr-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20" value={searchQuery} onChange={(event) => onSearch(event.target.value)} placeholder="Search title, file name, path, excerpt" autoFocus />
+              </label>
             ) : null}
             {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
           </header>
@@ -11258,13 +11043,7 @@ function CharacterCodeModal({ isOpen, value, error, onChange, onClose, onSubmit 
               <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Add Character Code</h1>
               <p className="mt-1 text-sm text-neutral-400">Paste the code and press Enter to create the note.</p>
             </div>
-            <button
-              className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700"
-              type="button"
-              onClick={onClose}
-            >
-              X
-            </button>
+            <AppIconButton icon="close" label="Cerrar codigo de personaje" onClick={onClose} />
           </div>
         </header>
         <form
@@ -11358,7 +11137,7 @@ function HomebrewMonsterModal({
               <h1 className="font-serif text-xl font-bold uppercase tracking-wide text-amber-500">Homebrew</h1>
               <p className="mt-1 text-sm text-neutral-400">Crea notas custom para el tablero.</p>
             </div>
-            <button className="h-8 w-8 border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onClick={onClose}>X</button>
+            <AppIconButton icon="close" label="Cerrar Homebrew" onClick={onClose} />
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2">
             {tabs.map(([tab, label]) => (
@@ -11567,7 +11346,7 @@ function HomebrewItemGrantModal({ isOpen, item, players, onClose, onSubmit }) {
             <p className="mt-1 truncate text-sm text-neutral-300" title={item.name}>{item.name}</p>
             <p className="mt-1 text-xs text-neutral-500">Se copia la descripcion y queda disponible desde Equipment en la hoja.</p>
           </div>
-          <button className="h-8 w-8 shrink-0 border border-neutral-700 bg-neutral-900 text-sm font-bold hover:border-neutral-500" type="button" onClick={onClose}>X</button>
+          <AppIconButton icon="close" label="Cerrar entrega de item" className="shrink-0" onClick={onClose} />
         </header>
         <div className="grid gap-4 p-5">
           <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
@@ -11710,7 +11489,7 @@ function SavedBoardNotesModal({ isOpen, savedNotes, onLoad, onDelete, onClose })
             <h2 id="saved-board-notes-title" className="font-serif text-xl font-bold text-amber-500">Notas guardadas</h2>
             <p className="mt-1 text-sm text-neutral-400">Cargá una copia de una nota conservada en el punto del tablero donde abriste el menú.</p>
           </div>
-          <button className="h-8 w-8 border border-neutral-700 bg-neutral-900 text-sm font-bold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800" type="button" onClick={onClose}>X</button>
+          <AppIconButton icon="close" label="Cerrar notas guardadas" onClick={onClose} />
         </header>
         <div className="max-h-[60vh] overflow-auto p-4">
           <div className="mb-4 grid grid-cols-3 gap-2" role="tablist" aria-label="Tipo de homebrew">
@@ -16884,11 +16663,12 @@ function DmScreenApp() {
         onPointerDown={(event) => event.stopPropagation()}
       >
         <button
-          className="inline-flex h-10 items-center border border-neutral-700 bg-neutral-900 px-4 text-sm font-semibold text-neutral-100 shadow-sm transition hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:cursor-wait disabled:opacity-70"
+          className="inline-flex min-h-10 items-center gap-2 border border-neutral-700 bg-neutral-900 px-4 text-sm font-semibold text-neutral-100 shadow-sm transition hover:border-amber-500 hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500 disabled:cursor-wait disabled:opacity-70"
           type="button"
           onClick={returnToCharacterSheet}
           disabled={isReturning}
         >
+          <CampaignIcon size={19} />
           {isReturning ? "Volviendo..." : "Volver al character sheet"}
         </button>
       </div>
@@ -17009,14 +16789,7 @@ function DmScreenApp() {
         data-board-control="true"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <button
-          className="h-8 w-8 border border-neutral-700 bg-neutral-950 font-bold hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-          type="button"
-          aria-label="Zoom out"
-          onClick={() => zoomBoardBy(-BOARD_ZOOM_STEP)}
-        >
-          -
-        </button>
+        <AppIconButton icon="zoomOut" label="Alejar tablero" onClick={() => zoomBoardBy(-BOARD_ZOOM_STEP)} />
         <button
           className="h-8 min-w-16 border border-neutral-700 bg-neutral-950 px-2 text-xs font-bold hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
           type="button"
@@ -17025,14 +16798,7 @@ function DmScreenApp() {
         >
           {Math.round(boardView.scale * 100)}%
         </button>
-        <button
-          className="h-8 w-8 border border-neutral-700 bg-neutral-950 font-bold hover:border-amber-500 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-          type="button"
-          aria-label="Zoom in"
-          onClick={() => zoomBoardBy(BOARD_ZOOM_STEP)}
-        >
-          +
-        </button>
+        <AppIconButton icon="zoomIn" label="Acercar tablero" onClick={() => zoomBoardBy(BOARD_ZOOM_STEP)} />
       </div>
 
       <div
@@ -17588,8 +17354,8 @@ function DmScreenApp() {
               aria-expanded={contextMenuOpenGroups.tokens}
               onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, tokens: !groups.tokens }))}
             >
-              <span>Add Token</span>
-              <span className="text-neutral-500">{contextMenuOpenGroups.tokens ? "−" : "+"}</span>
+              <span className="flex items-center gap-2"><NpcIcon size={18} /> Add Token</span>
+              <AppIcon name={contextMenuOpenGroups.tokens ? "chevronUp" : "chevronDown"} size={16} className="text-neutral-500" />
             </button>
             {contextMenuOpenGroups.tokens ? (
               <div className="border-t border-neutral-800 py-1">
@@ -17598,8 +17364,8 @@ function DmScreenApp() {
                   type="button"
                   onClick={openContextMonsterPicker}
                 >
-                  <span>Add Monster</span>
-                  <span className="text-neutral-500">+</span>
+                  <span className="flex items-center gap-2"><CreatureIcon size={17} /> Add Monster</span>
+                  <AppIcon name="plus" size={16} className="text-neutral-500" />
                 </button>
                 <button
                   className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
@@ -17619,8 +17385,8 @@ function DmScreenApp() {
               aria-expanded={contextMenuOpenGroups.homebrew}
               onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, homebrew: !groups.homebrew }))}
             >
-              <span>Homebrew</span>
-              <span className="text-neutral-500">{contextMenuOpenGroups.homebrew ? "−" : "+"}</span>
+              <span className="flex items-center gap-2"><MagicIcon size={18} /> Homebrew</span>
+              <AppIcon name={contextMenuOpenGroups.homebrew ? "chevronUp" : "chevronDown"} size={16} className="text-neutral-500" />
             </button>
             {contextMenuOpenGroups.homebrew ? (
               <div className="border-t border-neutral-800 py-1">
@@ -17650,8 +17416,8 @@ function DmScreenApp() {
               aria-expanded={contextMenuOpenGroups.notes}
               onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, notes: !groups.notes }))}
             >
-              <span>Add Notes</span>
-              <span className="text-neutral-500">{contextMenuOpenGroups.notes ? "−" : "+"}</span>
+              <span className="flex items-center gap-2"><SpellbookIcon size={18} /> Add Notes</span>
+              <AppIcon name={contextMenuOpenGroups.notes ? "chevronUp" : "chevronDown"} size={16} className="text-neutral-500" />
             </button>
             {contextMenuOpenGroups.notes ? (
               <div className="border-t border-neutral-800 py-1">
@@ -17679,8 +17445,8 @@ function DmScreenApp() {
             type="button"
             onClick={openContextMapNote}
           >
-            <span>Add VTT Map</span>
-            <span className="text-neutral-500">+</span>
+            <span className="flex items-center gap-2"><LocationIcon size={18} /> Add VTT Map</span>
+            <AppIcon name="plus" size={16} className="text-neutral-500" />
           </button>
           <div className="border-y border-neutral-800 py-1">
             <button
@@ -17689,8 +17455,8 @@ function DmScreenApp() {
               aria-expanded={contextMenuOpenGroups.objects}
               onClick={() => setContextMenuOpenGroups((groups) => ({ ...groups, objects: !groups.objects }))}
             >
-              <span>Add Object</span>
-              <span className="text-neutral-500">{contextMenuOpenGroups.objects ? "−" : "+"}</span>
+              <span className="flex items-center gap-2"><TreasureIcon size={18} /> Add Object</span>
+              <AppIcon name={contextMenuOpenGroups.objects ? "chevronUp" : "chevronDown"} size={16} className="text-neutral-500" />
             </button>
             {contextMenuOpenGroups.objects ? (
               <div className="border-t border-neutral-800 py-1">
@@ -17699,16 +17465,16 @@ function DmScreenApp() {
                   type="button"
                   onClick={() => openContextResourcePicker("spell")}
                 >
-                  <span>Add Spell</span>
-                  <span className="text-neutral-500">+</span>
+                  <span className="flex items-center gap-2"><SpellbookIcon size={17} /> Add Spell</span>
+                  <AppIcon name="plus" size={16} className="text-neutral-500" />
                 </button>
                 <button
                   className="flex w-full items-center justify-between px-6 py-2 text-left font-bold text-amber-500 hover:bg-neutral-800 focus:bg-neutral-800 focus:outline-none"
                   type="button"
                   onClick={() => openContextResourcePicker("item")}
                 >
-                  <span>Add Item</span>
-                  <span className="text-neutral-500">+</span>
+                  <span className="flex items-center gap-2"><TreasureIcon size={17} /> Add Item</span>
+                  <AppIcon name="plus" size={16} className="text-neutral-500" />
                 </button>
               </div>
             ) : null}

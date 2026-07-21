@@ -20,6 +20,9 @@ const cssSourceFiles = [
 const jsSourceFiles = [
   path.join(projectRoot, "src", "app", "renderer", "dm-screen", "vite.config.mjs"),
   path.join(projectRoot, "src", "app", "renderer", "dm-screen", "src", "main.jsx"),
+  path.join(projectRoot, "src", "app", "renderer", "dm-screen", "src", "components", "icons", "AppIcon.jsx"),
+  path.join(projectRoot, "src", "app", "renderer", "dm-screen", "src", "components", "icons", "dndIcons.jsx"),
+  path.join(projectRoot, "src", "app", "renderer", "dm-screen", "src", "components", "icons", "game-icon-data.js"),
   path.join(projectRoot, "src", "engine", "spells", "spell-data.js"),
   path.join(projectRoot, "src", "engine", "items", "item-catalog.js"),
   path.join(projectRoot, "src", "data", "spells", "spells.json"),

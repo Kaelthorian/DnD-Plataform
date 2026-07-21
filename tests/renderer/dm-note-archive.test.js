@@ -64,7 +64,7 @@ assert.match(source, /function addTokenImportFiles\(event\)/);
 assert.match(source, /function confirmTokenImport\(image\)/);
 assert.match(source, /aria-label="Importar imágenes de token"/);
 assert.match(source, /contextMenuOpenGroups\.homebrew/);
-assert.match(source, /<span>Homebrew<\/span>/);
+assert.match(source, /<MagicIcon size=\{18\} \/> Homebrew<\/span>/, "Homebrew menu lost its semantic fantasy icon");
 assert.match(source, /function linkedMapTokenExistsInCollection\(note, notes\)/);
 assert.match(source, /shouldOfferBoardNoteSave\(note\) && !linkedMapTokenExistsInCollection\(note, notes\)/);
 assert.match(source, /function openSavedBoardNotes\(\)/);

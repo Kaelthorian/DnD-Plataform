@@ -775,11 +775,12 @@ async function testSharedNotesBroadcastAndReplay() {
     category: "session",
     body: "## Clue\n\nA hidden door.",
     tags: ["cave", "cave", "clues"],
-    tasks: [{ id: "task-1", text: "Check the wall", completed: false }],
+    tasks: [{ id: "task-1", text: "Check the wall", completed: false, reminderAt: "2026-07-22T19:30" }],
     links: [{ id: "link-1", label: "Goblin Cave", type: "Location" }]
   }, { playerId: "alice", playerName: "Alice" });
   assert.strictEqual(sanitized.id, "note-shared-1");
   assert.deepStrictEqual(sanitized.tags, ["cave", "clues"]);
+  assert.strictEqual(sanitized.tasks[0].reminderAt, "2026-07-22T19:30");
   assert.strictEqual(sanitized.sharedBy.playerName, "Alice");
 
   await withServer({ tokenEnabled: false }, async (server, port) => {

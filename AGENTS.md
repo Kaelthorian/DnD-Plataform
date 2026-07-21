@@ -22,6 +22,8 @@ Aplicación de escritorio Electron para hojas de personaje de D&D y herramientas
 - `src/engine/effects`: instancias serializables y dispatch genérico; los adaptadores de HP/targets permanecen en el renderer.
 - `src/engine/combat`: economía de turno, acciones declarativas, resolución transaccional y combat log. Las tiradas y adaptadores de sheet permanecen en `src/app/renderer/index.html`.
 - `src/app/renderer`: hoja de personaje y DM Screen. Ambos contienen monolitos; extraer por subsistema, con pruebas, no mediante reescritura total.
+- La ventana de notas del jugador sigue siendo HTML/CSS/JavaScript tradicional. Su iconografía reutilizable vive en `src/app/renderer/components/icons`, los assets offline en `src/assets`, y ambos se cargan desde `index.html`; no introducir React sólo para esa superficie.
+- La iconografía global conserva dos adaptadores: la hoja clásica usa `components/icons/app-icons.js`/`dnd-icons.js`; el DM Screen React usa `dm-screen/src/components/icons`. Los controles comunes son Lucide y la fantasía usa el subconjunto offline de Game Icons generado con `npm run icons:generate`. Consulta `docs/ICON_SYSTEM.md`; no importar nombres internos de Iconify fuera de `dndIcons.jsx`.
 - La pantalla de combate del jugador es una superficie completa de tres columnas: `renderer.js` actualiza iniciativa publica y portaliza el VTT conectado al `#combatMapViewport` de `index.html`; no crear una segunda conexion ni exponer HP/AC privados del DM.
 - `src/data`: datos propios declarativos. El catálogo oficial activo de ítems vive en `src/data/items`; el snapshot vendor es sólo baseline de desarrollo.
 - `vendor/5etools-src-main`: snapshot externo de referencia y datos empaquetados. No editar por defecto.

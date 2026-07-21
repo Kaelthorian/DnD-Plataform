@@ -117,7 +117,13 @@ function sanitizeSharedNote(value, { playerId = "", playerName = "" } = {}) {
     .map((task) => {
       if (!isPlainObject(task)) return null;
       const text = sanitizeText(task.text, 240);
-      return text ? { id: sanitizePlayerId(task.id) || crypto.randomUUID(), text, completed: Boolean(task.completed) } : null;
+      const reminderAt = sanitizeText(task.reminderAt, 40);
+      return text ? {
+        id: sanitizePlayerId(task.id) || crypto.randomUUID(),
+        text,
+        completed: Boolean(task.completed),
+        reminderAt: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(reminderAt) ? reminderAt : ""
+      } : null;
     })
     .filter(Boolean);
   const links = (Array.isArray(value.links) ? value.links : [])

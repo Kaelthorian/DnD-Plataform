@@ -50,6 +50,7 @@
     const notesEditorStatus = document.getElementById("notesEditorStatus");
     const notesLastEdited = document.getElementById("notesLastEdited");
     const notesCreated = document.getElementById("notesCreated");
+    const notesWordCount = document.getElementById("notesWordCount");
     const notesId = document.getElementById("notesId");
     const notesCategorySelect = document.getElementById("notesCategorySelect");
     const notesFolderSelect = document.getElementById("notesFolderSelect");
@@ -68,12 +69,16 @@
     const notesCloseTemplatesButton = document.getElementById("notesCloseTemplatesButton");
     const notesTaskList = document.getElementById("notesTaskList");
     const notesTaskInput = document.getElementById("notesTaskInput");
+    const notesTaskReminderInput = document.getElementById("notesTaskReminderInput");
     const notesAddTaskButton = document.getElementById("notesAddTaskButton");
     const notesPinButton = document.getElementById("notesPinButton");
     const notesArchiveButton = document.getElementById("notesArchiveButton");
     const notesDuplicateButton = document.getElementById("notesDuplicateButton");
     const notesExportButton = document.getElementById("notesExportButton");
     const notesDeleteButton = document.getElementById("notesDeleteButton");
+    const notesNotificationsButton = document.getElementById("notesNotificationsButton");
+    const notesHelpButton = document.getElementById("notesHelpButton");
+    const notesSettingsButton = document.getElementById("notesSettingsButton");
     const sidebarViewButtons = [...document.querySelectorAll("[data-sidebar-view]")];
     const topControlsMenu = document.getElementById("topControlsMenu");
     const topControlsLauncher = document.getElementById("topControlsLauncher");
@@ -2686,9 +2691,10 @@
 
     function playerNotesEmptyStore() {
       return {
-        version: 2,
+        version: 3,
         folders: [{ id: "campaign", name: "Campaign", parentId: "" }],
         tags: [],
+        attachments: [],
         notes: []
       };
     }
@@ -2700,7 +2706,10 @@
       return {
         id: String(task.id || playerNotesNewId("task")).replace(/[^a-zA-Z0-9-]/g, "-").slice(0, 120),
         text,
-        completed: Boolean(task.completed)
+        completed: Boolean(task.completed),
+        reminderAt: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(task.reminderAt || ""))
+          ? String(task.reminderAt).slice(0, 40)
+          : ""
       };
     }
 
@@ -2783,7 +2792,23 @@
       notes.forEach((note) => note.tags.forEach((name) => {
         if (!tagByName.has(name)) tagByName.set(name, { id: playerNotesNewId("tag"), name, color: PLAYER_NOTE_TAG_COLORS[tagByName.size % PLAYER_NOTE_TAG_COLORS.length] });
       }));
-      return { version: 2, folders: safeFolders, tags: [...tagByName.values()].slice(0, 96), notes };
+      let attachmentBytes = 0;
+      const attachments = (Array.isArray(store.attachments) ? store.attachments : [])
+        .map((attachment) => {
+          if (!attachment || typeof attachment !== "object") return null;
+          const dataUrl = String(attachment.dataUrl || "");
+          if (!/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(dataUrl) || dataUrl.length > 260000) return null;
+          attachmentBytes += dataUrl.length;
+          if (attachmentBytes > 4200000) return null;
+          return {
+            id: String(attachment.id || playerNotesNewId("attachment")).replace(/[^a-zA-Z0-9-]/g, "-").slice(0, 120),
+            name: String(attachment.name || "image").replace(/[\r\n|\]]/g, " ").trim().slice(0, 120) || "image",
+            dataUrl
+          };
+        })
+        .filter(Boolean)
+        .slice(0, 32);
+      return { version: 3, folders: safeFolders, tags: [...tagByName.values()].slice(0, 96), attachments, notes };
     }
 
     function playerNotesSaveStore() {
@@ -2854,6 +2879,14 @@
       }
     }
 
+    function playerNotesWordTotal(value) {
+      return (String(value || "").trim().match(/[\p{L}\p{N}]+(?:['’_-][\p{L}\p{N}]+)*/gu) || []).length;
+    }
+
+    function playerNotesIcon(name, size = 17) {
+      return globalThis.AppIcon?.({ name, size }) || document.createTextNode("");
+    }
+
     function playerNotesRenderCategories() {
       const notes = playerNotesStore?.notes || [];
       notesCategoryList?.querySelectorAll("[data-notes-category]").forEach((button) => {
@@ -2879,7 +2912,7 @@
         button.dataset.notesFolder = folder.id;
         const icon = document.createElement("span");
         icon.className = "notes-folder-icon";
-        icon.textContent = "▰";
+        icon.appendChild(playerNotesIcon("folder", 16));
         const label = document.createElement("span");
         label.textContent = folder.name;
         const count = document.createElement("span");
@@ -2958,8 +2991,9 @@
           toggle.type = "button";
           toggle.className = `notes-folder-toggle${children.length ? " has-children" : ""}`;
           toggle.dataset.notesFolderToggle = folder.id;
-          toggle.textContent = children.length ? (collapsed ? ">" : "v") : "";
+          if (children.length) toggle.appendChild(playerNotesIcon(collapsed ? "chevronRight" : "chevronDown", 14));
           toggle.setAttribute("aria-label", children.length ? t(collapsed ? "notes.expandFolder" : "notes.collapseFolder") : "");
+          toggle.title = children.length ? t(collapsed ? "notes.expandFolder" : "notes.collapseFolder") : "";
           toggle.disabled = !children.length;
 
           const button = document.createElement("button");
@@ -2968,7 +3002,7 @@
           button.dataset.notesFolder = folder.id;
           const icon = document.createElement("span");
           icon.className = "notes-folder-icon";
-          icon.textContent = "■";
+          icon.appendChild(playerNotesIcon("folder", 16));
           const label = document.createElement("span");
           label.textContent = folder.name;
           const count = document.createElement("span");
@@ -2980,7 +3014,7 @@
           addChild.type = "button";
           addChild.className = "notes-folder-add-child";
           addChild.dataset.notesAddChildFolder = folder.id;
-          addChild.textContent = "+";
+          addChild.appendChild(playerNotesIcon("plus", 14));
           addChild.title = t("notes.addFolder");
           addChild.setAttribute("aria-label", t("notes.addSubfolderTo", { name: folder.name }));
           row.append(toggle, button, addChild);
@@ -3011,7 +3045,8 @@
           close.className = "notes-tab-close";
           close.dataset.notesCloseId = note.id;
           close.setAttribute("aria-label", t("common.close"));
-          close.textContent = "×";
+          close.title = t("common.close");
+          close.appendChild(playerNotesIcon("x", 14));
           tab.append(label, close);
           return tab;
         }));
@@ -3091,7 +3126,8 @@
         remove.type = "button";
         remove.dataset.notesRemoveTag = tag;
         remove.setAttribute("aria-label", `${t("notes.delete")} ${tag}`);
-        remove.textContent = "×";
+        remove.title = `${t("notes.delete")} ${tag}`;
+        remove.appendChild(playerNotesIcon("x", 13));
         chip.appendChild(remove);
         return chip;
       }));
@@ -3134,7 +3170,7 @@
         row.className = "notes-link-row";
         const icon = document.createElement("span");
         icon.className = "notes-link-icon";
-        icon.textContent = "●";
+        icon.appendChild(playerNotesIcon("link", 15));
         const label = document.createElement("span");
         label.className = "notes-link-label";
         label.textContent = link.label;
@@ -3146,7 +3182,8 @@
         remove.className = "notes-link-delete";
         remove.dataset.notesRemoveLink = link.id;
         remove.setAttribute("aria-label", `${t("notes.delete")} ${link.label}`);
-        remove.textContent = "×";
+        remove.title = `${t("notes.delete")} ${link.label}`;
+        remove.appendChild(playerNotesIcon("x", 13));
         row.append(icon, label, type, remove);
         return row;
       }));
@@ -3165,19 +3202,28 @@
         const label = document.createElement("span");
         label.className = "notes-task-label";
         label.textContent = task.text;
+        const reminder = document.createElement("time");
+        reminder.className = "notes-task-reminder";
+        reminder.dateTime = task.reminderAt || "";
+        reminder.textContent = task.reminderAt ? playerNotesFormatDate(task.reminderAt) : "";
+        reminder.hidden = !task.reminderAt;
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "notes-task-delete";
         remove.dataset.notesRemoveTask = task.id;
         remove.setAttribute("aria-label", `${t("notes.delete")} ${task.text}`);
-        remove.textContent = "×";
-        row.append(checkbox, label, remove);
+        remove.title = `${t("notes.delete")} ${task.text}`;
+        remove.appendChild(playerNotesIcon("x", 13));
+        const copy = document.createElement("span");
+        copy.className = "notes-task-copy";
+        copy.append(label, reminder);
+        row.append(checkbox, copy, remove);
         return row;
       }));
     }
 
     function playerNotesSetEditorDisabled(disabled) {
-      [notesTitleInput, notesBodyInput, notesStarButton, notesPreviewToggle, notesShareToggle, notesPinButton, notesArchiveButton, notesDuplicateButton, notesExportButton, notesDeleteButton, notesTagInput, notesAddTagButton, notesAddLinkButton, notesAddTaskButton, notesCategorySelect, notesFolderSelect]
+      [notesTitleInput, notesBodyInput, notesStarButton, notesPreviewToggle, notesShareToggle, notesPinButton, notesArchiveButton, notesDuplicateButton, notesExportButton, notesDeleteButton, notesTagInput, notesAddTagButton, notesAddLinkButton, notesAddTaskButton, notesTaskReminderInput, notesCategorySelect, notesFolderSelect]
         .filter(Boolean)
         .forEach((element) => { element.disabled = disabled; });
       notesWorkspace?.querySelectorAll("[data-note-command], [data-note-color], [data-note-template]").forEach((element) => { element.disabled = disabled; });
@@ -3218,13 +3264,26 @@
           return;
         }
         if (part.type === "image") {
-          const image = document.createElement("span");
-          image.className = "notes-obsidian-image-placeholder";
-          image.textContent = `[${engine.obsidianDisplayAlias(part.target) || t("notes.imagePlaceholder")}]`;
-          parent.appendChild(image);
+          const target = engine.cleanObsidianTarget(part.target);
+          const attachment = target.startsWith("attachment:")
+            ? playerNotesStore?.attachments?.find((entry) => entry.id === target.slice("attachment:".length))
+            : null;
+          if (attachment) {
+            const image = document.createElement("img");
+            image.className = "notes-obsidian-image";
+            image.src = attachment.dataUrl;
+            image.alt = engine.obsidianDisplayAlias(part.target) || attachment.name || t("notes.imagePlaceholder");
+            image.loading = "lazy";
+            parent.appendChild(image);
+          } else {
+            const placeholder = document.createElement("span");
+            placeholder.className = "notes-obsidian-image-placeholder";
+            placeholder.textContent = `[${engine.obsidianDisplayAlias(part.target) || t("notes.imagePlaceholder")}]`;
+            parent.appendChild(placeholder);
+          }
           return;
         }
-        const element = document.createElement(part.type === "bold" ? "strong" : part.type === "italic" ? "em" : part.type === "strike" ? "del" : part.type === "highlight" ? "mark" : "code");
+        const element = document.createElement(part.type === "bold" ? "strong" : part.type === "italic" ? "em" : part.type === "underline" ? "u" : part.type === "strike" ? "del" : part.type === "highlight" ? "mark" : "code");
         element.className = `notes-obsidian-inline-${part.type}`;
         playerNotesAppendObsidianInline(element, part.text);
         parent.appendChild(element);
@@ -3300,6 +3359,31 @@
           notesBodyPreview.appendChild(list);
           return;
         }
+        if (block.type === "table") {
+          const table = document.createElement("table");
+          table.className = "notes-obsidian-table";
+          const head = document.createElement("thead");
+          const headRow = document.createElement("tr");
+          (block.headers || []).forEach((cell) => {
+            const heading = document.createElement("th");
+            playerNotesAppendObsidianInline(heading, cell);
+            headRow.appendChild(heading);
+          });
+          head.appendChild(headRow);
+          const body = document.createElement("tbody");
+          (block.rows || []).forEach((row) => {
+            const tableRow = document.createElement("tr");
+            (block.headers || []).forEach((_header, index) => {
+              const cell = document.createElement("td");
+              playerNotesAppendObsidianInline(cell, row[index] || "");
+              tableRow.appendChild(cell);
+            });
+            body.appendChild(tableRow);
+          });
+          table.append(head, body);
+          notesBodyPreview.appendChild(table);
+          return;
+        }
         if (block.type === "quote" || block.type === "callout") {
           const quote = document.createElement("blockquote");
           quote.className = `notes-obsidian-quote${block.type === "callout" ? " is-callout" : ""}`;
@@ -3331,6 +3415,7 @@
         if (notesBodyInput) notesBodyInput.value = "";
         if (notesLastEdited) notesLastEdited.textContent = "-";
         if (notesCreated) notesCreated.textContent = "-";
+        if (notesWordCount) notesWordCount.textContent = "0";
         if (notesId) notesId.textContent = "-";
         if (notesShareStatus) notesShareStatus.textContent = "";
         if (notesBodyInput) notesBodyInput.hidden = false;
@@ -3360,7 +3445,8 @@
       if (!playerNotesEditing) playerNotesRenderObsidianPreview(note);
       if (notesStarButton) {
         notesStarButton.classList.toggle("is-active", note.pinned);
-        notesStarButton.textContent = note.pinned ? "★" : "☆";
+        notesStarButton.replaceChildren(playerNotesIcon("star", 21));
+        notesStarButton.setAttribute("aria-pressed", String(note.pinned));
       }
       if (notesPinButton) notesPinButton.classList.toggle("is-active", note.pinned);
       if (notesArchiveButton) {
@@ -3369,6 +3455,7 @@
       }
       if (notesLastEdited) notesLastEdited.textContent = playerNotesFormatDate(note.updatedAt);
       if (notesCreated) notesCreated.textContent = playerNotesFormatDate(note.createdAt);
+      if (notesWordCount) notesWordCount.textContent = String(playerNotesWordTotal(note.body));
       if (notesId) notesId.textContent = note.id.slice(0, 18);
       if (notesShareToggle) notesShareToggle.checked = note.shared;
       if (notesCategorySelect) notesCategorySelect.value = note.category;
@@ -3520,10 +3607,14 @@
     function playerNotesExport() {
       const note = playerNotesActiveNote();
       if (!note) return;
+      const exportedBody = String(note.body || "").replace(/!\[\[attachment:([^|\]]+)(?:\|([^\]]+))?\]\]/g, (token, id, alias) => {
+        const attachment = playerNotesStore?.attachments?.find((entry) => entry.id === id);
+        return attachment ? `![${alias || attachment.name || "image"}](${attachment.dataUrl})` : token;
+      });
       const markdown = [
         `# ${note.title}`,
         "",
-        note.body,
+        exportedBody,
         "",
         note.tags.length ? `Tags: ${note.tags.map((tag) => `#${tag}`).join(" ")}` : "",
         note.tasks.length ? `\n## Tasks\n${note.tasks.map((task) => `- [${task.completed ? "x" : " "}] ${task.text}`).join("\n")}` : ""
@@ -3552,6 +3643,10 @@
       }
       const start = notesBodyInput.selectionStart;
       const end = notesBodyInput.selectionEnd;
+      if (command === "image") {
+        playerNotesInsertImage(start, end);
+        return;
+      }
       const selected = notesBodyInput.value.slice(start, end) || "text";
       const wrappers = {
         bold: ["**", "**"],
@@ -3578,6 +3673,82 @@
       notesBodyInput.focus();
       playerNotesUpdate({ body: notesBodyInput.value });
       notesBodyInput.setSelectionRange(start, start + replacement.length);
+    }
+
+    function playerNotesReadImage(file) {
+      return new Promise((resolve, reject) => {
+        if (!file || !/^image\/(?:png|jpeg|webp|gif)$/i.test(file.type || "")) {
+          reject(new Error(t("notes.imageUnsupported")));
+          return;
+        }
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => {
+          try {
+            let width = image.naturalWidth || image.width;
+            let height = image.naturalHeight || image.height;
+            const scale = Math.min(1, 960 / Math.max(width, height));
+            width = Math.max(1, Math.round(width * scale));
+            height = Math.max(1, Math.round(height * scale));
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d", { alpha: false });
+            let dataUrl = "";
+            for (let attempt = 0; attempt < 6; attempt += 1) {
+              canvas.width = width;
+              canvas.height = height;
+              context.fillStyle = "#efe1bd";
+              context.fillRect(0, 0, width, height);
+              context.drawImage(image, 0, 0, width, height);
+              dataUrl = canvas.toDataURL("image/webp", Math.max(0.48, 0.82 - attempt * 0.07));
+              if (dataUrl.length <= 240000) break;
+              width = Math.max(240, Math.round(width * 0.78));
+              height = Math.max(180, Math.round(height * 0.78));
+            }
+            URL.revokeObjectURL(url);
+            if (!dataUrl || dataUrl.length > 240000) reject(new Error(t("notes.imageTooLarge")));
+            else resolve(dataUrl);
+          } catch (error) {
+            URL.revokeObjectURL(url);
+            reject(error);
+          }
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error(t("notes.imageUnsupported")));
+        };
+        image.src = url;
+      });
+    }
+
+    function playerNotesInsertImage(start, end) {
+      const note = playerNotesActiveNote();
+      if (!note || !notesBodyInput || !playerNotesStore) return;
+      const picker = document.createElement("input");
+      picker.type = "file";
+      picker.accept = "image/png,image/jpeg,image/webp,image/gif";
+      picker.addEventListener("change", async () => {
+        const file = picker.files?.[0];
+        if (!file) return;
+        try {
+          const dataUrl = await playerNotesReadImage(file);
+          const attachment = {
+            id: playerNotesNewId("attachment"),
+            name: String(file.name || "image").replace(/[\r\n|\]]/g, " ").trim().slice(0, 120) || "image",
+            dataUrl
+          };
+          playerNotesStore.attachments = [...(playerNotesStore.attachments || []), attachment].slice(-32);
+          const token = `![[attachment:${attachment.id}|${attachment.name}]]`;
+          notesBodyInput.setRangeText(token, start, end, "end");
+          note.body = notesBodyInput.value.slice(0, 24000);
+          playerNotesPersist(note, { share: true });
+          playerNotesRenderDetails();
+          notesBodyInput.focus();
+          if (notesEditorStatus) notesEditorStatus.textContent = t("notes.imageAdded");
+        } catch (error) {
+          if (notesEditorStatus) notesEditorStatus.textContent = error?.message || t("notes.imageUnsupported");
+        }
+      }, { once: true });
+      picker.click();
     }
 
     function playerNotesAddTag(rawTag = notesTagInput?.value) {
@@ -3629,8 +3800,9 @@
       const note = playerNotesActiveNote();
       const text = String(rawText || "").trim().slice(0, 240);
       if (!note || !text) return;
-      note.tasks = [...note.tasks, { id: playerNotesNewId("task"), text, completed: false }].slice(0, 48);
+      note.tasks = [...note.tasks, { id: playerNotesNewId("task"), text, completed: false, reminderAt: String(notesTaskReminderInput?.value || "").slice(0, 40) }].slice(0, 48);
       if (notesTaskInput) notesTaskInput.value = "";
+      if (notesTaskReminderInput) notesTaskReminderInput.value = "";
       playerNotesUpdate({ tasks: note.tasks });
     }
 
@@ -3819,6 +3991,7 @@
         const note = playerNotesActiveNote();
         if (!note) return;
         note.body = notesBodyInput.value.slice(0, 24000);
+        if (notesWordCount) notesWordCount.textContent = String(playerNotesWordTotal(note.body));
         playerNotesPersist(note, { share: true });
       });
       notesPreviewToggle?.addEventListener("click", () => {
@@ -3898,6 +4071,19 @@
         if (id && note) playerNotesUpdate({ tasks: note.tasks.filter((task) => task.id !== id) });
       });
       notesTaskInput?.addEventListener("focus", () => notesAddTaskButton?.classList.add("is-ready"));
+      notesNotificationsButton?.addEventListener("click", () => {
+        const now = Date.now();
+        const due = (playerNotesStore?.notes || []).flatMap((note) => note.tasks || [])
+          .filter((task) => !task.completed && task.reminderAt && new Date(task.reminderAt).getTime() <= now);
+        if (notesEditorStatus) notesEditorStatus.textContent = t("notes.remindersDue", { count: due.length });
+      });
+      notesHelpButton?.addEventListener("click", () => {
+        if (notesEditorStatus) notesEditorStatus.textContent = t("notes.shortcutSummary");
+      });
+      notesSettingsButton?.addEventListener("click", () => {
+        setSidebarMenuOpen(true);
+        setAppSettingsMenuOpen(true);
+      });
       document.getElementById("notesAddFolderButton")?.addEventListener("click", playerNotesAddFolder);
       document.addEventListener("keydown", (event) => {
         if (!notesWorkspace || notesWorkspace.hidden) return;

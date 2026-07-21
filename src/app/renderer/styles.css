@@ -193,15 +193,19 @@
     }
 
     .notes-library-brand-icon {
-      display: grid;
       width: 34px;
       height: 34px;
-      place-items: center;
+      object-fit: contain;
+      padding: 3px;
       border: 1px solid #b98529;
       border-radius: 50%;
-      color: #f5b83d;
-      font-size: 22px;
       box-shadow: 0 0 15px rgba(245, 158, 11, 0.16);
+    }
+
+    .app-icon {
+      display: block;
+      flex: 0 0 auto;
+      pointer-events: none;
     }
 
     .notes-library-brand strong,
@@ -328,8 +332,8 @@
 
     .notes-icon-button {
       display: inline-grid;
-      width: 25px;
-      height: 25px;
+      width: 36px;
+      height: 36px;
       place-items: center;
       padding: 0;
       border: 1px solid transparent;
@@ -355,7 +359,7 @@
 
     .notes-folder-row {
       display: grid;
-      grid-template-columns: 18px minmax(0, 1fr) 24px;
+      grid-template-columns: 36px minmax(0, 1fr) 36px;
       align-items: center;
       gap: 2px;
       padding-left: calc(var(--notes-folder-depth, 0) * 16px);
@@ -368,8 +372,8 @@
     .notes-folder-toggle,
     .notes-folder-add-child {
       display: grid;
-      width: 22px;
-      height: 25px;
+      width: 36px;
+      height: 36px;
       place-items: center;
       padding: 0;
       border: 1px solid transparent;
@@ -557,7 +561,11 @@
     }
 
     .notes-tab-close {
-      width: 22px;
+      display: grid;
+      width: 36px;
+      min-width: 36px;
+      height: 36px;
+      place-items: center;
       border: 0;
       background: transparent;
       color: #778083;
@@ -628,7 +636,7 @@
 
     .notes-command-button {
       display: inline-flex;
-      min-height: 34px;
+      min-height: 36px;
       align-items: center;
       gap: 7px;
       padding: 0 11px;
@@ -756,7 +764,7 @@
       display: grid;
       min-width: 0;
       min-height: 0;
-      grid-template-rows: 44px minmax(0, 1fr) 26px;
+      grid-template-rows: 48px minmax(0, 1fr) 26px;
       padding: 12px 12px 0;
       background: #121719;
     }
@@ -775,8 +783,8 @@
     }
 
     .notes-editor-toolbar button {
-      min-width: 30px;
-      height: 29px;
+      min-width: 36px;
+      height: 36px;
       padding: 0 7px;
       border: 1px solid transparent;
       border-radius: 3px;
@@ -812,7 +820,8 @@
       border-top: 0;
       border-radius: 0 0 7px 7px;
       background:
-        radial-gradient(circle at 20% 12%, rgba(221, 165, 67, 0.09), transparent 35%),
+        linear-gradient(rgba(24, 20, 14, 0.9), rgba(20, 18, 14, 0.94)),
+        url("../../assets/textures/parchment.webp") center / cover,
         linear-gradient(135deg, #231e16, #181714 48%, #201b14);
       box-shadow: inset 0 0 32px rgba(0, 0, 0, 0.22), 0 12px 30px rgba(0, 0, 0, 0.16);
     }
@@ -845,8 +854,10 @@
     }
 
     .notes-star-button {
-      width: 35px;
-      height: 35px;
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
       border: 1px solid transparent;
       border-radius: 50%;
       background: transparent;
@@ -936,6 +947,31 @@
       list-style-type: disc;
     }
 
+    .notes-obsidian-table {
+      width: 100%;
+      margin: 0 0 14px;
+      border-collapse: collapse;
+      color: #e9dfc8;
+      font-size: 13px;
+    }
+
+    .notes-obsidian-table th,
+    .notes-obsidian-table td {
+      padding: 8px 10px;
+      border: 1px solid rgba(157, 118, 53, 0.58);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .notes-obsidian-table th {
+      background: rgba(90, 64, 29, 0.46);
+      color: #f3c565;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
     .notes-obsidian-task {
       display: flex;
       align-items: flex-start;
@@ -1019,6 +1055,19 @@
       background: #0b0f10;
       color: #f3c565;
       font: 0.95em Consolas, monospace;
+    }
+
+    .notes-obsidian-image {
+      display: block;
+      width: auto;
+      max-width: min(100%, 760px);
+      max-height: 520px;
+      margin: 12px 0;
+      border: 1px solid #806130;
+      border-radius: 6px;
+      background: #15120e;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+      object-fit: contain;
     }
 
     .notes-obsidian-empty {
@@ -1147,8 +1196,8 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      min-height: 25px;
-      padding: 0 8px;
+      min-height: 36px;
+      padding: 0 0 0 8px;
       border: 1px solid #3f5156;
       border-radius: 4px;
       background: #202a2d;
@@ -1157,6 +1206,11 @@
     }
 
     .notes-tag button {
+      display: grid;
+      width: 36px;
+      min-width: 36px;
+      height: 36px;
+      place-items: center;
       padding: 0;
       border: 0;
       background: transparent;
@@ -1266,8 +1320,8 @@
     }
 
     .notes-tag-colors button {
-      width: 17px;
-      height: 17px;
+      width: 36px;
+      height: 36px;
       padding: 0;
       border: 2px solid #1a1e1f;
       border-radius: 50%;
@@ -1313,8 +1367,8 @@
     }
 
     .notes-label-colors button {
-      width: 22px;
-      height: 22px;
+      width: 36px;
+      height: 36px;
       padding: 0;
       border: 2px solid #1a1e1f;
       border-radius: 50%;
@@ -1395,8 +1449,8 @@
     .notes-linked-tag[data-color="purple"] { border-color: #65428e; color: #c4a1f5; }
 
     .notes-linked-add {
-      width: 24px;
-      height: 24px;
+      width: 36px;
+      height: 36px;
     }
 
     .notes-link-icon {
@@ -1421,6 +1475,11 @@
 
     .notes-link-delete,
     .notes-task-delete {
+      display: grid;
+      width: 36px;
+      min-width: 36px;
+      height: 36px;
+      place-items: center;
       padding: 0;
       border: 0;
       background: transparent;
@@ -1540,9 +1599,9 @@
 
     .notes-task-add-button {
       display: grid;
-      width: 24px;
-      height: 24px;
-      flex: 0 0 24px;
+      width: 36px;
+      height: 36px;
+      flex: 0 0 36px;
       place-items: center;
       padding: 0;
       border: 1px solid transparent;
@@ -1570,6 +1629,39 @@
       background: transparent;
     }
 
+    .notes-task-copy {
+      display: grid;
+      min-width: 0;
+      flex: 1;
+      gap: 3px;
+    }
+
+    .notes-task-reminder {
+      color: #c79542;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+
+    .notes-reminder-entry {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 6px 0 0 41px;
+      color: #8f999a;
+    }
+
+    .notes-reminder-entry input {
+      min-width: 0;
+      width: 100%;
+      min-height: 32px;
+      border: 1px solid #344043;
+      border-radius: 4px;
+      background: #111819;
+      color: #cfd5d3;
+      color-scheme: dark;
+      font: 10px/1.2 "Segoe UI", Arial, sans-serif;
+    }
+
     .notes-status-bar {
       display: flex;
       align-items: center;
@@ -1594,8 +1686,11 @@
     }
 
     .notes-status-icon {
-      width: 25px;
-      height: 25px;
+      display: grid;
+      width: 36px;
+      min-width: 36px;
+      height: 36px;
+      place-items: center;
       padding: 0;
       border: 0;
       background: transparent;
@@ -1607,6 +1702,16 @@
     .notes-status-icon:focus-visible {
       color: #f3c463;
       outline: none;
+    }
+
+    .notes-workspace button:disabled {
+      cursor: not-allowed;
+      opacity: 0.42;
+    }
+
+    .notes-workspace button:focus-visible {
+      outline: 2px solid #f2b84d;
+      outline-offset: 2px;
     }
 
     .visually-hidden {
@@ -1658,8 +1763,8 @@
     }
 
     .sidebar-menu-close {
-      width: 30px;
-      height: 30px;
+      width: 36px;
+      height: 36px;
       display: grid;
       place-items: center;
       padding: 0;
@@ -2178,8 +2283,8 @@
     }
 
     .free-dice-close {
-      width: 28px;
-      height: 28px;
+      width: 36px;
+      height: 36px;
       border: 1px solid #b8b8b8;
       border-radius: 4px;
       background: #fff;
@@ -2199,7 +2304,7 @@
     .free-dice-step,
     .free-dice-row-step,
     .free-dice-roll {
-      min-height: 32px;
+      min-height: 36px;
       border: 1px solid rgba(0, 0, 0, 0.28);
       border-radius: 5px;
       background: #fff;
@@ -2625,8 +2730,8 @@
     }
 
     .item-picker-close {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       flex: 0 0 auto;
       border: 1px solid #525252;
       background: #262626;
@@ -3012,7 +3117,7 @@
     .familiar-picker-close,
     .familiar-picker-secondary,
     .familiar-picker-primary {
-      min-height: 32px;
+      min-height: 36px;
       border: 1px solid #555;
       border-radius: 4px;
       background: #242729;
@@ -3021,7 +3126,7 @@
     }
 
     .familiar-picker-close {
-      width: 32px;
+      width: 36px;
       font-weight: 700;
     }
 
@@ -3575,8 +3680,8 @@
     }
 
     .item-drawer-close {
-      width: 28px;
-      height: 28px;
+      width: 36px;
+      height: 36px;
       border: 1px solid #b8b8b8;
       border-radius: 4px;
       background: #fff;
@@ -4511,6 +4616,32 @@
       outline-offset: 1px;
     }
 
+    .app-settings-credits {
+      padding: 8px 10px;
+      border: 1px solid var(--dm-border);
+      border-radius: 2px;
+      background: #0a0a0a;
+      color: var(--dm-muted);
+    }
+
+    .app-settings-credits summary {
+      min-height: 28px;
+      color: var(--dm-text);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .app-settings-credits summary:focus-visible {
+      outline: 2px solid var(--dm-focus);
+      outline-offset: 2px;
+    }
+
+    .app-settings-credits p {
+      margin: 7px 0 0;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
     .app-settings-language {
       display: grid;
       gap: 6px;
@@ -4617,7 +4748,7 @@
     .live-sheet-client-close,
     .live-sheet-client-secondary,
     .live-sheet-client-primary {
-      min-height: 32px;
+      min-height: 36px;
       border: 1px solid rgba(0, 0, 0, 0.22);
       border-radius: 6px;
       background: #fff;
@@ -4627,7 +4758,7 @@
     }
 
     .live-sheet-client-close {
-      width: 32px;
+      width: 36px;
       padding: 0;
     }
 
@@ -4898,6 +5029,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 7px;
       text-align: center;
     }
 
@@ -6937,8 +7069,8 @@
 
     .floating-sheet-window-collapse,
     .floating-sheet-window-close {
-      width: 30px;
-      height: 30px;
+      width: 36px;
+      height: 36px;
       display: grid;
       place-items: center;
       padding: 0;
@@ -7602,7 +7734,7 @@
     }
 
     .turn-actions-tab {
-      min-height: 34px;
+      min-height: 36px;
       flex: 0 0 auto;
       padding: 0 12px;
       border: 1px solid transparent;

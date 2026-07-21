@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">D20 notebook emblem</title>
+  <desc id="desc">An original geometric twenty-sided die mark.</desc>
+  <path fill="#d89b31" d="M32 3 57 18v28L32 61 7 46V18L32 3Zm0 6.7-17.4 10.4 7.2 2.4L32 13.4l10.2 9.1 7.2-2.4L32 9.7Zm-4.3 16.1L14 21.3l9.2 27.1 4.5-22.6Zm8.6 0 4.5 22.6L50 21.3l-13.7 4.5ZM32 19l-6.8 6 3.2 22.8h7.2L38.8 25 32 19Zm-5.6 34.1L12.8 45l14.1 8.5-.5-.4Zm11.2 0-.5.4L51.2 45l-13.6 8.1Z"/>
+</svg>

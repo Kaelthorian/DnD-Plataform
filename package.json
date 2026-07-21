@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build:dm-screen": "node ./scripts/ensure-dm-screen-build.js --force",
+    "icons:generate": "node ./scripts/generate-dm-icon-data.js",
     "build:dm-screen:css": "tailwindcss -c ./src/app/renderer/dm-screen/tailwind.config.cjs -i ./src/app/renderer/dm-screen/styles.css -o ./src/app/renderer/dm-screen/dist/dm-screen.css --minify",
     "build:dm-screen:js": "vite build --config ./src/app/renderer/dm-screen/vite.config.mjs",
     "prestart": "node ./scripts/ensure-dm-screen-build.js",
@@ -25,7 +26,7 @@
     "test:spells": "node scripts/validate-spells.js && node tests/engine/spell-data.test.js",
     "test:engine": "node tests/engine/backgrounds.test.js && node tests/engine/feat-registry.test.js && node tests/engine/spell-registry.test.js && node tests/engine/obsidian-markdown.test.js && npm run test:spells && node tests/engine/resource-state.test.js && node tests/engine/sorcery-points.test.js && node tests/engine/long-rest.test.js && node tests/engine/rests.test.js && node tests/engine/class-level3-mechanics.test.js && node tests/engine/item-automation.test.js && node tests/engine/combat.test.js",
     "test:services": "node tests/services/save-service.test.js && node tests/services/obsidian-service.test.js && node tests/services/live-sheet-server.test.js && node tests/services/dm-sound-link-service.test.js && node tests/services/token-library-service.test.js && node tests/services/windows-firewall-service.test.js && node tests/services/data-loader-cache.test.js && node tests/services/dm-screen-build-cache.test.js",
-    "test:renderer": "node tests/renderer/i18n.test.js && node tests/renderer/combat-ui.test.js && node tests/renderer/player-notes.test.js && node tests/renderer/combat-performance.test.js && node tests/renderer/combat-equipment-refresh.test.js && node tests/renderer/equipment-dm-style.test.js && node tests/renderer/item-automation-integration.test.js && node tests/renderer/homebrew-item-delivery.test.js && node tests/renderer/spell-picker-performance.test.js && node tests/renderer/spell-integration.test.js && node tests/renderer/choice-response-performance.test.js && node tests/renderer/status-popup.test.js && node tests/renderer/dm-note-archive.test.js && node tests/renderer/dm-sound-links.test.js && node tests/renderer/dm-vtt-live-token-drag.test.js && node tests/renderer/vtt-token-health-ring.test.js && node tests/renderer/resize-corner-standard.test.js && node tests/renderer/floating-sheet-windows.test.js && node tests/renderer/live-hand-queue.test.js && node tests/renderer/live-combat-timeline.test.js && node tests/renderer/live-host-mode-panel.test.js",
+    "test:renderer": "node tests/renderer/i18n.test.js && node tests/renderer/icon-system.test.js && node tests/renderer/combat-ui.test.js && node tests/renderer/player-notes.test.js && node tests/renderer/combat-performance.test.js && node tests/renderer/combat-equipment-refresh.test.js && node tests/renderer/equipment-dm-style.test.js && node tests/renderer/item-automation-integration.test.js && node tests/renderer/homebrew-item-delivery.test.js && node tests/renderer/spell-picker-performance.test.js && node tests/renderer/spell-integration.test.js && node tests/renderer/choice-response-performance.test.js && node tests/renderer/status-popup.test.js && node tests/renderer/dm-note-archive.test.js && node tests/renderer/dm-sound-links.test.js && node tests/renderer/dm-vtt-live-token-drag.test.js && node tests/renderer/vtt-token-health-ring.test.js && node tests/renderer/resize-corner-standard.test.js && node tests/renderer/floating-sheet-windows.test.js && node tests/renderer/live-hand-queue.test.js && node tests/renderer/live-combat-timeline.test.js && node tests/renderer/live-host-mode-panel.test.js",
     "predist": "node ./scripts/ensure-dm-screen-build.js",
     "dist": "node ./scripts/run-electron-builder.js --win nsis",
     "publish:win": "node ./scripts/run-electron-builder.js --ensure-dm-screen --win nsis --publish always",
@@ -49,6 +50,7 @@
     "electronUpdaterCompatibility": ">=2.16",
     "files": [
       "src/app/**",
+      "src/assets/**",
       "src/data/**",
       "!src/data/items/backups/**",
       "!src/data/items/sync-preview.json",
@@ -93,8 +95,11 @@
     "vite": "^8.1.0"
   },
   "dependencies": {
+    "@iconify-json/game-icons": "^1.2.4",
+    "@iconify/react": "^6.0.2",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
+    "lucide-react": "^1.25.0",
     "pdfjs-dist": "^6.0.227",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
