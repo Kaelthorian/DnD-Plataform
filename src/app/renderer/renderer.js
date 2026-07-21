@@ -38,8 +38,14 @@
     const notesLibraryList = document.getElementById("notesLibraryList");
     const notesTabs = document.getElementById("notesTabs");
     const notesSearchInput = document.getElementById("notesSearchInput");
+    const notesCategoryBrowser = document.getElementById("notesCategoryBrowser");
+    const notesCategoryBrowserTitle = document.getElementById("notesCategoryBrowserTitle");
+    const notesCategoryBrowserCount = document.getElementById("notesCategoryBrowserCount");
+    const notesCategoryBrowserList = document.getElementById("notesCategoryBrowserList");
     const notesTitleInput = document.getElementById("notesTitleInput");
     const notesBodyInput = document.getElementById("notesBodyInput");
+    const notesBodyPreview = document.getElementById("notesBodyPreview");
+    const notesPreviewToggle = document.getElementById("notesPreviewToggle");
     const notesStarButton = document.getElementById("notesStarButton");
     const notesEditorStatus = document.getElementById("notesEditorStatus");
     const notesLastEdited = document.getElementById("notesLastEdited");
@@ -48,9 +54,12 @@
     const notesCategorySelect = document.getElementById("notesCategorySelect");
     const notesFolderSelect = document.getElementById("notesFolderSelect");
     const notesTags = document.getElementById("notesTags");
+    const notesTagLibrary = document.getElementById("notesTagLibrary");
     const notesTagInput = document.getElementById("notesTagInput");
     const notesAddTagButton = document.getElementById("notesAddTagButton");
+    const notesTagColors = document.getElementById("notesTagColors");
     const notesLabelColors = document.getElementById("notesLabelColors");
+    const notesLinkedTags = document.getElementById("notesLinkedTags");
     const notesLinksList = document.getElementById("notesLinksList");
     const notesAddLinkButton = document.getElementById("notesAddLinkButton");
     const notesShareToggle = document.getElementById("notesShareToggle");
@@ -103,6 +112,9 @@
     const turnActionsAttacksCounter = document.getElementById("turnActionsAttacksCounter");
     const turnActionsAttacksOrb = document.getElementById("turnActionsAttacksOrb");
     const turnActionsEndTurn = document.getElementById("turnActionsEndTurn");
+    const combatToggleInitiative = document.getElementById("combatToggleInitiative");
+    const combatToggleContext = document.getElementById("combatToggleContext");
+    const combatToggleActions = document.getElementById("combatToggleActions");
     const combatResolution = document.getElementById("combatResolution");
     const combatLogSection = document.getElementById("combatLogSection");
     const combatLogList = document.getElementById("combatLogList");
@@ -122,6 +134,11 @@
     const combatInitiativeSplitter = document.getElementById("combatInitiativeSplitter");
     const combatContextSplitter = document.getElementById("combatContextSplitter");
     const combatActionSplitter = document.getElementById("combatActionSplitter");
+    const combatPanelVisibility = {
+      initiative: true,
+      context: true,
+      actions: true
+    };
     const optionMenu = document.getElementById("optionMenu");
     const optionList = document.getElementById("optionList");
     const optionDescription = document.getElementById("optionDescription");
@@ -222,6 +239,8 @@
     const PLAYER_NOTES_STORAGE_KEY = "dnd-character-sheet-player-notes-v1";
     const PLAYER_NOTES_CATEGORIES = Object.freeze(["session", "npcs", "quests", "locations", "loot", "combat", "handouts", "custom"]);
     const PLAYER_NOTE_COLORS = Object.freeze(["gray", "red", "amber", "green", "blue", "purple"]);
+    const PLAYER_NOTE_BROWSE_CATEGORIES = Object.freeze(["session", "npcs", "quests"]);
+    const PLAYER_NOTE_TAG_COLORS = Object.freeze(["gray", "red", "amber", "orange", "yellow", "green", "teal", "cyan", "blue", "indigo", "purple", "pink"]);
     const PLAYER_NOTE_TEMPLATES = Object.freeze({
       session: {
         title: "Session Recap",
@@ -250,6 +269,13 @@
     let playerNotesSearch = "";
     let playerNotesActiveId = "";
     let playerNotesOpenIds = [];
+    let playerNotesBrowseMode = false;
+    let playerNotesEditing = false;
+    let playerNotesTagColor = "amber";
+    let playerNotesSelectedTagName = "";
+    const playerNotesCollapsedFolders = new Set();
+    const playerNotesPreviewCache = new Map();
+    let playerNotesRenderedPreviewKey = "";
     let playerNotesSaveTimer = null;
     let playerNotesShareTimer = null;
     let playerNotesInitialized = false;
@@ -362,6 +388,46 @@
       if (persist) persistCombatBoardLayout();
     }
 
+    const combatPanelToggleConfig = Object.freeze({
+      initiative: { button: () => combatToggleInitiative, hide: "combat.hideResources", show: "combat.showResources" },
+      context: { button: () => combatToggleContext, hide: "combat.hideLog", show: "combat.showLog" },
+      actions: { button: () => combatToggleActions, hide: "combat.hideActions", show: "combat.showActions" }
+    });
+
+    function applyCombatPanelVisibility({ refreshLayout = true } = {}) {
+      if (!combatBoardMain || !turnActionsPanel) return;
+      combatBoardMain.classList.toggle("is-initiative-hidden", !combatPanelVisibility.initiative);
+      combatBoardMain.classList.toggle("is-context-hidden", !combatPanelVisibility.context);
+      turnActionsPanel.classList.toggle("is-actions-hidden", !combatPanelVisibility.actions);
+      Object.entries(combatPanelToggleConfig).forEach(([key, config]) => {
+        const button = config.button();
+        const visible = combatPanelVisibility[key];
+        if (!button) return;
+        button.setAttribute("aria-pressed", String(visible));
+        button.textContent = t(visible ? config.hide : config.show);
+        button.title = t(visible ? config.hide : config.show);
+      });
+      if (!refreshLayout) return;
+      requestAnimationFrame(() => {
+        applyCombatBoardLayout();
+        const refreshVttLayout = () => globalThis.dndCharacterSheetVttSurface?.refreshLayout?.();
+        refreshVttLayout();
+        window.setTimeout(refreshVttLayout, 210);
+        window.setTimeout(refreshVttLayout, 420);
+      });
+    }
+
+    function toggleCombatPanel(key) {
+      if (!Object.prototype.hasOwnProperty.call(combatPanelVisibility, key)) return;
+      combatPanelVisibility[key] = !combatPanelVisibility[key];
+      applyCombatPanelVisibility();
+    }
+
+    Object.entries(combatPanelToggleConfig).forEach(([key, config]) => {
+      config.button()?.addEventListener("click", () => toggleCombatPanel(key));
+    });
+    applyCombatPanelVisibility({ refreshLayout: false });
+
     function combatBoardResizeKeyDelta(event, type) {
       const amount = event.shiftKey ? 0.05 : 0.02;
       if (type === "initiative") return event.key === "ArrowRight" ? amount : event.key === "ArrowLeft" ? -amount : 0;
@@ -462,7 +528,13 @@
 
     globalThis.dndCombatBoardSurface = {
       apply: applyCombatBoardLayout,
-      setup: setupCombatBoardResize
+      setup: setupCombatBoardResize,
+      setPanelVisibility(key, visible) {
+        if (!Object.prototype.hasOwnProperty.call(combatPanelVisibility, key)) return;
+        combatPanelVisibility[key] = Boolean(visible);
+        applyCombatPanelVisibility();
+      },
+      panelVisibility: () => ({ ...combatPanelVisibility })
     };
 
     function liveVttCombatTargetRoster() {
@@ -2519,6 +2591,7 @@
 
     function refreshTranslatedUi() {
       playerI18n.applyTranslations(document);
+      applyCombatPanelVisibility({ refreshLayout: false });
       refreshLiveSheetConnectionMode();
       syncSettingsControls();
       if (liveSheetClientStatus) {
@@ -2613,8 +2686,9 @@
 
     function playerNotesEmptyStore() {
       return {
-        version: 1,
-        folders: [{ id: "campaign", name: "Campaign" }],
+        version: 2,
+        folders: [{ id: "campaign", name: "Campaign", parentId: "" }],
+        tags: [],
         notes: []
       };
     }
@@ -2681,17 +2755,35 @@
           if (!name) return null;
           return {
             id: String(folder.id || playerNotesNewId("folder")).replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 80),
-            name
+            name,
+            parentId: String(folder.parentId || "").replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 80)
           };
         })
         .filter(Boolean);
-      if (!folders.length) folders.push({ id: "campaign", name: "Campaign" });
+      if (!folders.length) folders.push({ id: "campaign", name: "Campaign", parentId: "" });
       const folderIds = new Set(folders.map((folder) => folder.id));
+      const safeFolders = folders.map((folder) => ({
+        ...folder,
+        parentId: folder.parentId && folder.parentId !== folder.id && folderIds.has(folder.parentId) ? folder.parentId : ""
+      }));
       const notes = [...new Map((Array.isArray(store.notes) ? store.notes : [])
         .map(playerNotesNormalizeNote)
         .map((note) => [note.id, { ...note, folderId: folderIds.has(note.folderId) ? note.folderId : "" }])).values()]
         .slice(0, 240);
-      return { version: 1, folders, notes };
+      const tagByName = new Map();
+      const rawTags = Array.isArray(store.tags) ? store.tags : [];
+      rawTags.forEach((tag, index) => {
+        const name = String(typeof tag === "string" ? tag : tag?.name || "").trim().toLowerCase().replace(/^#/, "").slice(0, 32);
+        if (!name || tagByName.has(name)) return;
+        const color = PLAYER_NOTE_TAG_COLORS.includes(String(tag?.color || "").toLowerCase())
+          ? String(tag.color).toLowerCase()
+          : PLAYER_NOTE_TAG_COLORS[index % PLAYER_NOTE_TAG_COLORS.length];
+        tagByName.set(name, { id: String(tag?.id || playerNotesNewId("tag")).replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 100), name, color });
+      });
+      notes.forEach((note) => note.tags.forEach((name) => {
+        if (!tagByName.has(name)) tagByName.set(name, { id: playerNotesNewId("tag"), name, color: PLAYER_NOTE_TAG_COLORS[tagByName.size % PLAYER_NOTE_TAG_COLORS.length] });
+      }));
+      return { version: 2, folders: safeFolders, tags: [...tagByName.values()].slice(0, 96), notes };
     }
 
     function playerNotesSaveStore() {
@@ -2818,6 +2910,88 @@
       }));
     }
 
+    function playerNotesFolderSelectEntries() {
+      const folders = playerNotesStore?.folders || [];
+      const childrenByParent = new Map();
+      folders.forEach((folder) => {
+        const parentId = folder.parentId || "";
+        if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
+        childrenByParent.get(parentId).push(folder);
+      });
+      const entries = [];
+      const visited = new Set();
+      const visit = (parentId, depth = 0, trail = new Set()) => {
+        (childrenByParent.get(parentId) || []).forEach((folder) => {
+          if (trail.has(folder.id) || visited.has(folder.id)) return;
+          visited.add(folder.id);
+          entries.push({ folder, depth });
+          visit(folder.id, depth + 1, new Set([...trail, folder.id]));
+        });
+      };
+      visit("");
+      folders.forEach((folder) => {
+        if (!visited.has(folder.id)) entries.push({ folder, depth: 0 });
+      });
+      return entries;
+    }
+
+    function playerNotesRenderFolderTree() {
+      if (!notesFolderList) return;
+      const folders = playerNotesStore?.folders || [];
+      const childrenByParent = new Map();
+      folders.forEach((folder) => {
+        const parentId = folder.parentId || "";
+        if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
+        childrenByParent.get(parentId).push(folder);
+      });
+      const rows = [];
+      const renderBranch = (parentId, depth = 0, trail = new Set()) => {
+        (childrenByParent.get(parentId) || []).forEach((folder) => {
+          if (trail.has(folder.id)) return;
+          const children = childrenByParent.get(folder.id) || [];
+          const collapsed = playerNotesCollapsedFolders.has(folder.id);
+          const row = document.createElement("div");
+          row.className = "notes-folder-row";
+          row.style.setProperty("--notes-folder-depth", String(depth));
+
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = `notes-folder-toggle${children.length ? " has-children" : ""}`;
+          toggle.dataset.notesFolderToggle = folder.id;
+          toggle.textContent = children.length ? (collapsed ? ">" : "v") : "";
+          toggle.setAttribute("aria-label", children.length ? t(collapsed ? "notes.expandFolder" : "notes.collapseFolder") : "");
+          toggle.disabled = !children.length;
+
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `notes-folder-button${playerNotesFolderFilter === folder.id ? " is-active" : ""}`;
+          button.dataset.notesFolder = folder.id;
+          const icon = document.createElement("span");
+          icon.className = "notes-folder-icon";
+          icon.textContent = "■";
+          const label = document.createElement("span");
+          label.textContent = folder.name;
+          const count = document.createElement("span");
+          count.className = "notes-category-count";
+          count.textContent = String((playerNotesStore?.notes || []).filter((note) => note.folderId === folder.id && !note.archived).length);
+          button.append(icon, label, count);
+
+          const addChild = document.createElement("button");
+          addChild.type = "button";
+          addChild.className = "notes-folder-add-child";
+          addChild.dataset.notesAddChildFolder = folder.id;
+          addChild.textContent = "+";
+          addChild.title = t("notes.addFolder");
+          addChild.setAttribute("aria-label", t("notes.addSubfolderTo", { name: folder.name }));
+          row.append(toggle, button, addChild);
+          rows.push(row);
+          if (!collapsed) renderBranch(folder.id, depth + 1, new Set([...trail, folder.id]));
+        });
+      };
+      renderBranch("");
+      notesFolderList.replaceChildren(...rows);
+    }
+
     function playerNotesRenderTabs() {
       if (!notesTabs) return;
       notesTabs.replaceChildren(...playerNotesOpenIds
@@ -2843,13 +3017,76 @@
         }));
     }
 
+    function playerNotesRenderActiveSelection() {
+      notesLibraryList?.querySelectorAll("[data-notes-id]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.notesId === playerNotesActiveId);
+      });
+      notesTabs?.querySelectorAll("[data-notes-id]").forEach((tab) => {
+        const active = tab.dataset.notesId === playerNotesActiveId;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    }
+
+    function playerNotesTagDefinition(name) {
+      return playerNotesStore?.tags?.find((tag) => tag.name === name) || null;
+    }
+
+    function playerNotesColorForTag(name) {
+      return playerNotesTagDefinition(name)?.color || PLAYER_NOTE_TAG_COLORS[0];
+    }
+
+    function playerNotesRenderTagColors() {
+      if (!notesTagColors) return;
+      const activeColor = playerNotesSelectedTagName ? playerNotesColorForTag(playerNotesSelectedTagName) : playerNotesTagColor;
+      notesTagColors.replaceChildren(...PLAYER_NOTE_TAG_COLORS.map((color) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = activeColor === color ? "is-active" : "";
+        button.dataset.notesTagColor = color;
+        button.setAttribute("aria-label", t("notes.tagColorName", { color }));
+        button.title = t("notes.tagColorName", { color });
+        return button;
+      }));
+    }
+
+    function playerNotesRenderTagLibrary(note) {
+      if (!notesTagLibrary) return;
+      notesTagLibrary.replaceChildren(...(playerNotesStore?.tags || []).map((tag) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `notes-tag-library-button${note?.tags?.includes(tag.name) ? " is-assigned" : ""}${playerNotesSelectedTagName === tag.name ? " is-selected" : ""}`;
+        button.dataset.notesTag = tag.name;
+        button.dataset.color = tag.color;
+        button.title = t("notes.toggleTagHint");
+        const dot = document.createElement("span");
+        dot.className = "notes-tag-library-dot";
+        const label = document.createElement("span");
+        label.textContent = `#${tag.name}`;
+        button.append(dot, label);
+        return button;
+      }));
+    }
+
+    function playerNotesRenderLinkedTags(note) {
+      if (!notesLinkedTags) return;
+      notesLinkedTags.replaceChildren(...(note?.tags || []).map((tag) => {
+        const chip = document.createElement("span");
+        chip.className = "notes-linked-tag";
+        chip.dataset.color = playerNotesColorForTag(tag);
+        chip.textContent = `#${tag}`;
+        return chip;
+      }));
+    }
+
     function playerNotesRenderTags(note) {
       if (!notesTags) return;
       notesTags.replaceChildren(...(note?.tags || []).map((tag) => {
         const chip = document.createElement("span");
         chip.className = "notes-tag";
-        chip.dataset.color = note.color;
-        chip.appendChild(document.createTextNode(tag));
+        chip.dataset.color = playerNotesColorForTag(tag);
+        chip.dataset.notesTag = tag;
+        chip.appendChild(document.createTextNode(`#${tag}`));
         const remove = document.createElement("button");
         remove.type = "button";
         remove.dataset.notesRemoveTag = tag;
@@ -2857,6 +3094,36 @@
         remove.textContent = "×";
         chip.appendChild(remove);
         return chip;
+      }));
+      playerNotesRenderTagLibrary(note);
+      playerNotesRenderLinkedTags(note);
+      playerNotesRenderTagColors();
+    }
+
+    function playerNotesRenderCategoryBrowser() {
+      const browse = playerNotesBrowseMode && PLAYER_NOTE_BROWSE_CATEGORIES.includes(playerNotesFilter);
+      const editorColumn = notesWorkspace?.querySelector(".notes-editor-column");
+      const detailsPanel = notesWorkspace?.querySelector(".notes-details-panel");
+      if (notesCategoryBrowser) notesCategoryBrowser.hidden = !browse;
+      if (editorColumn) editorColumn.hidden = browse;
+      if (detailsPanel) detailsPanel.hidden = browse;
+      if (!browse || !notesCategoryBrowserList) return;
+      const categoryLabels = { session: "notes.sessionNotes", npcs: "notes.npcs", quests: "notes.quests" };
+      const visibleNotes = playerNotesVisibleNotes();
+      if (notesCategoryBrowserTitle) notesCategoryBrowserTitle.textContent = t(categoryLabels[playerNotesFilter]);
+      if (notesCategoryBrowserCount) notesCategoryBrowserCount.textContent = t("notes.categoryCount", { count: visibleNotes.length });
+      notesCategoryBrowserList.replaceChildren(...visibleNotes.map((note) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "notes-category-note-row";
+        button.dataset.notesBrowserId = note.id;
+        const title = document.createElement("strong");
+        title.textContent = note.title;
+        const meta = document.createElement("span");
+        const folder = playerNotesStore?.folders?.find((entry) => entry.id === note.folderId);
+        meta.textContent = [folder?.name, playerNotesFormatDate(note.updatedAt), note.tags.map((tag) => `#${tag}`).join(" ")].filter(Boolean).join(" • ");
+        button.append(title, meta);
+        return button;
       }));
     }
 
@@ -2910,10 +3177,150 @@
     }
 
     function playerNotesSetEditorDisabled(disabled) {
-      [notesTitleInput, notesBodyInput, notesStarButton, notesShareToggle, notesPinButton, notesArchiveButton, notesDuplicateButton, notesExportButton, notesDeleteButton, notesTagInput, notesAddTagButton, notesAddLinkButton, notesAddTaskButton, notesCategorySelect, notesFolderSelect]
+      [notesTitleInput, notesBodyInput, notesStarButton, notesPreviewToggle, notesShareToggle, notesPinButton, notesArchiveButton, notesDuplicateButton, notesExportButton, notesDeleteButton, notesTagInput, notesAddTagButton, notesAddLinkButton, notesAddTaskButton, notesCategorySelect, notesFolderSelect]
         .filter(Boolean)
         .forEach((element) => { element.disabled = disabled; });
       notesWorkspace?.querySelectorAll("[data-note-command], [data-note-color], [data-note-template]").forEach((element) => { element.disabled = disabled; });
+    }
+
+    function playerNotesAppendObsidianInline(parent, text) {
+      const engine = globalThis.dndObsidianMarkdownEngine;
+      const parts = engine?.tokenizeObsidianInline?.(text) || [{ type: "text", text: String(text || "") }];
+      parts.forEach((part) => {
+        if (part.type === "text") {
+          parent.appendChild(document.createTextNode(part.text));
+          return;
+        }
+        if (part.type === "wiki") {
+          const target = engine.cleanObsidianTarget(part.target);
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "notes-obsidian-link";
+          button.textContent = engine.obsidianDisplayAlias(part.target);
+          button.addEventListener("click", () => {
+            const targetNote = playerNotesStore?.notes?.find((note) => note.title.toLowerCase() === target.toLowerCase());
+            if (targetNote) {
+              playerNotesBrowseMode = false;
+              playerNotesSetActive(targetNote.id);
+            }
+          });
+          parent.appendChild(button);
+          return;
+        }
+        if (part.type === "link") {
+          const link = document.createElement("a");
+          link.className = "notes-obsidian-link";
+          link.textContent = part.label;
+          link.href = part.href;
+          link.target = "_blank";
+          link.rel = "noreferrer noopener";
+          parent.appendChild(link);
+          return;
+        }
+        if (part.type === "image") {
+          const image = document.createElement("span");
+          image.className = "notes-obsidian-image-placeholder";
+          image.textContent = `[${engine.obsidianDisplayAlias(part.target) || t("notes.imagePlaceholder")}]`;
+          parent.appendChild(image);
+          return;
+        }
+        const element = document.createElement(part.type === "bold" ? "strong" : part.type === "italic" ? "em" : part.type === "strike" ? "del" : part.type === "highlight" ? "mark" : "code");
+        element.className = `notes-obsidian-inline-${part.type}`;
+        playerNotesAppendObsidianInline(element, part.text);
+        parent.appendChild(element);
+      });
+    }
+
+    function playerNotesPreviewBlocks(note) {
+      const noteId = String(note?.id || "");
+      const body = String(note?.body || "");
+      const cached = playerNotesPreviewCache.get(noteId);
+      if (cached?.body === body) return cached.blocks;
+      const blocks = globalThis.dndObsidianMarkdownEngine?.parseObsidianMarkdown?.(body) || [];
+      playerNotesPreviewCache.set(noteId, { body, blocks });
+      while (playerNotesPreviewCache.size > 48) {
+        playerNotesPreviewCache.delete(playerNotesPreviewCache.keys().next().value);
+      }
+      return blocks;
+    }
+
+    function playerNotesRenderObsidianPreview(note) {
+      if (!notesBodyPreview) return;
+      const body = String(note?.body || "");
+      const renderKey = `${playerI18n?.getLanguage?.() || "en"}\u0000${note?.id || ""}\u0000${body}`;
+      if (renderKey === playerNotesRenderedPreviewKey) return;
+      notesBodyPreview.textContent = "";
+      const blocks = playerNotesPreviewBlocks(note);
+      if (!blocks.length) {
+        const empty = document.createElement("p");
+        empty.className = "notes-obsidian-empty";
+        empty.textContent = t("notes.emptyBody");
+        notesBodyPreview.appendChild(empty);
+        playerNotesRenderedPreviewKey = renderKey;
+        return;
+      }
+      blocks.forEach((block) => {
+        if (block.type === "heading") {
+          const heading = document.createElement(`h${Math.min(6, Math.max(2, block.level + 1))}`);
+          heading.className = `notes-obsidian-heading notes-obsidian-heading-${block.level}`;
+          playerNotesAppendObsidianInline(heading, block.text);
+          notesBodyPreview.appendChild(heading);
+          return;
+        }
+        if (block.type === "hr") {
+          notesBodyPreview.appendChild(document.createElement("hr"));
+          return;
+        }
+        if (block.type === "code") {
+          const pre = document.createElement("pre");
+          pre.className = "notes-obsidian-code";
+          pre.textContent = block.text;
+          notesBodyPreview.appendChild(pre);
+          return;
+        }
+        if (block.type === "list") {
+          const list = document.createElement(block.ordered ? "ol" : "ul");
+          list.className = `notes-obsidian-list${block.ordered ? " ordered" : ""}`;
+          block.items.forEach((item) => {
+            const listItem = document.createElement("li");
+            if (item.task) {
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.checked = item.checked;
+              checkbox.disabled = true;
+              listItem.className = "notes-obsidian-task";
+              listItem.append(checkbox);
+            }
+            const copy = document.createElement("span");
+            copy.className = item.checked ? "is-complete" : "";
+            playerNotesAppendObsidianInline(copy, item.text);
+            listItem.appendChild(copy);
+            list.appendChild(listItem);
+          });
+          notesBodyPreview.appendChild(list);
+          return;
+        }
+        if (block.type === "quote" || block.type === "callout") {
+          const quote = document.createElement("blockquote");
+          quote.className = `notes-obsidian-quote${block.type === "callout" ? " is-callout" : ""}`;
+          if (block.type === "callout") {
+            const title = document.createElement("strong");
+            title.textContent = `${block.kind}: ${block.title}`;
+            quote.appendChild(title);
+          }
+          (block.lines || []).forEach((line) => {
+            const paragraph = document.createElement("p");
+            playerNotesAppendObsidianInline(paragraph, line);
+            quote.appendChild(paragraph);
+          });
+          notesBodyPreview.appendChild(quote);
+          return;
+        }
+        const paragraph = document.createElement("p");
+        playerNotesAppendObsidianInline(paragraph, block.text);
+        notesBodyPreview.appendChild(paragraph);
+      });
+      playerNotesRenderedPreviewKey = renderKey;
     }
 
     function playerNotesRenderDetails() {
@@ -2926,6 +3333,17 @@
         if (notesCreated) notesCreated.textContent = "-";
         if (notesId) notesId.textContent = "-";
         if (notesShareStatus) notesShareStatus.textContent = "";
+        if (notesBodyInput) notesBodyInput.hidden = false;
+        if (notesBodyPreview) {
+          notesBodyPreview.hidden = true;
+          notesBodyPreview.replaceChildren();
+        }
+        playerNotesRenderedPreviewKey = "";
+        if (notesPreviewToggle) {
+          notesPreviewToggle.textContent = t("notes.preview");
+          notesPreviewToggle.setAttribute("aria-pressed", "false");
+        }
+        playerNotesEditing = false;
         playerNotesRenderTags(null);
         playerNotesRenderLinks(null);
         playerNotesRenderTasks(null);
@@ -2933,6 +3351,13 @@
       }
       if (notesTitleInput && notesTitleInput.value !== note.title) notesTitleInput.value = note.title;
       if (notesBodyInput && notesBodyInput.value !== note.body) notesBodyInput.value = note.body;
+      if (notesBodyInput) notesBodyInput.hidden = !playerNotesEditing;
+      if (notesBodyPreview) notesBodyPreview.hidden = playerNotesEditing;
+      if (notesPreviewToggle) {
+        notesPreviewToggle.textContent = t(playerNotesEditing ? "notes.preview" : "notes.edit");
+        notesPreviewToggle.setAttribute("aria-pressed", String(!playerNotesEditing));
+      }
+      if (!playerNotesEditing) playerNotesRenderObsidianPreview(note);
       if (notesStarButton) {
         notesStarButton.classList.toggle("is-active", note.pinned);
         notesStarButton.textContent = note.pinned ? "★" : "☆";
@@ -2948,10 +3373,10 @@
       if (notesShareToggle) notesShareToggle.checked = note.shared;
       if (notesCategorySelect) notesCategorySelect.value = note.category;
       if (notesFolderSelect) {
-        notesFolderSelect.replaceChildren(...(playerNotesStore?.folders || []).map((folder) => {
+        notesFolderSelect.replaceChildren(...playerNotesFolderSelectEntries().map(({ folder, depth }) => {
           const option = document.createElement("option");
           option.value = folder.id;
-          option.textContent = folder.name;
+          option.textContent = `${"\u00a0\u00a0".repeat(depth)}${folder.name}`;
           return option;
         }));
         notesFolderSelect.value = note.folderId || "";
@@ -2971,9 +3396,10 @@
     function playerNotesRender() {
       if (!playerNotesStore) playerNotesLoadForActiveSlot();
       playerNotesRenderCategories();
-      playerNotesRenderFolders();
+      playerNotesRenderFolderTree();
       playerNotesRenderLibrary();
       playerNotesRenderTabs();
+      playerNotesRenderCategoryBrowser();
       playerNotesRenderDetails();
     }
 
@@ -3015,8 +3441,14 @@
       const note = playerNotesStore?.notes?.find((entry) => entry.id === id);
       if (!note) return;
       playerNotesActiveId = note.id;
-      if (!playerNotesOpenIds.includes(note.id)) playerNotesOpenIds.push(note.id);
-      playerNotesRender();
+      playerNotesBrowseMode = false;
+      playerNotesEditing = false;
+      const openedNewTab = !playerNotesOpenIds.includes(note.id);
+      if (openedNewTab) playerNotesOpenIds.push(note.id);
+      if (openedNewTab) playerNotesRenderTabs();
+      playerNotesRenderActiveSelection();
+      playerNotesRenderCategoryBrowser();
+      playerNotesRenderDetails();
     }
 
     function playerNotesCreate(templateKey = "session") {
@@ -3034,6 +3466,8 @@
       });
       playerNotesStore.notes.unshift(note);
       playerNotesActiveId = note.id;
+      playerNotesBrowseMode = false;
+      playerNotesEditing = true;
       playerNotesOpenIds = [...new Set([note.id, ...playerNotesOpenIds])].slice(0, 12);
       playerNotesSaveStore();
       playerNotesRender();
@@ -3054,6 +3488,8 @@
       });
       playerNotesStore.notes.unshift(note);
       playerNotesActiveId = note.id;
+      playerNotesBrowseMode = false;
+      playerNotesEditing = true;
       playerNotesOpenIds = [...new Set([note.id, ...playerNotesOpenIds])].slice(0, 12);
       playerNotesSaveStore();
       playerNotesRender();
@@ -3105,6 +3541,10 @@
     function playerNotesInsert(command) {
       const note = playerNotesActiveNote();
       if (!note || !notesBodyInput) return;
+      if (!playerNotesEditing) {
+        playerNotesEditing = true;
+        playerNotesRenderDetails();
+      }
       if (["undo", "redo"].includes(command)) {
         notesBodyInput.focus();
         document.execCommand(command);
@@ -3143,10 +3583,46 @@
     function playerNotesAddTag(rawTag = notesTagInput?.value) {
       const note = playerNotesActiveNote();
       const tag = String(rawTag || "").trim().toLowerCase().replace(/^#/, "").slice(0, 32);
-      if (!note || !tag || note.tags.includes(tag)) return;
-      note.tags = [...note.tags, tag].slice(0, 16);
+      if (!note || !tag) return;
+      const existing = playerNotesTagDefinition(tag);
+      if (!existing) {
+        playerNotesStore.tags = [...(playerNotesStore.tags || []), {
+          id: playerNotesNewId("tag"),
+          name: tag,
+          color: playerNotesTagColor
+        }].slice(0, 96);
+      }
+      playerNotesSelectedTagName = tag;
+      note.tags = note.tags.includes(tag) ? note.tags : [...note.tags, tag].slice(0, 16);
       if (notesTagInput) notesTagInput.value = "";
+      playerNotesSaveStore();
       playerNotesUpdate({ tags: note.tags });
+    }
+
+    function playerNotesToggleTag(name) {
+      const note = playerNotesActiveNote();
+      const tag = String(name || "").trim().toLowerCase();
+      if (!note || !tag || !playerNotesTagDefinition(tag)) return;
+      playerNotesSelectedTagName = tag;
+      note.tags = note.tags.includes(tag)
+        ? note.tags.filter((entry) => entry !== tag)
+        : [...note.tags, tag].slice(0, 16);
+      playerNotesUpdate({ tags: note.tags });
+    }
+
+    function playerNotesSetTagColor(color) {
+      if (!PLAYER_NOTE_TAG_COLORS.includes(color)) return;
+      if (playerNotesSelectedTagName) {
+        const tag = playerNotesTagDefinition(playerNotesSelectedTagName);
+        if (tag) {
+          tag.color = color;
+          playerNotesSaveStore();
+          playerNotesRenderDetails();
+          return;
+        }
+      }
+      playerNotesTagColor = color;
+      playerNotesRenderTagColors();
     }
 
     function playerNotesAddTask(rawText = notesTaskInput?.value) {
@@ -3168,14 +3644,15 @@
       playerNotesUpdate({ links: note.links });
     }
 
-    function playerNotesAddFolder() {
+    function playerNotesAddFolder(parentId = "") {
       if (!playerNotesStore) return;
       const name = window.prompt(t("notes.folderPrompt"), "");
       if (!name?.trim()) return;
-      const folder = { id: playerNotesNewId("folder"), name: name.trim().slice(0, 80) };
+      const folder = { id: playerNotesNewId("folder"), name: name.trim().slice(0, 80), parentId: String(parentId || "") };
       playerNotesStore.folders.push(folder);
       playerNotesFolderFilter = folder.id;
       playerNotesFilter = "all";
+      playerNotesCollapsedFolders.delete(folder.parentId);
       playerNotesSaveStore();
       playerNotesRender();
     }
@@ -3222,6 +3699,12 @@
     function playerNotesHandleIncoming(notePayload) {
       const incoming = playerNotesNormalizeNote(notePayload);
       if (!incoming?.id) return;
+      if (!playerNotesStore) playerNotesLoadForActiveSlot();
+      incoming.tags.forEach((name) => {
+        if (!playerNotesTagDefinition(name)) {
+          playerNotesStore.tags.push({ id: playerNotesNewId("tag"), name, color: PLAYER_NOTE_TAG_COLORS[playerNotesStore.tags.length % PLAYER_NOTE_TAG_COLORS.length] });
+        }
+      });
       const existingIndex = playerNotesStore?.notes?.findIndex((note) => note.id === incoming.id) ?? -1;
       if (existingIndex >= 0) playerNotesStore.notes.splice(existingIndex, 1, incoming);
       else playerNotesStore?.notes?.unshift(incoming);
@@ -3236,6 +3719,9 @@
       const incomingNotes = (Array.isArray(notePayloads) ? notePayloads : []).map(playerNotesNormalizeNote).filter(Boolean);
       const incomingIds = new Set(incomingNotes.map((note) => note.id));
       if (!playerNotesStore) playerNotesLoadForActiveSlot();
+      incomingNotes.forEach((note) => note.tags.forEach((name) => {
+        if (!playerNotesTagDefinition(name)) playerNotesStore.tags.push({ id: playerNotesNewId("tag"), name, color: PLAYER_NOTE_TAG_COLORS[playerNotesStore.tags.length % PLAYER_NOTE_TAG_COLORS.length] });
+      }));
       playerNotesStore.notes = playerNotesStore.notes.filter((note) => !note.shared || incomingIds.has(note.id));
       incomingNotes.forEach((note) => {
         const index = playerNotesStore.notes.findIndex((entry) => entry.id === note.id);
@@ -3280,9 +3766,23 @@
         if (!button) return;
         playerNotesFilter = button.dataset.notesCategory || "all";
         playerNotesFolderFilter = "";
+        playerNotesBrowseMode = PLAYER_NOTE_BROWSE_CATEGORIES.includes(playerNotesFilter);
         playerNotesRender();
       });
       notesFolderList?.addEventListener("click", (event) => {
+        const toggle = event.target.closest("[data-notes-folder-toggle]");
+        if (toggle) {
+          const folderId = toggle.dataset.notesFolderToggle || "";
+          if (playerNotesCollapsedFolders.has(folderId)) playerNotesCollapsedFolders.delete(folderId);
+          else playerNotesCollapsedFolders.add(folderId);
+          playerNotesRenderFolderTree();
+          return;
+        }
+        const childButton = event.target.closest("[data-notes-add-child-folder]");
+        if (childButton) {
+          playerNotesAddFolder(childButton.dataset.notesAddChildFolder || "");
+          return;
+        }
         const button = event.target.closest("[data-notes-folder]");
         if (!button) return;
         playerNotesFolderFilter = button.dataset.notesFolder || "";
@@ -3292,6 +3792,10 @@
       notesLibraryList?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-notes-id]");
         if (button) playerNotesSetActive(button.dataset.notesId);
+      });
+      notesCategoryBrowserList?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-notes-browser-id]");
+        if (button) playerNotesSetActive(button.dataset.notesBrowserId);
       });
       notesTabs?.addEventListener("click", (event) => {
         const closeId = event.target.closest("[data-notes-close-id]")?.dataset.notesCloseId;
@@ -3308,9 +3812,19 @@
       notesSearchInput?.addEventListener("input", () => {
         playerNotesSearch = notesSearchInput.value || "";
         playerNotesRenderLibrary();
+        playerNotesRenderCategoryBrowser();
       });
       notesTitleInput?.addEventListener("input", () => playerNotesUpdate({ title: notesTitleInput.value.slice(0, 160) }, { share: true }));
-      notesBodyInput?.addEventListener("input", () => playerNotesUpdate({ body: notesBodyInput.value.slice(0, 24000) }, { share: true }));
+      notesBodyInput?.addEventListener("input", () => {
+        const note = playerNotesActiveNote();
+        if (!note) return;
+        note.body = notesBodyInput.value.slice(0, 24000);
+        playerNotesPersist(note, { share: true });
+      });
+      notesPreviewToggle?.addEventListener("click", () => {
+        playerNotesEditing = !playerNotesEditing;
+        playerNotesRenderDetails();
+      });
       notesCategorySelect?.addEventListener("change", () => playerNotesUpdate({ category: notesCategorySelect.value }));
       notesFolderSelect?.addEventListener("change", () => playerNotesUpdate({ folderId: notesFolderSelect.value }));
       notesStarButton?.addEventListener("click", () => playerNotesUpdate({ pinned: !playerNotesActiveNote()?.pinned }));
@@ -3326,12 +3840,25 @@
           playerNotesAddTag();
         }
       });
-      notesAddTagButton?.addEventListener("click", () => playerNotesAddTag());
+      notesAddTagButton?.addEventListener("click", () => notesTagInput?.focus());
       notesTags?.addEventListener("click", (event) => {
         const tag = event.target.closest("[data-notes-remove-tag]")?.dataset.notesRemoveTag;
-        if (!tag) return;
+        if (!tag) {
+          const selected = event.target.closest("[data-notes-tag]")?.dataset.notesTag;
+          if (selected) playerNotesSelectedTagName = selected;
+          playerNotesRenderTagColors();
+          return;
+        }
         const note = playerNotesActiveNote();
         if (note) playerNotesUpdate({ tags: note.tags.filter((entry) => entry !== tag) });
+      });
+      notesTagLibrary?.addEventListener("click", (event) => {
+        const tag = event.target.closest("[data-notes-tag]")?.dataset.notesTag;
+        if (tag) playerNotesToggleTag(tag);
+      });
+      notesTagColors?.addEventListener("click", (event) => {
+        const color = event.target.closest("[data-notes-tag-color]")?.dataset.notesTagColor;
+        if (color) playerNotesSetTagColor(color);
       });
       notesLabelColors?.addEventListener("click", (event) => {
         const color = event.target.closest("[data-note-color]")?.dataset.noteColor;
@@ -3370,6 +3897,7 @@
         const note = playerNotesActiveNote();
         if (id && note) playerNotesUpdate({ tasks: note.tasks.filter((task) => task.id !== id) });
       });
+      notesTaskInput?.addEventListener("focus", () => notesAddTaskButton?.classList.add("is-ready"));
       document.getElementById("notesAddFolderButton")?.addEventListener("click", playerNotesAddFolder);
       document.addEventListener("keydown", (event) => {
         if (!notesWorkspace || notesWorkspace.hidden) return;

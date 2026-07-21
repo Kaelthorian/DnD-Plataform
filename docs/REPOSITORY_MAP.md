@@ -6,14 +6,14 @@ Mapa operativo para evitar búsquedas globales repetidas.
 
 | Necesidad | Empezar aquí | Continuar en |
 | --- | --- | --- |
-| Notas del jugador y colaboración Live Sheet | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `src/services/live-sheet-server.js`, `docs/PLAYER_NOTES.md` |
+| Notas del jugador y colaboración Live Sheet | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `src/engine/obsidian-markdown.js`, `src/services/live-sheet-server.js`, `docs/PLAYER_NOTES.md` |
 | Arranque, ventanas, IPC, updater | `src/app/main/main.js` | `src/app/preload/preload.js` |
 | Hoja de personaje y navegación lateral | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `i18n.js`; la barra lateral reutiliza el panel de combate existente y agrupa las herramientas, descansos y ajustes en un único menú |
 | DM Screen/tablero/VTT/audio | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config; los archivos locales usan IndexedDB y los enlaces YouTube usan IPC persistido |
 | Save slots/migración | `src/services/save-service.js` | helpers de slots en `index.html`, test de save service |
 | Live Sheet, estados, audio y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`; el DM Screen entrega homebrew mediante `dm:sheet:patch` y el Character Sheet resuelve snapshots en `__sheetMeta.homebrewItems`; los archivos de audio viajan como data URL y YouTube solo como ID validado |
 | Enlaces de música YouTube | `src/services/dm-sound-link-service.js` | IPC `dm-sound-links:*` en main/preload; JSON atómico en `userData`; main identifica requests `youtube-nocookie.com` con el repositorio canónico como referente HTTP |
-| Obsidian | `src/services/obsidian-service.js` | IPC/preload y componentes React |
+| Obsidian y Markdown compatible | `src/services/obsidian-service.js`, `src/engine/obsidian-markdown.js` | IPC/preload, Notes del jugador y componentes React del DM Screen |
 | Traducción | `src/services/translation-service.js` | `i18n.js` y `translateTextToSpanish()` en `index.html` |
 | Backgrounds | `src/data/backgrounds/backgrounds.json` | `data-loader.js`, `renderer.js`, marcadores background en `index.html` |
 | Sincronizar/validar spells | `scripts/sync-spells.js`, `scripts/validate-spells.js` | `src/data/spells/spells.json`, `spell.schema.json`, `spells.manifest.json`; `docs/ADDING_SPELLS.md` |

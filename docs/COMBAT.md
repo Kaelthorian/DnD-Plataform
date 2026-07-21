@@ -17,6 +17,10 @@ La superficie sigue la distribucion del tablero de combate: izquierda para econo
 
 El catalogo inferior se divide en tabs por categoria (`Attacks`, `Spells`, `Actions`, `Bonus Actions`, `Movement`, `Reactions`, `Items` y `Features`). Solo el panel activo ocupa espacio visible, pero los paneles ocultos siguen en el DOM para conservar la traduccion masiva y los mismos handlers de resolucion.
 
+La resolucion paso a paso usa un encabezado compacto, un stepper horizontal con estados pendiente/actual/completo y tarjetas separadas para detalles, tiradas y resultado. El contenido tiene scroll interno, los controles mantienen el tema oscuro/ambar y la altura minima del dock evita que el pie de confirmacion quede comprimido al abrir una accion.
+
+El panel izquierdo mantiene fijo el texto de Movement y centra solo su ovalo de economia. Active statuses reutiliza las tarjetas y acciones de Character Statuses: cada estado tiene `x` para quitarlo y el boton `+` abre el mismo picker flotante de la sheet para agregarlo. El launcher `+` se retira de la sheet para evitar dos rutas distintas; la ventana compartida se abre desde combate. Los controles persistentes del encabezado permiten ocultar/mostrar Resources, Combat Log y Actions; al ocultarlos, el mapa VTT conserva su track visible y ocupa el espacio liberado con una transicion breve. El VTT portalizado conserva Raise hand y muestra la cola compacta en orden.
+
 ## Entradas y fuentes de verdad
 
 | Responsabilidad | Fuente |

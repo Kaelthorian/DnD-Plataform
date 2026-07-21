@@ -4,6 +4,9 @@ import { createRoot } from "react-dom/client";
 import "../../../../engine/spells/spell-data.js";
 import "../../../../engine/items/item-catalog.js";
 import "../../../../engine/conditions/statuses.js";
+import "../../../../engine/obsidian-markdown.js";
+
+const sharedObsidianMarkdown = globalThis.dndObsidianMarkdownEngine;
 
 const {
   formatCastingTime: formatCanonicalSpellCastingTime,
@@ -10802,26 +10805,7 @@ function ObsidianImage({ target, noteRelativePath }) {
 }
 
 function ObsidianInline({ text, noteRelativePath, onOpenWiki, onOpenExternal }) {
-  const parts = [];
-  const pattern = /(!\[\[[^\]]+\]\]|\[\[[^\]]+\]\]|\[[^\]]+\]\([^)]+\)|~~[^~]+~~|==[^=]+==|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
-  let lastIndex = 0;
-  let match;
-  while ((match = pattern.exec(String(text || "")))) {
-    if (match.index > lastIndex) parts.push({ type: "text", text: text.slice(lastIndex, match.index) });
-    const token = match[0];
-    if (token.startsWith("![[")) parts.push({ type: "image", target: token });
-    else if (token.startsWith("[[")) parts.push({ type: "wiki", target: token });
-    else if (token.startsWith("[") && token.includes("](")) {
-      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-      parts.push({ type: "link", label: linkMatch?.[1] || token, href: linkMatch?.[2] || "" });
-    } else if (token.startsWith("~~")) parts.push({ type: "strike", text: token.slice(2, -2) });
-    else if (token.startsWith("==")) parts.push({ type: "highlight", text: token.slice(2, -2) });
-    else if (token.startsWith("`")) parts.push({ type: "code", text: token.slice(1, -1) });
-    else if (token.startsWith("**")) parts.push({ type: "bold", text: token.slice(2, -2) });
-    else if (token.startsWith("*")) parts.push({ type: "italic", text: token.slice(1, -1) });
-    lastIndex = pattern.lastIndex;
-  }
-  if (lastIndex < String(text || "").length) parts.push({ type: "text", text: String(text || "").slice(lastIndex) });
+  const parts = sharedObsidianMarkdown.tokenizeObsidianInline(text);
 
   return parts.map((part, index) => {
     const key = `${part.type}-${index}-${part.text || part.target || part.href || ""}`;
@@ -10864,7 +10848,7 @@ function ObsidianInline({ text, noteRelativePath, onOpenWiki, onOpenExternal }) 
 }
 
 function ObsidianMarkdown({ markdown, noteRelativePath, onOpenWiki, onOpenExternal }) {
-  const blocks = useMemo(() => parseObsidianMarkdown(markdown), [markdown]);
+  const blocks = useMemo(() => sharedObsidianMarkdown.parseObsidianMarkdown(markdown), [markdown]);
   if (!blocks.length) return <p className="text-sm text-neutral-500">This note is empty.</p>;
 
   return (

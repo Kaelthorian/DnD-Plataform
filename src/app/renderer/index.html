@@ -23,25 +23,17 @@
       </svg>
     </div>
     <nav class="app-sidebar-nav" aria-label="Main navigation" data-i18n-aria-label="sidebar.navigation">
-      <button class="app-sidebar-button" id="turnActionsButton" type="button" aria-label="Start combat" title="Start combat" data-sidebar-view="combat" data-i18n-aria-label="sidebar.combat" data-i18n-title="sidebar.combat">
-        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="m5 4 6 6m-4.5-1.5 2-2m-5 5 2-2M19 4l-6 6m4.5-1.5-2-2m5 5-2-2M8 13l8 8M16 13 8 21" />
-        </svg>
-        <span class="app-sidebar-label" data-i18n="sidebar.combat">Combat</span>
-      </button>
       <button class="app-sidebar-button is-active" id="sidebarSheetButton" type="button" aria-label="Player sheet" title="Player sheet" aria-current="page" data-sidebar-view="sheet" data-i18n-aria-label="sidebar.sheet" data-i18n-title="sidebar.sheet">
         <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M6 3.5h9.5L19 7v13.5H6zM15 3.5V7h4M9 11h7M9 14h7M9 17h4" />
         </svg>
         <span class="app-sidebar-label" data-i18n="sidebar.sheet">Player sheet</span>
       </button>
-      <button class="app-sidebar-button app-sidebar-dice-button" id="sidebarFreeDiceButton" type="button" aria-label="Free dice" title="Free dice" data-i18n-aria-label="dice.freeTitle" data-i18n-title="dice.freeTitle">
-        <svg class="app-sidebar-icon app-sidebar-dice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="m12 3 8 5v8l-8 5-8-5V8l8-5Z" />
-          <path d="M12 3v8m8-3-8 3m0 0L4 8m8 3v10m-4-7 4 2.5 4-2.5" />
-          <circle cx="12" cy="7" r=".8" fill="currentColor" stroke="none" />
+      <button class="app-sidebar-button" id="turnActionsButton" type="button" aria-label="Start combat" title="Start combat" data-sidebar-view="combat" data-i18n-aria-label="sidebar.combat" data-i18n-title="sidebar.combat">
+        <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m5 4 6 6m-4.5-1.5 2-2m-5 5 2-2M19 4l-6 6m4.5-1.5-2-2m5 5-2-2M8 13l8 8M16 13 8 21" />
         </svg>
-        <span class="app-sidebar-label" data-i18n="dice.freeTitle">Free dice</span>
+        <span class="app-sidebar-label" data-i18n="sidebar.combat">Combat</span>
       </button>
       <button class="app-sidebar-button app-sidebar-notes-button" id="sidebarNotesButton" type="button" aria-label="Notes" title="Notes" data-sidebar-view="notes" data-i18n-aria-label="notes.title" data-i18n-title="notes.title">
         <svg class="app-sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -50,6 +42,14 @@
           <path d="m16 15 3 3" />
         </svg>
         <span class="app-sidebar-label" data-i18n="notes.title">Notes</span>
+      </button>
+      <button class="app-sidebar-button app-sidebar-dice-button" id="sidebarFreeDiceButton" type="button" aria-label="Free dice" title="Free dice" data-i18n-aria-label="dice.freeTitle" data-i18n-title="dice.freeTitle">
+        <svg class="app-sidebar-icon app-sidebar-dice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m12 3 8 5v8l-8 5-8-5V8l8-5Z" />
+          <path d="M12 3v8m8-3-8 3m0 0L4 8m8 3v10m-4-7 4 2.5 4-2.5" />
+          <circle cx="12" cy="7" r=".8" fill="currentColor" stroke="none" />
+        </svg>
+        <span class="app-sidebar-label" data-i18n="dice.freeTitle">Free dice</span>
       </button>
     </nav>
     <div class="app-sidebar-footer">
@@ -299,11 +299,16 @@
           <div class="turn-actions-subtitle" data-i18n="turn.subtitle">Available actions based on the character's current state.</div>
         </div>
         <div class="turn-actions-window-controls">
+          <div class="combat-panel-toggles" role="group" aria-label="Combat panels" data-i18n-aria-label="combat.panelControls">
+            <button class="combat-panel-toggle" id="combatToggleInitiative" type="button" data-combat-panel-toggle="initiative" aria-pressed="true" data-i18n="combat.hideResources">Hide resources</button>
+            <button class="combat-panel-toggle" id="combatToggleContext" type="button" data-combat-panel-toggle="context" aria-pressed="true" data-i18n="combat.hideLog">Hide log</button>
+            <button class="combat-panel-toggle" id="combatToggleActions" type="button" data-combat-panel-toggle="actions" aria-pressed="true" data-i18n="combat.hideActions">Hide actions</button>
+          </div>
           <button class="turn-actions-translate" id="turnActionsTranslate" type="button" data-i18n="translation.translateDescriptions">Translate descriptions</button>
         </div>
       </div>
       <div class="combat-board-main" id="combatBoardMain">
-        <aside class="combat-initiative-panel combat-resource-sidebar" aria-labelledby="combatInitiativeTitle">
+        <aside class="combat-initiative-panel combat-resource-sidebar" id="combatInitiativePanel" aria-labelledby="combatInitiativeTitle">
           <div class="combat-panel-heading">
             <div class="combat-panel-eyebrow" id="combatInitiativeTitle" data-i18n="turn.resources">Combat resources</div>
             <div class="combat-round-label" data-i18n="combat.initiativeHint">Initiative is shown on the VTT.</div>
@@ -322,7 +327,7 @@
                 <span class="turn-actions-orb" id="turnActionsReactionOrb">1</span>
                 <span data-i18n="turn.reaction">Reaction</span>
               </div>
-              <div class="turn-actions-counter">
+              <div class="turn-actions-counter turn-actions-movement-counter">
                 <span class="turn-actions-orb wide" id="turnActionsMovementOrb">30/30</span>
                 <span data-i18n="turn.movement">Movement</span>
               </div>
@@ -356,7 +361,7 @@
           </div>
         </section>
         <div class="combat-board-splitter" id="combatContextSplitter" data-combat-split="context" role="separator" aria-orientation="vertical" aria-label="Resize combat log panel" tabindex="0" data-i18n-aria-label="combat.resizeContext"></div>
-        <aside class="combat-context-panel" aria-labelledby="combatContextTitle">
+        <aside class="combat-context-panel" id="combatContextPanel" aria-labelledby="combatContextTitle">
           <section class="combat-active-card">
             <div class="combat-panel-heading">
               <div class="combat-panel-eyebrow" id="combatContextTitle" data-i18n="combat.activeActor">Active turn</div>
@@ -442,6 +447,16 @@
         </div>
       </div>
       <div class="notes-workspace-body">
+        <section class="notes-category-browser" id="notesCategoryBrowser" hidden aria-live="polite">
+          <header class="notes-category-browser-header">
+            <div>
+              <div class="notes-category-browser-eyebrow" data-i18n="notes.categoryBrowser">Category</div>
+              <h2 id="notesCategoryBrowserTitle" data-i18n="notes.sessionNotes">Session Notes</h2>
+            </div>
+            <span id="notesCategoryBrowserCount" class="notes-category-browser-count" data-i18n="notes.categoryCount">0 notes</span>
+          </header>
+          <div class="notes-category-browser-list" id="notesCategoryBrowserList"></div>
+        </section>
         <section class="notes-editor-column">
           <div class="notes-editor-toolbar" role="toolbar" aria-label="Note formatting" data-i18n-aria-label="notes.formatting">
             <button type="button" data-note-command="undo" aria-label="Undo" data-i18n-aria-label="notes.undo">&#8630;</button>
@@ -461,6 +476,8 @@
             <button type="button" data-note-command="highlight" aria-label="Highlight" data-i18n-aria-label="notes.highlight">&#9998;</button>
             <button type="button" data-note-command="link" aria-label="Link" data-i18n-aria-label="notes.link">&#128279;</button>
             <button type="button" data-note-command="table" aria-label="Table" data-i18n-aria-label="notes.table">&#9638;</button>
+            <span class="notes-toolbar-spacer"></span>
+            <button type="button" id="notesPreviewToggle" aria-label="Preview note" data-i18n="notes.preview" data-i18n-aria-label="notes.preview">Preview</button>
           </div>
           <article class="notes-paper">
             <div class="notes-paper-heading-row">
@@ -470,6 +487,7 @@
             </div>
             <div class="notes-paper-rule" aria-hidden="true"></div>
             <textarea class="notes-body-input" id="notesBodyInput" spellcheck="true" placeholder="Start writing your note..." data-i18n-placeholder="notes.bodyPlaceholder"></textarea>
+            <div class="notes-body-preview" id="notesBodyPreview" hidden></div>
           </article>
           <div class="notes-editor-status" id="notesEditorStatus" aria-live="polite"></div>
         </section>
@@ -499,7 +517,11 @@
           <section class="notes-detail-card">
             <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tags">Tags</div><button class="notes-icon-button" id="notesAddTagButton" type="button" aria-label="Add tag" data-i18n-aria-label="notes.addTag">+</button></div>
             <div class="notes-tags" id="notesTags"></div>
-            <input class="notes-inline-input" id="notesTagInput" type="text" maxlength="32" placeholder="Add tag and press Enter" data-i18n-placeholder="notes.tagPlaceholder">
+            <div class="notes-tag-library" id="notesTagLibrary" aria-label="Available tags" data-i18n-aria-label="notes.availableTags"></div>
+            <div class="notes-tag-creator">
+              <input class="notes-inline-input" id="notesTagInput" type="text" maxlength="32" placeholder="Create tag and press Enter" data-i18n-placeholder="notes.tagPlaceholder">
+              <div class="notes-tag-colors" id="notesTagColors" role="radiogroup" aria-label="Tag color" data-i18n-aria-label="notes.tagColor"></div>
+            </div>
             <div class="notes-label-title" data-i18n="notes.label">Label</div>
             <div class="notes-label-colors" id="notesLabelColors" role="radiogroup" aria-label="Note label" data-i18n-aria-label="notes.label">
               <button type="button" data-note-color="gray" aria-label="Gray" data-i18n-aria-label="notes.gray"></button>
@@ -511,7 +533,12 @@
             </div>
           </section>
           <section class="notes-detail-card">
-            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.linkedEntities">Linked Entities</div><button class="notes-icon-button" id="notesAddLinkButton" type="button" aria-label="Add linked entity" data-i18n-aria-label="notes.addLink">+</button></div>
+            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.linkedEntities">Linked Entities</div></div>
+            <div class="notes-linked-tools">
+              <div class="notes-linked-tags-label" data-i18n="notes.noteTags">Note tags</div>
+              <div class="notes-linked-tags" id="notesLinkedTags"></div>
+              <button class="notes-icon-button notes-linked-add" id="notesAddLinkButton" type="button" aria-label="Add linked entity" data-i18n-aria-label="notes.addLink">+</button>
+            </div>
             <div class="notes-links-list" id="notesLinksList"></div>
           </section>
           <section class="notes-detail-card notes-share-card">
@@ -529,9 +556,9 @@
               </div>
             </section>
             <section class="notes-detail-card notes-task-card">
-              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tasks">Tasks &amp; Reminders</div><button class="notes-icon-button" id="notesAddTaskButton" type="button" aria-label="Add task" data-i18n-aria-label="notes.addTask">+</button></div>
+              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tasks">Tasks &amp; Reminders</div></div>
               <div class="notes-task-list" id="notesTaskList"></div>
-              <div class="notes-task-entry"><span aria-hidden="true">+</span><input id="notesTaskInput" type="text" maxlength="240" placeholder="Add new task" data-i18n-placeholder="notes.taskPlaceholder"></div>
+              <div class="notes-task-entry"><button class="notes-task-add-button" id="notesAddTaskButton" type="button" aria-label="Add task" data-i18n-aria-label="notes.addTask">+</button><input id="notesTaskInput" type="text" maxlength="240" placeholder="Add new task" data-i18n-placeholder="notes.taskPlaceholder"></div>
             </section>
           </div>
         </aside>
@@ -590,6 +617,7 @@
   <script src="../../engine/rests/rest-state.js"></script>
   <script src="../../engine/rests/long-rest.js"></script>
   <script src="../../engine/rests/short-rest.js"></script>
+  <script src="../../engine/obsidian-markdown.js"></script>
   <script src="./i18n.js"></script>
   <script src="./renderer.js"></script>
   <script>
@@ -8937,28 +8965,38 @@
 
       const workspace = document.createElement("div");
       workspace.className = "combat-resolution-workspace";
+      const leftColumn = document.createElement("div");
+      leftColumn.className = "combat-resolution-column combat-resolution-column-left";
+      const rightColumn = document.createElement("div");
+      rightColumn.className = "combat-resolution-column combat-resolution-column-right";
       if (fields.children.length) {
         const detailsSection = document.createElement("section");
-        detailsSection.className = "combat-resolution-section combat-resolution-details";
+        detailsSection.className = "combat-resolution-section";
         const detailsTitle = document.createElement("h4");
         detailsTitle.textContent = t("turn.resolutionDetails");
         detailsSection.append(detailsTitle, fields);
-        workspace.appendChild(detailsSection);
+        leftColumn.appendChild(detailsSection);
       }
       if (controls.children.length) {
         const rollsSection = document.createElement("section");
-        rollsSection.className = "combat-resolution-section combat-resolution-rolls";
+        rollsSection.className = "combat-resolution-section";
         const rollsTitle = document.createElement("h4");
         rollsTitle.textContent = t("turn.resolutionRolls");
         rollsSection.append(rollsTitle, controls);
-        workspace.appendChild(rollsSection);
+        rightColumn.appendChild(rollsSection);
       }
       const resultSection = document.createElement("section");
       resultSection.className = "combat-resolution-section combat-resolution-summary";
       const resultTitle = document.createElement("h4");
       resultTitle.textContent = t("turn.resolutionResult");
       resultSection.append(resultTitle, result);
-      workspace.appendChild(resultSection);
+      rightColumn.appendChild(resultSection);
+
+      const hasLeftColumn = leftColumn.children.length > 0;
+      const hasRightColumn = rightColumn.children.length > 0;
+      workspace.classList.toggle("is-single-column", !hasLeftColumn || !hasRightColumn);
+      if (hasLeftColumn) workspace.appendChild(leftColumn);
+      if (hasRightColumn) workspace.appendChild(rightColumn);
 
       combatResolution.append(header, steps, workspace, footer);
     }
@@ -9093,30 +9131,56 @@
       return section;
     }
 
+    function setCombatStatusPickerOpen(open) {
+      if (!statusDock) createStatusDock();
+      if (!statusDock) return;
+      statusDock.dataset.combatMode = "true";
+      statusDock.dataset.menuOpen = String(Boolean(open));
+      statusDock.dataset.focusSearch = String(Boolean(open));
+      renderStatusDock();
+      refreshTurnActionsPanelIfVisible();
+    }
+
+    function toggleCombatStatusPicker() {
+      const open = statusDock?.dataset.combatMode === "true" && statusDock?.dataset.menuOpen === "true";
+      setCombatStatusPickerOpen(!open);
+    }
+
     function renderTurnActionStatuses() {
       const definitions = activeStatusDefinitions();
-      if (!definitions.length) return null;
+      const pickerOpen = statusDock?.dataset.combatMode === "true" && statusDock?.dataset.menuOpen === "true";
       const section = document.createElement("section");
-      section.className = "turn-actions-resources";
+      section.className = "turn-actions-resources turn-actions-active-statuses";
+      const heading = document.createElement("div");
+      heading.className = "turn-actions-status-header";
       const title = document.createElement("h3");
       title.className = "turn-actions-section-title";
       title.textContent = t("turn.activeStatuses");
-      const grid = document.createElement("div");
-      grid.className = "turn-actions-resource-grid";
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = `combat-status-add${pickerOpen ? " active" : ""}`;
+      addButton.textContent = "+";
+      addButton.title = t("status.add");
+      addButton.setAttribute("aria-label", t("status.add"));
+      addButton.setAttribute("aria-expanded", String(pickerOpen));
+      addButton.addEventListener("click", toggleCombatStatusPicker);
+      heading.append(title, addButton);
+
+      const activeList = document.createElement("div");
+      activeList.className = "turn-actions-active-status-list";
       definitions.forEach((definition) => {
-        const card = document.createElement("div");
-        card.className = "turn-actions-resource-card";
-        const name = document.createElement("div");
-        name.className = "turn-actions-resource-name";
-        renderTurnActionTranslatableText(name, `${definition.symbol} ${definition.name}`, "status-title", definition.id || definition.name);
-        const detail = document.createElement("div");
-        detail.className = "turn-actions-resource-detail";
-        renderTurnActionTranslatableText(detail, statusDescriptionText(definition), "status-detail", definition.id || definition.name);
-        card.title = detail.textContent;
-        card.append(name, detail);
-        grid.appendChild(card);
+        const card = createStatusCard(definition);
+        card.classList.add("combat-status-card");
+        activeList.appendChild(card);
       });
-      section.append(title, grid);
+      if (!definitions.length) {
+        const empty = document.createElement("div");
+        empty.className = "turn-actions-active-status-empty";
+        empty.textContent = t("turn.noActiveStatuses");
+        activeList.appendChild(empty);
+      }
+
+      section.append(heading, activeList);
       return section;
     }
 
@@ -9367,6 +9431,13 @@
 
     async function openTurnActionsPanel() {
       if (!turnActionsBackdrop) return;
+      if (!statusDock) createStatusDock();
+      if (statusDock) {
+        statusDock.dataset.combatMode = "true";
+        statusDock.dataset.menuOpen = "false";
+        statusDock.dataset.focusSearch = "false";
+        renderStatusDock();
+      }
       globalThis.dndCharacterSheetNavigation?.setView?.("combat");
       document.body.classList.add("combat-screen-open");
       turnActionsPanel?.classList.add("is-combat-screen");
@@ -9392,6 +9463,12 @@
       turnActionsBackdrop.setAttribute("aria-hidden", "true");
       turnActionsPanel?.classList.remove("is-combat-screen");
       document.body.classList.remove("combat-screen-open");
+      if (statusDock) {
+        statusDock.dataset.combatMode = "false";
+        statusDock.dataset.menuOpen = "false";
+        statusDock.dataset.focusSearch = "false";
+        renderStatusDock();
+      }
       globalThis.dndCharacterSheetVttSurface?.setCombatSurface?.(false);
       globalThis.dndCharacterSheetNavigation?.setView?.("sheet");
     }
@@ -10067,7 +10144,7 @@
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "status-remove";
-      remove.textContent = "x";
+      remove.textContent = "\u00d7";
       remove.title = `Quitar ${definition.name}`;
       remove.setAttribute("aria-label", `Quitar ${definition.name}`);
       remove.addEventListener("click", (event) => {
@@ -10120,8 +10197,10 @@
         hideDamageTooltip();
         const current = ensureActiveStatusIds();
         sheetMeta.activeStatuses = normalizeStatusIds([definition.id, ...current]);
-        statusDock.dataset.menuOpen = "false";
-        renderStatusDock();
+        if (statusDock) {
+          statusDock.dataset.menuOpen = "false";
+          renderStatusDock();
+        }
         updateDerivedStats();
         refreshTurnActionsPanelIfVisible();
         scheduleSave();
@@ -10136,6 +10215,8 @@
       if (!statusDock) return;
       hideDamageTooltip();
       const open = statusDock.dataset.menuOpen === "true";
+      const combatMode = statusDock.dataset.combatMode === "true";
+      statusDock.classList.toggle("is-combat-mode", combatMode);
       statusDock.textContent = "";
 
       const stack = document.createElement("div");
@@ -10143,18 +10224,6 @@
 
       const launcherRow = document.createElement("div");
       launcherRow.className = "status-launcher-row";
-      const addButton = document.createElement("button");
-      addButton.type = "button";
-      addButton.className = `status-add-button${open ? " active" : ""}`;
-      addButton.textContent = "+";
-      addButton.title = t("status.add");
-      addButton.setAttribute("aria-label", t("status.add"));
-      addButton.addEventListener("click", () => {
-        statusDock.dataset.menuOpen = open ? "false" : "true";
-        statusDock.dataset.focusSearch = open ? "false" : "true";
-        renderStatusDock();
-      });
-      launcherRow.appendChild(addButton);
 
       const picker = document.createElement("div");
       picker.className = `status-picker${open ? " visible" : ""}`;
@@ -10185,6 +10254,7 @@
       pickerClose.addEventListener("click", () => {
         statusDock.dataset.menuOpen = "false";
         renderStatusDock();
+        refreshTurnActionsPanelIfVisible();
       });
       pickerControls.append(pickerCollapse, pickerClose);
       pickerHeader.append(pickerCopy, pickerControls);
@@ -10256,6 +10326,7 @@
       statusDock.className = "status-dock";
       statusDock.dataset.menuOpen = "false";
       statusDock.dataset.focusSearch = "false";
+      statusDock.dataset.combatMode = "false";
       document.body.appendChild(statusDock);
       renderStatusDock();
     }
@@ -10264,6 +10335,7 @@
       if (event.key !== "Escape" || !statusDock || statusDock.dataset.menuOpen !== "true") return;
       statusDock.dataset.menuOpen = "false";
       renderStatusDock();
+      refreshTurnActionsPanelIfVisible();
     });
 
     function createEquipmentPanel(layer) {

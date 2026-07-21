@@ -31,7 +31,10 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
   "turnActionsResourcesDock",
   "combatMapViewport",
   "combatMapEmpty",
-  "combatActiveName"
+  "combatActiveName",
+  "combatToggleInitiative",
+  "combatToggleContext",
+  "combatToggleActions"
 ].forEach((id) => assert.ok(html.includes(`id="${id}"`), `missing #${id}`));
 
 [
@@ -45,6 +48,10 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
   "longRestButton",
   "shortRestButton"
 ].forEach((id) => assert.ok(html.includes(`id="${id}"`), `missing sidebar integration #${id}`));
+
+const sidebarOrder = ["sidebarSheetButton", "turnActionsButton", "sidebarNotesButton", "sidebarFreeDiceButton"]
+  .map((id) => html.indexOf(`id="${id}"`));
+assert.ok(sidebarOrder.every((index, position) => index >= 0 && (position === 0 || index > sidebarOrder[position - 1])), "sidebar buttons should follow sheet, combat, notes, dice order");
 
 [
   "function openCombatResolution",
@@ -76,6 +83,8 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
   "visibleResolutionSteps",
   "step !== RESOLUTION_STEPS.applyEffect",
   'className = "combat-resolution-workspace"',
+  'className = "combat-resolution-column combat-resolution-column-left"',
+  'className = "combat-resolution-column combat-resolution-column-right"',
   'className = "combat-resolution-section"',
   "confirm.disabled = !confirmation.ok"
 ].forEach((needle) => assert.ok(html.includes(needle), `missing focused combat resolution workspace: ${needle}`));
@@ -88,6 +97,16 @@ assert.ok(styles.includes(".combat-resolution-step.is-complete"), "completed res
 
 assert.ok(renderer.includes("function liveVttCombatTargetRoster"), "live VTT target roster helper is missing");
 assert.ok(renderer.includes("globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster"), "live VTT target roster is not exposed to Start Combat");
+assert.ok(renderer.includes("function applyCombatPanelVisibility"), "combat panel visibility controller is missing");
+assert.ok(renderer.includes("function toggleCombatPanel"), "combat panel toggle handler is missing");
+assert.ok(html.includes("function renderTurnActionStatuses"), "combat status renderer is missing");
+assert.ok(html.includes("function toggleCombatStatusPicker"), "combat status picker toggle is missing");
+assert.ok(html.includes("function setCombatStatusPickerOpen"), "combat status picker opener is missing");
+assert.ok(html.includes("createStatusCard(definition)"), "combat statuses should reuse the sheet status card");
+assert.ok(html.includes("createStatusOption(definition)"), "combat status picker should reuse the sheet status options");
+assert.ok(html.includes('statusDock.dataset.combatMode = "true"'), "combat should reuse the shared status dock");
+assert.ok(!html.includes('className = "status-add-button"'), "the sheet status add launcher should be removed");
+assert.ok(renderer.includes("live-vtt-hand-panel"), "combat VTT hand panel is missing");
 
 [
   "globalThis.dndCombatBoardSurface",
@@ -151,6 +170,14 @@ assert.ok(styles.includes('.live-vtt-window[data-combat-surface="true"]'), "live
 assert.ok(styles.includes(".combat-initiative-row[data-active=\"true\"]"), "initiative active row styling is missing");
 assert.ok(styles.includes(".turn-actions-tabs"), "combat action tabs styling is missing");
 assert.ok(styles.includes(".turn-actions-tab[aria-selected=\"true\"]"), "active combat action tab styling is missing");
+assert.ok(styles.includes(".combat-panel-toggle"), "combat panel toggle styling is missing");
+assert.ok(styles.includes(".combat-board-main.is-initiative-hidden"), "initiative panel collapse styling is missing");
+assert.ok(styles.includes(".turn-actions-panel.is-actions-hidden"), "action panel collapse styling is missing");
+assert.ok(styles.includes(".turn-actions-active-statuses"), "combat active status separation styling is missing");
+assert.ok(styles.includes(".status-dock.is-combat-mode"), "shared combat status picker styling is missing");
+assert.ok(styles.includes(".combat-board-main.is-context-hidden .combat-map-panel"), "VTT protection while hiding the log is missing");
+assert.ok(styles.includes(".combat-resolution-column"), "two-column combat resolution styling is missing");
+assert.ok(styles.includes('.live-vtt-window[data-combat-surface="true"] .live-vtt-hand-panel'), "combat VTT hand styling is missing");
 assert.ok(styles.includes("@media (min-width: 721px) and (max-width: 1271px)"), "sheet sidebar spacing breakpoint is missing");
 assert.ok(styles.includes(".app-sidebar"), "character sheet sidebar styles are missing");
 assert.ok(styles.includes(".app-sidebar-dice-button"), "sidebar dice button styles are missing");
