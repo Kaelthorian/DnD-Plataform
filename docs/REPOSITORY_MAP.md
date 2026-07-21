@@ -8,7 +8,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 | Hoja de personaje | `src/app/renderer/index.html` | `renderer.js`, `styles.css`, `i18n.js` |
 | DM Screen/tablero/VTT/audio | `src/app/renderer/dm-screen/src/main.jsx` | `dm-screen.html`, Vite config; los archivos locales usan IndexedDB y los enlaces YouTube usan IPC persistido |
 | Save slots/migración | `src/services/save-service.js` | helpers de slots en `index.html`, test de save service |
-| Live Sheet, estados, audio y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`; los archivos de audio viajan como data URL y YouTube solo como ID validado |
+| Live Sheet, estados, audio y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`; el DM Screen entrega homebrew mediante `dm:sheet:patch` y el Character Sheet resuelve snapshots en `__sheetMeta.homebrewItems`; los archivos de audio viajan como data URL y YouTube solo como ID validado |
 | Enlaces de música YouTube | `src/services/dm-sound-link-service.js` | IPC `dm-sound-links:*` en main/preload; JSON atómico en `userData`; main identifica requests `youtube-nocookie.com` con el repositorio canónico como referente HTTP |
 | Obsidian | `src/services/obsidian-service.js` | IPC/preload y componentes React |
 | Traducción | `src/services/translation-service.js` | `i18n.js` y `translateTextToSpanish()` en `index.html` |
@@ -67,7 +67,7 @@ El picker React de Items del DM Screen esta en `src/app/renderer/dm-screen/src/m
 - Entrada de mantenimiento: `scripts/sync-items.js` recibe el JSON canónico y el Markdown de auditoría. Dry-run genera `src/data/items/sync-preview.json`; `--apply` exige revisión previa, crea backup reversible con manifiesto portable v2 y escribe los artefactos app-owned. El restore usa los targets actuales y conserva compatibilidad v1. Ninguna ruta de Downloads es dependencia de runtime.
 - Identidad: `catalogId`/`catalogKey` combinan nombre, fuente y `catalogVariantToken`. `item` contiene exactamente las 1.779 filas superiores seleccionables; los `variants[].specificVariant` se indexan como hijos seleccionables desde su padre sin aumentar ese conteo. `tombstone` e `itemGroup` no son seleccionables.
 - Carga: `data-loader.js` y su worker leen `items.json`, `items-base.json` e `item-automation.json`; la caché binaria v3 se invalida por tamaño/mtime de los tres archivos y versión del schema.
-- Consumo: `item-catalog.js` mezcla el registry compilado; `item-resource-state.js` mantiene pools y `effect-state.js`/`effect-lifecycle.js` instancias/hooks. `renderer.js` construye índice y registry; `index.html` adapta inventario, equipo, recursos, efectos y combate.
+- Consumo: `item-catalog.js` mezcla el registry compilado; `item-resource-state.js` mantiene pools y `effect-state.js`/`effect-lifecycle.js` instancias/hooks. `renderer.js` construye índice y registry; `index.html` adapta inventario, equipo, recursos, efectos y combate. Los homebrew entregados por el DM siguen una ruta separada: `main.jsx` envía la fila `Equipment` más el snapshot, y `index.html` lo resuelve localmente sin incorporarlo al catálogo oficial.
 - Compatibilidad: Equipment guarda nombre, fuente y token de variante para reconstruir la identidad estable; las notas oficiales del DM guardan `catalogId` y snapshot. Una baja deja de ser seleccionable y se resuelve históricamente como unavailable mediante tombstone/snapshot; homebrew permanece separado. Ver `docs/ADDING_ITEMS.md`.
 
 ## Flujo del catálogo de spells

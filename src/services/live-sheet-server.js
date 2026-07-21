@@ -17,6 +17,8 @@ const MAX_VTT_MARKERS = 200;
 const MAX_VTT_PING_AGE_MS = 5000;
 const MAX_HAND_QUEUE = 40;
 const MAX_LIVE_STATUS_IDS = 48;
+const MAX_HOMEBREW_ITEMS = 120;
+const MAX_HOMEBREW_ITEM_ENTRIES = 48;
 const VTT_ANONYMOUS_MONSTER_NAME = "???";
 
 function isPlainObject(value) {
@@ -41,6 +43,49 @@ function sanitizeMultilineText(value, maxLength = 5000) {
     .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, maxLength);
+}
+
+function sanitizeHomebrewItems(value) {
+  const seen = new Set();
+  return (Array.isArray(value) ? value : [])
+    .slice(0, MAX_HOMEBREW_ITEMS)
+    .map((item) => {
+      if (!isPlainObject(item)) return null;
+      const name = sanitizeText(item.name, 140);
+      if (!name) return null;
+      const rawRequestedId = sanitizeText(item.homebrewId || item.catalogVariantToken, 120);
+      const requestedId = (rawRequestedId.startsWith("homebrew:") ? rawRequestedId.slice("homebrew:".length) : rawRequestedId)
+        .replace(/[^a-zA-Z0-9_.:-]/g, "-")
+        .replace(/^-+|-+$/g, "");
+      const homebrewId = requestedId || `legacy-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 72)}`;
+      if (seen.has(homebrewId)) return null;
+      seen.add(homebrewId);
+      const entries = (Array.isArray(item.entries) ? item.entries : [])
+        .slice(0, MAX_HOMEBREW_ITEM_ENTRIES)
+        .map((entry) => sanitizeMultilineText(entry, 1200))
+        .filter(Boolean);
+      const properties = (Array.isArray(item.homebrewProperties) ? item.homebrewProperties : [])
+        .map((property) => sanitizeText(property, 100))
+        .filter(Boolean)
+        .slice(0, 24);
+      const sanitized = {
+        homebrewId,
+        catalogVariantToken: `homebrew:${homebrewId}`,
+        name,
+        type: sanitizeText(item.type, 80) || "Gear",
+        rarity: sanitizeText(item.rarity, 80) || "common",
+        source: sanitizeText(item.source, 100) || "Homebrew",
+        dmg1: sanitizeText(item.dmg1, 80),
+        homebrewProperties: properties,
+        entries: entries.length ? entries : ["No description provided."],
+        __homebrew: true
+      };
+      ["value", "weight"].forEach((key) => {
+        if (typeof item[key] === "number" && Number.isFinite(item[key])) sanitized[key] = item[key];
+      });
+      return sanitized;
+    })
+    .filter(Boolean);
 }
 
 function sanitizePlayerId(value) {
@@ -289,6 +334,9 @@ function sanitizeLiveSheetData(data) {
   if (Object.prototype.hasOwnProperty.call(sanitized, "__liveStatuses")) {
     sanitized.__liveStatuses = sanitizeLiveStatusIds(sanitized.__liveStatuses);
   }
+  if (Object.prototype.hasOwnProperty.call(sanitized, "__homebrewItems")) {
+    sanitized.__homebrewItems = sanitizeHomebrewItems(sanitized.__homebrewItems);
+  }
   return sanitized;
 }
 
@@ -300,6 +348,10 @@ function sanitizeSheetPatch(patch) {
     if (!normalizedKey || normalizedKey === "__proto__" || normalizedKey === "constructor" || normalizedKey === "prototype") return;
     if (normalizedKey === "__liveStatuses") {
       sanitized[normalizedKey] = sanitizeLiveStatusIds(value);
+      return;
+    }
+    if (normalizedKey === "__homebrewItems") {
+      sanitized[normalizedKey] = sanitizeHomebrewItems(value);
       return;
     }
     if (typeof value === "boolean") {
@@ -1312,6 +1364,7 @@ module.exports = {
   listLocalAddresses,
   localLanAddresses,
   sanitizeSheetPatch,
+  sanitizeHomebrewItems,
   websocketSelfTest,
   LiveSheetServer,
   liveSheetServer: new LiveSheetServer()

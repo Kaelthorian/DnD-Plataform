@@ -94,7 +94,7 @@ assert.match(itemEquipmentReference, /const source = String\(item\.source \|\| "
 assert.match(itemEquipmentReference, /variantToken !== "root" \|\| duplicateNameSource/);
 assert.match(itemEquipmentReference, /return `\$\{item\.name\} \[\$\{source\}\$\{variantSuffix\}\]`/);
 assert.match(itemReferenceParts, /suffix\[1\]\.split\("\|"\)/);
-assert.match(itemReferenceParts, /hasStableReference: Boolean\(source \|\| variantToken \|\| catalogId\)/);
+assert.match(itemReferenceParts, /hasStableReference: Boolean\([\s\S]*?catalogId/);
 assert.match(equipmentItemKey, /if \(reference\.hasStableReference\)/);
 assert.match(equipmentItemKey, /const stateSuffix = entry\?\.usedCopy \? "::used-copy" : ""/);
 assert.match(equipmentItemKey, /return `catalog:\$\{catalogId\}\$\{stateSuffix\}`/);

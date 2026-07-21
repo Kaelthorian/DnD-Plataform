@@ -10436,6 +10436,7 @@
       if (!sheetMeta.itemResources || typeof sheetMeta.itemResources !== "object" || Array.isArray(sheetMeta.itemResources)) sheetMeta.itemResources = {};
       if (!sheetMeta.itemCapabilityUses || typeof sheetMeta.itemCapabilityUses !== "object" || Array.isArray(sheetMeta.itemCapabilityUses)) sheetMeta.itemCapabilityUses = {};
       if (!sheetMeta.itemEffects || typeof sheetMeta.itemEffects !== "object" || Array.isArray(sheetMeta.itemEffects)) sheetMeta.itemEffects = {};
+      if (!Array.isArray(sheetMeta.homebrewItems)) sheetMeta.homebrewItems = [];
       if (!sheetMeta.featureChoices || typeof sheetMeta.featureChoices !== "object") sheetMeta.featureChoices = {};
       if (!sheetMeta.activeFeatures || typeof sheetMeta.activeFeatures !== "object") sheetMeta.activeFeatures = {};
       if (!Array.isArray(sheetMeta.activeStatuses)) sheetMeta.activeStatuses = [];
@@ -10483,6 +10484,12 @@
           else if (!(Number(sheetMeta.exhaustionLevel) > 0)) sheetMeta.exhaustionLevel = 1;
           ensureActiveStatusIds();
           renderStatusDock();
+          changed = true;
+        }
+        if (Array.isArray(patch.__homebrewItems)) {
+          sheetMeta.homebrewItems = patch.__homebrewItems
+            .map(normalizeHomebrewItemSnapshot)
+            .filter(Boolean);
           changed = true;
         }
         document.querySelectorAll(".field").forEach((element) => {
@@ -11289,11 +11296,18 @@
           source: reference.catalogSource || reference.source || parsed.source,
           variantToken: reference.catalogVariantToken || reference.variantToken || parsed.variantToken,
           catalogId: reference.catalogId || parsed.catalogId,
+          homebrewId: reference.homebrewId
+            || parsed.homebrewId
+            || (String(reference.catalogVariantToken || reference.variantToken || "").startsWith("homebrew:")
+              ? String(reference.catalogVariantToken || reference.variantToken).slice("homebrew:".length).trim()
+              : ""),
           hasStableReference: Boolean(
             reference.hasStableReference
             || reference.catalogId
             || reference.catalogSource
             || reference.source
+            || reference.homebrewId
+            || reference.catalogVariantToken
             || parsed.hasStableReference
           ),
           storageName
@@ -11308,6 +11322,7 @@
           source: "",
           variantToken: "",
           catalogId: "",
+          homebrewId: "",
           hasStableReference: false,
           storageName
         };
@@ -11316,14 +11331,52 @@
       const source = (tokens.shift() || "").trim();
       const variantToken = tokens.join("|").trim();
       const catalogId = variantToken.startsWith("id:") ? variantToken.slice(3) : "";
+      const homebrewId = variantToken.startsWith("homebrew:") ? variantToken.slice("homebrew:".length).trim() : "";
       return {
         name: storageName.slice(0, suffix.index).trim(),
         source,
         variantToken: catalogId ? "" : variantToken,
         catalogId,
-        hasStableReference: Boolean(source || variantToken || catalogId),
+        homebrewId,
+        hasStableReference: Boolean(source || variantToken || catalogId || homebrewId),
         storageName
       };
+    }
+
+    function homebrewItemIdFromReference(reference) {
+      if (reference && typeof reference === "object" && reference.homebrewId) return String(reference.homebrewId).trim();
+      const token = String(reference?.catalogVariantToken || reference?.variantToken || "").trim();
+      return token.startsWith("homebrew:") ? token.slice("homebrew:".length).trim() : "";
+    }
+
+    function normalizeHomebrewItemSnapshot(item) {
+      if (!item || typeof item !== "object" || Array.isArray(item) || !String(item.name || "").trim()) return null;
+      const homebrewId = String(item.homebrewId || homebrewItemIdFromReference(item) || item.name)
+        .replace(/[^a-zA-Z0-9_.:-]/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 120);
+      if (!homebrewId) return null;
+      return {
+        ...item,
+        homebrewId,
+        catalogVariantToken: `homebrew:${homebrewId}`,
+        __homebrew: true
+      };
+    }
+
+    function homebrewItemsStore() {
+      if (!Array.isArray(sheetMeta.homebrewItems)) sheetMeta.homebrewItems = [];
+      const seen = new Set();
+      sheetMeta.homebrewItems = sheetMeta.homebrewItems
+        .map(normalizeHomebrewItemSnapshot)
+        .filter((item) => item && !seen.has(item.homebrewId) && seen.add(item.homebrewId));
+      return sheetMeta.homebrewItems;
+    }
+
+    function findHomebrewItemData(reference) {
+      const homebrewId = homebrewItemIdFromReference(reference);
+      if (!homebrewId) return null;
+      return homebrewItemsStore().find((item) => item.homebrewId === homebrewId) || null;
     }
 
     function itemEquipmentReference(item) {
@@ -11380,6 +11433,8 @@
 
     function findItemData(nameOrReference) {
       const reference = itemReferenceParts(nameOrReference);
+      const homebrewItem = findHomebrewItemData(reference);
+      if (homebrewItem) return homebrewItem;
       if (reference.catalogId) {
         return itemLookupByCatalogId.get(reference.catalogId) || missingHistoricalItem(reference);
       }
@@ -14097,12 +14152,19 @@
       appendItemStat(stats, t("item.variants"), itemSpecificVariants(item).length ? String(itemSpecificVariants(item).length) : "");
       root.appendChild(stats);
 
-      const properties = [...(item.property || []).map((ref) => propertyName(ref, item)), ...(item.mastery || []).map((ref) => `Mastery: ${splitRef(ref).abbreviation}`)];
+      const properties = [
+        ...(item.property || []).map((ref) => propertyName(ref, item)),
+        ...(item.mastery || []).map((ref) => `Mastery: ${splitRef(ref).abbreviation}`),
+        ...(item.homebrewProperties || [])
+      ];
       if (properties.length) {
         const chips = document.createElement("div");
         chips.className = "item-chip-list";
         properties.forEach((property) => appendText(chips, "item-chip", property, "span"));
         root.appendChild(chips);
+      }
+      if (Array.isArray(item.homebrewProperties) && item.homebrewProperties.length) {
+        appendItemSection(root, "Propiedades homebrew", item.homebrewProperties.join(", "));
       }
 
       appendItemSection(root, t("item.spells"), itemAttachedSpellsLine(item));
@@ -15764,6 +15826,7 @@
     function equipmentItemKey(entry) {
       const reference = itemReferenceParts(entry);
       const stateSuffix = entry?.usedCopy ? "::used-copy" : "";
+      if (reference.homebrewId) return `homebrew:${reference.homebrewId}${stateSuffix}`;
       if (reference.hasStableReference) {
         const item = findItemData(reference);
         const catalogId = reference.catalogId || catalogItemId(item || {

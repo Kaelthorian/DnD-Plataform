@@ -59,6 +59,15 @@ La restauración valida ambos payloads y sus hashes antes de escribir, rechaza u
 - Personajes, slots, inventarios, cantidades, cargas, historial de uso y combat log no se eliminan durante la sincronización.
 - El homebrew del usuario permanece en su almacenamiento/ruta separada. No se transforma en registro oficial, no recibe tombstone y no entra en los conteos de sincronización.
 
+### Entrega de homebrew a jugadores
+
+Los ítems creados desde `src/app/renderer/dm-screen/src/main.jsx` se guardan como notas del tablero con `entryCustom`. Una nota de ítem homebrew muestra el botón `Dar`, que permite seleccionar uno o varios jugadores conectados y una cantidad. La entrega reutiliza `live-sheet:update-player-sheet` y escribe dos piezas coordinadas:
+
+- una línea estable en el campo `Equipment`, con la referencia `[fuente|homebrew:<id>]`;
+- el snapshot completo en `__sheetMeta.homebrewItems`, incluyendo descripción, tipo, rareza, propiedades y valor/peso.
+
+El Character Sheet resuelve esa referencia desde `__sheetMeta.homebrewItems`; al hacer clic en la fila se abre el mismo drawer de ítems y se conserva la descripción/funcionalidad textual después de guardar, recargar o reconectar Live Sheet. Los textos libres del homebrew se muestran como reglas y recordatorios, pero no se convierten automáticamente en tiradas o efectos deterministas: para automatización estructurada debe existir un perfil compatible en el catálogo/overlay oficial.
+
 ## Runtime y automatización
 
 `src/services/data-loader.js` carga los dos JSON canónicos y el overlay `item-automation.json` mediante el worker y una caché binaria derivada v3. La firma incluye tamaño/mtime de los tres archivos y versión del schema. El Character Sheet mantiene el índice/registry en memoria; el DM Screen importa la colección canónica. Cambiar cualquier fuente invalida la caché derivada.
@@ -83,4 +92,4 @@ npm test
 git diff --check
 ```
 
-Smoke manual: confirmar 1.779 resultados activos, buscar también por el nombre de una variante hija, abrir detalles representativos, añadir/equipar/usar un ítem y recargar la hoja. Probar CA/bonos/defensas, attunement permitido-bloqueado-manual, una Wand con cargas, una Potion con Bonus Action, un pack y munición mágica compatible, y una marca de efecto persistente. Comprobar que un tombstone no aparece en el picker, que una referencia histórica se abre marcada como no disponible y que un ítem homebrew sigue disponible sin cambios.
+Smoke manual: confirmar 1.779 resultados activos, buscar también por el nombre de una variante hija, abrir detalles representativos, añadir/equipar/usar un ítem y recargar la hoja. Probar CA/bonos/defensas, attunement permitido-bloqueado-manual, una Wand con cargas, una Potion con Bonus Action, un pack y munición mágica compatible, y una marca de efecto persistente. Comprobar que un tombstone no aparece en el picker, que una referencia histórica se abre marcada como no disponible y que un ítem homebrew sigue disponible sin cambios. Con Live Sheet activo, crear un ítem homebrew, pulsar `Dar`, entregarlo a uno y a varios jugadores, comprobar cantidad acumulada, descripción y funcionalidad textual desde `Equipment`, guardar/recargar la hoja y reconectar para confirmar que el snapshot no se pierde.

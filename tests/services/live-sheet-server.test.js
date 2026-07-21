@@ -271,6 +271,20 @@ async function testTokenAcceptanceAndProtocol() {
       { __liveStatuses: ["blessed", "prone"] },
       "the Live Sheet status patch should keep only bounded, unique status ids"
     );
+    const homebrewPatch = sanitizeSheetPatch({
+      Equipment: "1 Ashen Key [Homebrew|homebrew:ashen-key]",
+      __homebrewItems: [{
+        homebrewId: "ashen-key",
+        name: "Ashen Key",
+        source: "Homebrew",
+        entries: ["Opens sealed doors."],
+        __homebrew: true
+      }]
+    });
+    assert.strictEqual(homebrewPatch.Equipment, "1 Ashen Key [Homebrew|homebrew:ashen-key]");
+    assert.strictEqual(homebrewPatch.__homebrewItems.length, 1);
+    assert.strictEqual(homebrewPatch.__homebrewItems[0].catalogVariantToken, "homebrew:ashen-key");
+    assert.deepStrictEqual(sanitizeSheetPatch({ __homebrewItems: [{ name: "Unsafe", entries: ["ok"] }] }).__homebrewItems[0].__homebrew, true);
 
     const statusPatchPromise = nextMessage(socket);
     const statusPatchResult = server.updatePlayerSheet("player-1", { __liveStatuses: ["blessed", "prone"] });

@@ -3551,6 +3551,107 @@ function optionalNumber(value) {
   return Number.isFinite(amount) ? amount : undefined;
 }
 
+function createHomebrewItemId() {
+  return globalThis.crypto?.randomUUID?.()
+    || `hb-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function homebrewItemIdFromReference(reference) {
+  if (reference && typeof reference === "object" && reference.homebrewId) {
+    return String(reference.homebrewId).trim();
+  }
+  const token = String(reference?.catalogVariantToken || reference?.variantToken || "").trim();
+  return token.startsWith("homebrew:") ? token.slice("homebrew:".length).trim() : "";
+}
+
+function normalizeHomebrewItem(item) {
+  if (!isPlainObject(item)) return null;
+  const name = String(item.name || "").trim();
+  if (!name) return null;
+  const homebrewId = String(item.homebrewId || homebrewItemIdFromReference(item) || createHomebrewItemId())
+    .replace(/[^a-zA-Z0-9_.:-]/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || createHomebrewItemId();
+  const source = String(item.source || "Homebrew").replace(/[\[\]|]/g, "").trim().slice(0, 100) || "Homebrew";
+  const entries = (Array.isArray(item.entries) ? item.entries : [])
+    .map((entry) => String(entry || "").trim())
+    .filter(Boolean)
+    .slice(0, 48);
+  return {
+    ...item,
+    homebrewId,
+    catalogVariantToken: `homebrew:${homebrewId}`,
+    name,
+    type: String(item.type || "Gear").trim() || "Gear",
+    rarity: String(item.rarity || "common").trim() || "common",
+    source,
+    entries: entries.length ? entries : ["No description provided."],
+    homebrewProperties: (Array.isArray(item.homebrewProperties) ? item.homebrewProperties : [])
+      .map((property) => String(property || "").trim())
+      .filter(Boolean)
+      .slice(0, 24),
+    __homebrew: true
+  };
+}
+
+function normalizeHomebrewItems(items) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : [])
+    .map(normalizeHomebrewItem)
+    .filter((item) => item && !seen.has(item.homebrewId) && seen.add(item.homebrewId))
+    .slice(0, 120);
+}
+
+function normalizeLiveSheetData(data) {
+  const source = isPlainObject(data) ? { ...data } : {};
+  const nestedMeta = isPlainObject(source.__sheetMeta) ? { ...source.__sheetMeta } : {};
+  const homebrewItems = Array.isArray(source.__homebrewItems)
+    ? source.__homebrewItems
+    : nestedMeta.homebrewItems;
+  if (Array.isArray(homebrewItems)) nestedMeta.homebrewItems = normalizeHomebrewItems(homebrewItems);
+  delete source.__homebrewItems;
+  if (Object.keys(nestedMeta).length) source.__sheetMeta = nestedMeta;
+  return source;
+}
+
+function homebrewItemEquipmentReference(item) {
+  const normalized = normalizeHomebrewItem(item);
+  if (!normalized) return "";
+  return `${normalized.name} [${normalized.source}|homebrew:${normalized.homebrewId}]`;
+}
+
+function homebrewItemIdFromEquipmentLine(line) {
+  const match = String(line || "").match(/\[([^\]|]+)\|homebrew:([^\]|]+)\]\s*$/i);
+  return match?.[2]?.trim() || "";
+}
+
+function appendHomebrewItemToEquipment(equipment, item, quantity = 1) {
+  const reference = homebrewItemEquipmentReference(item);
+  if (!reference) return String(equipment || "").trim();
+  const amount = Math.max(1, Math.min(999, Number.parseInt(quantity, 10) || 1));
+  const lines = String(equipment || "").trim()
+    ? (String(equipment).includes("\n") ? String(equipment).split(/\n+/) : String(equipment).split(/,(?![^()]*\))/))
+    : [];
+  const targetId = homebrewItemIdFromReference(item);
+  const existingIndex = lines.findIndex((line) => homebrewItemIdFromEquipmentLine(line) === targetId);
+  if (existingIndex >= 0) {
+    const match = String(lines[existingIndex]).trim().match(/^(\d+)\s+(.+)$/);
+    const currentQuantity = Number.parseInt(match?.[1] || "1", 10) || 1;
+    lines[existingIndex] = `${currentQuantity + amount} ${match?.[2] || reference}`;
+  } else {
+    lines.push(`${amount} ${reference}`);
+  }
+  return lines.map((line) => String(line || "").trim()).filter(Boolean).join("\n");
+}
+
+function mergeHomebrewItemSnapshots(existingItems, item) {
+  const normalized = normalizeHomebrewItem(item);
+  if (!normalized) return normalizeHomebrewItems(existingItems);
+  const next = new Map(normalizeHomebrewItems(existingItems).map((entry) => [entry.homebrewId, entry]));
+  next.set(normalized.homebrewId, normalized);
+  return [...next.values()].slice(0, 120);
+}
+
 function homebrewItemFromDraft(draft) {
   const entries = compactLines(draft.entries);
   const properties = String(draft.properties || "")
@@ -3558,18 +3659,18 @@ function homebrewItemFromDraft(draft) {
     .map((property) => property.trim())
     .filter(Boolean);
   const type = String(draft.type || HOMEBREW_ITEM_DEFAULTS.type).trim() || HOMEBREW_ITEM_DEFAULTS.type;
-  return {
+  return normalizeHomebrewItem({
     name: String(draft.name || HOMEBREW_ITEM_DEFAULTS.name).trim() || HOMEBREW_ITEM_DEFAULTS.name,
     type,
     rarity: String(draft.rarity || HOMEBREW_ITEM_DEFAULTS.rarity).trim() || HOMEBREW_ITEM_DEFAULTS.rarity,
-    source: String(draft.source || HOMEBREW_ITEM_DEFAULTS.source).trim() || HOMEBREW_ITEM_DEFAULTS.source,
+    source: String(draft.source || HOMEBREW_ITEM_DEFAULTS.source).replace(/[\[\]|]/g, "").trim() || HOMEBREW_ITEM_DEFAULTS.source,
     value: optionalNumber(draft.value),
     weight: optionalNumber(draft.weight),
     dmg1: String(draft.damage || "").trim(),
     homebrewProperties: properties,
     entries: entries.length ? entries : ["Describe what this item does."],
     __homebrew: true
-  };
+  });
 }
 
 function homebrewSpellFromDraft(draft) {
@@ -6089,12 +6190,14 @@ function ResourceNote({
   onResizeStart,
   onMinimize,
   onRestore,
-  onDuplicate
+  onDuplicate,
+  onGiveHomebrewItem
 }) {
   const [spellIconFailed, setSpellIconFailed] = useState(false);
   const entry = note.entry;
   useEffect(() => setSpellIconFailed(false), [entry?.icon]);
   const isSpell = note.kind === "spell";
+  const isHomebrewItem = !isSpell && Boolean(entry?.__homebrew);
   const itemUnavailable = !isSpell && Boolean(entry?.__catalogUnavailable || entry?.unavailable || entry?.removedFromCatalog);
   const source = isSpell ? spellSource(entry) : itemSource(entry);
   const spellSourceText = isSpell ? spellSourceLabel(entry) : "";
@@ -6166,6 +6269,16 @@ function ResourceNote({
         >
           X
         </button>
+        {isHomebrewItem && onGiveHomebrewItem ? (
+          <button
+            className="h-7 shrink-0 border border-amber-500 bg-amber-500 px-2 text-[10px] font-bold uppercase text-neutral-950 hover:bg-amber-400"
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => onGiveHomebrewItem(noteActionId)}
+          >
+            Dar
+          </button>
+        ) : null}
       </article>
     );
   }
@@ -6212,6 +6325,9 @@ function ResourceNote({
           <div className="flex gap-1">
             <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onMinimize(frameNoteId)}>-</button>
             <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onDuplicate(noteActionId)}>⧉</button>
+            {isHomebrewItem && onGiveHomebrewItem ? (
+              <button className="h-7 border border-amber-500 bg-amber-500 px-2 text-[10px] font-bold uppercase text-neutral-950 hover:bg-amber-400" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => onGiveHomebrewItem(noteActionId)}>Dar</button>
+            ) : null}
             <button className="h-7 w-7 rounded-sm border border-neutral-600 bg-neutral-800 text-sm font-bold text-neutral-100 hover:bg-neutral-700" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => onClose(noteActionId, event)}>X</button>
           </div>
         </div>
@@ -11403,6 +11519,100 @@ function HomebrewMonsterModal({
   );
 }
 
+function HomebrewItemGrantModal({ isOpen, item, players, onClose, onSubmit }) {
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState([]);
+  const [quantity, setQuantity] = useState("1");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const connectedPlayers = (Array.isArray(players) ? players : [])
+    .filter((player) => player?.connected && player?.playerId)
+    .sort((left, right) => String(left.playerName || "").localeCompare(String(right.playerName || ""), undefined, { sensitivity: "base" }));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedPlayerIds([]);
+    setQuantity("1");
+    setError("");
+    setBusy(false);
+  }, [isOpen, item?.homebrewId]);
+
+  if (!isOpen || !item) return null;
+
+  function togglePlayer(playerId) {
+    setSelectedPlayerIds((current) => current.includes(playerId)
+      ? current.filter((id) => id !== playerId)
+      : [...current, playerId]);
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!selectedPlayerIds.length) {
+      setError("Seleccioná al menos un jugador conectado.");
+      return;
+    }
+    const amount = Math.max(1, Math.min(999, Number.parseInt(quantity, 10) || 1));
+    setBusy(true);
+    setError("");
+    try {
+      const result = await onSubmit(selectedPlayerIds, amount);
+      if (!result?.ok) {
+        setError(result?.error || "No se pudo entregar el item.");
+        return;
+      }
+      onClose();
+    } catch (submitError) {
+      setError(submitError?.message || "No se pudo entregar el item.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10040] flex items-center justify-center bg-neutral-950/80 p-4"
+      data-homebrew-item-grant-modal="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="homebrew-item-grant-title"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <form className="w-full max-w-lg border border-amber-500/70 bg-neutral-950 text-neutral-100 shadow-2xl" onSubmit={submit}>
+        <header className="flex items-start justify-between gap-4 border-b border-neutral-800 px-5 py-4">
+          <div className="min-w-0">
+            <h2 id="homebrew-item-grant-title" className="font-serif text-xl font-bold uppercase text-amber-500">Dar item a jugadores</h2>
+            <p className="mt-1 truncate text-sm text-neutral-300" title={item.name}>{item.name}</p>
+            <p className="mt-1 text-xs text-neutral-500">Se copia la descripcion y queda disponible desde Equipment en la hoja.</p>
+          </div>
+          <button className="h-8 w-8 shrink-0 border border-neutral-700 bg-neutral-900 text-sm font-bold hover:border-neutral-500" type="button" onClick={onClose}>X</button>
+        </header>
+        <div className="grid gap-4 p-5">
+          <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-neutral-500">
+            Cantidad
+            <input className="h-9 w-28 border border-neutral-700 bg-neutral-900 px-2 text-sm font-normal normal-case text-neutral-100 focus:border-amber-500 focus:outline-none" type="number" min="1" max="999" value={quantity} disabled={busy} onChange={(event) => setQuantity(event.target.value)} />
+          </label>
+          <fieldset className="grid gap-2">
+            <legend className="text-xs font-bold uppercase tracking-wide text-neutral-500">Jugadores conectados</legend>
+            {connectedPlayers.length ? connectedPlayers.map((player) => (
+              <label key={player.playerId} className="flex items-center gap-3 border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-200 hover:border-neutral-600">
+                <input type="checkbox" checked={selectedPlayerIds.includes(player.playerId)} disabled={busy} onChange={() => togglePlayer(player.playerId)} />
+                <span className="min-w-0 truncate">{sanitizeDisplayText(player.playerName, "Jugador")}</span>
+              </label>
+            )) : (
+              <p className="border border-dashed border-neutral-700 p-3 text-sm text-neutral-500">No hay jugadores conectados.</p>
+            )}
+          </fieldset>
+          {error ? <p className="border border-red-500/40 bg-red-950/30 px-3 py-2 text-sm text-red-200">{error}</p> : null}
+          <div className="flex justify-end gap-2 border-t border-neutral-800 pt-4">
+            <button className="h-9 border border-neutral-700 bg-neutral-900 px-4 text-sm font-bold text-neutral-300 hover:border-neutral-500" type="button" disabled={busy} onClick={onClose}>Cancelar</button>
+            <button className="h-9 border border-amber-500 bg-amber-500 px-4 text-sm font-bold text-neutral-950 hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60" type="submit" disabled={busy || !connectedPlayers.length}>{busy ? "Entregando..." : "Dar item"}</button>
+          </div>
+        </div>
+      </form>
+    </div>,
+    document.body
+  );
+}
+
 function NoteCloseSaveModal({ pendingClose, onSave, onDiscard, onCancel }) {
   if (!pendingClose) return null;
   const notes = Array.isArray(pendingClose.notes) ? pendingClose.notes : [];
@@ -11640,6 +11850,7 @@ function DmScreenApp() {
   const [homebrewItemDraft, setHomebrewItemDraft] = useState(HOMEBREW_ITEM_DEFAULTS);
   const [homebrewSpellDraft, setHomebrewSpellDraft] = useState(HOMEBREW_SPELL_DEFAULTS);
   const [homebrewMonsterSpawnPoint, setHomebrewMonsterSpawnPoint] = useState(null);
+  const [homebrewItemGrantTarget, setHomebrewItemGrantTarget] = useState(null);
   const [pendingMapTokenTarget, setPendingMapTokenTarget] = useState(null);
   const [isNpcTokenPickerOpen, setIsNpcTokenPickerOpen] = useState(false);
   const [npcTokenLibrary, setNpcTokenLibrary] = useState([]);
@@ -12101,7 +12312,7 @@ function DmScreenApp() {
 
     async function handleGlobalPaste(event) {
       const targetElement = event.target instanceof Element ? event.target : null;
-      if (targetElement?.closest?.("[data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']")) return;
+      if (targetElement?.closest?.("[data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-homebrew-item-grant-modal='true'], [data-board-control='true']")) return;
       if (isEditablePasteTarget(event.target)) return;
 
       const clipboardData = event.clipboardData;
@@ -13409,6 +13620,71 @@ function DmScreenApp() {
     setHomebrewMonsterSpawnPoint(null);
   }
 
+  function openHomebrewItemGrant(noteId) {
+    const note = monsterNotesRef.current.find((entry) => entry.id === noteId);
+    if (note?.kind !== "item" || !note.entry?.__homebrew) return;
+    const item = normalizeHomebrewItem(note.entry);
+    if (!item) return;
+    if (item.homebrewId !== note.entry.homebrewId) {
+      setMonsterNotes((notes) => notes.map((entry) => (
+        entry.id === noteId ? { ...entry, entry: item, entryCustom: item } : entry
+      )));
+    }
+    setHomebrewItemGrantTarget({ noteId, item });
+  }
+
+  function closeHomebrewItemGrant() {
+    setHomebrewItemGrantTarget(null);
+  }
+
+  async function giveHomebrewItemToPlayers(item, playerIds, quantity) {
+    const normalizedItem = normalizeHomebrewItem(item);
+    const liveSheet = window.dndSheet?.liveSheet;
+    if (!normalizedItem || !liveSheet?.updatePlayerSheet) {
+      return { ok: false, error: "El servidor Live Sheet no esta disponible." };
+    }
+    const selectedPlayers = livePlayers.filter((player) => playerIds.includes(player.playerId));
+    if (!selectedPlayers.length) return { ok: false, error: "No hay jugadores seleccionados." };
+    const failures = [];
+    const delivered = [];
+
+    for (const player of selectedPlayers) {
+      const currentData = normalizeLiveSheetData(player.data || {});
+      const nextHomebrewItems = mergeHomebrewItemSnapshots(currentData.__sheetMeta?.homebrewItems, normalizedItem);
+      const equipment = appendHomebrewItemToEquipment(currentData.Equipment, normalizedItem, quantity);
+      const patch = {
+        Equipment: equipment,
+        __homebrewItems: nextHomebrewItems
+      };
+      try {
+        const result = await liveSheet.updatePlayerSheet(player.playerId, patch);
+        if (!result?.ok) {
+          failures.push(`${player.playerName || "Jugador"}: ${result?.error || "sin conexion"}`);
+          continue;
+        }
+        const nextData = normalizeLiveSheetData({
+          ...currentData,
+          Equipment: equipment,
+          __sheetMeta: {
+            ...(currentData.__sheetMeta || {}),
+            homebrewItems: nextHomebrewItems
+          }
+        });
+        const updatedPlayer = { ...player, data: nextData, lastUpdate: new Date().toISOString() };
+        delivered.push(updatedPlayer);
+        syncLivePlayerCharacterNote(updatedPlayer);
+      } catch (error) {
+        failures.push(`${player.playerName || "Jugador"}: ${error?.message || "error de entrega"}`);
+      }
+    }
+
+    if (delivered.length) {
+      setLivePlayers((players) => players.map((player) => delivered.find((entry) => entry.playerId === player.playerId) || player));
+    }
+    if (!delivered.length) return { ok: false, error: failures.join("; ") || "No se pudo entregar el item." };
+    return { ok: true, failures };
+  }
+
   function openSavedBoardNotes() {
     if (!contextMenu) return;
     setSavedBoardNotesSpawnPoint({ x: contextMenu.boardX, y: contextMenu.boardY });
@@ -13496,9 +13772,10 @@ function DmScreenApp() {
 
   function syncLivePlayerCharacterNote(player) {
     if (!player?.playerId || !player?.lastUpdate || !player?.data || !Object.keys(player.data).length) return;
+    const liveSheetData = normalizeLiveSheetData(player.data);
     let character = null;
     try {
-      character = characterFromSheetData(player.data);
+      character = characterFromSheetData(liveSheetData);
     } catch (error) {
       console.error(error);
       return;
@@ -13514,7 +13791,7 @@ function DmScreenApp() {
             ? {
               ...note,
               character,
-              liveSheetData: player.data || note.liveSheetData || {},
+              liveSheetData: liveSheetData || note.liveSheetData || {},
               livePlayerName: player.playerName || note.livePlayerName || "",
               liveConnected: Boolean(player.connected),
               liveLastUpdate: player.lastUpdate || note.liveLastUpdate || null,
@@ -13570,7 +13847,7 @@ function DmScreenApp() {
           hpCurrent: character.hpCurrent,
           hpMax: characterHp,
           livePlayerId: player.playerId,
-          liveSheetData: player.data || {},
+          liveSheetData,
           livePlayerName: player.playerName || "",
           liveConnected: Boolean(player.connected),
           liveLastUpdate: player.lastUpdate || null
@@ -13609,6 +13886,7 @@ function DmScreenApp() {
       .map(([key, value]) => {
         const normalizedKey = String(key || "").trim();
         if (normalizedKey === LIVE_STATUS_FIELD) return [normalizedKey, sanitizeLiveStatusIds(value)];
+        if (normalizedKey === "__homebrewItems") return [normalizedKey, normalizeHomebrewItems(value)];
         return [normalizedKey, value == null ? "" : String(value)];
       })
       .filter(([key]) => key && key !== "__proto__" && key !== "constructor" && key !== "prototype"));
@@ -13619,6 +13897,13 @@ function DmScreenApp() {
       ...(note.liveSheetData || note.character?.rawData || {}),
       ...patch
     };
+    if (Array.isArray(patch.__homebrewItems)) {
+      liveSheetData.__sheetMeta = {
+        ...(isPlainObject(liveSheetData.__sheetMeta) ? liveSheetData.__sheetMeta : {}),
+        homebrewItems: normalizeHomebrewItems(patch.__homebrewItems)
+      };
+      delete liveSheetData.__homebrewItems;
+    }
     const character = characterFromSheetData(liveSheetData);
     const characterHp = character.hpMax || character.hpCurrent || "";
     return {
@@ -16080,7 +16365,7 @@ function DmScreenApp() {
   }
 
   function openBoardContextMenu(event) {
-    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']")) return;
+    if (event.target?.closest?.("[data-dm-note='true'], [data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-homebrew-item-grant-modal='true'], [data-board-control='true']")) return;
     event.preventDefault();
     setTokenContextMenu(null);
     setMarkerContextMenu(null);
@@ -16131,7 +16416,7 @@ function DmScreenApp() {
   }
 
   function isBoardUiBlocker(event) {
-    return Boolean(event.target?.closest?.("[data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-board-control='true']"));
+    return Boolean(event.target?.closest?.("[data-monster-picker='true'], [data-obsidian-picker='true'], [data-context-menu='true'], [data-character-code-modal='true'], [data-homebrew-monster-modal='true'], [data-homebrew-item-grant-modal='true'], [data-board-control='true']"));
   }
 
   function isPointerOverNote(event) {
@@ -16931,6 +17216,7 @@ function DmScreenApp() {
           ) : (
             <ResourceNote
               {...sharedProps}
+              onGiveHomebrewItem={openHomebrewItemGrant}
             />
           );
         })}
@@ -17469,6 +17755,13 @@ function DmScreenApp() {
         onSpellChange={setHomebrewSpellDraft}
         onClose={closeHomebrewMonsterModal}
         onSubmit={addHomebrewNote}
+      />
+      <HomebrewItemGrantModal
+        isOpen={Boolean(homebrewItemGrantTarget)}
+        item={homebrewItemGrantTarget?.item || null}
+        players={livePlayers}
+        onClose={closeHomebrewItemGrant}
+        onSubmit={(playerIds, quantity) => giveHomebrewItemToPlayers(homebrewItemGrantTarget?.item, playerIds, quantity)}
       />
       <NoteCloseSaveModal
         pendingClose={pendingSavedNameConflict ? null : pendingNoteClose}
