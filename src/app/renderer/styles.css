@@ -6746,8 +6746,7 @@
     }
 
     .combat-round-label,
-    .combat-map-status,
-    .combat-active-meta {
+    .combat-map-status {
       margin-top: 5px;
       color: #8d918f;
       font-size: 11px;
@@ -6963,35 +6962,45 @@
       grid-template-rows: auto minmax(0, 1fr);
     }
 
-    .combat-active-card {
+    .combat-rest-card {
       position: relative;
       min-height: 104px;
       overflow: hidden;
       border-bottom: 1px solid #343434;
       background:
-        radial-gradient(circle at 86% 36%, rgba(127, 29, 29, 0.22), transparent 28%),
-        linear-gradient(135deg, #191514, #111313 68%);
+        radial-gradient(circle at 86% 36%, rgba(245, 158, 11, 0.12), transparent 30%),
+        linear-gradient(135deg, #191817, #111313 68%);
     }
 
-    .combat-active-card .combat-panel-heading {
+    .combat-rest-card .combat-panel-heading {
       min-width: 0;
-      padding-right: 52px;
+      padding-bottom: 8px;
       border-bottom: 0;
       background: transparent;
     }
 
-    .combat-active-badge {
-      position: absolute;
-      top: 17px;
-      right: 15px;
+    .combat-rest-controls {
       display: grid;
-      width: 30px;
-      height: 30px;
-      place-items: center;
-      border: 1px solid #8b252c;
-      border-radius: 50%;
-      color: #d95c52;
-      font-size: 17px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 11px 11px;
+    }
+
+    .combat-rest-button {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      min-height: 38px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 7px 8px;
+      text-align: center;
+    }
+
+    .combat-rest-button .sidebar-rest-label {
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .combat-log {

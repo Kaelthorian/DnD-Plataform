@@ -277,6 +277,66 @@ try {
   assert.equal(restoredBase.baseitem.length, 0);
   assert.equal(restoredItems.item.filter((item) => item.name === "Updated Item").length, 1);
 
+  const additiveRoot = path.join(tempRoot, "additive");
+  fs.mkdirSync(additiveRoot);
+  const additiveSource = path.join(additiveRoot, "items.json");
+  const additiveReference = path.join(additiveRoot, "items.md");
+  const existingTemplate = {
+    name: "Existing Template",
+    source: "TST",
+    type: "GV",
+    variants: [{
+      base: { name: "Dagger", source: "TST" },
+      specificVariant: { name: "Existing Blade", source: "NEW", baseItem: "dagger|tst", entries: [] }
+    }, {
+      base: { name: "Dagger", source: "TST" },
+      specificVariant: { name: "Existing Upgrade", source: "NEW", baseItem: "dagger|tst", entries: [] }
+    }]
+  };
+  const baselineExistingTemplate = {
+    ...structuredClone(existingTemplate),
+    variants: [structuredClone(existingTemplate.variants[0])]
+  };
+  const newTemplate = {
+    name: "New Template",
+    source: "NEW",
+    type: "GV",
+    variants: [{
+      base: { name: "Dagger", source: "TST" },
+      specificVariant: { name: "New Blade", source: "NEW", baseItem: "dagger|tst", entries: [] }
+    }]
+  };
+  const duplicateFlatVariant = structuredClone(newTemplate.variants[0].specificVariant);
+  const additiveItems = [existingTemplate, newTemplate, duplicateFlatVariant];
+  writeJson(additiveSource, additiveItems);
+  fs.writeFileSync(additiveReference, markdown(additiveItems));
+  const additiveOptions = optionsFor(additiveRoot, additiveSource, additiveReference);
+  additiveOptions.addMissing = true;
+  additiveOptions.expectedCount = 1;
+  writeJson(additiveOptions.vendorItems, { _meta: { internalCopies: ["item"] }, item: [baselineExistingTemplate], itemGroup: [] });
+  writeJson(additiveOptions.vendorBaseItems, { _meta: {}, baseitem: [], itemProperty: [], itemType: [], itemMastery: [] });
+  const additiveDryRun = syncItems.run(additiveOptions);
+  assert.equal(additiveDryRun.applied, false);
+  assert.equal(additiveDryRun.create, 3, "additive sync must report all new variant identities");
+  assert.equal(additiveDryRun.update, 1, "additive sync must report a variant appended to an existing template");
+  const additivePreview = JSON.parse(fs.readFileSync(additiveOptions.preview, "utf8"));
+  assert.equal(additivePreview.additive.sourceDuplicateRecordsIgnored, 1);
+  assert.equal(additivePreview.additive.addressableCreated, 3);
+  additiveOptions.apply = true;
+  const additiveApplied = syncItems.run(additiveOptions);
+  assert.equal(additiveApplied.applied, true);
+  const additiveCatalog = JSON.parse(fs.readFileSync(additiveOptions.catalog, "utf8"));
+  const additiveManifest = JSON.parse(fs.readFileSync(additiveOptions.backupManifest, "utf8"));
+  assert.equal(additiveManifest.backups[0].source.records, 3);
+  assert.equal(additiveManifest.backups[0].source.mode, "additive");
+  assert.equal(additiveManifest.backups[0].source.mergedRecords, 2);
+  assert.equal(additiveCatalog.item.length, 2, "additive sync must retain existing roots and add only the new root");
+  assert.equal(additiveCatalog.item[0].variants.length, 2, "existing roots receive only missing variants");
+  assert.equal(additiveCatalog.item[1].variants.length, 1, "new roots retain their variants");
+  additiveOptions.apply = false;
+  additiveOptions.check = true;
+  assert.equal(syncItems.run(additiveOptions).ok, true, "additive sync must be idempotent");
+
   const duplicateRoot = path.join(tempRoot, "duplicate");
   fs.mkdirSync(duplicateRoot);
   const duplicateSource = path.join(duplicateRoot, "canonical.json");
@@ -327,6 +387,15 @@ try {
   const wrongReference = path.join(tempRoot, "wrong-order.md");
   fs.writeFileSync(wrongReference, markdown([...canonical].reverse()));
   assert.throws(() => syncItems.validateMarkdownReference(wrongReference, canonical), /order mismatch/i);
+
+  const additiveReferenceWithExtra = path.join(tempRoot, "additive-extra.md");
+  fs.writeFileSync(additiveReferenceWithExtra, `#### Extra audit section\n\nNot an item.\n\n${markdown([canonical[0]])}`);
+  const additiveReferenceAudit = syncItems.validateMarkdownReference(
+    additiveReferenceWithExtra,
+    [canonical[0]],
+    { allowExtraHeadings: true }
+  );
+  assert.deepStrictEqual(additiveReferenceAudit.extraHeadings, ["Extra audit section"]);
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 }

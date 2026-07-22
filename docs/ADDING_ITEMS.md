@@ -8,9 +8,9 @@ Los archivos externos de importación son artefactos revisados, no dependencias 
 
 - `catalogId` es la identidad persistente y se deriva de nombre, fuente y token de variante normalizados. No se debe buscar, reemplazar ni deduplicar únicamente por el nombre visible.
 - `catalogKey` conserva la clave auditable de identidad y `catalogVariantToken` distingue variantes que comparten nombre o procedencia.
-- Las variantes superiores son registros independientes cuando la fuente las declara así. Cada `variants[].specificVariant` también recibe una identidad estable y puede seleccionarse desde el detalle de su entrada genérica, pero no se convierte en otra fila superior ni aumenta el conteo de 1.779.
-- El resultado esperado de esta importación es exactamente 1.779 elementos en `item`. Un tombstone no es un elemento activo.
-- Esta entrega contiene además 2.431 variantes hijas (4.210 identidades activas direccionables) y conserva 9.234 tombstones del baseline. Los cinco nombres visibles repetidos abarcan 12 filas y son intencionales por fuente: Musical Instrument, Trinket, Cloak of Billowing, Dread Helm y Prosthetic Limb.
+- Las variantes superiores son registros independientes cuando la fuente las declara así. Cada `variants[].specificVariant` también recibe una identidad estable y puede seleccionarse desde el detalle de su entrada genérica, pero no se convierte en otra fila superior ni aumenta el conteo de 2.253.
+- El catálogo activo actual contiene 2.253 elementos en `item`. Un tombstone no es un elemento activo.
+- Esta entrega aditiva incorporó 686 identidades nuevas: 2.643 variantes hijas y 4.896 identidades activas direccionables. El catálogo conserva 8.604 tombstones del baseline.
 - El mismo input debe producir el mismo JSON, orden, identidades y hashes. Una segunda ejecución en modo `--check` debe reportar cero cambios.
 
 ## Flujo seguro: preview, apply y check
@@ -31,11 +31,20 @@ npm run sync:items:apply -- --source <items-sublist-data.json> --reference <item
 
 El apply escribe el catálogo app-owned, crea un backup gzip content-addressed bajo `src/data/items/backups/` y actualiza `src/data/items/items-backup.manifest.json` con rutas relativas y SHA-256 pre/post. El manifiesto v2 es portable: si se mueve junto con su directorio de backups, la restauración resuelve los payloads desde su nueva ubicación y siempre escribe en los targets actuales indicados por CLI, no en rutas absolutas antiguas. Los manifiestos v1 siguen siendo aceptados. El apply no modifica los archivos externos ni el snapshot vendor. El preview inicial se conserva como evidencia y no se reemplaza silenciosamente durante el apply. Preview, backups y manifiesto son artefactos de desarrollo excluidos del paquete Electron.
 
+Para una entrega parcial como la de `Downloads/items-sublist-data(1).json`, usar el modo aditivo. Conserva los ítems oficiales actuales, ignora identidades ya presentes y deduplica variantes repetidas; no convierte el archivo parcial en una fuente de reemplazo:
+
+```powershell
+npm run sync:items -- --add-missing --source <items-sublist-data.json> --reference <items-sublist.md>
+npm run sync:items:apply -- --add-missing --source <items-sublist-data.json> --reference <items-sublist.md>
+```
+
+En `--add-missing`, el JSON sigue siendo autoritativo para los registros nuevos y el Markdown sólo audita el orden. Se permiten encabezados extra en el Markdown si forman una supersecuencia ordenada del JSON; se reportan en el preview y no se importan como ítems. El JSON no debe tener conflictos para una misma identidad.
+
 Comprobar reproducibilidad e idempotencia con los mismos artefactos:
 
 ```powershell
-npm run sync:items -- --source <items-sublist-data.json> --reference <items-sublist.md> --check
-npm run sync:items -- --source <items-sublist-data.json> --reference <items-sublist.md> --check
+npm run sync:items -- --add-missing --source <items-sublist-data.json> --reference <items-sublist.md> --check
+npm run sync:items -- --add-missing --source <items-sublist-data.json> --reference <items-sublist.md> --check
 npm run test:items
 ```
 
@@ -53,7 +62,7 @@ La restauración valida ambos payloads y sus hashes antes de escribir, rechaza u
 
 ## Historial y homebrew
 
-- Los pickers de Character Sheet y DM Screen muestran sólo las 1.779 filas de `item`. Desde una fila genérica pueden resolver y seleccionar sus `variants[].specificVariant` por identidad propia; `tombstone` e `itemGroup` nunca son opciones nuevas.
+- Los pickers de Character Sheet y DM Screen muestran sólo las 2.253 filas de `item`. Desde una fila genérica pueden resolver y seleccionar sus `variants[].specificVariant` por identidad propia; `tombstone` e `itemGroup` nunca son opciones nuevas.
 - Equipment nuevo conserva nombre, fuente y token de variante para reconstruir la identidad estable; las notas oficiales del DM conservan `catalogId` y snapshot. Los saves antiguos sólo por nombre mantienen el criterio histórico de preferir fuentes modernas (`XPHB`/`XDMG`) cuando existe más de una coincidencia; no usar ese fallback para nuevas escrituras porque un nombre por sí solo no identifica todas las variantes.
 - Una referencia ya guardada a un ítem retirado conserva su snapshot o se resuelve contra su tombstone y se muestra como no disponible. No puede añadirse a un personaje nuevo.
 - Personajes, slots, inventarios, cantidades, cargas, historial de uso y combat log no se eliminan durante la sincronización.
@@ -92,4 +101,4 @@ npm test
 git diff --check
 ```
 
-Smoke manual: confirmar 1.779 resultados activos, buscar también por el nombre de una variante hija, abrir detalles representativos, añadir/equipar/usar un ítem y recargar la hoja. Probar CA/bonos/defensas, attunement permitido-bloqueado-manual, una Wand con cargas, una Potion con Bonus Action, un pack y munición mágica compatible, y una marca de efecto persistente. Comprobar que un tombstone no aparece en el picker, que una referencia histórica se abre marcada como no disponible y que un ítem homebrew sigue disponible sin cambios. Con Live Sheet activo, crear un ítem homebrew, pulsar `Dar`, entregarlo a uno y a varios jugadores, comprobar cantidad acumulada, descripción y funcionalidad textual desde `Equipment`, guardar/recargar la hoja y reconectar para confirmar que el snapshot no se pierde.
+Smoke manual: confirmar 2.253 resultados activos, buscar también por el nombre de una variante hija, abrir detalles representativos, añadir/equipar/usar un ítem y recargar la hoja. Probar CA/bonos/defensas, attunement permitido-bloqueado-manual, una Wand con cargas, una Potion con Bonus Action, un pack y munición mágica compatible, y una marca de efecto persistente. Comprobar que un tombstone no aparece en el picker, que una referencia histórica se abre marcada como no disponible y que un ítem homebrew sigue disponible sin cambios. Con Live Sheet activo, crear un ítem homebrew, pulsar `Dar`, entregarlo a uno y a varios jugadores, comprobar cantidad acumulada, descripción y funcionalidad textual desde `Equipment`, guardar/recargar la hoja y reconectar para confirmar que el snapshot no se pierde.

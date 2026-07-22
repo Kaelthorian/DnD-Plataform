@@ -23,8 +23,9 @@ function parseArgs(argv) {
     reference: "",
     apply: false,
     check: false,
+    addMissing: false,
     restoreBackup: false,
-    expectedCount: 1779,
+    expectedCount: 2253,
     catalog: defaultCatalog,
     baseCatalog: defaultBaseCatalog,
     preview: defaultPreview,
@@ -37,6 +38,7 @@ function parseArgs(argv) {
     const arg = argv[index];
     if (arg === "--apply") options.apply = true;
     else if (arg === "--check") options.check = true;
+    else if (arg === "--add-missing") options.addMissing = true;
     else if (arg === "--source") options.source = argv[++index] || "";
     else if (arg === "--reference") options.reference = argv[++index] || "";
     else if (arg === "--catalog") options.catalog = path.resolve(argv[++index] || defaultCatalog);
@@ -192,20 +194,53 @@ function assertPortableBackupPath(backupPath, options = {}) {
   }
 }
 
-function validateMarkdownReference(referencePath, canonical) {
+function validateMarkdownReference(referencePath, canonical, options = {}) {
   const text = fs.readFileSync(referencePath, "utf8");
   const headings = [...text.matchAll(/^####\s+(.+?)\s*$/gm)].map((match) => match[1].trim());
   const errors = [];
-  if (headings.length !== canonical.length) errors.push(`Markdown has ${headings.length} item headings; JSON has ${canonical.length} records.`);
-  const count = Math.min(headings.length, canonical.length);
-  for (let index = 0; index < count; index += 1) {
-    if (itemCatalog.normalizeIdentityPart(headings[index]) !== itemCatalog.normalizeIdentityPart(canonical[index]?.name)) {
-      errors.push(`Markdown order mismatch at record ${index + 1}: expected ${canonical[index]?.name}, found ${headings[index]}.`);
-      if (errors.length >= 12) break;
+  const extraHeadings = [];
+  if (!options.allowExtraHeadings) {
+    if (headings.length !== canonical.length) errors.push(`Markdown has ${headings.length} item headings; JSON has ${canonical.length} records.`);
+    const count = Math.min(headings.length, canonical.length);
+    for (let index = 0; index < count; index += 1) {
+      if (itemCatalog.normalizeIdentityPart(headings[index]) !== itemCatalog.normalizeIdentityPart(canonical[index]?.name)) {
+        errors.push(`Markdown order mismatch at record ${index + 1}: expected ${canonical[index]?.name}, found ${headings[index]}.`);
+        if (errors.length >= 12) break;
+      }
     }
+  } else {
+    let jsonIndex = 0;
+    let headingIndex = 0;
+    while (headingIndex < headings.length && jsonIndex < canonical.length) {
+      if (itemCatalog.normalizeIdentityPart(headings[headingIndex]) === itemCatalog.normalizeIdentityPart(canonical[jsonIndex]?.name)) {
+        jsonIndex += 1;
+        headingIndex += 1;
+        continue;
+      }
+      const nextMatch = headings.slice(headingIndex).findIndex((heading) => (
+        itemCatalog.normalizeIdentityPart(heading) === itemCatalog.normalizeIdentityPart(canonical[jsonIndex]?.name)
+      ));
+      if (nextMatch > 0) {
+        extraHeadings.push(...headings.slice(headingIndex, headingIndex + nextMatch));
+        headingIndex += nextMatch;
+      } else {
+        extraHeadings.push(headings[headingIndex]);
+        headingIndex += 1;
+      }
+    }
+    if (jsonIndex !== canonical.length) {
+      errors.push(`Markdown is missing JSON item heading ${canonical[jsonIndex]?.name || "at end of catalog"}.`);
+    }
+    if (headingIndex < headings.length) extraHeadings.push(...headings.slice(headingIndex));
   }
   if (errors.length) throw new Error(`Markdown reference does not match the canonical JSON:\n${errors.join("\n")}`);
-  return { path: referencePath, sha256: sha256(text), headings: headings.length, orderMatches: true };
+  return {
+    path: referencePath,
+    sha256: sha256(text),
+    headings: headings.length,
+    extraHeadings,
+    orderMatches: true
+  };
 }
 
 function identityDescriptor(item, context = {}) {
@@ -339,6 +374,168 @@ function createTombstones(canonical, previousItems, existingTombstones = []) {
   });
   active.forEach((catalogId) => tombstones.delete(catalogId));
   return [...tombstones.values()].sort((left, right) => left.catalogId.localeCompare(right.catalogId));
+}
+
+function sourceVariantRecord(variant) {
+  const specificVariant = variant?.specificVariant;
+  if (!specificVariant || typeof specificVariant !== "object") return null;
+  const baseItem = specificVariant.baseItem
+    || (variant.base ? `${variant.base.name || ""}|${variant.base.source || ""}` : "");
+  return {
+    item: specificVariant,
+    specific: true,
+    baseItem
+  };
+}
+
+function sourceRecordKey(record) {
+  return itemCatalog.itemCatalogKey(
+    record.item,
+    record.specific ? { specificVariant: true, baseItem: record.baseItem } : {}
+  );
+}
+
+function sourceVariantDescriptor(record) {
+  const baseItem = String(record.baseItem || record.item?.baseItem || "");
+  const [name = "", ...sourceParts] = baseItem.split("|");
+  if (!name.trim() || !sourceParts.join("|").trim()) {
+    throw new Error(`Specific item variant is missing a valid baseItem identity: ${record.item?.name || "unknown"}.`);
+  }
+  return {
+    base: {
+      name: name.trim(),
+      source: sourceParts.join("|").trim()
+    },
+    specificVariant: structuredClone(record.item)
+  };
+}
+
+function sourceCatalogAudit(sourceItems) {
+  const records = itemCatalog.collectCatalogRecords(sourceItems);
+  const unique = new Map();
+  records.forEach((record) => {
+    const key = sourceRecordKey(record);
+    const previous = unique.get(key);
+    if (!previous) {
+      unique.set(key, record);
+      return;
+    }
+    if (stableJson(previous.item, { stripGenerated: true }) !== stableJson(record.item, { stripGenerated: true })) {
+      throw new Error(`Additive source has conflicting records for addressable identity ${key}.`);
+    }
+  });
+
+  const nestedKeys = new Set(records.filter((record) => record.specific).map(sourceRecordKey));
+  const validationItems = sourceItems.filter((item) => !nestedKeys.has(itemCatalog.itemCatalogKey(item)));
+  const decorated = itemCatalog.attachCatalogIdentities(validationItems);
+  const validation = itemCatalog.validateItemCatalog(decorated, {
+    expectedCount: decorated.length,
+    throwOnError: true
+  });
+  return {
+    records,
+    unique,
+    validation,
+    duplicateRecords: records.length - unique.size,
+    filteredTopLevelDuplicates: sourceItems.length - validationItems.length
+  };
+}
+
+function buildAdditiveCatalog(sourceItems, existingItems) {
+  const sourceAudit = sourceCatalogAudit(sourceItems);
+  const merged = structuredClone(existingItems);
+  const existingRecords = itemCatalog.collectCatalogRecords(merged);
+  const existingKeys = new Set(existingRecords.map(sourceRecordKey));
+  const addedKeys = new Set();
+  const currentRoots = new Map();
+  merged.forEach((item, index) => {
+    currentRoots.set(itemCatalog.itemCatalogKey(item), { item, index });
+  });
+  const importedRoots = new Map();
+  const sourceOwners = new Map();
+  sourceItems.forEach((root) => {
+    if (root?.baseItem || root?.genericVariant) return;
+    const rootKey = itemCatalog.itemCatalogKey(root);
+    (root.variants || []).forEach((variant) => {
+      const record = sourceVariantRecord(variant);
+      if (record && !sourceOwners.has(sourceRecordKey(record))) {
+        sourceOwners.set(sourceRecordKey(record), { root, rootKey });
+      }
+    });
+  });
+  const stats = {
+    sourceTopLevelRecords: sourceItems.length,
+    sourceAddressableRecords: sourceAudit.records.length,
+    sourceUniqueAddressableRecords: sourceAudit.unique.size,
+    sourceDuplicateRecordsIgnored: sourceAudit.duplicateRecords,
+    sourceTopLevelDuplicatesIgnored: sourceAudit.filteredTopLevelDuplicates,
+    topLevelCreated: 0,
+    variantsAttachedToExisting: 0,
+    variantsAttachedToImported: 0,
+    standaloneSpecificCreated: 0,
+    addressableCreated: 0
+  };
+
+  function appendVariant(parent, record, statKey) {
+    const key = sourceRecordKey(record);
+    if (existingKeys.has(key) || addedKeys.has(key)) return false;
+    if (!Array.isArray(parent.variants)) parent.variants = [];
+    parent.variants.push(sourceVariantDescriptor(record));
+    addedKeys.add(key);
+    stats[statKey] += 1;
+    return true;
+  }
+
+  sourceItems.forEach((sourceRoot) => {
+    if (sourceRoot?.baseItem || sourceRoot?.genericVariant) return;
+    const rootKey = itemCatalog.itemCatalogKey(sourceRoot);
+    const existingRoot = currentRoots.get(rootKey);
+    const sourceVariants = (sourceRoot.variants || [])
+      .map(sourceVariantRecord)
+      .filter(Boolean);
+    if (existingRoot) {
+      sourceVariants.forEach((record) => appendVariant(existingRoot.item, record, "variantsAttachedToExisting"));
+      return;
+    }
+    if (existingKeys.has(rootKey) || addedKeys.has(rootKey)) return;
+
+    const importedRoot = structuredClone(sourceRoot);
+    const retainedVariants = [];
+    sourceVariants.forEach((record) => {
+      const key = sourceRecordKey(record);
+      if (existingKeys.has(key) || addedKeys.has(key)) return;
+      retainedVariants.push(sourceVariantDescriptor(record));
+      addedKeys.add(key);
+    });
+    if (Array.isArray(sourceRoot.variants)) importedRoot.variants = retainedVariants;
+    merged.push(importedRoot);
+    importedRoots.set(rootKey, importedRoot);
+    addedKeys.add(rootKey);
+    stats.topLevelCreated += 1;
+  });
+
+  sourceAudit.unique.forEach((record, key) => {
+    if (existingKeys.has(key) || addedKeys.has(key)) return;
+    const owner = sourceOwners.get(key);
+    if (owner) {
+      const currentOwner = currentRoots.get(owner.rootKey);
+      if (currentOwner) {
+        appendVariant(currentOwner.item, record, "variantsAttachedToExisting");
+        return;
+      }
+      const importedOwner = importedRoots.get(owner.rootKey);
+      if (importedOwner) {
+        appendVariant(importedOwner, record, "variantsAttachedToImported");
+        return;
+      }
+    }
+    merged.push(structuredClone(record.item));
+    addedKeys.add(key);
+    stats.standaloneSpecificCreated += 1;
+  });
+
+  stats.addressableCreated = addedKeys.size;
+  return { items: merged, stats, sourceAudit };
 }
 
 function buildOutputs(canonical, baseline, options) {
@@ -555,14 +752,25 @@ function restoreBackup(options) {
 
 function run(options) {
   if (options.restoreBackup) return restoreBackup(options);
-  const canonical = readJson(options.source);
-  if (!Array.isArray(canonical)) throw new Error("Canonical item JSON must be a top-level array.");
-  const validation = itemCatalog.validateItemCatalog(canonical, { expectedCount: options.expectedCount, throwOnError: true });
-  const reference = validateMarkdownReference(options.reference, canonical);
+  const sourceItems = readJson(options.source);
+  if (!Array.isArray(sourceItems)) throw new Error("Canonical item JSON must be a top-level array.");
+  const reference = validateMarkdownReference(options.reference, sourceItems, { allowExtraHeadings: options.addMissing });
   const baseline = currentCatalog(options);
+  const additive = options.addMissing ? buildAdditiveCatalog(sourceItems, baseline.records) : null;
+  const canonical = additive ? additive.items : sourceItems;
+  const validation = itemCatalog.validateItemCatalog(canonical, {
+    expectedCount: additive ? canonical.length : options.expectedCount,
+    throwOnError: true
+  });
   const comparison = compareCatalogs(canonical, baseline.records);
   const outputs = buildOutputs(canonical, baseline, options);
   const preview = buildPreview(canonical, options.source, reference, baseline, comparison, outputs, validation);
+  if (additive) {
+    preview.mode = "pre-apply-additive-preview";
+    preview.additive = additive.stats;
+    preview.safeguards.sourceJsonIsAuthoritative = false;
+    preview.safeguards.sourceJsonIsAdditive = true;
+  }
   const itemsText = jsonText(outputs.itemsOutput);
   const baseItemsText = jsonText(outputs.baseOutput);
   const exactItems = fs.existsSync(options.catalog) && stableJson(readJson(options.catalog)) === stableJson(outputs.itemsOutput);
@@ -592,7 +800,13 @@ function run(options) {
   if (!exactItems || !exactBaseItems) {
     const entry = {
       createdAt: new Date().toISOString(),
-      source: { path: options.source, sha256: sourceSha, records: canonical.length },
+      source: {
+        path: options.source,
+        sha256: sourceSha,
+        records: sourceItems.length,
+        mode: options.addMissing ? "additive" : "replace",
+        mergedRecords: canonical.length
+      },
       reference: { path: options.reference, sha256: reference.sha256 },
       baseline: baselineBackupDescriptor(baseline, options),
       vendorBaseline: {

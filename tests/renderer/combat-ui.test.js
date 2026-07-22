@@ -31,7 +31,10 @@ const styles = fs.readFileSync(path.join(root, "src/app/renderer/styles.css"), "
   "turnActionsResourcesDock",
   "combatMapViewport",
   "combatMapEmpty",
-  "combatActiveName",
+  "combatRestTitle",
+  "combatLongRestButton",
+  "combatShortRestButton",
+  "combatLogTitle",
   "combatToggleInitiative",
   "combatToggleContext",
   "combatToggleActions"
@@ -91,12 +94,21 @@ assert.ok(sidebarOrder.every((index, position) => index >= 0 && (position === 0 
 
 assert.ok(!html.includes('t("turn.knownAc")'), "Known AC should not be shown in Start Combat");
 assert.ok(!html.includes('const acInput = document.createElement("input")'), "Known AC input should be removed from Start Combat");
+assert.ok(!html.includes('class="combat-active-card"'), "active turn card should be removed from combat context");
+assert.ok(!renderer.includes("combatActiveName"), "active turn name renderer should be removed from combat context");
+assert.ok(!renderer.includes("combatActiveMeta"), "active turn metadata renderer should be removed from combat context");
+assert.ok(renderer.includes('combatLongRestButton?.addEventListener("click", longRestSpellResources)'), "combat long rest button should reuse the long rest handler");
+assert.ok(renderer.includes('combatShortRestButton?.addEventListener("click", shortRestResources)'), "combat short rest button should reuse the short rest handler");
 assert.ok(styles.includes(".turn-actions-panel.is-resolving .turn-actions-body"), "action browser should hide while resolving an action");
 assert.ok(styles.includes(".combat-resolution-step.is-current"), "current resolution step styling is missing");
 assert.ok(styles.includes(".combat-resolution-step.is-complete"), "completed resolution step styling is missing");
 
 assert.ok(renderer.includes("function liveVttCombatTargetRoster"), "live VTT target roster helper is missing");
 assert.ok(renderer.includes("globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster"), "live VTT target roster is not exposed to Start Combat");
+assert.ok(renderer.includes("function visibleLiveVttCombatParticipants"), "combat tracker participant helper is missing");
+assert.ok(renderer.includes("visibleLiveVttCombatParticipants(state.combat)"), "combat target roster should use the combat tracker participants");
+assert.ok(!renderer.includes("Array.isArray(state.tokens) ? state.tokens"), "combat target roster should not use map-only tokens");
+assert.ok(html.includes("if (remoteRoster.combatActive === true) return { party, enemies };"), "active VTT combat should not add a player outside the tracker");
 assert.ok(renderer.includes("function applyCombatPanelVisibility"), "combat panel visibility controller is missing");
 assert.ok(renderer.includes("function toggleCombatPanel"), "combat panel toggle handler is missing");
 assert.ok(html.includes("function renderTurnActionStatuses"), "combat status renderer is missing");
@@ -157,6 +169,8 @@ assert.ok(styles.includes(".combat-resolution"), "resolution UI styles missing")
 assert.ok(styles.includes(".combat-log-entry"), "combat log styles missing");
 assert.ok(styles.includes(".combat-log-headline"), "combat log headline styles missing");
 assert.ok(styles.includes(".turn-actions-resources-dock"), "combat resources sidebar styles missing");
+assert.ok(styles.includes(".combat-rest-card"), "combat rest card styles missing");
+assert.ok(styles.includes(".combat-rest-controls"), "combat rest controls styles missing");
 assert.ok(styles.includes(".combat-action-icon"), "combat action icon styles missing");
 assert.ok(styles.includes(".combat-board-splitter"), "combat vertical splitters styling is missing");
 assert.ok(styles.includes(".combat-action-splitter"), "combat action splitter styling is missing");

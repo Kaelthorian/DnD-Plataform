@@ -61,6 +61,69 @@
         "relativeTo": "manifest",
         "sha256": "81ee3eaf4eb7495572a8d9f04fa3ea5371259dcb54b688bd19af510f89bcd49e"
       }
+    },
+    {
+      "createdAt": "2026-07-22T17:15:18.736Z",
+      "source": {
+        "path": "C:\\Users\\Trump\\Downloads\\items-sublist-data(1).json",
+        "sha256": "f01604ba9f6b662ae3337d869da46721867cadf31ee4b076064504e078dc72ee",
+        "records": 1070,
+        "mode": "additive",
+        "mergedRecords": 2253
+      },
+      "reference": {
+        "path": "C:\\Users\\Trump\\Downloads\\items-sublist(1).md",
+        "sha256": "4f6d46d0cd851467883a1d8ceea4a83b1912ea037e189db4bc2491908e93ac1e"
+      },
+      "baseline": {
+        "kind": "compressed-app-owned",
+        "activeRecords": 1779,
+        "items": {
+          "kind": "gzip",
+          "path": "backups/items.json-1a6c3293fae78228c08e010db652e5bdc8a8fe10ebf5e68236ba3c0f313aa81d.gz",
+          "relativeTo": "manifest",
+          "sha256": "1a6c3293fae78228c08e010db652e5bdc8a8fe10ebf5e68236ba3c0f313aa81d",
+          "compressedSha256": "d272c24d9c14d7cca249256073512a2be7e2c7a67ede681789ed18070d2e758c",
+          "bytes": 10678661
+        },
+        "baseItems": {
+          "kind": "gzip",
+          "path": "backups/items-base.json-e86f3d2241781c5e9ac21425c672a61e7dce18b28cc661e022b64372d02b3a20.gz",
+          "relativeTo": "manifest",
+          "sha256": "e86f3d2241781c5e9ac21425c672a61e7dce18b28cc661e022b64372d02b3a20",
+          "compressedSha256": "ba2539c174260eef0bd63db4edb8d58d65834428d0cb6685c131cfd210ba5aa5",
+          "bytes": 30167
+        }
+      },
+      "vendorBaseline": {
+        "items": {
+          "path": "C:\\Users\\Trump\\Documents\\WallyCode\\DnD Plataform\\DnD-Plataform\\vendor\\5etools-src-main\\data\\items.json",
+          "sha256": "39c7ac5b27b91a0e2aae5c39603a19dbbd1289e0b1aa8663bab7a57ef5f315eb"
+        },
+        "baseItems": {
+          "path": "C:\\Users\\Trump\\Documents\\WallyCode\\DnD Plataform\\DnD-Plataform\\vendor\\5etools-src-main\\data\\items-base.json",
+          "sha256": "5bb27be90ae9372149e39671fc0627de7d9d3b341ebb959219c69d71e9e001aa"
+        }
+      },
+      "outputs": {
+        "items": {
+          "path": "items.json",
+          "relativeTo": "manifest",
+          "sha256": "c16778daf2b38291750ebb5ef2f0a87cf62ca4be65abc39ed9de9ba7a9e4c379",
+          "bytes": 11178766
+        },
+        "baseItems": {
+          "path": "items-base.json",
+          "relativeTo": "manifest",
+          "sha256": "e86f3d2241781c5e9ac21425c672a61e7dce18b28cc661e022b64372d02b3a20",
+          "bytes": 30167
+        }
+      },
+      "preview": {
+        "path": "sync-preview.json",
+        "relativeTo": "manifest",
+        "sha256": "a2e55dc682e8087f7d88f6f714af16083eedabb8eb65417166db0ee89528852d"
+      }
     }
   ]
 }

@@ -129,8 +129,8 @@
     const combatMapStatus = document.getElementById("combatMapStatus");
     const combatInitiativeList = document.getElementById("combatInitiativeList");
     const combatRoundLabel = document.getElementById("combatRoundLabel");
-    const combatActiveName = document.getElementById("combatActiveName");
-    const combatActiveMeta = document.getElementById("combatActiveMeta");
+    const combatLongRestButton = document.getElementById("combatLongRestButton");
+    const combatShortRestButton = document.getElementById("combatShortRestButton");
     const combatMapLiveIndicator = document.querySelector(".combat-map-live-indicator");
     const combatBoardMain = document.getElementById("combatBoardMain");
     const combatInitiativePanel = document.querySelector(".combat-initiative-panel");
@@ -566,10 +566,17 @@
       panelVisibility: () => ({ ...combatPanelVisibility })
     };
 
+    function visibleLiveVttCombatParticipants(combat) {
+      return Array.isArray(combat?.participants)
+        ? combat.participants.filter((participant) => !participant?.hidden && !participant?.playerHidden)
+        : [];
+    }
+
     function liveVttCombatTargetRoster() {
       const state = liveVttState;
-      const roster = { party: [], enemies: [] };
-      if (!state?.active) return roster;
+      const combatActive = Boolean(state?.active && state.combat?.active);
+      const roster = { party: [], enemies: [], combatActive };
+      if (!combatActive) return roster;
       const seen = {
         party: new Set(),
         enemies: new Set()
@@ -583,12 +590,7 @@
         roster[group].push({ id: String(participant?.id || key), name });
       };
 
-      (Array.isArray(state.tokens) ? state.tokens : [])
-        .filter((token) => token?.kind === "character" && !token?.hidden && !token?.playerHidden)
-        .forEach((token) => addTarget("party", token));
-      if (!state.combat?.active) return roster;
-      (Array.isArray(state.combat.participants) ? state.combat.participants : [])
-        .filter((participant) => !participant?.hidden && !participant?.playerHidden)
+      visibleLiveVttCombatParticipants(state.combat)
         .forEach((participant) => addTarget(participant?.kind === "character" ? "party" : "enemies", participant));
       return roster;
     }
@@ -1605,9 +1607,7 @@
     function renderLiveVttCombat(combat) {
       const elements = liveVttElements;
       if (!elements?.combat || !elements.combatTrack) return;
-      const participants = Array.isArray(combat?.participants)
-        ? combat.participants.filter((participant) => !participant?.hidden && !participant?.playerHidden)
-        : [];
+      const participants = visibleLiveVttCombatParticipants(combat);
       if (!combat?.active || !participants.length) {
         elements.combat.hidden = true;
         elements.combatTrack.replaceChildren();
@@ -1674,9 +1674,7 @@
 
     function renderCombatInitiative(combat) {
       if (!combatInitiativeList) return;
-      const participants = Array.isArray(combat?.participants)
-        ? combat.participants.filter((participant) => !participant?.hidden && !participant?.playerHidden)
-        : [];
+      const participants = visibleLiveVttCombatParticipants(combat);
       const activeIndex = participants.findIndex((participant) => participant.id === combat?.activeId);
       if (combatRoundLabel) {
         combatRoundLabel.textContent = combat?.active
@@ -1740,23 +1738,6 @@
       if (combatMapEmpty) combatMapEmpty.hidden = hasMap;
       if (combatMapStatus) combatMapStatus.textContent = hasMap ? t("combat.mapConnected") : t("combat.mapWaiting");
       if (combatMapLiveIndicator) combatMapLiveIndicator.dataset.connected = String(hasMap);
-
-      const participants = Array.isArray(combat?.participants)
-        ? combat.participants.filter((participant) => !participant?.hidden && !participant?.playerHidden)
-        : [];
-      const activeParticipant = participants.find((participant) => participant.id === combat?.activeId);
-      if (combatActiveName) combatActiveName.textContent = activeParticipant?.name || t("combat.noActiveActor");
-      if (combatActiveMeta) {
-        if (!activeParticipant) {
-          combatActiveMeta.textContent = combat?.active ? t("combat.activeWaiting") : t("combat.activeWaiting");
-        } else {
-          const kind = activeParticipant.kind === "character" ? t("combat.character") : t("combat.enemy");
-          const initiative = activeParticipant.initiative === "" || activeParticipant.initiative == null
-            ? ""
-            : t("combat.initiativeValue", { initiative: activeParticipant.initiative });
-          combatActiveMeta.textContent = [kind, initiative].filter(Boolean).join(" • ");
-        }
-      }
       renderCombatInitiative(combat);
     }
 
@@ -5360,7 +5341,7 @@
       });
       globalThis.dndItemCatalog?.setItemAutomationRegistry?.(automationRegistry);
       const declaredExpectedCount = Number(itemData?.items?._meta?.expectedActiveRecords);
-      const expectedCount = Number.isInteger(declaredExpectedCount) && declaredExpectedCount > 0 ? declaredExpectedCount : 1779;
+      const expectedCount = Number.isInteger(declaredExpectedCount) && declaredExpectedCount > 0 ? declaredExpectedCount : 2253;
       const validation = globalThis.dndItemCatalog?.validateItemCatalog?.(items, { expectedCount });
       if (validation && validation.ok === false) {
         throw new Error(`Invalid app-owned item catalog: ${validation.errors?.join?.("; ") || "validation failed"}`);
@@ -5924,6 +5905,8 @@
         .forEach((button) => button.addEventListener("click", () => closeSidebarMenu()));
       longRestButton?.addEventListener("click", longRestSpellResources);
       shortRestButton?.addEventListener("click", shortRestResources);
+      combatLongRestButton?.addEventListener("click", longRestSpellResources);
+      combatShortRestButton?.addEventListener("click", shortRestResources);
       characterReadyButton?.addEventListener("click", toggleCharacterReady);
       turnActionsButton?.addEventListener("click", () => {
         setSidebarView("combat");

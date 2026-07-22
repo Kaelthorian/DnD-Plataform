@@ -57,11 +57,16 @@ El comando npm sin sufijo es seguro por defecto y sólo calcula el preview:
 npm run sync:items -- --source <items-sublist-data.json> --reference <items-sublist.md>
 npm run sync:items:apply -- --source <items-sublist-data.json> --reference <items-sublist.md>
 npm run sync:items -- --source <items-sublist-data.json> --reference <items-sublist.md> --check
+npm run sync:items -- --add-missing --source <items-sublist-data.json> --reference <items-sublist.md>
+npm run sync:items:apply -- --add-missing --source <items-sublist-data.json> --reference <items-sublist.md>
+npm run sync:items -- --add-missing --source <items-sublist-data.json> --reference <items-sublist.md> --check
 npm run validate:items
 npm run test:items
 ```
 
 Revisar `src/data/items/sync-preview.json` antes del apply. El backup comprimido y el manifiesto portable v2 `items-backup.manifest.json` permiten restaurar el catálogo de desarrollo con `node scripts/sync-items.js --restore-backup <manifest>`; el restore resuelve backups relativos al manifiesto y escribe en los targets actuales. Los manifiestos v1 siguen siendo compatibles. Esos artefactos quedan fuera del paquete Electron. El sync no toca slots, inventarios, logs ni homebrew; una baja sólo sale del catálogo activo. Repetir `--check` con los mismos inputs debe producir cero cambios ambas veces.
+
+Usa `--add-missing` cuando el JSON sea una entrega parcial: conserva el catálogo actual, ignora identidades existentes y agrega sólo registros direccionables ausentes. El Markdown puede contener encabezados extra en ese modo si mantiene el orden del JSON; los extras se reportan, pero no se importan.
 
 Al extender el runtime, mantener identidad estable y usar el overlay separado según `docs/ITEM_AUTOMATION.md`. Pools legacy viven en `itemResources[catalogId]`, los declarativos en `itemResources[catalogId::resourceId]`, efectos nuevos en `activeItemEffects` y marcadores anteriores en `itemEffects`. Los costos se confirman antes de descontar; `dawn` nunca se recupera por Long Rest. Reglas narrativas, geometría VTT y contexto no modelado conservan resolución manual; no automatizar copias individuales hasta que Equipment tenga IDs de instancia.
 

@@ -345,18 +345,25 @@
           </div>
         </section>
         <div class="combat-board-splitter" id="combatContextSplitter" data-combat-split="context" role="separator" aria-orientation="vertical" aria-label="Resize combat log panel" tabindex="0" data-i18n-aria-label="combat.resizeContext"></div>
-        <aside class="combat-context-panel" id="combatContextPanel" aria-labelledby="combatContextTitle">
-          <section class="combat-active-card">
+        <aside class="combat-context-panel" id="combatContextPanel" aria-labelledby="combatRestTitle combatLogTitle">
+          <section class="combat-rest-card" aria-labelledby="combatRestTitle">
             <div class="combat-panel-heading">
-              <div class="combat-panel-eyebrow" id="combatContextTitle" data-i18n="combat.activeActor">Active turn</div>
-              <div class="combat-active-name" id="combatActiveName" data-i18n="combat.noActiveActor">No active combatant</div>
-              <div class="combat-active-meta" id="combatActiveMeta" data-i18n="combat.activeWaiting">The DM has not started an initiative round.</div>
+              <div class="combat-panel-eyebrow" id="combatRestTitle" data-i18n="sidebar.restControls">Rest controls</div>
             </div>
-            <div class="combat-active-badge" data-app-icon="combat" data-icon-size="28" aria-hidden="true"></div>
+            <div class="combat-rest-controls" role="group" aria-label="Rest controls" data-i18n-aria-label="top.restControls">
+              <button class="long-rest-button combat-rest-button" id="combatLongRestButton" type="button" aria-label="Start long rest" title="Start long rest" data-i18n-aria-label="top.longRest.start" data-i18n-title="top.longRest.start">
+                <span data-app-icon="longRest" data-icon-class="rest-control-icon" aria-hidden="true"></span>
+                <span class="sidebar-rest-label" data-i18n="top.longRest">Long rest</span>
+              </button>
+              <button class="long-rest-button short-rest-button combat-rest-button" id="combatShortRestButton" type="button" aria-label="Start short rest" title="Start short rest" data-i18n-aria-label="top.shortRest.start" data-i18n-title="top.shortRest.start">
+                <span data-app-icon="campfire" data-icon-class="rest-control-icon" aria-hidden="true"></span>
+                <span class="sidebar-rest-label" data-i18n="top.shortRest">Short rest</span>
+              </button>
+            </div>
           </section>
           <section class="combat-log" id="combatLogSection">
             <div class="combat-log-header">
-              <h3 data-i18n="turn.combatLog">Combat Log</h3>
+              <h3 id="combatLogTitle" data-i18n="turn.combatLog">Combat Log</h3>
               <button type="button" id="combatLogClear" data-i18n="turn.clearLog">Clear</button>
             </div>
             <div class="combat-log-list" id="combatLogList"></div>
@@ -1837,6 +1844,7 @@
         sheetMeta.shortRestActive = false;
         sheetMeta.longRestActive = false;
         sheetMeta.restState = normalizeRestState({});
+        updateInteractionState();
         scheduleSave();
         showStatus(t("rest.longFinished"));
         return;
@@ -1888,6 +1896,7 @@
         sheetMeta.longRestActive = false;
         sheetMeta.shortRestActive = false;
         sheetMeta.restState = normalizeRestState({});
+        updateInteractionState();
         scheduleSave();
         showStatus(t("rest.shortFinished"));
         return;
@@ -8200,6 +8209,7 @@
       const remoteRoster = globalThis.dndLiveVttCombatTargetRoster?.() || {};
       const party = Array.isArray(remoteRoster.party) ? remoteRoster.party.slice() : [];
       const enemies = Array.isArray(remoteRoster.enemies) ? remoteRoster.enemies.slice() : [];
+      if (remoteRoster.combatActive === true) return { party, enemies };
       const selfName = characterCombatName();
       if (!party.some((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfName.toLocaleLowerCase())) {
         party.unshift({ id: "sheet:self", name: selfName });
@@ -11206,18 +11216,19 @@
         characterReadyButton.replaceChildren(...(icon ? [icon, label] : [label]));
       }
       if (clearFieldsButton) clearFieldsButton.disabled = isCharacterReady();
-      longRestButton?.classList.toggle("active", isLongRestActive());
-      if (longRestButton) {
-        const label = t(isLongRestActive() ? "top.longRest.finish" : "top.longRest.start");
-        longRestButton.setAttribute("aria-label", label);
-        longRestButton.setAttribute("title", label);
-      }
-      shortRestButton?.classList.toggle("active", isShortRestActive());
-      if (shortRestButton) {
-        const label = t(isShortRestActive() ? "top.shortRest.finish" : "top.shortRest.start");
-        shortRestButton.setAttribute("aria-label", label);
-        shortRestButton.setAttribute("title", label);
-      }
+      const longRestActive = isLongRestActive();
+      const shortRestActive = isShortRestActive();
+      const syncRestButton = (button, active, key) => {
+        if (!button) return;
+        button.classList.toggle("active", active);
+        const label = t(active ? `${key}.finish` : `${key}.start`);
+        button.setAttribute("aria-label", label);
+        button.setAttribute("title", label);
+      };
+      syncRestButton(longRestButton, longRestActive, "top.longRest");
+      syncRestButton(combatLongRestButton, longRestActive, "top.longRest");
+      syncRestButton(shortRestButton, shortRestActive, "top.shortRest");
+      syncRestButton(combatShortRestButton, shortRestActive, "top.shortRest");
       sheetFieldElements().forEach((field) => {
         const locked = isCharacterReady() && !fieldCanChangeWhenReady(field);
         field.classList.toggle("locked-field", locked);

@@ -190,7 +190,7 @@ const invalidSpell = clone(overlay);
 invalidSpell.items[3].capabilities[0].spell.source = "";
 assert.match(schema.validateOverlay(invalidSpell).errors.join("\n"), /spell requires name and source/);
 
-assert.strictEqual(catalogData.item.length, 1779, "automation overlay must not change the authoritative catalog count");
+assert.strictEqual(catalogData.item.length, 2253, "automation overlay must not change the authoritative catalog count");
 const mundane = itemCatalog.itemAutomationProfile(catalogData.item.find((item) => item.name === "Club"));
 assert.deepStrictEqual(mundane.capabilities, [], "items without overlay keep their existing profile plus empty compiled arrays");
 

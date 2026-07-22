@@ -125,10 +125,10 @@ const generatedCatalogPath = path.join(repoRoot, "src", "data", "items", "items.
 assert.equal(fs.existsSync(generatedCatalogPath), true, "the synchronized app-owned catalog must be versioned");
 const realItems = JSON.parse(fs.readFileSync(generatedCatalogPath, "utf8")).item;
 const realBaseItems = JSON.parse(fs.readFileSync(path.join(repoRoot, "src", "data", "items", "items-base.json"), "utf8"));
-const realReport = itemCatalog.validateItemCatalog(realItems, { expectedCount: 1779 });
+const realReport = itemCatalog.validateItemCatalog(realItems, { expectedCount: 2253 });
 assert.equal(realReport.ok, true, realReport.errors.slice(0, 10).join("\n"));
-assert.equal(realReport.specificVariants, 2431);
-assert.equal(realReport.identities, 4210);
+assert.equal(realReport.specificVariants, 2643);
+assert.equal(realReport.identities, 4896);
 
 function realItem(name, source) {
   const item = realItems.find((entry) => entry.name === name && entry.source === source);

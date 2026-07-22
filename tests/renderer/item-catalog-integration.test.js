@@ -74,8 +74,8 @@ const dmResourcePicker = functionBlock(dmScreen, "ResourcePicker");
 assert.match(applyCatalog, /activeSource = Array\.isArray\(itemData\?\.items\?\.item\) \? itemData\.items\.item : \[\]/);
 assert.doesNotMatch(applyCatalog, /baseitem|itemGroup/,
   "base items and grouping templates must not inflate the active picker");
-assert.match(applyCatalog, /expectedCount[^;]*:\s*1779/,
-  "the renderer must retain the authoritative 1,779-record fallback");
+assert.match(applyCatalog, /expectedCount[^;]*:\s*2253/,
+  "the renderer must retain the authoritative 2,253-record fallback");
 assert.match(applyCatalog, /if \(items\.length !== expectedCount\) throw new Error/,
   "the renderer must reject an incomplete active catalog");
 assert.match(pickerItems, /return items\s*\.filter\(\(item\) => !isCatalogItemUnavailable\(item\)\)/,
@@ -84,8 +84,8 @@ assert.match(pickerItems, /return items\s*\.filter\(\(item\) => !isCatalogItemUn
 const generatedCatalogPath = path.join(root, "src/data/items/items.json");
 if (fs.existsSync(generatedCatalogPath)) {
   const generatedCatalog = JSON.parse(fs.readFileSync(generatedCatalogPath, "utf8"));
-  assert.strictEqual(generatedCatalog.item?.length, 1779,
-    "the generated active catalog must contain exactly 1,779 top-level records");
+  assert.strictEqual(generatedCatalog.item?.length, 2253,
+    "the generated active catalog must contain exactly 2,253 top-level records");
 }
 
 // Inventory keeps its legacy text representation, but new entries embed source
@@ -99,7 +99,7 @@ assert.match(equipmentItemKey, /if \(reference\.hasStableReference\)/);
 assert.match(equipmentItemKey, /const stateSuffix = entry\?\.usedCopy \? "::used-copy" : ""/);
 assert.match(equipmentItemKey, /return `catalog:\$\{catalogId\}\$\{stateSuffix\}`/);
 
-// Specific variants stay below their 1,779 parent rows, while remaining
+// Specific variants stay below their 2,253 parent rows, while remaining
 // independently indexed and selectable through the parent's detail panel.
 assert.match(materializeVariant, /const specific = variant\?\.specificVariant/);
 assert.match(materializeVariant, /catalogParentId:/);

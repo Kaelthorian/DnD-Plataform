@@ -12,7 +12,7 @@ const defaultBaseCatalog = path.join(repoRoot, "src", "data", "items", "items-ba
 const defaultAutomation = path.join(repoRoot, "src", "data", "items", "item-automation.json");
 
 function parseArgs(argv) {
-  const options = { catalog: defaultCatalog, baseCatalog: defaultBaseCatalog, automation: defaultAutomation, source: "", reference: "", expectedCount: 1779 };
+  const options = { catalog: defaultCatalog, baseCatalog: defaultBaseCatalog, automation: defaultAutomation, source: "", reference: "", expectedCount: 2253 };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--catalog") options.catalog = path.resolve(argv[++index] || defaultCatalog);

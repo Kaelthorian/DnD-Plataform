@@ -554,7 +554,7 @@ function itemAddressableEntries(items) {
 
 function validateDmItemCatalog(itemsData, topLevelItems, addressableItems) {
   const declaredExpectedCount = Number(itemsData?._meta?.expectedActiveRecords);
-  const expectedCount = Number.isInteger(declaredExpectedCount) && declaredExpectedCount > 0 ? declaredExpectedCount : 1779;
+  const expectedCount = Number.isInteger(declaredExpectedCount) && declaredExpectedCount > 0 ? declaredExpectedCount : 2253;
   const errors = [];
   if (topLevelItems.length !== expectedCount) {
     errors.push(`expected ${expectedCount} top-level items, found ${topLevelItems.length}`);
