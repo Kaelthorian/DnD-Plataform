@@ -17,6 +17,7 @@ import "../../../../engine/spells/spell-data.js";
 import "../../../../engine/items/item-catalog.js";
 import "../../../../engine/conditions/statuses.js";
 import "../../../../engine/obsidian-markdown.js";
+import "../../../../engine/combat/vtt-movement.js";
 
 const sharedObsidianMarkdown = globalThis.dndObsidianMarkdownEngine;
 
@@ -37,6 +38,7 @@ const itemCatalogEngine = globalThis.dndItemCatalog;
 
 const LIVE_STATUS_FIELD = "__liveStatuses";
 const statusEngine = globalThis.dndConditionEngine;
+const vttMovementEngine = globalThis.dndVttMovementEngine;
 
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 const SIZE_LABELS = {
@@ -173,11 +175,13 @@ const YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com";
 const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 const DM_BOARD_SAVE_DEBOUNCE_MS = 700;
 const MONSTER_TOKEN_BASE_PATH = "../../../Tokens";
-const MAP_TOKEN_SIZE = 56;
+const MAP_TOKEN_SIZE = vttMovementEngine.MASTER_TOKEN_SIZE;
 const MAP_TOKEN_ANONYMOUS_NAME = "Criatura desconocida";
 const MAP_MARKER_SIZE = 28;
 const MAP_MARKER_SHAPE_MIN_SIZE = 24;
 const MAP_MARKER_SHAPE_DEFAULT_SIZE = 120;
+const MAP_MARKER_SHAPE_MIN_FEET = 1;
+const MAP_MARKER_SHAPE_MAX_FEET = Math.floor((2000 / MAP_TOKEN_SIZE) * 5);
 const FOG_REVEAL_POINT_LIMIT = 1200;
 const MAP_FOG_BRUSH_MIN_SIZE = 8;
 const MAP_FOG_BRUSH_MAX_SIZE = 360;
@@ -2281,8 +2285,14 @@ function normalizeMapCombatState(state) {
   const source = isPlainObject(state) ? state : {};
   return {
     activeTokenKey: String(source.activeTokenKey || source.activeId || ""),
-    round: Math.max(1, Math.floor(Number(source.round) || 1))
+    round: Math.max(1, Math.floor(Number(source.round) || 1)),
+    movementTokenKey: String(source.movementTokenKey || source.movement?.tokenKey || ""),
+    movementUsedFeet: vttMovementEngine.roundFeet(source.movementUsedFeet ?? source.movement?.usedFeet ?? 0)
   };
+}
+
+function mapTokenSpeedFeet(token) {
+  return vttMovementEngine.actorSpeedFeet(tokenActorNoteFromToken(token) || token, 30);
 }
 
 function mapCombatTokenKey(pageId, tokenId) {
@@ -2338,10 +2348,19 @@ function mapCombatTimeline(note, page) {
   const activeTokenKey = entries.some((entry) => entry.key === storedState.activeTokenKey)
     ? storedState.activeTokenKey
     : (entries[0]?.key || "");
+  const activeEntry = entries.find((entry) => entry.key === activeTokenKey) || null;
+  const speedFeet = activeEntry ? mapTokenSpeedFeet(activeEntry.token) : 0;
+  const movementUsedFeet = storedState.movementTokenKey === activeTokenKey
+    ? Math.min(speedFeet, storedState.movementUsedFeet)
+    : 0;
   return {
     active: entries.length > 0,
     activeTokenKey,
     round: storedState.round,
+    movementTokenKey: activeTokenKey,
+    movementUsedFeet,
+    movementSpeedFeet: speedFeet,
+    movementRemainingFeet: vttMovementEngine.roundFeet(Math.max(0, speedFeet - movementUsedFeet)),
     entries
   };
 }
@@ -6761,9 +6780,9 @@ function MapTokenTracker({
     return (
       <div
         key={token.id}
-        className={`grid cursor-grab grid-cols-[34px_minmax(0,1fr)_48px_92px_54px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs transition hover:bg-neutral-900 focus-within:bg-neutral-900 active:cursor-grabbing ${isDragging ? "bg-sky-950/40 opacity-60" : ""}`}
-        title="Arrastrar a un grupo o click derecho para abrir menu del token"
-        draggable
+        className={`grid grid-cols-[34px_minmax(0,1fr)_48px_92px_54px] items-center gap-2 border-b border-neutral-900 px-3 py-2 text-xs transition hover:bg-neutral-900 focus-within:bg-neutral-900 ${combatTimeline?.active ? "cursor-default" : "cursor-grab active:cursor-grabbing"} ${isDragging ? "bg-sky-950/40 opacity-60" : ""}`}
+        title={combatTimeline?.active ? "En combate, selecciona la ficha en el mapa y marca su destino" : "Arrastrar a un grupo o click derecho para abrir menu del token"}
+        draggable={!combatTimeline?.active}
         onDragStart={(event) => startTokenDrag(event, token)}
         onDragEnd={stopTokenDrag}
         onContextMenu={(event) => onTokenContextMenu?.(event, token.id, token.sourcePageId || activePageId)}
@@ -6870,6 +6889,9 @@ function MapTokenTracker({
               <div className="text-[10px] font-black uppercase tracking-[0.14em] text-red-300">Ronda {combatTimeline.round}</div>
               <div className="truncate text-xs font-black text-neutral-100" title={activeCombatEntry?.token?.name || ""}>
                 Turno: {activeCombatEntry?.token?.name || "--"}
+              </div>
+              <div className="mt-0.5 text-[10px] font-bold uppercase text-sky-200">
+                Movimiento {vttMovementEngine.formatFeet(combatTimeline.movementRemainingFeet)}/{vttMovementEngine.formatFeet(combatTimeline.movementSpeedFeet)} ft
               </div>
             </div>
             <button
@@ -7169,6 +7191,7 @@ function MapNote({
   onMapTokenGroupGlobalChange,
   onMapTokenGroupCombatChange,
   onMapCombatTurnAdvance,
+  onMapCombatMoveRequest,
   onMapTrackerTokenDrop,
   selectedMapTokenIds = [],
   onMapTokenSelectionChange,
@@ -7844,7 +7867,27 @@ function MapNote({
     if (handleDmMapPingPointerDown(event)) return;
     if (startMapPan(event)) return;
     if (!imageSrc || isFogBrushActive || event.button !== 0) return;
-    if (event.target?.closest?.("[data-map-token='true'], [data-board-control='true'], button, input, select, textarea")) return;
+    const targetIsToken = Boolean(event.target?.closest?.("[data-map-token='true']"));
+    const targetIsForm = Boolean(event.target?.closest?.("[data-map-form-shape='true']"));
+    const targetIsControl = Boolean(event.target?.closest?.("button, input, select, textarea"));
+    const targetIsBoardControl = Boolean(event.target?.closest?.("[data-board-control='true']"));
+    const selectedCombatTokenId = selectedMapTokenIds.length === 1 ? selectedMapTokenIds[0] : "";
+    const selectedCombatTokenKey = selectedCombatTokenId ? mapCombatTokenKey(activePage.id, selectedCombatTokenId) : "";
+    if (
+      combatTimeline.active
+      && selectedCombatTokenKey === combatTimeline.activeTokenKey
+      && !targetIsToken
+      && !targetIsControl
+      && (!targetIsBoardControl || targetIsForm)
+    ) {
+      const point = basePointFromVisualPoint(bodyPointFromPointer(event));
+      if (!point) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onMapCombatMoveRequest?.(noteActionId, activePage.id, selectedCombatTokenId, point);
+      return;
+    }
+    if (targetIsToken || targetIsBoardControl || targetIsControl) return;
     const point = basePointFromVisualPoint(bodyPointFromPointer(event));
     if (!point) return;
     event.preventDefault();
@@ -8329,6 +8372,7 @@ function MapNote({
                 const borderRadius = marker.formType === "circle" ? "999px" : "3px";
                 const rotation = `rotate(${Number(marker.rotation) || 0}deg)`;
                 const patternBackground = mapMarkerPatternBackground(marker.pattern, color);
+                const dimensions = vttMovementEngine.shapeDimensionsFeet(marker.width, marker.height, MAP_TOKEN_SIZE);
                 return (
                   <div
                     key={marker.id}
@@ -8373,6 +8417,20 @@ function MapNote({
                         }}
                       />
                     ) : null}
+                    <div
+                      className="pointer-events-none absolute inset-0 z-[2] text-[9px] font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)]"
+                      style={{ transform: rotation, transformOrigin: "center" }}
+                      aria-hidden="true"
+                    >
+                      <span className="absolute left-0 right-0 top-1/2 border-t border-dashed border-white/90" />
+                      <span className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-neutral-950/90 px-1 py-0.5 whitespace-nowrap">
+                        {vttMovementEngine.formatFeet(dimensions.width)} ft
+                      </span>
+                      <span className="absolute bottom-0 left-1/2 top-0 border-l border-dashed border-white/90" />
+                      <span className="absolute top-1/2 -translate-y-1/2 bg-neutral-950/90 px-1 py-0.5 whitespace-nowrap" style={{ left: "calc(100% + 4px)" }}>
+                        {vttMovementEngine.formatFeet(dimensions.height)} ft
+                      </span>
+                    </div>
                     <span
                       className="pointer-events-none absolute left-1 top-1 max-w-[calc(100%-8px)] truncate border border-neutral-800 bg-neutral-950/80 px-1.5 py-0.5 text-[10px] font-bold uppercase text-neutral-100 shadow"
                       style={{ transform: `scale(${fixedOverlayScale})`, transformOrigin: "left top" }}
@@ -8440,12 +8498,12 @@ function MapNote({
               return (
                 <button
                   key={token.id}
-                  className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : token.identityHidden ? "border-violet-300 ring-2 ring-violet-400/60" : token.nameHidden ? "border-cyan-300 ring-2 ring-cyan-400/50" : "border-amber-300"} ${token.hidden ? "border-dashed opacity-50 saturate-50" : ""}`}
+                  className={`absolute z-10 rounded-full border-2 bg-neutral-950 shadow-[0_4px_14px_rgba(0,0,0,0.65)] hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-300 ${combatTimeline.active ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${isSelected ? "border-sky-300 ring-4 ring-sky-300/45" : token.identityHidden ? "border-violet-300 ring-2 ring-violet-400/60" : token.nameHidden ? "border-cyan-300 ring-2 ring-cyan-400/50" : "border-amber-300"} ${token.hidden ? "border-dashed opacity-50 saturate-50" : ""}`}
                   type="button"
                   data-map-token="true"
                   data-map-token-id={token.id}
                   data-map-page-id={activePage.id}
-                  title={`${token.name || token.character?.name || token.monster?.name || "Token"}${token.hidden ? " (hidden)" : ""}${token.identityHidden ? " (identity hidden)" : ""}${token.nameHidden ? " (name hidden)" : ""}`}
+                  title={`${token.name || token.character?.name || token.monster?.name || "Token"}${combatTimeline.active ? (mapCombatTokenKey(activePage.id, token.id) === combatTimeline.activeTokenKey ? " - click para seleccionar y luego click en el destino" : " - fuera de su turno") : ""}${token.hidden ? " (hidden)" : ""}${token.identityHidden ? " (identity hidden)" : ""}${token.nameHidden ? " (name hidden)" : ""}`}
                   style={{
                     left: visualPoint.x,
                     top: visualPoint.y,
@@ -8501,6 +8559,14 @@ function MapNote({
             <span className="max-w-sm text-sm text-neutral-500">PNG, JPG, WebP o GIF</span>
           </button>
         )}
+        {imageSrc ? (
+          <div
+            className="pointer-events-none absolute bottom-3 right-3 z-30 border border-dashed border-sky-300/80 bg-neutral-950/90 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-sky-100 shadow"
+            aria-label="Escala del mapa: un token equivale a cinco pies"
+          >
+            1 token = 5 ft
+          </div>
+        ) : null}
         {imageSrc ? (
           <MapTokenTracker
             mapNoteId={noteActionId}
@@ -11656,6 +11722,7 @@ function DmScreenApp() {
   const boardRootRef = useRef(null);
   const dragRef = useRef(null);
   const mapTokenDragRef = useRef(null);
+  const mapTokenMoveAnimationRef = useRef(null);
   const mapMarkerDragRef = useRef(null);
   const tabDragRef = useRef(null);
   const resizeRef = useRef(null);
@@ -11986,6 +12053,9 @@ function DmScreenApp() {
     const publisher = mapTokenDragPublishRef.current;
     publisher.disposed = false;
     return () => {
+      const movement = mapTokenMoveAnimationRef.current;
+      if (movement?.frameId) window.cancelAnimationFrame(movement.frameId);
+      mapTokenMoveAnimationRef.current = null;
       publisher.disposed = true;
       publisher.pending = null;
       if (publisher.timerId) window.clearTimeout(publisher.timerId);
@@ -14338,12 +14408,14 @@ function DmScreenApp() {
     focusNote(resolveRootNoteId(mapNoteId, monsterNotesRef.current) || mapNoteId);
     const currentSelection = selectedMapTokensRef.current;
     const pageTokenIds = new Set((page.mapTokens || []).map((entry) => entry.id));
-    const selectedIds = currentSelection.mapNoteId === mapNoteId
+    const combatActive = mapCombatTimeline(mapNote, page).active;
+    const selectedIds = combatActive ? [tokenId] : currentSelection.mapNoteId === mapNoteId
       && currentSelection.pageId === page.id
       && currentSelection.tokenIds.includes(tokenId)
       ? currentSelection.tokenIds.filter((id) => pageTokenIds.has(id))
       : [tokenId];
     setMapTokenSelection(mapNoteId, page.id, selectedIds);
+    if (combatActive) return;
     const selectedTokens = (page.mapTokens || []).filter((entry) => selectedIds.includes(entry.id));
     const startPositions = Object.fromEntries(selectedTokens.map((entry) => {
       const size = clamp(Number(entry.size) || MAP_TOKEN_SIZE, 32, 140);
@@ -14407,6 +14479,96 @@ function DmScreenApp() {
     drag.previewPositions = previewPositions;
     drag.previewMarkerPositions = previewMarkerPositions;
     queueMapTokenDragPreviewPublish(drag);
+  }
+
+  function startMapCombatTokenMove(mapNoteId, pageId, tokenId, targetPoint) {
+    if (mapTokenMoveAnimationRef.current || !targetPoint) return false;
+    const mapNote = monsterNotesRef.current.find((note) => note.id === mapNoteId);
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
+    const token = page?.mapTokens?.find((entry) => entry.id === tokenId);
+    const timeline = mapCombatTimeline(mapNote, page);
+    const tokenKey = mapCombatTokenKey(page?.id, tokenId);
+    if (!mapNote || !page || !token || !timeline.active || timeline.activeTokenKey !== tokenKey) return false;
+
+    const size = clamp(Number(token.size) || MAP_TOKEN_SIZE, 32, 140);
+    const metrics = mapBodyMetrics(mapNote);
+    const snappedTarget = snapMapTokenPoint(mapNote, Number(targetPoint.x) - size / 2, Number(targetPoint.y) - size / 2, page.id);
+    const movement = vttMovementEngine.resolveMovement({
+      startX: Number(token.x) || 0,
+      startY: Number(token.y) || 0,
+      tokenSize: size,
+      targetCenterX: snappedTarget.x + size / 2,
+      targetCenterY: snappedTarget.y + size / 2,
+      speedFeet: timeline.movementSpeedFeet,
+      usedFeet: timeline.movementUsedFeet,
+      masterTokenSize: MAP_TOKEN_SIZE,
+      minX: 0,
+      minY: 0,
+      maxX: Math.max(0, metrics.width - size),
+      maxY: Math.max(0, metrics.height - size)
+    });
+    if (movement.distanceFeet <= 0) return false;
+
+    const startPosition = { x: Number(token.x) || 0, y: Number(token.y) || 0, size };
+    const attachedMarkerStartPositions = Object.fromEntries((page.mapMarkers || [])
+      .filter((marker) => marker.markerType === "shape" && marker.attachedTokenId === tokenId)
+      .map((marker) => [marker.id, {
+        x: Number(marker.x) || 0,
+        y: Number(marker.y) || 0,
+        width: clamp(Number(marker.width) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+        height: clamp(Number(marker.height) || MAP_MARKER_SHAPE_DEFAULT_SIZE, MAP_MARKER_SHAPE_MIN_SIZE, 2000),
+        markerType: "shape"
+      }]));
+    const drag = {
+      mapNoteId,
+      pageId: page.id,
+      tokenId,
+      tokenIds: [tokenId],
+      startPositions: { [tokenId]: startPosition },
+      attachedMarkerStartPositions,
+      combatMovement: {
+        activeTokenKey: tokenKey,
+        usedFeet: movement.usedFeet
+      },
+      previewPositions: {},
+      previewMarkerPositions: {}
+    };
+    const duration = clamp(movement.distanceFeet * 24, 240, 900);
+    const animation = { frameId: null, startedAt: null, drag };
+
+    function animate(timestamp) {
+      if (mapTokenMoveAnimationRef.current !== animation) return;
+      if (animation.startedAt == null) animation.startedAt = timestamp;
+      const progress = clamp((timestamp - animation.startedAt) / duration, 0, 1);
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const x = startPosition.x + (movement.x - startPosition.x) * eased;
+      const y = startPosition.y + (movement.y - startPosition.y) * eased;
+      const tokenPoint = { x, y };
+      drag.previewPositions = { [tokenId]: tokenPoint };
+      setMapOverlayPreviewPosition(mapNoteId, page.id, "map-token-id", tokenId, tokenPoint);
+
+      const deltaX = x - startPosition.x;
+      const deltaY = y - startPosition.y;
+      drag.previewMarkerPositions = Object.fromEntries(Object.entries(attachedMarkerStartPositions).map(([markerId, start]) => {
+        const point = clampMapMarkerPoint(mapNote, start.x + deltaX, start.y + deltaY, start);
+        setMapOverlayPreviewPosition(mapNoteId, page.id, "map-marker-id", markerId, point);
+        return [markerId, point];
+      }));
+      queueMapTokenDragPreviewPublish(drag);
+
+      if (progress < 1) {
+        animation.frameId = window.requestAnimationFrame(animate);
+        return;
+      }
+      commitMapTokenDrag(drag);
+      mapTokenMoveAnimationRef.current = null;
+    }
+
+    mapTokenMoveAnimationRef.current = animation;
+    animation.frameId = window.requestAnimationFrame(animate);
+    return true;
   }
 
   async function publishPendingMapTokenDragPreview() {
@@ -14477,15 +14639,27 @@ function DmScreenApp() {
     const markerPositions = drag.previewMarkerPositions || {};
     if (!Object.keys(tokenPositions).length && !Object.keys(markerPositions).length) return;
     setMonsterNotes((notes) => notes.map((note) => (
-      note.id === drag.mapNoteId ? updateMapNotePage(note, drag.pageId, (page) => ({
-        ...page,
-        mapTokens: (page.mapTokens || []).map((token) => (
-          tokenPositions[token.id] ? { ...token, ...tokenPositions[token.id] } : token
-        )),
-        mapMarkers: (page.mapMarkers || []).map((marker) => (
-          markerPositions[marker.id] ? { ...marker, ...markerPositions[marker.id] } : marker
-        ))
-      })) : note
+      note.id === drag.mapNoteId ? updateMapNotePage(note, drag.pageId, (page) => {
+        const combatState = normalizeMapCombatState(page.combatState);
+        const movementState = drag.combatMovement?.activeTokenKey
+          ? {
+              ...combatState,
+              activeTokenKey: drag.combatMovement.activeTokenKey,
+              movementTokenKey: drag.combatMovement.activeTokenKey,
+              movementUsedFeet: vttMovementEngine.roundFeet(drag.combatMovement.usedFeet)
+            }
+          : combatState;
+        return {
+          ...page,
+          combatState: movementState,
+          mapTokens: (page.mapTokens || []).map((token) => (
+            tokenPositions[token.id] ? { ...token, ...tokenPositions[token.id] } : token
+          )),
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            markerPositions[marker.id] ? { ...marker, ...markerPositions[marker.id] } : marker
+          ))
+        };
+      }) : note
     )));
   }
 
@@ -14690,6 +14864,7 @@ function DmScreenApp() {
 
   function advanceMapCombatTurn(noteId, pageId) {
     if (!noteId || !pageId) return;
+    if (mapTokenMoveAnimationRef.current) return;
     setMonsterNotes((notes) => notes.map((note) => {
       if (note.id !== noteId || note.kind !== "map") return note;
       const page = mapPagesForNote(note).find((entry) => entry.id === pageId);
@@ -14702,7 +14877,9 @@ function DmScreenApp() {
         ...targetPage,
         combatState: {
           activeTokenKey: timeline.entries[nextIndex].key,
-          round: nextRound
+          round: nextRound,
+          movementTokenKey: timeline.entries[nextIndex].key,
+          movementUsedFeet: 0
         }
       }));
     }));
@@ -15145,6 +15322,12 @@ function DmScreenApp() {
     const viewportHeight = window.innerHeight || 800;
     const clientX = clamp(Number(event.clientX) || 0, 0, viewportWidth - 1);
     const clientY = clamp(Number(event.clientY) || 0, 0, viewportHeight - 1);
+    const mapNote = monsterNotesRef.current.find((note) => note.id === mapNoteId);
+    const page = mapPagesForNote(mapNote).find((entry) => entry.id === pageId) || activeMapPageForNote(mapNote);
+    const marker = page?.mapMarkers?.find((entry) => entry.id === markerId);
+    const dimensions = marker?.markerType === "shape"
+      ? vttMovementEngine.shapeDimensionsFeet(marker.width, marker.height, MAP_TOKEN_SIZE)
+      : null;
     setContextMenu(null);
     setTokenContextMenu(null);
     setMarkerContextMenu({
@@ -15152,7 +15335,9 @@ function DmScreenApp() {
       y: clientY,
       mapNoteId,
       pageId,
-      markerId
+      markerId,
+      widthFeet: dimensions ? String(dimensions.width) : "",
+      heightFeet: dimensions ? String(dimensions.height) : ""
     });
   }
 
@@ -15393,6 +15578,43 @@ function DmScreenApp() {
         }))
         : note
     )));
+  }
+
+  function setMapMarkerSizeDraft(axis, value) {
+    setMarkerContextMenu((menu) => (
+      menu ? { ...menu, [axis === "height" ? "heightFeet" : "widthFeet"]: value } : menu
+    ));
+  }
+
+  function commitMapMarkerSizeFromMenu(axis) {
+    const entry = findMapMarkerContextEntry();
+    if (!entry || entry.marker.markerType !== "shape") return;
+    const key = axis === "height" ? "heightFeet" : "widthFeet";
+    const rawValue = markerContextMenu?.[key];
+    const parsedFeet = Number(rawValue);
+    if (!Number.isFinite(parsedFeet) || parsedFeet <= 0) {
+      const dimensions = vttMovementEngine.shapeDimensionsFeet(entry.marker.width, entry.marker.height, MAP_TOKEN_SIZE);
+      setMarkerContextMenu((menu) => (menu ? {
+        ...menu,
+        [key]: String(axis === "height" ? dimensions.height : dimensions.width)
+      } : menu));
+      return;
+    }
+    const feet = clamp(parsedFeet, MAP_MARKER_SHAPE_MIN_FEET, MAP_MARKER_SHAPE_MAX_FEET);
+    const nextSize = vttMovementEngine.mapUnitsFromFeet(feet, MAP_TOKEN_SIZE);
+    setMonsterNotes((notes) => notes.map((note) => (
+      note.id === entry.mapNote.id
+        ? updateMapNotePage(note, entry.page.id, (page) => ({
+          ...page,
+          mapMarkers: (page.mapMarkers || []).map((marker) => (
+            marker.id === entry.marker.id
+              ? { ...marker, [axis === "height" ? "height" : "width"]: nextSize }
+              : marker
+          ))
+        }))
+        : note
+    )));
+    setMarkerContextMenu((menu) => (menu ? { ...menu, [key]: String(vttMovementEngine.formatFeet(feet)) } : menu));
   }
 
   function rotateMapMarkerFromMenu(delta) {
@@ -16935,6 +17157,7 @@ function DmScreenApp() {
               onMapTokenGroupGlobalChange={setMapTokenGroupGlobal}
               onMapTokenGroupCombatChange={setMapTokenGroupCombat}
               onMapCombatTurnAdvance={advanceMapCombatTurn}
+              onMapCombatMoveRequest={startMapCombatTokenMove}
               onMapTrackerTokenDrop={dropMapTrackerToken}
               selectedMapTokenIds={selectedMapTokens.mapNoteId === activeNote.id && selectedMapTokens.pageId === activeMapPageForNote(activeNote)?.id ? selectedMapTokens.tokenIds : []}
               onMapTokenSelectionChange={setMapTokenSelection}
@@ -17135,6 +17358,46 @@ function DmScreenApp() {
                   ))}
                 </select>
               </label>
+              <div className="grid grid-cols-2 gap-2 px-1">
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Ancho (ft)</span>
+                  <input
+                    className="h-8 border border-neutral-700 bg-neutral-950 px-2 text-xs font-bold text-neutral-100 focus:border-amber-400 focus:outline-none"
+                    type="number"
+                    min={MAP_MARKER_SHAPE_MIN_FEET}
+                    max={MAP_MARKER_SHAPE_MAX_FEET}
+                    step="0.1"
+                    value={markerContextMenu.widthFeet ?? ""}
+                    onChange={(event) => setMapMarkerSizeDraft("width", event.target.value)}
+                    onBlur={() => commitMapMarkerSizeFromMenu("width")}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitMapMarkerSizeFromMenu("width");
+                      }
+                    }}
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Alto (ft)</span>
+                  <input
+                    className="h-8 border border-neutral-700 bg-neutral-950 px-2 text-xs font-bold text-neutral-100 focus:border-amber-400 focus:outline-none"
+                    type="number"
+                    min={MAP_MARKER_SHAPE_MIN_FEET}
+                    max={MAP_MARKER_SHAPE_MAX_FEET}
+                    step="0.1"
+                    value={markerContextMenu.heightFeet ?? ""}
+                    onChange={(event) => setMapMarkerSizeDraft("height", event.target.value)}
+                    onBlur={() => commitMapMarkerSizeFromMenu("height")}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitMapMarkerSizeFromMenu("height");
+                      }
+                    }}
+                  />
+                </label>
+              </div>
               <div className="grid gap-1">
                 <button
                   className="flex w-full items-center justify-between border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-left text-xs font-bold uppercase text-emerald-200 hover:border-emerald-500 hover:bg-emerald-950/40"

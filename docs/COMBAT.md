@@ -21,6 +21,14 @@ La resolucion paso a paso usa un encabezado compacto, un stepper horizontal con 
 
 El panel izquierdo mantiene fijo el texto de Movement y centra solo su ovalo de economia. El panel derecho ofrece `Long rest` y `Short rest` mediante los mismos handlers y el mismo estado de descanso de la hoja; debajo conserva el Combat Log. Active statuses reutiliza las tarjetas y acciones de Character Statuses: cada estado tiene `x` para quitarlo y el boton `+` abre el mismo picker flotante de la sheet para agregarlo. El launcher `+` se retira de la sheet para evitar dos rutas distintas; la ventana compartida se abre desde combate. Los controles persistentes del encabezado permiten ocultar/mostrar Resources, Combat Log y Actions; al ocultarlos, el mapa VTT conserva su track visible y ocupa el espacio liberado con una transicion breve. El VTT portalizado conserva Raise hand y muestra la cola compacta en una tarjeta overlay abajo a la derecha, sin reservar una barra superior.
 
+## Movimiento medido en el VTT
+
+- El diámetro default del token (`56` unidades base del mapa) es la regla maestra y equivale a `5 ft`. La distancia siempre se calcula desde el centro inicial hasta el centro final; agrandar visualmente un token no cambia la escala.
+- Fuera de combate se conserva el drag libre existente. Cuando al menos un grupo está marcado en combate, el DM hace click en una ficha para seleccionarla y luego click en el destino; el drag directo y el drag desde el tracker quedan deshabilitados.
+- Sólo se desplaza el combatiente activo. `src/engine/combat/vtt-movement.js` toma el Speed de la nota enlazada (`Speed` del jugador o `speed.walk`/speed del monstruo), resta lo ya recorrido en ese turno y recorta linealmente el destino si no alcanza. `Siguiente` reinicia el presupuesto del nuevo turno.
+- La animación publica posiciones intermedias por el mismo `dm:vtt:patch` del drag existente, por lo que DM y jugadores ven el deslizamiento. Una forma adjunta acompaña a la ficha.
+- Cada forma geométrica muestra cotas horizontal y vertical punteadas en pies, calculadas con la misma regla maestra, tanto en el DM Screen como en el VTT del jugador. El menú contextual permite escribir `Ancho (ft)` y `Alto (ft)` directamente; por ejemplo, `5` y `5` producen una forma de 5×5 ft.
+
 ## Entradas y fuentes de verdad
 
 | Responsabilidad | Fuente |
@@ -38,6 +46,7 @@ El panel izquierdo mantiene fijo el texto de Movement y centra solo su ovalo de 
 | Slots/usos/pools | helpers existentes del renderer y `src/engine/resources` |
 | Registro | `__sheetMeta.combatLog` con respaldo local `dnd-character-sheet-combat-log-v1` |
 | Selector de objetivos | `globalThis.dndLiveVttCombatTargetRoster()` en `renderer.js`, consumido por `index.html`; durante un combate VTT usa exactamente los participantes visibles del tracker y publica solo nombres |
+| Movimiento VTT | `src/engine/combat/vtt-movement.js` para escala/Speed/límite; interacción, animación y persistencia de `combatState.movement*` en `dm-screen/src/main.jsx` |
 
 ## Flujo
 
@@ -101,7 +110,9 @@ Ademas de las acciones, verificar en una sesion conectada al DM que la conexion 
 5. En un Fighter con Extra Attack, confirmar dos ataques: la primera confirmación consume Action y la segunda no.
 6. Probar un spell attack, un spell con save (por ejemplo Fireball/Sacred Flame), Magic Missile, un healing spell y uno con temporary HP. Confirmar que casting time, save/attack y escala provienen del registro correcto; cancelar antes de confirmar y comprobar el slot.
 7. Gastar Bonus Action y Reaction; terminar el turno y comprobar que una Reaction `allowOutsideTurn` sigue disponible.
-8. Probar Movement, Difficult Terrain, Stand Up, Drop Prone, Dash, un consumible y un arma con ammo registrada.
-9. Guardar/cambiar de slot/volver. Confirmar que turno y combat log corresponden al slot.
+8. En el VTT del DM, marcar un grupo en combate, seleccionar el token activo y hacer click a 10 ft: confirmar el descuento centro a centro y el deslizamiento en DM/jugador. Después marcar un punto más lejano que el Speed restante y confirmar que se detiene a mitad de camino. Pasar turno y verificar el reinicio. Confirmar además que drag directo/tracker no reposicionan fichas durante combate y que fuera de combate el drag sigue funcionando.
+9. Crear/redimensionar un círculo, cuadrado y cono; confirmar cotas punteadas horizontal/vertical en DM y jugador, con `56` unidades equivalentes a `5 ft`. En el menú de una forma escribir `5` en ancho y alto, salir del campo y confirmar que queda en 5×5 ft sin superponer las etiquetas.
+10. Probar Movement, Difficult Terrain, Stand Up, Drop Prone, Dash, un consumible y un arma con ammo registrada.
+11. Guardar/cambiar de slot/volver. Confirmar que turno y combat log corresponden al slot.
 
-Validación automática: `npm run test:items`, `node scripts/validate-spells.js`, `node tests/engine/combat.test.js`, `node tests/renderer/combat-ui.test.js`, `node tests/renderer/combat-performance.test.js`, `node tests/renderer/combat-equipment-refresh.test.js`, `node tests/services/data-loader-cache.test.js`, `npm test` y `git diff --check`.
+Validación automática: `npm run test:items`, `node scripts/validate-spells.js`, `node tests/engine/combat.test.js`, `node tests/engine/vtt-movement.test.js`, `node tests/renderer/vtt-combat-movement.test.js`, `node tests/renderer/combat-ui.test.js`, `node tests/renderer/combat-performance.test.js`, `node tests/renderer/combat-equipment-refresh.test.js`, `node tests/services/data-loader-cache.test.js`, `npm test` y `git diff --check`.

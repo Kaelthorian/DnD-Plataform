@@ -340,6 +340,7 @@
     const LIVE_VTT_PING_TTL_MS = 5000;
     const LIVE_VTT_MIN_ZOOM = 1;
     const LIVE_VTT_MAX_ZOOM = 4;
+    const vttMovementEngine = globalThis.dndVttMovementEngine;
 
     const COMBAT_BOARD_MIN_WIDTHS = Object.freeze({ initiative: 220, map: 320, context: 240 });
     const COMBAT_BOARD_MIN_HEIGHTS = Object.freeze({ board: 250, actions: 220 });
@@ -1043,6 +1044,48 @@
           opacity: 0.8;
           mix-blend-mode: screen;
           background-repeat: repeat;
+        }
+        .live-vtt-marker-measurement {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          pointer-events: none;
+          color: #fff;
+          font: 900 9px/1 system-ui, sans-serif;
+          text-transform: none;
+          filter: drop-shadow(0 1px 2px #000);
+        }
+        .live-vtt-marker-measurement-line-x {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 50%;
+          border-top: 1px dashed rgba(255, 255, 255, 0.92);
+        }
+        .live-vtt-marker-measurement-line-y {
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          top: 0;
+          border-left: 1px dashed rgba(255, 255, 255, 0.92);
+        }
+        .live-vtt-marker-measurement-label {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          background: rgba(2, 6, 23, 0.84);
+          padding: 2px 3px;
+          white-space: nowrap;
+        }
+        .live-vtt-marker-measurement-label-x {
+          bottom: 4px;
+          top: auto;
+          transform: translateX(-50%);
+        }
+        .live-vtt-marker-measurement-label-y {
+          left: calc(100% + 4px);
+          top: 50%;
+          transform: translateY(-50%);
         }
         .live-vtt-marker-pin {
           display: flex;
@@ -1790,6 +1833,23 @@
             patternNode.style.transformOrigin = "center";
             node.appendChild(patternNode);
           }
+          const dimensions = vttMovementEngine.shapeDimensionsFeet(markerWidth, markerHeight);
+          const measurement = document.createElement("span");
+          measurement.className = "live-vtt-marker-measurement";
+          measurement.style.transform = rotation;
+          measurement.style.transformOrigin = "center";
+          const lineX = document.createElement("span");
+          lineX.className = "live-vtt-marker-measurement-line-x";
+          const labelX = document.createElement("span");
+          labelX.className = "live-vtt-marker-measurement-label live-vtt-marker-measurement-label-x";
+          labelX.textContent = `${vttMovementEngine.formatFeet(dimensions.width)} ft`;
+          const lineY = document.createElement("span");
+          lineY.className = "live-vtt-marker-measurement-line-y";
+          const labelY = document.createElement("span");
+          labelY.className = "live-vtt-marker-measurement-label live-vtt-marker-measurement-label-y";
+          labelY.textContent = `${vttMovementEngine.formatFeet(dimensions.height)} ft`;
+          measurement.append(lineX, labelX, lineY, labelY);
+          node.appendChild(measurement);
           const label = document.createElement("span");
           label.className = "live-vtt-marker-label";
           label.textContent = marker.label || "Forma";

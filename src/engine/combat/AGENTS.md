@@ -8,6 +8,7 @@ Este directorio contiene reglas puras y serializables del turno de combate. No d
 - `action-definitions.js`: acciones universales, adaptadores y componentes de daño tipados con política de crítico.
 - `resolution-engine.js`: sesión por pasos, Hit antes de Damage, `results.damageRolls` con fallback singular, confirmación/cancelación y bloqueo de doble ejecución.
 - `combat-log.js`: contrato y formato del registro, incluidos subtotales por componente/tipo.
+- `vtt-movement.js`: escala pura de 56 unidades = 5 ft, lectura del Speed de snapshots de actor, dimensiones de formas y recorte centro a centro por presupuesto de movimiento.
 
 ## Límites
 
@@ -18,4 +19,4 @@ Este directorio contiene reglas puras y serializables del turno de combate. No d
 
 ## Validación
 
-Ejecutar `node tests/engine/combat.test.js` y luego `npm test`.
+Ejecutar `node tests/engine/combat.test.js`, `node tests/engine/vtt-movement.test.js` y luego `npm test`.
