@@ -195,12 +195,194 @@
     return parts;
   }
 
+  function findMarkdownRichShortcut(text, caretOffset = String(text || "").length) {
+    const source = String(text || "");
+    const offset = Math.max(0, Math.min(source.length, Number(caretOffset) || 0));
+    const beforeCaret = source.slice(0, offset);
+    const patterns = [
+      { type: "link", pattern: /\[([^\]\n]+)\]\((https?:\/\/[^)\s]+|mailto:[^)\s]+)\)$/i },
+      { type: "bold", pattern: /\*\*([^*\n]+)\*\*$/ },
+      { type: "strike", pattern: /~~([^~\n]+)~~$/ },
+      { type: "highlight", pattern: /==([^=\n]+)==$/ },
+      { type: "underline", pattern: /__([^_\n]+)__$/ },
+      { type: "code", pattern: /`([^`\n]+)`$/ },
+      { type: "italic", pattern: /(?<!\*)\*([^*\n]+)\*$/ }
+    ];
+    for (const entry of patterns) {
+      const match = beforeCaret.match(entry.pattern);
+      if (!match) continue;
+      return {
+        type: entry.type,
+        start: offset - match[0].length,
+        end: offset,
+        text: match[1],
+        href: entry.type === "link" ? match[2] : ""
+      };
+    }
+    return null;
+  }
+
+  function markdownToolbarLineRange(value, start, end) {
+    const lineStart = start <= 0 ? 0 : value.lastIndexOf("\n", start - 1) + 1;
+    const endProbe = end > start && value[end - 1] === "\n" ? end - 1 : end;
+    const newlineIndex = value.indexOf("\n", endProbe);
+    return { start: lineStart, end: newlineIndex === -1 ? value.length : newlineIndex };
+  }
+
+  function markdownToolbarLinePrefixPattern(command) {
+    if (command === "heading") return /^(\s*)#{1,6}\s+/;
+    if (command === "bullet") return /^(\s*)[-*+]\s+(?!\[[ xX]\]\s+)/;
+    if (command === "numbered") return /^(\s*)\d+[.)]\s+/;
+    if (command === "task") return /^(\s*)[-*+]\s+\[[ xX]\]\s+/;
+    if (command === "quote") return /^(\s*)>\s?/;
+    return null;
+  }
+
+  function stripMarkdownToolbarLinePrefix(line) {
+    const indent = line.match(/^\s*/)?.[0] || "";
+    const content = line.slice(indent.length)
+      .replace(/^(?:#{1,6}\s+|[-*+]\s+\[[ xX]\]\s+|[-*+]\s+|\d+[.)]\s+|>\s?)/, "");
+    return { indent, content };
+  }
+
+  function createMarkdownToolbarLineEdit(command, value, start, end) {
+    const range = markdownToolbarLineRange(value, start, end);
+    const original = value.slice(range.start, range.end);
+    const lines = original.split("\n");
+    const pattern = markdownToolbarLinePrefixPattern(command);
+    const meaningfulLines = lines.filter((line) => line.trim());
+    const removePrefix = Boolean(meaningfulLines.length && pattern && meaningfulLines.every((line) => pattern.test(line)));
+    let ordinal = 0;
+    const replacement = lines.map((line) => {
+      if (!line.trim() && lines.length > 1) return line;
+      if (removePrefix) return line.replace(pattern, "$1");
+      const { indent, content } = stripMarkdownToolbarLinePrefix(line);
+      ordinal += 1;
+      const prefix = command === "heading"
+        ? "## "
+        : command === "bullet"
+          ? "- "
+          : command === "numbered"
+            ? `${ordinal}. `
+            : command === "task"
+              ? "- [ ] "
+              : "> ";
+      return `${indent}${prefix}${content}`;
+    }).join("\n");
+    if (start === end) {
+      const relativeCaret = start - range.start;
+      const lengthDelta = replacement.length - original.length;
+      const nextCaret = Math.max(0, Math.min(replacement.length, relativeCaret + lengthDelta));
+      return { start: range.start, end: range.end, replacement, selectionStart: nextCaret, selectionEnd: nextCaret };
+    }
+    return { start: range.start, end: range.end, replacement, selectionStart: 0, selectionEnd: replacement.length };
+  }
+
+  function createMarkdownToolbarWrappedEdit(command, value, start, end) {
+    const wrappers = {
+      bold: ["**", "**"],
+      italic: ["*", "*"],
+      underline: ["__", "__"],
+      strike: ["~~", "~~"],
+      highlight: ["==", "=="],
+      code: ["`", "`"]
+    };
+    const [prefix, suffix] = wrappers[command];
+    const selected = value.slice(start, end);
+    if (command === "code" && selected.includes("\n")) {
+      if (selected.startsWith("```\n") && selected.endsWith("\n```")) {
+        const replacement = selected.slice(4, -4);
+        return { start, end, replacement, selectionStart: 0, selectionEnd: replacement.length };
+      }
+      if (value.slice(Math.max(0, start - 4), start) === "```\n" && value.slice(end, end + 4) === "\n```") {
+        return { start: start - 4, end: end + 4, replacement: selected, selectionStart: 0, selectionEnd: selected.length };
+      }
+      const leading = start > 0 && value[start - 1] !== "\n" ? "\n" : "";
+      const trailing = end < value.length && value[end] !== "\n" ? "\n" : "";
+      const replacement = `${leading}\`\`\`\n${selected}\n\`\`\`${trailing}`;
+      return {
+        start,
+        end,
+        replacement,
+        selectionStart: leading.length + 4,
+        selectionEnd: replacement.length - trailing.length - 4
+      };
+    }
+    if (selected.includes("\n")) {
+      const lines = selected.split("\n");
+      const meaningfulLines = lines.filter(Boolean);
+      const wrapped = meaningfulLines.length && meaningfulLines.every((line) => line.startsWith(prefix) && line.endsWith(suffix));
+      const replacement = lines.map((line) => {
+        if (!line) return line;
+        return wrapped ? line.slice(prefix.length, -suffix.length) : `${prefix}${line}${suffix}`;
+      }).join("\n");
+      return { start, end, replacement, selectionStart: 0, selectionEnd: replacement.length };
+    }
+    if (selected && selected.startsWith(prefix) && selected.endsWith(suffix)) {
+      const replacement = selected.slice(prefix.length, -suffix.length);
+      return { start, end, replacement, selectionStart: 0, selectionEnd: replacement.length };
+    }
+    if (selected && value.slice(Math.max(0, start - prefix.length), start) === prefix && value.slice(end, end + suffix.length) === suffix) {
+      return {
+        start: start - prefix.length,
+        end: end + suffix.length,
+        replacement: selected,
+        selectionStart: 0,
+        selectionEnd: selected.length
+      };
+    }
+    const replacement = `${prefix}${selected}${suffix}`;
+    return {
+      start,
+      end,
+      replacement,
+      selectionStart: prefix.length,
+      selectionEnd: prefix.length + selected.length
+    };
+  }
+
+  function createMarkdownToolbarEdit(command, markdown, selectionStart, selectionEnd, options = {}) {
+    const value = String(markdown || "");
+    const start = Math.max(0, Math.min(value.length, Number(selectionStart) || 0));
+    const end = Math.max(start, Math.min(value.length, Number(selectionEnd) || start));
+    if (["heading", "bullet", "numbered", "task", "quote"].includes(command)) {
+      return createMarkdownToolbarLineEdit(command, value, start, end);
+    }
+    if (["bold", "italic", "underline", "strike", "highlight", "code"].includes(command)) {
+      return createMarkdownToolbarWrappedEdit(command, value, start, end);
+    }
+    if (command === "link") {
+      const label = value.slice(start, end) || String(options.linkLabel || "link");
+      const replacement = `[${label}](https://)`;
+      const caret = replacement.indexOf("https://") + "https://".length;
+      return { start, end, replacement, selectionStart: caret, selectionEnd: caret };
+    }
+    if (command === "table") {
+      const columnOne = String(options.tableColumnOne || "Column 1");
+      const columnTwo = String(options.tableColumnTwo || "Column 2");
+      const leading = start > 0 && value[start - 1] !== "\n" ? "\n" : "";
+      const trailing = end < value.length && value[end] !== "\n" ? "\n" : "";
+      const replacement = `${leading}| ${columnOne} | ${columnTwo} |\n| --- | --- |\n|  |  |${trailing}`;
+      const firstHeaderStart = replacement.indexOf(columnOne);
+      return {
+        start,
+        end,
+        replacement,
+        selectionStart: firstHeaderStart,
+        selectionEnd: firstHeaderStart + columnOne.length
+      };
+    }
+    return null;
+  }
+
   const api = Object.freeze({
     cleanObsidianTarget,
     obsidianDisplayAlias,
     isSafeObsidianImage,
     parseObsidianMarkdown,
-    tokenizeObsidianInline
+    tokenizeObsidianInline,
+    findMarkdownRichShortcut,
+    createMarkdownToolbarEdit
   });
   root.dndObsidianMarkdownEngine = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

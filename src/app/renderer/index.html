@@ -400,11 +400,25 @@
         <button class="notes-category-button" type="button" data-notes-category="shared"><span class="notes-category-icon" data-app-icon="link" aria-hidden="true"></span><span data-i18n="notes.sharedNotes">Shared Notes</span><span class="notes-category-count" id="notesSharedCount">0</span></button>
       </nav>
       <div class="notes-library-section-heading">
-        <span data-i18n="notes.folders">Folders</span>
+        <span data-i18n="notes.navigationTree">Folders &amp; notes</span>
         <button class="notes-icon-button" id="notesAddFolderButton" type="button" aria-label="Add folder" title="Add folder" data-i18n-aria-label="notes.addFolder" data-i18n-title="notes.addFolder"><span data-app-icon="plus" aria-hidden="true"></span></button>
       </div>
-      <div class="notes-folder-list" id="notesFolderList"></div>
-      <div class="notes-library-list" id="notesLibraryList" aria-live="polite"></div>
+      <div class="notes-folder-list" id="notesFolderList" role="tree" aria-label="Folders and notes" data-i18n-aria-label="notes.navigationTree" aria-live="polite"></div>
+      <div class="notes-tree-context-menu" id="notesTreeContextMenu" role="menu" aria-label="Folder and note actions" data-i18n-aria-label="notes.treeActions" hidden>
+        <div class="notes-tree-context-actions" id="notesTreeContextActions">
+          <button type="button" role="menuitem" data-notes-tree-action="note"><span data-app-icon="file" aria-hidden="true"></span><span data-i18n="notes.newNote">New Note</span></button>
+          <button type="button" role="menuitem" data-notes-tree-action="folder"><span data-app-icon="folder" aria-hidden="true"></span><span data-i18n="notes.addFolder">Add folder</span></button>
+          <button class="notes-tree-context-delete" id="notesTreeDeleteButton" type="button" role="menuitem" data-notes-tree-action="delete" hidden><span data-app-icon="trash" aria-hidden="true"></span><span id="notesTreeDeleteLabel" data-i18n="notes.delete">Delete</span></button>
+        </div>
+        <form class="notes-tree-folder-form" id="notesTreeFolderForm" hidden>
+          <label class="visually-hidden" for="notesTreeFolderName" data-i18n="notes.folderPrompt">Folder name</label>
+          <input id="notesTreeFolderName" type="text" maxlength="80" placeholder="Folder name" data-i18n-placeholder="notes.folderPrompt" autocomplete="off">
+          <div>
+            <button type="submit" data-i18n="notes.create">Create</button>
+            <button type="button" data-notes-tree-cancel data-i18n="notes.cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
       <div class="notes-library-footer">
         <span class="notes-sync-dot" aria-hidden="true"></span>
         <span data-i18n="notes.autosaved">Auto-saved locally</span>
@@ -438,7 +452,10 @@
               <div class="notes-category-browser-eyebrow" data-i18n="notes.categoryBrowser">Category</div>
               <h2 id="notesCategoryBrowserTitle" data-i18n="notes.sessionNotes">Session Notes</h2>
             </div>
-            <span id="notesCategoryBrowserCount" class="notes-category-browser-count" data-i18n="notes.categoryCount">0 notes</span>
+            <div class="notes-category-browser-actions">
+              <span id="notesCategoryBrowserCount" class="notes-category-browser-count" data-i18n="notes.categoryCount">0 notes</span>
+              <button class="notes-category-new-button" id="notesCategoryNewButton" type="button"><span data-app-icon="plus" aria-hidden="true"></span><span data-i18n="notes.newNote">New Note</span></button>
+            </div>
           </header>
           <div class="notes-category-browser-list" id="notesCategoryBrowserList"></div>
         </section>
@@ -460,10 +477,14 @@
             <button type="button" data-note-command="code" aria-label="Code" title="Code" data-i18n-aria-label="notes.code" data-i18n-title="notes.code"><span data-app-icon="code" aria-hidden="true"></span></button>
             <button type="button" data-note-command="highlight" aria-label="Highlight" title="Highlight" data-i18n-aria-label="notes.highlight" data-i18n-title="notes.highlight"><span data-app-icon="highlighter" aria-hidden="true"></span></button>
             <button type="button" data-note-command="link" aria-label="Link" title="Link" data-i18n-aria-label="notes.link" data-i18n-title="notes.link"><span data-app-icon="link" aria-hidden="true"></span></button>
+            <form class="notes-link-form" id="notesLinkForm" hidden>
+              <label class="visually-hidden" for="notesLinkUrl" data-i18n="notes.linkUrl">Link URL</label>
+              <input id="notesLinkUrl" type="text" inputmode="url" value="https://" aria-label="Link URL" data-i18n-aria-label="notes.linkUrl" autocomplete="off">
+              <button type="submit" data-i18n="notes.apply">Apply</button>
+              <button type="button" data-notes-link-cancel data-i18n="notes.cancel">Cancel</button>
+            </form>
             <button type="button" data-note-command="image" aria-label="Insert image" title="Insert image" data-i18n-aria-label="notes.image" data-i18n-title="notes.image"><span data-app-icon="image" aria-hidden="true"></span></button>
             <button type="button" data-note-command="table" aria-label="Table" title="Table" data-i18n-aria-label="notes.table" data-i18n-title="notes.table"><span data-app-icon="table" aria-hidden="true"></span></button>
-            <span class="notes-toolbar-spacer"></span>
-            <button type="button" id="notesPreviewToggle" aria-label="Preview note" data-i18n="notes.preview" data-i18n-aria-label="notes.preview">Preview</button>
           </div>
           <article class="notes-paper">
             <div class="notes-paper-heading-row">
@@ -472,35 +493,11 @@
               <button class="notes-star-button" id="notesStarButton" type="button" aria-label="Favorite note" title="Favorite note" data-i18n-aria-label="notes.favorite" data-i18n-title="notes.favorite"><span data-app-icon="star" aria-hidden="true"></span></button>
             </div>
             <div class="notes-paper-rule" aria-hidden="true"></div>
-            <textarea class="notes-body-input" id="notesBodyInput" spellcheck="true" placeholder="Start writing your note..." data-i18n-placeholder="notes.bodyPlaceholder"></textarea>
-            <div class="notes-body-preview" id="notesBodyPreview" hidden></div>
+            <div class="notes-rich-editor notes-body-preview" id="notesBodyInput" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note body" data-i18n-aria-label="notes.body" data-placeholder="Start writing your note..." data-i18n-data-placeholder="notes.bodyPlaceholder" spellcheck="true"></div>
           </article>
           <div class="notes-editor-status" id="notesEditorStatus" aria-live="polite"></div>
         </section>
         <aside class="notes-details-panel" aria-label="Note details" data-i18n-aria-label="notes.details">
-          <section class="notes-info-card">
-            <div class="notes-card-title" data-i18n="notes.noteInfo">Note Info</div>
-            <dl>
-              <div><dt data-i18n="notes.lastEdited">Last edited</dt><dd id="notesLastEdited">-</dd></div>
-              <div><dt data-i18n="notes.created">Created</dt><dd id="notesCreated">-</dd></div>
-              <div><dt data-i18n="notes.autosave">Auto-save</dt><dd><span class="notes-live-dot"></span><span data-i18n="notes.on">On</span></dd></div>
-              <div><dt data-i18n="notes.wordCount">Word count</dt><dd id="notesWordCount">0</dd></div>
-              <div><dt data-i18n="notes.noteId">Note ID</dt><dd id="notesId">-</dd></div>
-            </dl>
-            <div class="notes-classification-grid">
-              <label><span data-i18n="notes.category">Category</span><select id="notesCategorySelect">
-                <option value="session" data-i18n="notes.sessionNotes">Session Notes</option>
-                <option value="npcs" data-i18n="notes.npcs">NPCs</option>
-                <option value="quests" data-i18n="notes.quests">Quests</option>
-                <option value="locations" data-i18n="notes.locations">Locations</option>
-                <option value="loot" data-i18n="notes.loot">Loot</option>
-                <option value="combat" data-i18n="notes.combatNotes">Combat Notes</option>
-                <option value="handouts" data-i18n="notes.handouts">Handouts</option>
-                <option value="custom" data-i18n="notes.custom">Custom</option>
-              </select></label>
-              <label><span data-i18n="notes.folder">Folder</span><select id="notesFolderSelect"></select></label>
-            </div>
-          </section>
           <section class="notes-detail-card">
             <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tags">Tags</div><button class="notes-icon-button" id="notesAddTagButton" type="button" aria-label="Add tag" title="Add tag" data-i18n-aria-label="notes.addTag" data-i18n-title="notes.addTag"><span data-app-icon="plus" aria-hidden="true"></span></button></div>
             <div class="notes-tags" id="notesTags"></div>
@@ -519,14 +516,21 @@
               <button type="button" data-note-color="purple" aria-label="Purple" title="Purple" data-i18n-aria-label="notes.purple" data-i18n-title="notes.purple"></button>
             </div>
           </section>
-          <section class="notes-detail-card">
-            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.linkedEntities">Linked Entities</div></div>
-            <div class="notes-linked-tools">
-              <div class="notes-linked-tags-label" data-i18n="notes.noteTags">Note tags</div>
-              <div class="notes-linked-tags" id="notesLinkedTags"></div>
-              <button class="notes-icon-button notes-linked-add" id="notesAddLinkButton" type="button" aria-label="Add linked entity" title="Add linked entity" data-i18n-aria-label="notes.addLink" data-i18n-title="notes.addLink"><span data-app-icon="plus" aria-hidden="true"></span></button>
+          <section class="notes-detail-card notes-main-folder-card">
+            <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.mainFolder">Main folder</div></div>
+            <p class="notes-main-folder-hint" data-i18n="notes.mainFolderHint">Move this note to a category or one of your main folders.</p>
+            <div class="notes-main-folder-control">
+              <select id="notesMainFolderSelect" aria-label="Main folder" data-i18n-aria-label="notes.mainFolder"></select>
+              <button class="notes-icon-button" id="notesCreateMainFolderButton" type="button" aria-label="Create main folder" title="Create main folder" data-i18n-aria-label="notes.createMainFolder" data-i18n-title="notes.createMainFolder"><span data-app-icon="plus" aria-hidden="true"></span></button>
             </div>
-            <div class="notes-links-list" id="notesLinksList"></div>
+            <form class="notes-main-folder-form" id="notesMainFolderForm" hidden>
+              <label class="visually-hidden" for="notesMainFolderName" data-i18n="notes.mainFolderName">Main folder name</label>
+              <input id="notesMainFolderName" type="text" maxlength="80" placeholder="Main folder name" data-i18n-placeholder="notes.mainFolderName" autocomplete="off">
+              <div>
+                <button type="submit" data-i18n="notes.create">Create</button>
+                <button type="button" data-notes-main-folder-cancel data-i18n="notes.cancel">Cancel</button>
+              </div>
+            </form>
           </section>
           <section class="notes-detail-card notes-share-card">
             <label class="notes-share-toggle"><input id="notesShareToggle" type="checkbox"><span><strong data-i18n="notes.shareNote">Share with connected players</strong><small data-i18n="notes.shareHint">Everyone connected to this session can read and update this note.</small></span></label>
@@ -534,7 +538,7 @@
           </section>
           <div class="notes-bottom-cards">
             <section class="notes-detail-card notes-template-card">
-              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.templates">Templates</div><button class="notes-icon-button" id="notesCloseTemplatesButton" type="button" aria-label="Hide templates" title="Hide templates" data-i18n-aria-label="notes.hideTemplates" data-i18n-title="notes.hideTemplates"><span data-app-icon="x" aria-hidden="true"></span></button></div>
+              <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.templates">Templates</div></div>
               <div class="notes-template-list" id="notesTemplateList">
                 <button type="button" data-note-template="session"><span data-app-icon="session" aria-hidden="true"></span><span data-i18n="notes.templateSession">Session Recap</span></button>
                 <button type="button" data-note-template="npc"><span data-app-icon="npc" aria-hidden="true"></span><span data-i18n="notes.templateNpc">NPC Profile</span></button>
@@ -546,7 +550,6 @@
               <div class="notes-card-title-row"><div class="notes-card-title" data-i18n="notes.tasks">Tasks &amp; Reminders</div></div>
               <div class="notes-task-list" id="notesTaskList"></div>
               <div class="notes-task-entry"><button class="notes-task-add-button" id="notesAddTaskButton" type="button" aria-label="Add task" title="Add task" data-i18n-aria-label="notes.addTask" data-i18n-title="notes.addTask"><span data-app-icon="plus" aria-hidden="true"></span></button><input id="notesTaskInput" type="text" maxlength="240" placeholder="Add new task" data-i18n-placeholder="notes.taskPlaceholder"></div>
-              <label class="notes-reminder-entry"><span data-app-icon="clock" aria-hidden="true"></span><span class="visually-hidden" data-i18n="notes.reminder">Reminder</span><input id="notesTaskReminderInput" type="datetime-local" aria-label="Reminder" data-i18n-aria-label="notes.reminder"></label>
             </section>
           </div>
         </aside>
@@ -11181,6 +11184,7 @@
       if (target.closest?.("#appSettingsMenu")) return;
       if (target.closest?.("#characterImportBackdrop")) return;
       if (target.closest?.("#liveSheetClientBackdrop")) return;
+      if (target.closest?.("#notesWorkspace")) return;
       if (target.closest?.("#freeDiceMenu")) return;
       if (target.closest?.("#itemPickerBackdrop")) return;
       if (target.closest?.("#familiarPickerBackdrop")) return;

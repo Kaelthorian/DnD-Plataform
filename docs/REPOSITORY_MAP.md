@@ -1,6 +1,6 @@
 # Mapa del repositorio
 
-La superficie de notas del jugador está documentada en [PLAYER_NOTES.md](PLAYER_NOTES.md) y cruza `index.html`/`renderer.js` con la retransmisión validada de Live Sheet.
+La superficie de notas del jugador está documentada en [PLAYER_NOTES.md](PLAYER_NOTES.md) y cruza `index.html`/`renderer.js` con la retransmisión validada de Live Sheet. La navegación lateral usa un solo árbol carpeta → subcarpeta → nota; el menú contextual crea y borra, mientras el drag/drop persiste el nesting mediante `parentId`/`folderId`. Las vistas de categoría muestran tags, crean notas en su carpeta principal y el selector `Main folder` vincula las categorías con carpetas raíz identificadas mediante `folders[].category`; las carpetas principales personalizadas siguen siendo raíces normales. El cuerpo usa una sola superficie visual `contenteditable` que renderiza y vuelve a serializar Markdown; la carga/pegado de imágenes comparte el store acotado de `attachments`. No debe reintroducirse una lista de tarjetas separada, un segundo preview visible ni el selector `Edit`/`Preview`.
 
 Mapa operativo para evitar búsquedas globales repetidas.
 
@@ -14,7 +14,7 @@ Mapa operativo para evitar búsquedas globales repetidas.
 | Save slots/migración | `src/services/save-service.js` | helpers de slots en `index.html`, test de save service |
 | Live Sheet, estados, audio y objetivos VTT | `src/services/live-sheet-server.js` | IPC main, preload, cliente en `renderer.js`; el DM Screen entrega homebrew mediante `dm:sheet:patch` y el Character Sheet resuelve snapshots en `__sheetMeta.homebrewItems`; los archivos de audio viajan como data URL y YouTube solo como ID validado |
 | Enlaces de música YouTube | `src/services/dm-sound-link-service.js` | IPC `dm-sound-links:*` en main/preload; JSON atómico en `userData`; main identifica requests `youtube-nocookie.com` con el repositorio canónico como referente HTTP |
-| Obsidian y Markdown compatible | `src/services/obsidian-service.js`, `src/engine/obsidian-markdown.js` | IPC/preload, Notes del jugador y componentes React del DM Screen |
+| Obsidian y Markdown compatible | `src/services/obsidian-service.js`, `src/engine/obsidian-markdown.js` | IPC/preload, Notes del jugador y componentes React del DM Screen; el engine también genera las transformaciones puras del toolbar de Notes |
 | Traducción | `src/services/translation-service.js` | `i18n.js` y `translateTextToSpanish()` en `index.html` |
 | Backgrounds | `src/data/backgrounds/backgrounds.json` | `data-loader.js`, `renderer.js`, marcadores background en `index.html` |
 | Sincronizar/validar spells | `scripts/sync-spells.js`, `scripts/validate-spells.js` | `src/data/spells/spells.json`, `spell.schema.json`, `spells.manifest.json`; `docs/ADDING_SPELLS.md` |

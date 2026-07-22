@@ -35,41 +35,41 @@
     const notesBackButton = document.getElementById("notesBackButton");
     const notesCategoryList = document.getElementById("notesCategoryList");
     const notesFolderList = document.getElementById("notesFolderList");
-    const notesLibraryList = document.getElementById("notesLibraryList");
     const notesTabs = document.getElementById("notesTabs");
     const notesSearchInput = document.getElementById("notesSearchInput");
+    const notesTreeContextMenu = document.getElementById("notesTreeContextMenu");
+    const notesTreeContextActions = document.getElementById("notesTreeContextActions");
+    const notesTreeDeleteButton = document.getElementById("notesTreeDeleteButton");
+    const notesTreeDeleteLabel = document.getElementById("notesTreeDeleteLabel");
+    const notesTreeFolderForm = document.getElementById("notesTreeFolderForm");
+    const notesTreeFolderName = document.getElementById("notesTreeFolderName");
     const notesCategoryBrowser = document.getElementById("notesCategoryBrowser");
     const notesCategoryBrowserTitle = document.getElementById("notesCategoryBrowserTitle");
     const notesCategoryBrowserCount = document.getElementById("notesCategoryBrowserCount");
     const notesCategoryBrowserList = document.getElementById("notesCategoryBrowserList");
+    const notesCategoryNewButton = document.getElementById("notesCategoryNewButton");
     const notesTitleInput = document.getElementById("notesTitleInput");
     const notesBodyInput = document.getElementById("notesBodyInput");
-    const notesBodyPreview = document.getElementById("notesBodyPreview");
-    const notesPreviewToggle = document.getElementById("notesPreviewToggle");
+    const notesBodyPreview = notesBodyInput;
+    const notesLinkForm = document.getElementById("notesLinkForm");
+    const notesLinkUrl = document.getElementById("notesLinkUrl");
     const notesStarButton = document.getElementById("notesStarButton");
     const notesEditorStatus = document.getElementById("notesEditorStatus");
-    const notesLastEdited = document.getElementById("notesLastEdited");
-    const notesCreated = document.getElementById("notesCreated");
-    const notesWordCount = document.getElementById("notesWordCount");
-    const notesId = document.getElementById("notesId");
-    const notesCategorySelect = document.getElementById("notesCategorySelect");
-    const notesFolderSelect = document.getElementById("notesFolderSelect");
     const notesTags = document.getElementById("notesTags");
     const notesTagLibrary = document.getElementById("notesTagLibrary");
     const notesTagInput = document.getElementById("notesTagInput");
     const notesAddTagButton = document.getElementById("notesAddTagButton");
     const notesTagColors = document.getElementById("notesTagColors");
     const notesLabelColors = document.getElementById("notesLabelColors");
-    const notesLinkedTags = document.getElementById("notesLinkedTags");
-    const notesLinksList = document.getElementById("notesLinksList");
-    const notesAddLinkButton = document.getElementById("notesAddLinkButton");
+    const notesMainFolderSelect = document.getElementById("notesMainFolderSelect");
+    const notesCreateMainFolderButton = document.getElementById("notesCreateMainFolderButton");
+    const notesMainFolderForm = document.getElementById("notesMainFolderForm");
+    const notesMainFolderName = document.getElementById("notesMainFolderName");
     const notesShareToggle = document.getElementById("notesShareToggle");
     const notesShareStatus = document.getElementById("notesShareStatus");
     const notesTemplateList = document.getElementById("notesTemplateList");
-    const notesCloseTemplatesButton = document.getElementById("notesCloseTemplatesButton");
     const notesTaskList = document.getElementById("notesTaskList");
     const notesTaskInput = document.getElementById("notesTaskInput");
-    const notesTaskReminderInput = document.getElementById("notesTaskReminderInput");
     const notesAddTaskButton = document.getElementById("notesAddTaskButton");
     const notesPinButton = document.getElementById("notesPinButton");
     const notesArchiveButton = document.getElementById("notesArchiveButton");
@@ -243,8 +243,29 @@
     const LIVE_SHEET_PLAYER_ID_KEY = "dnd-character-sheet-live-player-id-v1";
     const PLAYER_NOTES_STORAGE_KEY = "dnd-character-sheet-player-notes-v1";
     const PLAYER_NOTES_CATEGORIES = Object.freeze(["session", "npcs", "quests", "locations", "loot", "combat", "handouts", "custom"]);
+    const PLAYER_NOTE_CATEGORY_LABEL_KEYS = Object.freeze({
+      session: "notes.sessionNotes",
+      npcs: "notes.npcs",
+      quests: "notes.quests",
+      locations: "notes.locations",
+      loot: "notes.loot",
+      combat: "notes.combatNotes",
+      handouts: "notes.handouts",
+      custom: "notes.custom"
+    });
+    const PLAYER_NOTE_CATEGORY_FOLDER_NAMES = Object.freeze({
+      session: "Session Notes",
+      npcs: "NPCs",
+      quests: "Quests",
+      locations: "Locations",
+      loot: "Loot",
+      combat: "Combat Notes",
+      handouts: "Handouts",
+      custom: "Custom"
+    });
+    const PLAYER_NOTE_CATEGORY_TEMPLATES = Object.freeze({ session: "session", npcs: "npc", quests: "quest", combat: "encounter" });
     const PLAYER_NOTE_COLORS = Object.freeze(["gray", "red", "amber", "green", "blue", "purple"]);
-    const PLAYER_NOTE_BROWSE_CATEGORIES = Object.freeze(["session", "npcs", "quests"]);
+    const PLAYER_NOTE_BROWSE_CATEGORIES = PLAYER_NOTES_CATEGORIES;
     const PLAYER_NOTE_TAG_COLORS = Object.freeze(["gray", "red", "amber", "orange", "yellow", "green", "teal", "cyan", "blue", "indigo", "purple", "pink"]);
     const PLAYER_NOTE_TEMPLATES = Object.freeze({
       session: {
@@ -275,12 +296,15 @@
     let playerNotesActiveId = "";
     let playerNotesOpenIds = [];
     let playerNotesBrowseMode = false;
-    let playerNotesEditing = false;
     let playerNotesTagColor = "amber";
     let playerNotesSelectedTagName = "";
+    let playerNotesTreeContextFolderId = "";
+    let playerNotesTreeContextTarget = { kind: "root", id: "" };
+    let playerNotesDragPayload = null;
     const playerNotesCollapsedFolders = new Set();
     const playerNotesPreviewCache = new Map();
     let playerNotesRenderedPreviewKey = "";
+    let playerNotesSavedRange = null;
     let playerNotesSaveTimer = null;
     let playerNotesShareTimer = null;
     let playerNotesInitialized = false;
@@ -2655,7 +2679,7 @@
 
     function playerNotesEmptyStore() {
       return {
-        version: 3,
+        version: 4,
         folders: [{ id: "campaign", name: "Campaign", parentId: "" }],
         tags: [],
         attachments: [],
@@ -2729,16 +2753,21 @@
           return {
             id: String(folder.id || playerNotesNewId("folder")).replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 80),
             name,
-            parentId: String(folder.parentId || "").replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 80)
+            parentId: String(folder.parentId || "").replace(/[^a-zA-Z0-9_.:-]/g, "-").slice(0, 80),
+            category: PLAYER_NOTES_CATEGORIES.includes(String(folder.category || "").toLowerCase())
+              ? String(folder.category).toLowerCase()
+              : ""
           };
         })
         .filter(Boolean);
-      if (!folders.length) folders.push({ id: "campaign", name: "Campaign", parentId: "" });
       const folderIds = new Set(folders.map((folder) => folder.id));
-      const safeFolders = folders.map((folder) => ({
-        ...folder,
-        parentId: folder.parentId && folder.parentId !== folder.id && folderIds.has(folder.parentId) ? folder.parentId : ""
-      }));
+      const claimedFolderCategories = new Set();
+      const safeFolders = folders.map((folder) => {
+        const parentId = folder.parentId && folder.parentId !== folder.id && folderIds.has(folder.parentId) ? folder.parentId : "";
+        const category = !parentId && folder.category && !claimedFolderCategories.has(folder.category) ? folder.category : "";
+        if (category) claimedFolderCategories.add(category);
+        return { ...folder, parentId, category };
+      });
       const notes = [...new Map((Array.isArray(store.notes) ? store.notes : [])
         .map(playerNotesNormalizeNote)
         .map((note) => [note.id, { ...note, folderId: folderIds.has(note.folderId) ? note.folderId : "" }])).values()]
@@ -2772,7 +2801,7 @@
         })
         .filter(Boolean)
         .slice(0, 32);
-      return { version: 3, folders: safeFolders, tags: [...tagByName.values()].slice(0, 96), attachments, notes };
+      return { version: 4, folders: safeFolders, tags: [...tagByName.values()].slice(0, 96), attachments, notes };
     }
 
     function playerNotesSaveStore() {
@@ -2820,6 +2849,52 @@
       return playerNotesStore?.notes?.find((note) => note.id === playerNotesActiveId) || null;
     }
 
+    function playerNotesCategoryLabel(category) {
+      const key = PLAYER_NOTE_CATEGORY_LABEL_KEYS[category];
+      return key ? t(key) : String(category || "");
+    }
+
+    function playerNotesSetNoteCategory(note, category) {
+      if (!note || !PLAYER_NOTES_CATEGORIES.includes(category)) return;
+      note.category = category;
+      note.tags = [...(note.tags || []).filter((tag) => !PLAYER_NOTES_CATEGORIES.includes(tag)), category].slice(0, 16);
+    }
+
+    function playerNotesFolderDisplayName(folder) {
+      return folder?.category ? playerNotesCategoryLabel(folder.category) : String(folder?.name || "");
+    }
+
+    function playerNotesRootFolder(folderId) {
+      const foldersById = new Map((playerNotesStore?.folders || []).map((folder) => [folder.id, folder]));
+      const visited = new Set();
+      let folder = foldersById.get(folderId) || null;
+      while (folder?.parentId && !visited.has(folder.id)) {
+        visited.add(folder.id);
+        folder = foldersById.get(folder.parentId) || folder;
+        if (visited.has(folder.id)) break;
+      }
+      return folder;
+    }
+
+    function playerNotesEnsureCategoryMainFolder(category) {
+      if (!PLAYER_NOTES_CATEGORIES.includes(category) || !playerNotesStore) return "";
+      const existing = playerNotesStore.folders.find((folder) => !folder.parentId && folder.category === category);
+      if (existing) return existing.id;
+      const preferredId = `main-${category}`;
+      const folder = {
+        id: playerNotesStore.folders.some((entry) => entry.id === preferredId) ? playerNotesNewId("folder") : preferredId,
+        name: PLAYER_NOTE_CATEGORY_FOLDER_NAMES[category],
+        parentId: "",
+        category
+      };
+      playerNotesStore.folders.push(folder);
+      return folder.id;
+    }
+
+    function playerNotesCategoryForFolder(folderId) {
+      return playerNotesRootFolder(folderId)?.category || "";
+    }
+
     function playerNotesVisibleNotes() {
       const query = playerNotesSearch.trim().toLowerCase();
       return (playerNotesStore?.notes || [])
@@ -2827,7 +2902,6 @@
           if (note.archived) return false;
           if (playerNotesFilter === "shared" && !note.shared) return false;
           if (PLAYER_NOTES_CATEGORIES.includes(playerNotesFilter) && note.category !== playerNotesFilter) return false;
-          if (playerNotesFolderFilter && note.folderId !== playerNotesFolderFilter) return false;
           if (!query) return true;
           return [note.title, note.body, ...(note.tags || [])].join(" ").toLowerCase().includes(query);
         })
@@ -2841,10 +2915,6 @@
       } catch (_error) {
         return String(value);
       }
-    }
-
-    function playerNotesWordTotal(value) {
-      return (String(value || "").trim().match(/[\p{L}\p{N}]+(?:['’_-][\p{L}\p{N}]+)*/gu) || []).length;
     }
 
     function playerNotesIcon(name, size = 17) {
@@ -2867,98 +2937,88 @@
       });
     }
 
-    function playerNotesRenderFolders() {
-      if (!notesFolderList) return;
-      notesFolderList.replaceChildren(...(playerNotesStore?.folders || []).map((folder) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `notes-folder-button${playerNotesFolderFilter === folder.id ? " is-active" : ""}`;
-        button.dataset.notesFolder = folder.id;
-        const icon = document.createElement("span");
-        icon.className = "notes-folder-icon";
-        icon.appendChild(playerNotesIcon("folder", 16));
-        const label = document.createElement("span");
-        label.textContent = folder.name;
-        const count = document.createElement("span");
-        count.className = "notes-category-count";
-        count.textContent = String((playerNotesStore?.notes || []).filter((note) => note.folderId === folder.id && !note.archived).length);
-        button.append(icon, label, count);
-        return button;
-      }));
-    }
-
-    function playerNotesRenderLibrary() {
-      if (!notesLibraryList) return;
-      notesLibraryList.replaceChildren(...playerNotesVisibleNotes().map((note) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `notes-library-note-button${note.id === playerNotesActiveId ? " is-active" : ""}`;
-        button.dataset.notesId = note.id;
-        const dot = document.createElement("span");
-        dot.className = "notes-library-note-dot";
-        dot.style.background = note.color === "gray" ? "#737a7b" : note.color === "red" ? "#e16152" : note.color === "green" ? "#5aaf59" : note.color === "blue" ? "#4f87cc" : note.color === "purple" ? "#8758c4" : "#e5a925";
-        const title = document.createElement("span");
-        title.textContent = note.title;
-        const meta = document.createElement("span");
-        meta.className = "notes-library-note-meta";
-        meta.textContent = note.shared ? (note.sharedBy?.playerName || t("notes.sharedNotes")) : note.category;
-        button.append(dot, title, meta);
-        return button;
-      }));
-    }
-
-    function playerNotesFolderSelectEntries() {
-      const folders = playerNotesStore?.folders || [];
-      const childrenByParent = new Map();
-      folders.forEach((folder) => {
-        const parentId = folder.parentId || "";
-        if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
-        childrenByParent.get(parentId).push(folder);
-      });
-      const entries = [];
-      const visited = new Set();
-      const visit = (parentId, depth = 0, trail = new Set()) => {
-        (childrenByParent.get(parentId) || []).forEach((folder) => {
-          if (trail.has(folder.id) || visited.has(folder.id)) return;
-          visited.add(folder.id);
-          entries.push({ folder, depth });
-          visit(folder.id, depth + 1, new Set([...trail, folder.id]));
-        });
-      };
-      visit("");
-      folders.forEach((folder) => {
-        if (!visited.has(folder.id)) entries.push({ folder, depth: 0 });
-      });
-      return entries;
-    }
-
     function playerNotesRenderFolderTree() {
       if (!notesFolderList) return;
       const folders = playerNotesStore?.folders || [];
+      const visibleNotes = playerNotesVisibleNotes();
+      const filtering = playerNotesFilter !== "all" || Boolean(playerNotesSearch.trim());
       const childrenByParent = new Map();
       folders.forEach((folder) => {
         const parentId = folder.parentId || "";
         if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
         childrenByParent.get(parentId).push(folder);
       });
-      const rows = [];
+      const notesByFolder = new Map();
+      visibleNotes.forEach((note) => {
+        const folderId = folders.some((folder) => folder.id === note.folderId) ? note.folderId : "";
+        if (!notesByFolder.has(folderId)) notesByFolder.set(folderId, []);
+        notesByFolder.get(folderId).push(note);
+      });
+      const branchNoteCountCache = new Map();
+      const branchNoteCount = (folderId, trail = new Set()) => {
+        if (branchNoteCountCache.has(folderId)) return branchNoteCountCache.get(folderId);
+        if (trail.has(folderId)) return 0;
+        const nextTrail = new Set([...trail, folderId]);
+        const count = (notesByFolder.get(folderId) || []).length
+          + (childrenByParent.get(folderId) || []).reduce((total, child) => total + branchNoteCount(child.id, nextTrail), 0);
+        branchNoteCountCache.set(folderId, count);
+        return count;
+      };
+
+      const createNoteRow = (note) => {
+        const row = document.createElement("div");
+        row.className = "notes-tree-note-row";
+        row.draggable = true;
+        row.dataset.notesNoteNode = note.id;
+        row.setAttribute("role", "treeitem");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `notes-tree-note-button${note.id === playerNotesActiveId ? " is-active" : ""}`;
+        button.dataset.notesId = note.id;
+        const icon = document.createElement("span");
+        icon.className = "notes-tree-note-icon";
+        icon.appendChild(playerNotesIcon("file", 15));
+        const title = document.createElement("span");
+        title.className = "notes-tree-note-title";
+        title.textContent = note.title;
+        const dot = document.createElement("span");
+        dot.className = "notes-tree-note-dot";
+        dot.style.background = note.color === "gray" ? "#737a7b" : note.color === "red" ? "#e16152" : note.color === "green" ? "#5aaf59" : note.color === "blue" ? "#4f87cc" : note.color === "purple" ? "#8758c4" : "#e5a925";
+        button.append(icon, title, dot);
+        row.appendChild(button);
+        return row;
+      };
+
+      const renderedFolderIds = new Set();
       const renderBranch = (parentId, depth = 0, trail = new Set()) => {
+        const nodes = [];
         (childrenByParent.get(parentId) || []).forEach((folder) => {
-          if (trail.has(folder.id)) return;
-          const children = childrenByParent.get(folder.id) || [];
-          const collapsed = playerNotesCollapsedFolders.has(folder.id);
+          if (trail.has(folder.id) || renderedFolderIds.has(folder.id)) return;
+          const visibleBranchCount = branchNoteCount(folder.id);
+          if (filtering && !visibleBranchCount) return;
+          renderedFolderIds.add(folder.id);
+          const childFolders = childrenByParent.get(folder.id) || [];
+          const directNotes = notesByFolder.get(folder.id) || [];
+          const hasChildren = childFolders.length > 0 || directNotes.length > 0;
+          const collapsed = !filtering && playerNotesCollapsedFolders.has(folder.id);
+          const folderNode = document.createElement("div");
+          folderNode.className = "notes-tree-folder";
+          folderNode.draggable = true;
+          folderNode.dataset.notesFolderNode = folder.id;
+          folderNode.setAttribute("role", "treeitem");
+          folderNode.setAttribute("aria-level", String(depth + 1));
+          if (hasChildren) folderNode.setAttribute("aria-expanded", collapsed ? "false" : "true");
           const row = document.createElement("div");
           row.className = "notes-folder-row";
-          row.style.setProperty("--notes-folder-depth", String(depth));
 
           const toggle = document.createElement("button");
           toggle.type = "button";
-          toggle.className = `notes-folder-toggle${children.length ? " has-children" : ""}`;
+          toggle.className = `notes-folder-toggle${hasChildren ? " has-children" : ""}`;
           toggle.dataset.notesFolderToggle = folder.id;
-          if (children.length) toggle.appendChild(playerNotesIcon(collapsed ? "chevronRight" : "chevronDown", 14));
-          toggle.setAttribute("aria-label", children.length ? t(collapsed ? "notes.expandFolder" : "notes.collapseFolder") : "");
-          toggle.title = children.length ? t(collapsed ? "notes.expandFolder" : "notes.collapseFolder") : "";
-          toggle.disabled = !children.length;
+          if (hasChildren) toggle.appendChild(playerNotesIcon(collapsed ? "chevronRight" : "chevronDown", 14));
+          toggle.setAttribute("aria-label", hasChildren ? t(collapsed ? "notes.expandFolder" : "notes.collapseFolder") : "");
+          toggle.title = hasChildren ? t(collapsed ? "notes.expandFolder" : "notes.collapseFolder") : "";
+          toggle.disabled = !hasChildren;
 
           const button = document.createElement("button");
           button.type = "button";
@@ -2968,10 +3028,11 @@
           icon.className = "notes-folder-icon";
           icon.appendChild(playerNotesIcon("folder", 16));
           const label = document.createElement("span");
-          label.textContent = folder.name;
+          const folderName = playerNotesFolderDisplayName(folder);
+          label.textContent = folderName;
           const count = document.createElement("span");
           count.className = "notes-category-count";
-          count.textContent = String((playerNotesStore?.notes || []).filter((note) => note.folderId === folder.id && !note.archived).length);
+          count.textContent = String(visibleBranchCount);
           button.append(icon, label, count);
 
           const addChild = document.createElement("button");
@@ -2980,14 +3041,33 @@
           addChild.dataset.notesAddChildFolder = folder.id;
           addChild.appendChild(playerNotesIcon("plus", 14));
           addChild.title = t("notes.addFolder");
-          addChild.setAttribute("aria-label", t("notes.addSubfolderTo", { name: folder.name }));
+          addChild.setAttribute("aria-label", t("notes.addSubfolderTo", { name: folderName }));
           row.append(toggle, button, addChild);
-          rows.push(row);
-          if (!collapsed) renderBranch(folder.id, depth + 1, new Set([...trail, folder.id]));
+          folderNode.appendChild(row);
+          if (!collapsed) {
+            const children = document.createElement("div");
+            children.className = "notes-tree-children";
+            children.setAttribute("role", "group");
+            children.append(...renderBranch(folder.id, depth + 1, new Set([...trail, folder.id])));
+            children.append(...directNotes.map(createNoteRow));
+            if (children.childElementCount) folderNode.appendChild(children);
+          }
+          nodes.push(folderNode);
         });
+        return nodes;
       };
-      renderBranch("");
-      notesFolderList.replaceChildren(...rows);
+      const roots = [...renderBranch(""), ...(notesByFolder.get("") || []).map(createNoteRow)];
+      folders.forEach((folder) => {
+        if (!renderedFolderIds.has(folder.id) && (!filtering || branchNoteCount(folder.id))) roots.push(...renderBranch(folder.parentId || ""));
+      });
+      if (!roots.length) {
+        const empty = document.createElement("div");
+        empty.className = "notes-tree-empty";
+        empty.textContent = t("notes.noNotes");
+        notesFolderList.replaceChildren(empty);
+        return;
+      }
+      notesFolderList.replaceChildren(...roots);
     }
 
     function playerNotesRenderTabs() {
@@ -3017,7 +3097,7 @@
     }
 
     function playerNotesRenderActiveSelection() {
-      notesLibraryList?.querySelectorAll("[data-notes-id]").forEach((button) => {
+      notesFolderList?.querySelectorAll("[data-notes-id]").forEach((button) => {
         button.classList.toggle("is-active", button.dataset.notesId === playerNotesActiveId);
       });
       notesTabs?.querySelectorAll("[data-notes-id]").forEach((tab) => {
@@ -3067,17 +3147,6 @@
       }));
     }
 
-    function playerNotesRenderLinkedTags(note) {
-      if (!notesLinkedTags) return;
-      notesLinkedTags.replaceChildren(...(note?.tags || []).map((tag) => {
-        const chip = document.createElement("span");
-        chip.className = "notes-linked-tag";
-        chip.dataset.color = playerNotesColorForTag(tag);
-        chip.textContent = `#${tag}`;
-        return chip;
-      }));
-    }
-
     function playerNotesRenderTags(note) {
       if (!notesTags) return;
       notesTags.replaceChildren(...(note?.tags || []).map((tag) => {
@@ -3096,8 +3165,42 @@
         return chip;
       }));
       playerNotesRenderTagLibrary(note);
-      playerNotesRenderLinkedTags(note);
       playerNotesRenderTagColors();
+    }
+
+    function playerNotesRenderMainFolder(note) {
+      if (!notesMainFolderSelect) return;
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = t("notes.noMainFolder");
+      const categoryGroup = document.createElement("optgroup");
+      categoryGroup.label = t("notes.categoryFolders");
+      categoryGroup.append(...PLAYER_NOTES_CATEGORIES.map((category) => {
+        const option = document.createElement("option");
+        option.value = `category:${category}`;
+        option.textContent = playerNotesCategoryLabel(category);
+        return option;
+      }));
+      const customRoots = (playerNotesStore?.folders || [])
+        .filter((folder) => !folder.parentId && !folder.category)
+        .sort((left, right) => playerNotesFolderDisplayName(left).localeCompare(playerNotesFolderDisplayName(right)));
+      const customGroup = document.createElement("optgroup");
+      customGroup.label = t("notes.customMainFolders");
+      customGroup.append(...customRoots.map((folder) => {
+        const option = document.createElement("option");
+        option.value = `folder:${folder.id}`;
+        option.textContent = playerNotesFolderDisplayName(folder);
+        return option;
+      }));
+      notesMainFolderSelect.replaceChildren(emptyOption, categoryGroup, customGroup);
+      const root = playerNotesRootFolder(note?.folderId || "");
+      notesMainFolderSelect.value = root?.category ? `category:${root.category}` : root ? `folder:${root.id}` : "";
+      notesMainFolderSelect.disabled = !note;
+      if (notesCreateMainFolderButton) notesCreateMainFolderButton.disabled = !note;
+      if (!note) {
+        notesMainFolderForm?.setAttribute("hidden", "");
+        if (notesMainFolderName) notesMainFolderName.value = "";
+      }
     }
 
     function playerNotesRenderCategoryBrowser() {
@@ -3108,48 +3211,34 @@
       if (editorColumn) editorColumn.hidden = browse;
       if (detailsPanel) detailsPanel.hidden = browse;
       if (!browse || !notesCategoryBrowserList) return;
-      const categoryLabels = { session: "notes.sessionNotes", npcs: "notes.npcs", quests: "notes.quests" };
       const visibleNotes = playerNotesVisibleNotes();
-      if (notesCategoryBrowserTitle) notesCategoryBrowserTitle.textContent = t(categoryLabels[playerNotesFilter]);
+      if (notesCategoryBrowserTitle) notesCategoryBrowserTitle.textContent = playerNotesCategoryLabel(playerNotesFilter);
       if (notesCategoryBrowserCount) notesCategoryBrowserCount.textContent = t("notes.categoryCount", { count: visibleNotes.length });
       notesCategoryBrowserList.replaceChildren(...visibleNotes.map((note) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "notes-category-note-row";
         button.dataset.notesBrowserId = note.id;
+        const copy = document.createElement("span");
+        copy.className = "notes-category-note-copy";
         const title = document.createElement("strong");
         title.textContent = note.title;
         const meta = document.createElement("span");
+        meta.className = "notes-category-note-meta";
         const folder = playerNotesStore?.folders?.find((entry) => entry.id === note.folderId);
-        meta.textContent = [folder?.name, playerNotesFormatDate(note.updatedAt), note.tags.map((tag) => `#${tag}`).join(" ")].filter(Boolean).join(" • ");
-        button.append(title, meta);
+        meta.textContent = [playerNotesFolderDisplayName(folder), playerNotesFormatDate(note.updatedAt)].filter(Boolean).join(" • ");
+        copy.append(title, meta);
+        const tags = document.createElement("span");
+        tags.className = "notes-category-note-tags";
+        tags.append(...note.tags.map((tag) => {
+          const chip = document.createElement("span");
+          chip.className = "notes-category-note-tag";
+          chip.dataset.color = playerNotesColorForTag(tag);
+          chip.appendChild(document.createTextNode(`#${tag}`));
+          return chip;
+        }));
+        button.append(copy, tags);
         return button;
-      }));
-    }
-
-    function playerNotesRenderLinks(note) {
-      if (!notesLinksList) return;
-      notesLinksList.replaceChildren(...(note?.links || []).map((link) => {
-        const row = document.createElement("div");
-        row.className = "notes-link-row";
-        const icon = document.createElement("span");
-        icon.className = "notes-link-icon";
-        icon.appendChild(playerNotesIcon("link", 15));
-        const label = document.createElement("span");
-        label.className = "notes-link-label";
-        label.textContent = link.label;
-        const type = document.createElement("span");
-        type.className = "notes-link-type";
-        type.textContent = link.type;
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "notes-link-delete";
-        remove.dataset.notesRemoveLink = link.id;
-        remove.setAttribute("aria-label", `${t("notes.delete")} ${link.label}`);
-        remove.title = `${t("notes.delete")} ${link.label}`;
-        remove.appendChild(playerNotesIcon("x", 13));
-        row.append(icon, label, type, remove);
-        return row;
       }));
     }
 
@@ -3187,9 +3276,13 @@
     }
 
     function playerNotesSetEditorDisabled(disabled) {
-      [notesTitleInput, notesBodyInput, notesStarButton, notesPreviewToggle, notesShareToggle, notesPinButton, notesArchiveButton, notesDuplicateButton, notesExportButton, notesDeleteButton, notesTagInput, notesAddTagButton, notesAddLinkButton, notesAddTaskButton, notesTaskReminderInput, notesCategorySelect, notesFolderSelect]
+      [notesTitleInput, notesStarButton, notesShareToggle, notesPinButton, notesArchiveButton, notesDuplicateButton, notesExportButton, notesDeleteButton, notesTagInput, notesAddTagButton, notesMainFolderSelect, notesCreateMainFolderButton, notesAddTaskButton, notesLinkUrl]
         .filter(Boolean)
         .forEach((element) => { element.disabled = disabled; });
+      if (notesBodyInput) {
+        notesBodyInput.contentEditable = String(!disabled);
+        notesBodyInput.setAttribute("aria-disabled", String(disabled));
+      }
       notesWorkspace?.querySelectorAll("[data-note-command], [data-note-color], [data-note-template]").forEach((element) => { element.disabled = disabled; });
     }
 
@@ -3203,11 +3296,12 @@
         }
         if (part.type === "wiki") {
           const target = engine.cleanObsidianTarget(part.target);
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = "notes-obsidian-link";
+          const button = document.createElement("span");
+          button.className = "notes-obsidian-link notes-rich-wiki-link";
+          button.dataset.markdownToken = String(part.target || "");
           button.textContent = engine.obsidianDisplayAlias(part.target);
-          button.addEventListener("click", () => {
+          button.addEventListener("click", (event) => {
+            if (!event.ctrlKey && !event.metaKey) return;
             const targetNote = playerNotesStore?.notes?.find((note) => note.title.toLowerCase() === target.toLowerCase());
             if (targetNote) {
               playerNotesBrowseMode = false;
@@ -3221,9 +3315,12 @@
           const link = document.createElement("a");
           link.className = "notes-obsidian-link";
           link.textContent = part.label;
-          link.href = part.href;
+          link.href = /^(?:https?:\/\/|mailto:)/i.test(String(part.href || "")) ? part.href : "#";
           link.target = "_blank";
           link.rel = "noreferrer noopener";
+          link.addEventListener("click", (event) => {
+            if (!event.ctrlKey && !event.metaKey) event.preventDefault();
+          });
           parent.appendChild(link);
           return;
         }
@@ -3237,6 +3334,9 @@
             image.className = "notes-obsidian-image";
             image.src = attachment.dataUrl;
             image.alt = engine.obsidianDisplayAlias(part.target) || attachment.name || t("notes.imagePlaceholder");
+            image.dataset.markdownToken = String(part.target || "");
+            image.contentEditable = "false";
+            image.draggable = false;
             image.loading = "lazy";
             parent.appendChild(image);
           } else {
@@ -3275,10 +3375,6 @@
       notesBodyPreview.textContent = "";
       const blocks = playerNotesPreviewBlocks(note);
       if (!blocks.length) {
-        const empty = document.createElement("p");
-        empty.className = "notes-obsidian-empty";
-        empty.textContent = t("notes.emptyBody");
-        notesBodyPreview.appendChild(empty);
         playerNotesRenderedPreviewKey = renderKey;
         return;
       }
@@ -3286,6 +3382,7 @@
         if (block.type === "heading") {
           const heading = document.createElement(`h${Math.min(6, Math.max(2, block.level + 1))}`);
           heading.className = `notes-obsidian-heading notes-obsidian-heading-${block.level}`;
+          heading.dataset.markdownLevel = String(block.level);
           playerNotesAppendObsidianInline(heading, block.text);
           notesBodyPreview.appendChild(heading);
           return;
@@ -3297,6 +3394,7 @@
         if (block.type === "code") {
           const pre = document.createElement("pre");
           pre.className = "notes-obsidian-code";
+          pre.dataset.markdownLanguage = block.language || "";
           pre.textContent = block.text;
           notesBodyPreview.appendChild(pre);
           return;
@@ -3310,7 +3408,7 @@
               const checkbox = document.createElement("input");
               checkbox.type = "checkbox";
               checkbox.checked = item.checked;
-              checkbox.disabled = true;
+              checkbox.contentEditable = "false";
               listItem.className = "notes-obsidian-task";
               listItem.append(checkbox);
             }
@@ -3352,6 +3450,8 @@
           const quote = document.createElement("blockquote");
           quote.className = `notes-obsidian-quote${block.type === "callout" ? " is-callout" : ""}`;
           if (block.type === "callout") {
+            quote.dataset.markdownCalloutKind = block.kind || "note";
+            quote.dataset.markdownCalloutTitle = block.title || block.kind || "note";
             const title = document.createElement("strong");
             title.textContent = `${block.kind}: ${block.title}`;
             quote.appendChild(title);
@@ -3371,42 +3471,178 @@
       playerNotesRenderedPreviewKey = renderKey;
     }
 
+    function playerNotesRichInlineMarkdown(node) {
+      if (!node) return "";
+      if (node.nodeType === Node.TEXT_NODE) return String(node.nodeValue || "").replace(/\u200b/g, "");
+      if (node.nodeType !== Node.ELEMENT_NODE) return "";
+      const element = node;
+      const tag = element.tagName.toLowerCase();
+      if (tag === "br") return "\n";
+      if (tag === "input") return "";
+      if (tag === "img") return element.dataset.markdownToken || `![${element.alt || t("notes.imagePlaceholder")}](#)`;
+      if (element.dataset.markdownToken) return element.dataset.markdownToken;
+      if (["ul", "ol", "blockquote", "pre", "table", "hr", "h1", "h2", "h3", "h4", "h5", "h6"].includes(tag)) {
+        return `\n${playerNotesRichBlockMarkdown(element)}\n`;
+      }
+      const content = [...element.childNodes].map(playerNotesRichInlineMarkdown).join("");
+      if (tag === "strong" || tag === "b") return `**${content}**`;
+      if (tag === "em" || tag === "i") return `*${content}*`;
+      if (tag === "u") return `__${content}__`;
+      if (tag === "del" || tag === "s" || tag === "strike") return `~~${content}~~`;
+      if (tag === "mark" || (tag === "span" && element.style.backgroundColor)) return `==${content}==`;
+      if (tag === "code") return `\`${content}\``;
+      if (tag === "a") return `[${content}](${element.getAttribute("href") || "https://"})`;
+      if (tag === "p" || tag === "div") return `${content}\n`;
+      return content;
+    }
+
+    function playerNotesRichBlockMarkdown(node) {
+      if (!node) return "";
+      if (node.nodeType === Node.TEXT_NODE) return playerNotesRichInlineMarkdown(node).trim();
+      if (node.nodeType !== Node.ELEMENT_NODE) return "";
+      const element = node;
+      const tag = element.tagName.toLowerCase();
+      if (tag === "hr") return "---";
+      if (/^h[1-6]$/.test(tag)) {
+        const level = Math.max(1, Math.min(6, Number(element.dataset.markdownLevel) || Number(tag.slice(1))));
+        return `${"#".repeat(level)} ${[...element.childNodes].map(playerNotesRichInlineMarkdown).join("")}`;
+      }
+      if (tag === "pre") {
+        const language = String(element.dataset.markdownLanguage || "");
+        return `\`\`\`${language}\n${String(element.textContent || "").replace(/\u200b/g, "")}\n\`\`\``;
+      }
+      if (tag === "ul" || tag === "ol") {
+        let ordinal = 0;
+        return [...element.children].filter((child) => child.tagName?.toLowerCase() === "li").map((item) => {
+          ordinal += 1;
+          const checkbox = item.querySelector(":scope > input[type='checkbox']");
+          const content = [...item.childNodes].filter((child) => child !== checkbox).map(playerNotesRichInlineMarkdown).join("").trim();
+          if (checkbox) return `- [${checkbox.checked ? "x" : " "}] ${content}`;
+          return `${tag === "ol" ? `${ordinal}.` : "-"} ${content}`;
+        }).join("\n");
+      }
+      if (tag === "blockquote") {
+        const lines = [...element.children]
+          .filter((child) => child.tagName?.toLowerCase() !== "strong")
+          .map((child) => playerNotesRichInlineMarkdown(child).trim())
+          .filter(Boolean);
+        if (element.dataset.markdownCalloutKind) {
+          const header = `> [!${element.dataset.markdownCalloutKind}] ${element.dataset.markdownCalloutTitle || ""}`.trimEnd();
+          return [header, ...lines.map((line) => `> ${line}`)].join("\n");
+        }
+        const sourceLines = lines.length ? lines : String(element.textContent || "").split("\n").filter(Boolean);
+        return sourceLines.map((line) => `> ${line}`).join("\n");
+      }
+      if (tag === "table") {
+        const headers = [...element.querySelectorAll(":scope > thead > tr:first-child > th")].map((cell) => playerNotesRichInlineMarkdown(cell).trim());
+        const rows = [...element.querySelectorAll(":scope > tbody > tr")].map((row) => [...row.children].map((cell) => playerNotesRichInlineMarkdown(cell).trim()));
+        if (!headers.length) return "";
+        return [
+          `| ${headers.join(" | ")} |`,
+          `| ${headers.map(() => "---").join(" | ")} |`,
+          ...rows.map((row) => `| ${headers.map((_header, index) => row[index] || "").join(" | ")} |`)
+        ].join("\n");
+      }
+      return [...element.childNodes].map(playerNotesRichInlineMarkdown).join("").trimEnd();
+    }
+
+    function playerNotesRichEditorMarkdown() {
+      if (!notesBodyInput) return "";
+      return [...notesBodyInput.childNodes]
+        .map(playerNotesRichBlockMarkdown)
+        .filter((part) => part !== "")
+        .join("\n\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/^\n+|\n+$/g, "");
+    }
+
+    function playerNotesNormalizeRichDom() {
+      if (!notesBodyInput) return;
+      notesBodyInput.querySelectorAll("ul, ol").forEach((list) => {
+        list.classList.add("notes-obsidian-list");
+        list.classList.toggle("ordered", list.tagName.toLowerCase() === "ol");
+      });
+      notesBodyInput.querySelectorAll("blockquote").forEach((quote) => quote.classList.add("notes-obsidian-quote"));
+      notesBodyInput.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((heading) => {
+        const level = Math.max(1, Math.min(6, Number(heading.dataset.markdownLevel) || Number(heading.tagName.slice(1))));
+        heading.dataset.markdownLevel = String(level);
+        heading.classList.add("notes-obsidian-heading", `notes-obsidian-heading-${level}`);
+      });
+      notesBodyInput.querySelectorAll("a").forEach((link) => link.classList.add("notes-obsidian-link"));
+      notesBodyInput.querySelectorAll("table").forEach((table) => table.classList.add("notes-obsidian-table"));
+    }
+
+    function playerNotesSyncRichEditor({ share = true } = {}) {
+      const note = playerNotesActiveNote();
+      if (!note || !notesBodyInput) return false;
+      playerNotesNormalizeRichDom();
+      const markdown = playerNotesRichEditorMarkdown();
+      if (!markdown && notesBodyInput.childNodes.length) notesBodyInput.replaceChildren();
+      if (markdown.length > 24000) {
+        if (notesEditorStatus) notesEditorStatus.textContent = t("notes.noteTooLong");
+        return false;
+      }
+      note.body = markdown;
+      playerNotesRenderedPreviewKey = `${playerI18n?.getLanguage?.() || "en"}\u0000${note.id}\u0000${note.body}`;
+      playerNotesPersist(note, { share });
+      return true;
+    }
+
+    function playerNotesEditorSelectionRange() {
+      const selection = window.getSelection?.();
+      if (!selection?.rangeCount) return null;
+      const range = selection.getRangeAt(0);
+      return notesBodyInput?.contains(range.commonAncestorContainer) ? range : null;
+    }
+
+    function playerNotesPlaceCaretAfter(node) {
+      const spacer = document.createTextNode("\u200b");
+      node.parentNode?.insertBefore(spacer, node.nextSibling);
+      const range = document.createRange();
+      range.setStart(spacer, 1);
+      range.collapse(true);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function playerNotesApplyTypedMarkdownShortcut() {
+      const selection = window.getSelection?.();
+      if (!selection?.isCollapsed || !selection.anchorNode || selection.anchorNode.nodeType !== Node.TEXT_NODE) return false;
+      if (!notesBodyInput?.contains(selection.anchorNode)) return false;
+      const shortcut = globalThis.dndObsidianMarkdownEngine?.findMarkdownRichShortcut?.(selection.anchorNode.nodeValue, selection.anchorOffset);
+      if (!shortcut) return false;
+      const element = document.createElement(shortcut.type === "bold" ? "strong" : shortcut.type === "italic" ? "em" : shortcut.type === "underline" ? "u" : shortcut.type === "strike" ? "del" : shortcut.type === "highlight" ? "mark" : shortcut.type === "link" ? "a" : "code");
+      element.className = `notes-obsidian-inline-${shortcut.type}`;
+      element.textContent = shortcut.text;
+      if (shortcut.type === "link") {
+        element.href = shortcut.href;
+        element.classList.add("notes-obsidian-link");
+      }
+      const range = document.createRange();
+      range.setStart(selection.anchorNode, shortcut.start);
+      range.setEnd(selection.anchorNode, shortcut.end);
+      range.deleteContents();
+      range.insertNode(element);
+      playerNotesPlaceCaretAfter(element);
+      return true;
+    }
+
     function playerNotesRenderDetails() {
       const note = playerNotesActiveNote();
       playerNotesSetEditorDisabled(!note);
       if (!note) {
         if (notesTitleInput) notesTitleInput.value = "";
-        if (notesBodyInput) notesBodyInput.value = "";
-        if (notesLastEdited) notesLastEdited.textContent = "-";
-        if (notesCreated) notesCreated.textContent = "-";
-        if (notesWordCount) notesWordCount.textContent = "0";
-        if (notesId) notesId.textContent = "-";
         if (notesShareStatus) notesShareStatus.textContent = "";
-        if (notesBodyInput) notesBodyInput.hidden = false;
-        if (notesBodyPreview) {
-          notesBodyPreview.hidden = true;
-          notesBodyPreview.replaceChildren();
-        }
+        notesBodyInput?.replaceChildren();
         playerNotesRenderedPreviewKey = "";
-        if (notesPreviewToggle) {
-          notesPreviewToggle.textContent = t("notes.preview");
-          notesPreviewToggle.setAttribute("aria-pressed", "false");
-        }
-        playerNotesEditing = false;
         playerNotesRenderTags(null);
-        playerNotesRenderLinks(null);
+        playerNotesRenderMainFolder(null);
         playerNotesRenderTasks(null);
         return;
       }
       if (notesTitleInput && notesTitleInput.value !== note.title) notesTitleInput.value = note.title;
-      if (notesBodyInput && notesBodyInput.value !== note.body) notesBodyInput.value = note.body;
-      if (notesBodyInput) notesBodyInput.hidden = !playerNotesEditing;
-      if (notesBodyPreview) notesBodyPreview.hidden = playerNotesEditing;
-      if (notesPreviewToggle) {
-        notesPreviewToggle.textContent = t(playerNotesEditing ? "notes.preview" : "notes.edit");
-        notesPreviewToggle.setAttribute("aria-pressed", String(!playerNotesEditing));
-      }
-      if (!playerNotesEditing) playerNotesRenderObsidianPreview(note);
+      playerNotesRenderObsidianPreview(note);
       if (notesStarButton) {
         notesStarButton.classList.toggle("is-active", note.pinned);
         notesStarButton.replaceChildren(playerNotesIcon("star", 21));
@@ -3417,21 +3653,7 @@
         notesArchiveButton.classList.toggle("is-active", note.archived);
         notesArchiveButton.querySelector("span:last-child")?.replaceChildren(document.createTextNode(note.archived ? t("notes.unarchived") : t("notes.archive")));
       }
-      if (notesLastEdited) notesLastEdited.textContent = playerNotesFormatDate(note.updatedAt);
-      if (notesCreated) notesCreated.textContent = playerNotesFormatDate(note.createdAt);
-      if (notesWordCount) notesWordCount.textContent = String(playerNotesWordTotal(note.body));
-      if (notesId) notesId.textContent = note.id.slice(0, 18);
       if (notesShareToggle) notesShareToggle.checked = note.shared;
-      if (notesCategorySelect) notesCategorySelect.value = note.category;
-      if (notesFolderSelect) {
-        notesFolderSelect.replaceChildren(...playerNotesFolderSelectEntries().map(({ folder, depth }) => {
-          const option = document.createElement("option");
-          option.value = folder.id;
-          option.textContent = `${"\u00a0\u00a0".repeat(depth)}${folder.name}`;
-          return option;
-        }));
-        notesFolderSelect.value = note.folderId || "";
-      }
       if (notesShareStatus) {
         notesShareStatus.dataset.tone = "";
         notesShareStatus.textContent = note.shared
@@ -3440,7 +3662,7 @@
       }
       notesLabelColors?.querySelectorAll("[data-note-color]").forEach((button) => button.classList.toggle("is-active", button.dataset.noteColor === note.color));
       playerNotesRenderTags(note);
-      playerNotesRenderLinks(note);
+      playerNotesRenderMainFolder(note);
       playerNotesRenderTasks(note);
     }
 
@@ -3448,7 +3670,6 @@
       if (!playerNotesStore) playerNotesLoadForActiveSlot();
       playerNotesRenderCategories();
       playerNotesRenderFolderTree();
-      playerNotesRenderLibrary();
       playerNotesRenderTabs();
       playerNotesRenderCategoryBrowser();
       playerNotesRenderDetails();
@@ -3482,10 +3703,24 @@
       const note = playerNotesActiveNote();
       if (!note) return;
       Object.assign(note, patch);
+      if (Object.prototype.hasOwnProperty.call(patch, "folderId")) playerNotesRevealNotePath(note);
       playerNotesPersist(note, options);
-      playerNotesRenderLibrary();
+      playerNotesRenderFolderTree();
       playerNotesRenderTabs();
       playerNotesRenderDetails();
+    }
+
+    function playerNotesRevealNotePath(note) {
+      const foldersById = new Map((playerNotesStore?.folders || []).map((folder) => [folder.id, folder]));
+      const visited = new Set();
+      let folderId = note?.folderId || "";
+      let changed = false;
+      while (folderId && !visited.has(folderId)) {
+        visited.add(folderId);
+        if (playerNotesCollapsedFolders.delete(folderId)) changed = true;
+        folderId = foldersById.get(folderId)?.parentId || "";
+      }
+      return changed;
     }
 
     function playerNotesSetActive(id) {
@@ -3493,36 +3728,120 @@
       if (!note) return;
       playerNotesActiveId = note.id;
       playerNotesBrowseMode = false;
-      playerNotesEditing = false;
+      playerNotesCloseLinkForm();
+      notesMainFolderForm?.setAttribute("hidden", "");
+      if (notesMainFolderName) notesMainFolderName.value = "";
       const openedNewTab = !playerNotesOpenIds.includes(note.id);
+      const revealedPath = playerNotesRevealNotePath(note);
       if (openedNewTab) playerNotesOpenIds.push(note.id);
       if (openedNewTab) playerNotesRenderTabs();
-      playerNotesRenderActiveSelection();
+      if (revealedPath) playerNotesRenderFolderTree();
+      else playerNotesRenderActiveSelection();
       playerNotesRenderCategoryBrowser();
       playerNotesRenderDetails();
     }
 
-    function playerNotesCreate(templateKey = "session") {
-      const template = PLAYER_NOTE_TEMPLATES[templateKey] || PLAYER_NOTE_TEMPLATES.session;
+    function playerNotesCreate(templateKey = "session", targetFolderId = playerNotesFolderFilter || playerNotesStore?.folders?.[0]?.id || "", categoryOverride = "") {
+      const requestedCategory = PLAYER_NOTES_CATEGORIES.includes(categoryOverride) ? categoryOverride : "";
+      const template = PLAYER_NOTE_TEMPLATES[templateKey] || {
+        title: playerNotesCategoryLabel(requestedCategory) || t("notes.newNote"),
+        category: requestedCategory || "session",
+        body: ""
+      };
+      const category = requestedCategory || template.category;
       const now = playerNotesNow();
       const note = playerNotesNormalizeNote({
         id: playerNotesNewId(),
         title: template.title,
-        category: template.category,
-        folderId: playerNotesStore?.folders?.[0]?.id || "",
+        category,
+        folderId: targetFolderId,
         body: template.body,
-        tags: [template.category === "session" ? "session" : template.category],
+        tags: [category],
         createdAt: now,
         updatedAt: now
       });
       playerNotesStore.notes.unshift(note);
+      playerNotesFilter = "all";
+      playerNotesFolderFilter = targetFolderId;
+      playerNotesSearch = "";
+      if (notesSearchInput) notesSearchInput.value = "";
       playerNotesActiveId = note.id;
+      playerNotesRevealNotePath(note);
       playerNotesBrowseMode = false;
-      playerNotesEditing = true;
       playerNotesOpenIds = [...new Set([note.id, ...playerNotesOpenIds])].slice(0, 12);
       playerNotesSaveStore();
       playerNotesRender();
       if (notesEditorStatus) notesEditorStatus.textContent = t("notes.noteCreated");
+    }
+
+    function playerNotesCreateForCategory(category) {
+      if (!PLAYER_NOTES_CATEGORIES.includes(category) || !playerNotesStore) return;
+      const folderId = playerNotesEnsureCategoryMainFolder(category);
+      playerNotesCreate(PLAYER_NOTE_CATEGORY_TEMPLATES[category] || "", folderId, category);
+    }
+
+    function playerNotesCreateFromCurrentContext() {
+      if (PLAYER_NOTES_CATEGORIES.includes(playerNotesFilter) && !playerNotesFolderFilter) {
+        playerNotesCreateForCategory(playerNotesFilter);
+        return;
+      }
+      const folderId = playerNotesFolderFilter || playerNotesStore?.folders?.[0]?.id || "";
+      const category = playerNotesCategoryForFolder(folderId);
+      if (category) playerNotesCreate(PLAYER_NOTE_CATEGORY_TEMPLATES[category] || "", folderId, category);
+      else playerNotesCreate("session", folderId);
+    }
+
+    function playerNotesAssignMainFolder(value) {
+      const note = playerNotesActiveNote();
+      if (!note || !playerNotesStore) return;
+      const rawValue = String(value || "");
+      let folderId = "";
+      let category = note.category;
+      if (rawValue.startsWith("category:")) {
+        const requestedCategory = rawValue.slice("category:".length);
+        if (!PLAYER_NOTES_CATEGORIES.includes(requestedCategory)) return;
+        category = requestedCategory;
+        folderId = playerNotesEnsureCategoryMainFolder(requestedCategory);
+      } else if (rawValue.startsWith("folder:")) {
+        const requestedFolder = playerNotesStore.folders.find((folder) => !folder.parentId && folder.id === rawValue.slice("folder:".length));
+        if (!requestedFolder) return;
+        folderId = requestedFolder.id;
+      }
+      note.folderId = folderId;
+      playerNotesSetNoteCategory(note, category);
+      playerNotesFolderFilter = "";
+      playerNotesFilter = "all";
+      playerNotesBrowseMode = false;
+      playerNotesCollapsedFolders.delete(folderId);
+      playerNotesPersist(note, { share: true });
+      playerNotesSaveStore();
+      playerNotesRenderCategories();
+      playerNotesRenderFolderTree();
+      playerNotesRenderDetails();
+    }
+
+    function playerNotesCreateMainFolder(rawName = notesMainFolderName?.value) {
+      const note = playerNotesActiveNote();
+      const name = String(rawName || "").trim().slice(0, 80);
+      if (!note || !name || !playerNotesStore) return false;
+      let folder = playerNotesStore.folders.find((entry) => !entry.parentId && !entry.category && entry.name.toLowerCase() === name.toLowerCase());
+      if (!folder) {
+        folder = { id: playerNotesNewId("folder"), name, parentId: "", category: "" };
+        playerNotesStore.folders.push(folder);
+      }
+      note.folderId = folder.id;
+      playerNotesFolderFilter = "";
+      playerNotesFilter = "all";
+      playerNotesBrowseMode = false;
+      playerNotesCollapsedFolders.delete(folder.id);
+      notesMainFolderForm?.setAttribute("hidden", "");
+      if (notesMainFolderName) notesMainFolderName.value = "";
+      playerNotesPersist(note, { share: true });
+      playerNotesSaveStore();
+      playerNotesRenderFolderTree();
+      playerNotesRenderDetails();
+      if (notesEditorStatus) notesEditorStatus.textContent = t("notes.mainFolderCreated");
+      return true;
     }
 
     function playerNotesDuplicate() {
@@ -3540,20 +3859,41 @@
       playerNotesStore.notes.unshift(note);
       playerNotesActiveId = note.id;
       playerNotesBrowseMode = false;
-      playerNotesEditing = true;
       playerNotesOpenIds = [...new Set([note.id, ...playerNotesOpenIds])].slice(0, 12);
       playerNotesSaveStore();
       playerNotesRender();
     }
 
-    function playerNotesDelete() {
-      const note = playerNotesActiveNote();
+    function playerNotesDeleteNote(noteId = playerNotesActiveId) {
+      const note = playerNotesStore?.notes?.find((entry) => entry.id === noteId);
       if (!note || !window.confirm(`${t("notes.delete")} "${note.title}"?`)) return;
       if (note.shared) sendLiveSheetMessage({ type: "player:note:unshare", noteId: note.id });
       playerNotesStore.notes = playerNotesStore.notes.filter((entry) => entry.id !== note.id);
       playerNotesOpenIds = playerNotesOpenIds.filter((id) => id !== note.id);
       if (!playerNotesOpenIds.length && playerNotesStore.notes.length) playerNotesOpenIds = [playerNotesStore.notes[0].id];
-      playerNotesActiveId = playerNotesOpenIds[0] || "";
+      if (playerNotesActiveId === note.id) playerNotesActiveId = playerNotesOpenIds[0] || "";
+      playerNotesSaveStore();
+      playerNotesRender();
+      if (notesEditorStatus) notesEditorStatus.textContent = t("notes.deleted");
+    }
+
+    function playerNotesDelete() {
+      playerNotesDeleteNote(playerNotesActiveId);
+    }
+
+    function playerNotesDeleteFolder(folderId) {
+      const folder = playerNotesStore?.folders?.find((entry) => entry.id === folderId);
+      if (!folder || !window.confirm(t("notes.deleteFolderConfirm", { name: playerNotesFolderDisplayName(folder) }))) return;
+      const parentId = folder.parentId || "";
+      playerNotesStore.notes.forEach((note) => {
+        if (note.folderId === folder.id) note.folderId = parentId;
+      });
+      playerNotesStore.folders.forEach((entry) => {
+        if (entry.parentId === folder.id) entry.parentId = parentId;
+      });
+      playerNotesStore.folders = playerNotesStore.folders.filter((entry) => entry.id !== folder.id);
+      playerNotesCollapsedFolders.delete(folder.id);
+      if (playerNotesFolderFilter === folder.id) playerNotesFolderFilter = parentId;
       playerNotesSaveStore();
       playerNotesRender();
       if (notesEditorStatus) notesEditorStatus.textContent = t("notes.deleted");
@@ -3593,50 +3933,164 @@
       if (notesEditorStatus) notesEditorStatus.textContent = t("notes.exported");
     }
 
+    function playerNotesInsertRichNode(node, sourceRange = playerNotesEditorSelectionRange()) {
+      if (!node || !notesBodyInput) return false;
+      notesBodyInput.focus();
+      const range = sourceRange?.cloneRange?.() || document.createRange();
+      if (!sourceRange) {
+        range.selectNodeContents(notesBodyInput);
+        range.collapse(false);
+      }
+      range.deleteContents();
+      range.insertNode(node);
+      playerNotesPlaceCaretAfter(node);
+      playerNotesSyncRichEditor();
+      return true;
+    }
+
+    function playerNotesWrapRichSelection(tagName, className = "") {
+      const range = playerNotesEditorSelectionRange();
+      if (!range) return false;
+      const element = document.createElement(tagName);
+      if (className) element.className = className;
+      if (range.collapsed) {
+        element.appendChild(document.createTextNode("\u200b"));
+        range.insertNode(element);
+        const caret = document.createRange();
+        caret.setStart(element.firstChild, 1);
+        caret.collapse(true);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(caret);
+      } else {
+        element.appendChild(range.extractContents());
+        range.insertNode(element);
+        const selection = window.getSelection();
+        const selected = document.createRange();
+        selected.selectNodeContents(element);
+        selection.removeAllRanges();
+        selection.addRange(selected);
+      }
+      playerNotesSyncRichEditor();
+      return true;
+    }
+
+    function playerNotesInsertTaskBlock() {
+      const list = document.createElement("ul");
+      list.className = "notes-obsidian-list";
+      const item = document.createElement("li");
+      item.className = "notes-obsidian-task";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.contentEditable = "false";
+      const copy = document.createElement("span");
+      const range = playerNotesEditorSelectionRange();
+      copy.textContent = range && !range.collapsed ? range.toString() : t("notes.task");
+      item.append(checkbox, copy);
+      list.appendChild(item);
+      return playerNotesInsertRichNode(list, range);
+    }
+
+    function playerNotesInsertTable() {
+      const table = document.createElement("table");
+      table.className = "notes-obsidian-table";
+      const head = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      [t("notes.tableColumnOne"), t("notes.tableColumnTwo")].forEach((label) => {
+        const cell = document.createElement("th");
+        cell.textContent = label;
+        headRow.appendChild(cell);
+      });
+      head.appendChild(headRow);
+      const body = document.createElement("tbody");
+      const row = document.createElement("tr");
+      row.append(document.createElement("td"), document.createElement("td"));
+      body.appendChild(row);
+      table.append(head, body);
+      return playerNotesInsertRichNode(table);
+    }
+
+    function playerNotesOpenLinkForm() {
+      const range = playerNotesEditorSelectionRange();
+      if (!range || !notesLinkForm || !notesLinkUrl) return;
+      playerNotesSavedRange = range.cloneRange();
+      notesLinkForm.hidden = false;
+      notesLinkUrl.value = "https://";
+      notesLinkUrl.focus();
+      notesLinkUrl.setSelectionRange(notesLinkUrl.value.length, notesLinkUrl.value.length);
+    }
+
+    function playerNotesCloseLinkForm() {
+      if (notesLinkForm) notesLinkForm.hidden = true;
+      playerNotesSavedRange = null;
+      if (notesLinkUrl) notesLinkUrl.value = "https://";
+    }
+
+    function playerNotesApplyLink() {
+      if (!playerNotesSavedRange || !notesLinkUrl) return false;
+      let href = String(notesLinkUrl.value || "").trim();
+      if (!/^(?:https?:\/\/|mailto:)/i.test(href)) href = `https://${href.replace(/^\/+/, "")}`;
+      if (!/^https?:\/\/\S+$/i.test(href) && !/^mailto:[^\s@]+@[^\s@]+$/i.test(href)) return false;
+      const range = playerNotesSavedRange.cloneRange();
+      const anchor = document.createElement("a");
+      anchor.className = "notes-obsidian-link";
+      anchor.href = href;
+      anchor.textContent = range.collapsed ? t("notes.linkLabel") : range.toString();
+      range.deleteContents();
+      range.insertNode(anchor);
+      playerNotesCloseLinkForm();
+      playerNotesPlaceCaretAfter(anchor);
+      playerNotesSyncRichEditor();
+      return true;
+    }
+
     function playerNotesInsert(command) {
       const note = playerNotesActiveNote();
       if (!note || !notesBodyInput) return;
-      if (!playerNotesEditing) {
-        playerNotesEditing = true;
-        playerNotesRenderDetails();
-      }
-      if (["undo", "redo"].includes(command)) {
-        notesBodyInput.focus();
-        document.execCommand(command);
-        return;
-      }
-      const start = notesBodyInput.selectionStart;
-      const end = notesBodyInput.selectionEnd;
-      if (command === "image") {
-        playerNotesInsertImage(start, end);
-        return;
-      }
-      const selected = notesBodyInput.value.slice(start, end) || "text";
-      const wrappers = {
-        bold: ["**", "**"],
-        italic: ["*", "*"],
-        underline: ["__", "__"],
-        strike: ["~~", "~~"],
-        highlight: ["==", "=="],
-        code: ["`", "`"],
-        quote: ["> ", ""]
-      };
-      let replacement = selected;
-      if (wrappers[command]) replacement = `${wrappers[command][0]}${selected}${wrappers[command][1]}`;
-      if (command === "heading") replacement = `## ${selected}`;
-      if (command === "bullet") replacement = `- ${selected}`;
-      if (command === "numbered") replacement = `1. ${selected}`;
-      if (command === "task") replacement = `- [ ] ${selected}`;
-      if (command === "link") {
-        const url = window.prompt("URL", "https://");
-        if (!url) return;
-        replacement = `[${selected}](${url.trim()})`;
-      }
-      if (command === "table") replacement = "| Item | Details |\n| --- | --- |\n|  |  |";
-      notesBodyInput.setRangeText(replacement, start, end, "select");
       notesBodyInput.focus();
-      playerNotesUpdate({ body: notesBodyInput.value });
-      notesBodyInput.setSelectionRange(start, start + replacement.length);
+      if (["undo", "redo"].includes(command)) {
+        document.execCommand(command);
+        queueMicrotask(() => playerNotesSyncRichEditor());
+        return;
+      }
+      if (command === "image") {
+        playerNotesInsertImage(playerNotesEditorSelectionRange()?.cloneRange?.() || null);
+        return;
+      }
+      if (command === "link") {
+        playerNotesOpenLinkForm();
+        return;
+      }
+      if (command === "table") {
+        playerNotesInsertTable();
+        return;
+      }
+      if (command === "task") {
+        playerNotesInsertTaskBlock();
+        return;
+      }
+      if (command === "code") {
+        playerNotesWrapRichSelection("code", "notes-obsidian-inline-code");
+        return;
+      }
+      if (command === "highlight") {
+        playerNotesWrapRichSelection("mark", "notes-obsidian-inline-highlight");
+        return;
+      }
+      const nativeCommands = {
+        bold: ["bold"],
+        italic: ["italic"],
+        underline: ["underline"],
+        strike: ["strikeThrough"],
+        heading: ["formatBlock", "h2"],
+        bullet: ["insertUnorderedList"],
+        numbered: ["insertOrderedList"],
+        quote: ["formatBlock", "blockquote"]
+      };
+      const [nativeCommand, value] = nativeCommands[command] || [];
+      if (!nativeCommand) return;
+      document.execCommand(nativeCommand, false, value);
+      playerNotesSyncRichEditor();
     }
 
     function playerNotesReadImage(file) {
@@ -3684,33 +4138,71 @@
       });
     }
 
-    function playerNotesInsertImage(start, end) {
+    async function playerNotesInsertImageFiles(files, sourceRange = playerNotesEditorSelectionRange()?.cloneRange?.() || null) {
+      const note = playerNotesActiveNote();
+      if (!note || !notesBodyInput || !playerNotesStore) return;
+      const sourceFiles = [...(files || [])].filter((file) => /^image\/(?:png|jpeg|webp|gif)$/i.test(file?.type || "")).slice(0, 6);
+      if (!sourceFiles.length) return;
+      const pendingAttachments = [];
+      const tokens = [];
+      let attachmentBytes = (playerNotesStore.attachments || []).reduce((total, attachment) => total + String(attachment.dataUrl || "").length, 0);
+      let failureMessage = "";
+      for (const file of sourceFiles) {
+        try {
+          const dataUrl = await playerNotesReadImage(file);
+          if ((playerNotesStore.attachments || []).length + pendingAttachments.length >= 32 || attachmentBytes + dataUrl.length > 4200000) {
+            failureMessage = t("notes.imageTooLarge");
+            break;
+          }
+          const attachment = {
+            id: playerNotesNewId("attachment"),
+            name: String(file.name || t("notes.pastedImageName")).replace(/[\r\n|\]]/g, " ").trim().slice(0, 120) || t("notes.pastedImageName"),
+            dataUrl
+          };
+          pendingAttachments.push(attachment);
+          tokens.push(`![[attachment:${attachment.id}|${attachment.name}]]`);
+          attachmentBytes += dataUrl.length;
+        } catch (error) {
+          failureMessage = error?.message || t("notes.imageUnsupported");
+        }
+      }
+      if (!tokens.length) {
+        if (notesEditorStatus) notesEditorStatus.textContent = failureMessage || t("notes.imageUnsupported");
+        return;
+      }
+      if (playerNotesRichEditorMarkdown().length + tokens.join("\n").length > 24000) {
+        if (notesEditorStatus) notesEditorStatus.textContent = t("notes.imageTooLarge");
+        return;
+      }
+      playerNotesStore.attachments = [...(playerNotesStore.attachments || []), ...pendingAttachments];
+      const group = document.createElement("div");
+      group.className = "notes-rich-image-group";
+      pendingAttachments.forEach((attachment, index) => {
+        const image = document.createElement("img");
+        image.className = "notes-obsidian-image";
+        image.src = attachment.dataUrl;
+        image.alt = attachment.name;
+        image.dataset.markdownToken = `![[attachment:${attachment.id}|${attachment.name}]]`;
+        image.contentEditable = "false";
+        image.draggable = false;
+        group.appendChild(image);
+        if (index < pendingAttachments.length - 1) group.appendChild(document.createElement("br"));
+      });
+      const safeRange = sourceRange && notesBodyInput.contains(sourceRange.commonAncestorContainer) ? sourceRange : null;
+      playerNotesInsertRichNode(group, safeRange);
+      if (notesEditorStatus) notesEditorStatus.textContent = failureMessage || t("notes.imageAdded");
+    }
+
+    function playerNotesInsertImage(sourceRange = playerNotesEditorSelectionRange()?.cloneRange?.() || null) {
       const note = playerNotesActiveNote();
       if (!note || !notesBodyInput || !playerNotesStore) return;
       const picker = document.createElement("input");
       picker.type = "file";
       picker.accept = "image/png,image/jpeg,image/webp,image/gif";
-      picker.addEventListener("change", async () => {
+      picker.addEventListener("change", () => {
         const file = picker.files?.[0];
         if (!file) return;
-        try {
-          const dataUrl = await playerNotesReadImage(file);
-          const attachment = {
-            id: playerNotesNewId("attachment"),
-            name: String(file.name || "image").replace(/[\r\n|\]]/g, " ").trim().slice(0, 120) || "image",
-            dataUrl
-          };
-          playerNotesStore.attachments = [...(playerNotesStore.attachments || []), attachment].slice(-32);
-          const token = `![[attachment:${attachment.id}|${attachment.name}]]`;
-          notesBodyInput.setRangeText(token, start, end, "end");
-          note.body = notesBodyInput.value.slice(0, 24000);
-          playerNotesPersist(note, { share: true });
-          playerNotesRenderDetails();
-          notesBodyInput.focus();
-          if (notesEditorStatus) notesEditorStatus.textContent = t("notes.imageAdded");
-        } catch (error) {
-          if (notesEditorStatus) notesEditorStatus.textContent = error?.message || t("notes.imageUnsupported");
-        }
+        playerNotesInsertImageFiles([file], sourceRange);
       }, { once: true });
       picker.click();
     }
@@ -3764,33 +4256,137 @@
       const note = playerNotesActiveNote();
       const text = String(rawText || "").trim().slice(0, 240);
       if (!note || !text) return;
-      note.tasks = [...note.tasks, { id: playerNotesNewId("task"), text, completed: false, reminderAt: String(notesTaskReminderInput?.value || "").slice(0, 40) }].slice(0, 48);
+      note.tasks = [...note.tasks, { id: playerNotesNewId("task"), text, completed: false, reminderAt: "" }].slice(0, 48);
       if (notesTaskInput) notesTaskInput.value = "";
-      if (notesTaskReminderInput) notesTaskReminderInput.value = "";
       playerNotesUpdate({ tasks: note.tasks });
     }
 
-    function playerNotesAddLink() {
-      const note = playerNotesActiveNote();
-      if (!note) return;
-      const label = window.prompt(t("notes.linkPrompt"), "");
-      if (!label?.trim()) return;
-      const type = window.prompt("Type", "Session") || "Session";
-      note.links = [...note.links, { id: playerNotesNewId("link"), label: label.trim().slice(0, 120), type: type.trim().slice(0, 40) || "Session" }].slice(0, 24);
-      playerNotesUpdate({ links: note.links });
+    function playerNotesCloseTreeContextMenu() {
+      if (!notesTreeContextMenu) return;
+      notesTreeContextMenu.hidden = true;
+      notesTreeContextActions?.removeAttribute("hidden");
+      notesTreeFolderForm?.setAttribute("hidden", "");
+      if (notesTreeFolderName) notesTreeFolderName.value = "";
     }
 
-    function playerNotesAddFolder(parentId = "") {
-      if (!playerNotesStore) return;
-      const name = window.prompt(t("notes.folderPrompt"), "");
-      if (!name?.trim()) return;
-      const folder = { id: playerNotesNewId("folder"), name: name.trim().slice(0, 80), parentId: String(parentId || "") };
+    function playerNotesPositionTreeContextMenu(clientX, clientY) {
+      if (!notesTreeContextMenu) return;
+      notesTreeContextMenu.style.left = "0px";
+      notesTreeContextMenu.style.top = "0px";
+      const margin = 8;
+      const left = Math.max(margin, Math.min(Number(clientX) || margin, window.innerWidth - notesTreeContextMenu.offsetWidth - margin));
+      const top = Math.max(margin, Math.min(Number(clientY) || margin, window.innerHeight - notesTreeContextMenu.offsetHeight - margin));
+      notesTreeContextMenu.style.left = `${left}px`;
+      notesTreeContextMenu.style.top = `${top}px`;
+    }
+
+    function playerNotesOpenTreeContextMenu(clientX, clientY, folderId = "", { folderForm = false, target = { kind: "root", id: "" } } = {}) {
+      if (!notesTreeContextMenu) return;
+      const safeFolderId = playerNotesStore?.folders?.some((folder) => folder.id === folderId) ? folderId : "";
+      const safeTarget = target?.kind === "note" && playerNotesStore?.notes?.some((note) => note.id === target.id)
+        ? { kind: "note", id: target.id }
+        : target?.kind === "folder" && playerNotesStore?.folders?.some((folder) => folder.id === target.id)
+          ? { kind: "folder", id: target.id }
+          : { kind: "root", id: "" };
+      playerNotesTreeContextFolderId = safeFolderId;
+      playerNotesTreeContextTarget = safeTarget;
+      if (notesTreeDeleteButton) notesTreeDeleteButton.hidden = safeTarget.kind === "root";
+      if (notesTreeDeleteLabel) notesTreeDeleteLabel.textContent = t(safeTarget.kind === "folder" ? "notes.deleteFolder" : "notes.deleteNote");
+      notesTreeContextMenu.hidden = false;
+      notesTreeContextActions?.toggleAttribute("hidden", folderForm);
+      notesTreeFolderForm?.toggleAttribute("hidden", !folderForm);
+      playerNotesPositionTreeContextMenu(clientX, clientY);
+      if (folderForm) notesTreeFolderName?.focus();
+      else notesTreeContextMenu.querySelector("[data-notes-tree-action]")?.focus();
+    }
+
+    function playerNotesOpenFolderCreator(folderId, anchor) {
+      const rect = anchor?.getBoundingClientRect?.() || notesFolderList?.getBoundingClientRect?.();
+      playerNotesOpenTreeContextMenu(rect?.left || 8, rect?.bottom || 8, folderId, { folderForm: true });
+    }
+
+    function playerNotesAddFolder(parentId = "", rawName = "") {
+      if (!playerNotesStore) return false;
+      const name = String(rawName || "").trim().slice(0, 80);
+      if (!name) return false;
+      const safeParentId = playerNotesStore.folders.some((folder) => folder.id === parentId) ? String(parentId) : "";
+      const folder = { id: playerNotesNewId("folder"), name, parentId: safeParentId, category: "" };
       playerNotesStore.folders.push(folder);
       playerNotesFolderFilter = folder.id;
       playerNotesFilter = "all";
+      playerNotesSearch = "";
+      if (notesSearchInput) notesSearchInput.value = "";
       playerNotesCollapsedFolders.delete(folder.parentId);
       playerNotesSaveStore();
       playerNotesRender();
+      return true;
+    }
+
+    function playerNotesFolderContains(folderId, possibleDescendantId) {
+      const foldersById = new Map((playerNotesStore?.folders || []).map((folder) => [folder.id, folder]));
+      const visited = new Set();
+      let currentId = possibleDescendantId;
+      while (currentId && !visited.has(currentId)) {
+        if (currentId === folderId) return true;
+        visited.add(currentId);
+        currentId = foldersById.get(currentId)?.parentId || "";
+      }
+      return false;
+    }
+
+    function playerNotesDropTarget(eventTarget) {
+      const directFolder = eventTarget?.closest?.("[data-notes-folder]");
+      if (directFolder) return { folderId: directFolder.dataset.notesFolder || "", element: directFolder };
+      const folderNode = eventTarget?.closest?.("[data-notes-folder-node]");
+      if (folderNode) return { folderId: folderNode.dataset.notesFolderNode || "", element: folderNode.querySelector(":scope > .notes-folder-row .notes-folder-button") || folderNode };
+      return { folderId: "", element: notesFolderList };
+    }
+
+    function playerNotesCanDrop(payload, targetFolderId) {
+      if (!payload?.id) return false;
+      if (payload.kind === "note") return Boolean(playerNotesStore?.notes?.some((note) => note.id === payload.id));
+      const draggedFolder = playerNotesStore?.folders?.find((folder) => folder.id === payload.id);
+      if (payload.kind !== "folder" || !draggedFolder) return false;
+      if (draggedFolder.category && targetFolderId) return false;
+      return payload.id !== targetFolderId && !playerNotesFolderContains(payload.id, targetFolderId);
+    }
+
+    function playerNotesClearDropTarget() {
+      notesFolderList?.classList.remove("is-drop-target", "is-drop-root-target");
+      notesFolderList?.querySelectorAll(".is-drop-target").forEach((element) => element.classList.remove("is-drop-target"));
+    }
+
+    function playerNotesMoveTreeEntry(payload, targetFolderId) {
+      if (!playerNotesCanDrop(payload, targetFolderId)) return;
+      if (payload.kind === "note") {
+        const note = playerNotesStore.notes.find((entry) => entry.id === payload.id);
+        if (!note || note.folderId === targetFolderId) return;
+        note.folderId = targetFolderId;
+        const targetCategory = playerNotesCategoryForFolder(targetFolderId);
+        if (targetCategory) playerNotesSetNoteCategory(note, targetCategory);
+        playerNotesCollapsedFolders.delete(targetFolderId);
+        playerNotesPersist(note, { share: true });
+        playerNotesRenderCategories();
+        playerNotesRenderFolderTree();
+        playerNotesRenderDetails();
+        return;
+      }
+      const folder = playerNotesStore.folders.find((entry) => entry.id === payload.id);
+      if (!folder || folder.parentId === targetFolderId) return;
+      folder.parentId = targetFolderId;
+      const targetCategory = playerNotesCategoryForFolder(targetFolderId);
+      if (targetCategory) {
+        playerNotesStore.notes.forEach((note) => {
+          if (!playerNotesFolderContains(folder.id, note.folderId)) return;
+          playerNotesSetNoteCategory(note, targetCategory);
+          note.updatedAt = playerNotesNow();
+          if (note.shared) playerNotesScheduleShare(note);
+        });
+      }
+      playerNotesCollapsedFolders.delete(targetFolderId);
+      playerNotesSaveStore();
+      playerNotesRenderCategories();
+      playerNotesRenderFolderTree();
     }
 
     function playerNotesToggleShare() {
@@ -3825,6 +4421,7 @@
       if (!note || !template) return;
       note.title = template.title;
       note.category = template.category;
+      note.folderId = playerNotesEnsureCategoryMainFolder(template.category);
       note.body = template.body;
       note.tags = [template.category];
       note.tasks = [];
@@ -3891,8 +4488,8 @@
         if (typeof closeTurnActionsPanel === "function") closeTurnActionsPanel();
         setSidebarView("notes");
       });
-      notesNewButton?.addEventListener("click", () => playerNotesCreate());
-      notesNewTabButton?.addEventListener("click", () => playerNotesCreate());
+      notesNewButton?.addEventListener("click", playerNotesCreateFromCurrentContext);
+      notesNewTabButton?.addEventListener("click", playerNotesCreateFromCurrentContext);
       notesBackButton?.addEventListener("click", () => {
         if (typeof closeTurnActionsPanel === "function") closeTurnActionsPanel();
         setSidebarView("sheet");
@@ -3906,6 +4503,11 @@
         playerNotesRender();
       });
       notesFolderList?.addEventListener("click", (event) => {
+        const noteButton = event.target.closest("[data-notes-id]");
+        if (noteButton) {
+          playerNotesSetActive(noteButton.dataset.notesId);
+          return;
+        }
         const toggle = event.target.closest("[data-notes-folder-toggle]");
         if (toggle) {
           const folderId = toggle.dataset.notesFolderToggle || "";
@@ -3916,7 +4518,7 @@
         }
         const childButton = event.target.closest("[data-notes-add-child-folder]");
         if (childButton) {
-          playerNotesAddFolder(childButton.dataset.notesAddChildFolder || "");
+          playerNotesOpenFolderCreator(childButton.dataset.notesAddChildFolder || "", childButton);
           return;
         }
         const button = event.target.closest("[data-notes-folder]");
@@ -3925,13 +4527,104 @@
         playerNotesFilter = "all";
         playerNotesRender();
       });
-      notesLibraryList?.addEventListener("click", (event) => {
-        const button = event.target.closest("[data-notes-id]");
-        if (button) playerNotesSetActive(button.dataset.notesId);
+      notesFolderList?.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        const noteId = event.target.closest("[data-notes-note-node]")?.dataset.notesNoteNode || "";
+        const note = playerNotesStore?.notes?.find((entry) => entry.id === noteId);
+        const folderId = event.target.closest("[data-notes-folder-node]")?.dataset.notesFolderNode || "";
+        const target = note
+          ? { kind: "note", id: note.id }
+          : folderId
+            ? { kind: "folder", id: folderId }
+            : { kind: "root", id: "" };
+        playerNotesOpenTreeContextMenu(event.clientX, event.clientY, note?.folderId || folderId, { target });
+      });
+      notesFolderList?.addEventListener("dragstart", (event) => {
+        const noteNode = event.target.closest("[data-notes-note-node]");
+        const folderNode = event.target.closest("[data-notes-folder-node]");
+        const payload = noteNode
+          ? { kind: "note", id: noteNode.dataset.notesNoteNode || "" }
+          : folderNode
+            ? { kind: "folder", id: folderNode.dataset.notesFolderNode || "" }
+            : null;
+        if (!payload?.id || !event.dataTransfer) {
+          event.preventDefault();
+          return;
+        }
+        playerNotesCloseTreeContextMenu();
+        playerNotesDragPayload = payload;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("application/x-dnd-player-notes-tree", JSON.stringify(payload));
+        event.dataTransfer.setData("text/plain", payload.id);
+        (noteNode || folderNode)?.classList.add("is-dragging");
+      });
+      notesFolderList?.addEventListener("dragover", (event) => {
+        const target = playerNotesDropTarget(event.target);
+        if (!playerNotesCanDrop(playerNotesDragPayload, target.folderId)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        playerNotesClearDropTarget();
+        target.element?.classList.add("is-drop-target");
+        if (!target.folderId) notesFolderList.classList.add("is-drop-root-target");
+      });
+      notesFolderList?.addEventListener("drop", (event) => {
+        const target = playerNotesDropTarget(event.target);
+        let payload = playerNotesDragPayload;
+        if (!payload && event.dataTransfer) {
+          try {
+            payload = JSON.parse(event.dataTransfer.getData("application/x-dnd-player-notes-tree") || "null");
+          } catch (_error) {
+            payload = null;
+          }
+        }
+        if (!playerNotesCanDrop(payload, target.folderId)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        playerNotesMoveTreeEntry(payload, target.folderId);
+        playerNotesDragPayload = null;
+        playerNotesClearDropTarget();
+      });
+      notesFolderList?.addEventListener("dragend", () => {
+        playerNotesDragPayload = null;
+        notesFolderList.querySelectorAll(".is-dragging").forEach((element) => element.classList.remove("is-dragging"));
+        playerNotesClearDropTarget();
+      });
+      notesFolderList?.addEventListener("scroll", playerNotesCloseTreeContextMenu, { passive: true });
+      notesTreeContextActions?.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-notes-tree-action]")?.dataset.notesTreeAction;
+        if (action === "note") {
+          const targetFolderId = playerNotesTreeContextFolderId;
+          playerNotesCloseTreeContextMenu();
+          const category = playerNotesCategoryForFolder(targetFolderId);
+          playerNotesCreate(PLAYER_NOTE_CATEGORY_TEMPLATES[category] || (category ? "" : "session"), targetFolderId, category);
+        } else if (action === "folder") {
+          notesTreeContextActions.hidden = true;
+          notesTreeFolderForm.hidden = false;
+          const left = Number.parseFloat(notesTreeContextMenu.style.left) || 8;
+          const top = Number.parseFloat(notesTreeContextMenu.style.top) || 8;
+          playerNotesPositionTreeContextMenu(left, top);
+          notesTreeFolderName?.focus();
+        } else if (action === "delete") {
+          const target = playerNotesTreeContextTarget;
+          playerNotesCloseTreeContextMenu();
+          if (target.kind === "note") playerNotesDeleteNote(target.id);
+          else if (target.kind === "folder") playerNotesDeleteFolder(target.id);
+        }
+      });
+      notesTreeFolderForm?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (playerNotesAddFolder(playerNotesTreeContextFolderId, notesTreeFolderName?.value)) playerNotesCloseTreeContextMenu();
+      });
+      notesTreeFolderForm?.querySelector("[data-notes-tree-cancel]")?.addEventListener("click", playerNotesCloseTreeContextMenu);
+      document.addEventListener("pointerdown", (event) => {
+        if (!notesTreeContextMenu?.hidden && !notesTreeContextMenu.contains(event.target)) playerNotesCloseTreeContextMenu();
       });
       notesCategoryBrowserList?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-notes-browser-id]");
         if (button) playerNotesSetActive(button.dataset.notesBrowserId);
+      });
+      notesCategoryNewButton?.addEventListener("click", () => {
+        if (PLAYER_NOTES_CATEGORIES.includes(playerNotesFilter)) playerNotesCreateForCategory(playerNotesFilter);
       });
       notesTabs?.addEventListener("click", (event) => {
         const closeId = event.target.closest("[data-notes-close-id]")?.dataset.notesCloseId;
@@ -3947,30 +4640,58 @@
       });
       notesSearchInput?.addEventListener("input", () => {
         playerNotesSearch = notesSearchInput.value || "";
-        playerNotesRenderLibrary();
+        playerNotesRenderFolderTree();
         playerNotesRenderCategoryBrowser();
       });
       notesTitleInput?.addEventListener("input", () => playerNotesUpdate({ title: notesTitleInput.value.slice(0, 160) }, { share: true }));
       notesBodyInput?.addEventListener("input", () => {
-        const note = playerNotesActiveNote();
-        if (!note) return;
-        note.body = notesBodyInput.value.slice(0, 24000);
-        if (notesWordCount) notesWordCount.textContent = String(playerNotesWordTotal(note.body));
-        playerNotesPersist(note, { share: true });
+        playerNotesApplyTypedMarkdownShortcut();
+        playerNotesSyncRichEditor();
       });
-      notesPreviewToggle?.addEventListener("click", () => {
-        playerNotesEditing = !playerNotesEditing;
-        playerNotesRenderDetails();
+      notesBodyInput?.addEventListener("change", (event) => {
+        if (event.target.matches?.("input[type='checkbox']")) playerNotesSyncRichEditor();
       });
-      notesCategorySelect?.addEventListener("change", () => playerNotesUpdate({ category: notesCategorySelect.value }));
-      notesFolderSelect?.addEventListener("change", () => playerNotesUpdate({ folderId: notesFolderSelect.value }));
+      notesBodyInput?.addEventListener("paste", (event) => {
+        const clipboard = event.clipboardData;
+        if (!clipboard) return;
+        const itemFiles = [...(clipboard.items || [])]
+          .filter((item) => item.kind === "file" && /^image\//i.test(item.type || ""))
+          .map((item) => item.getAsFile())
+          .filter(Boolean);
+        const imageFiles = itemFiles.length
+          ? itemFiles
+          : [...(clipboard.files || [])].filter((file) => /^image\//i.test(file.type || ""));
+        if (imageFiles.length) {
+          event.preventDefault();
+          playerNotesInsertImageFiles(imageFiles, playerNotesEditorSelectionRange()?.cloneRange?.() || null);
+          return;
+        }
+        const plainText = clipboard.getData("text/plain");
+        if (plainText) {
+          event.preventDefault();
+          document.execCommand("insertText", false, plainText);
+        }
+      });
       notesStarButton?.addEventListener("click", () => playerNotesUpdate({ pinned: !playerNotesActiveNote()?.pinned }));
       notesPinButton?.addEventListener("click", () => playerNotesUpdate({ pinned: !playerNotesActiveNote()?.pinned }));
       notesArchiveButton?.addEventListener("click", playerNotesToggleArchive);
       notesDuplicateButton?.addEventListener("click", playerNotesDuplicate);
       notesExportButton?.addEventListener("click", playerNotesExport);
       notesDeleteButton?.addEventListener("click", playerNotesDelete);
-      notesWorkspace?.querySelectorAll("[data-note-command]").forEach((button) => button.addEventListener("click", () => playerNotesInsert(button.dataset.noteCommand)));
+      notesWorkspace?.querySelectorAll("[data-note-command]").forEach((button) => {
+        button.addEventListener("mousedown", (event) => {
+          if (event.button === 0) event.preventDefault();
+        });
+        button.addEventListener("click", () => playerNotesInsert(button.dataset.noteCommand));
+      });
+      notesLinkForm?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!playerNotesApplyLink()) notesLinkUrl?.focus();
+      });
+      notesLinkForm?.querySelector("[data-notes-link-cancel]")?.addEventListener("click", () => {
+        playerNotesCloseLinkForm();
+        notesBodyInput?.focus();
+      });
       notesTagInput?.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
           event.preventDefault();
@@ -4001,19 +4722,23 @@
         const color = event.target.closest("[data-note-color]")?.dataset.noteColor;
         if (color) playerNotesUpdate({ color });
       });
-      notesAddLinkButton?.addEventListener("click", playerNotesAddLink);
-      notesLinksList?.addEventListener("click", (event) => {
-        const id = event.target.closest("[data-notes-remove-link]")?.dataset.notesRemoveLink;
-        const note = playerNotesActiveNote();
-        if (id && note) playerNotesUpdate({ links: note.links.filter((link) => link.id !== id) });
+      notesMainFolderSelect?.addEventListener("change", () => playerNotesAssignMainFolder(notesMainFolderSelect.value));
+      notesCreateMainFolderButton?.addEventListener("click", () => {
+        notesMainFolderForm?.removeAttribute("hidden");
+        notesMainFolderName?.focus();
+      });
+      notesMainFolderForm?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        playerNotesCreateMainFolder();
+      });
+      notesMainFolderForm?.querySelector("[data-notes-main-folder-cancel]")?.addEventListener("click", () => {
+        notesMainFolderForm.setAttribute("hidden", "");
+        if (notesMainFolderName) notesMainFolderName.value = "";
       });
       notesShareToggle?.addEventListener("change", playerNotesToggleShare);
       notesTemplateList?.addEventListener("click", (event) => {
         const template = event.target.closest("[data-note-template]")?.dataset.noteTemplate;
         if (template) playerNotesApplyTemplate(template);
-      });
-      notesCloseTemplatesButton?.addEventListener("click", () => {
-        notesTemplateList?.closest(".notes-template-card")?.setAttribute("hidden", "");
       });
       notesAddTaskButton?.addEventListener("click", () => playerNotesAddTask());
       notesTaskInput?.addEventListener("keydown", (event) => {
@@ -4048,16 +4773,37 @@
         setSidebarMenuOpen(true);
         setAppSettingsMenuOpen(true);
       });
-      document.getElementById("notesAddFolderButton")?.addEventListener("click", playerNotesAddFolder);
+      document.getElementById("notesAddFolderButton")?.addEventListener("click", (event) => playerNotesOpenFolderCreator(playerNotesFolderFilter, event.currentTarget));
       document.addEventListener("keydown", (event) => {
         if (!notesWorkspace || notesWorkspace.hidden) return;
+        if (event.key === "Escape" && !notesTreeContextMenu?.hidden) {
+          event.preventDefault();
+          playerNotesCloseTreeContextMenu();
+          return;
+        }
+        if (event.key === "Escape" && notesLinkForm && !notesLinkForm.hidden) {
+          event.preventDefault();
+          playerNotesCloseLinkForm();
+          notesBodyInput?.focus();
+          return;
+        }
+        if (event.key === "Escape" && notesMainFolderForm && !notesMainFolderForm.hidden) {
+          event.preventDefault();
+          notesMainFolderForm.hidden = true;
+          if (notesMainFolderName) notesMainFolderName.value = "";
+          return;
+        }
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
           event.preventDefault();
           notesSearchInput?.focus();
         }
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b" && document.activeElement !== notesBodyInput) {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b" && document.activeElement === notesBodyInput) {
           event.preventDefault();
           playerNotesInsert("bold");
+        }
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "i" && document.activeElement === notesBodyInput) {
+          event.preventDefault();
+          playerNotesInsert("italic");
         }
         if (event.key === "Escape") setSidebarView("sheet");
       });
