@@ -9463,6 +9463,12 @@
       globalThis.dndCharacterSheetNavigation?.setView?.("sheet");
     }
 
+    globalThis.dndCharacterSheetCombatSurface = {
+      open: () => openTurnActionsPanel(),
+      close: () => closeTurnActionsPanel(),
+      isOpen: () => Boolean(turnActionsBackdrop?.classList.contains("visible"))
+    };
+
     function refreshTurnActionsPanelIfVisible() {
       if (!turnActionsBackdrop?.classList.contains("visible")) return;
       refreshTurnActionsPanel();

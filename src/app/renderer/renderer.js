@@ -675,14 +675,6 @@
           box-shadow: 0 22px 70px rgba(0, 0, 0, 0.72);
         }
         .live-vtt-window[hidden] { display: none; }
-        .live-vtt-window.is-minimized {
-          inset: auto 4vw 4vh auto;
-          width: min(360px, 92vw);
-          min-height: 0;
-        }
-        .live-vtt-window.is-minimized .live-vtt-body {
-          display: none;
-        }
         .live-vtt-map[hidden],
         .live-vtt-combat[hidden],
         .live-vtt-grid[hidden],
@@ -691,37 +683,6 @@
         .live-vtt-fog[hidden],
         .live-vtt-empty[hidden] {
           display: none;
-        }
-        .live-vtt-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          border-bottom: 2px solid #f59e0b;
-          padding: 10px 12px;
-          background: #111827;
-        }
-        .live-vtt-title {
-          min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font: 700 14px/1.1 system-ui, sans-serif;
-          text-transform: uppercase;
-          color: #fbbf24;
-        }
-        .live-vtt-window-actions {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .live-vtt-minimize {
-          width: 28px;
-          height: 28px;
-          border: 1px solid #4b5563;
-          background: #1f2937;
-          color: #f9fafb;
-          font-weight: 700;
         }
         .live-vtt-hand {
           height: 28px;
@@ -739,11 +700,27 @@
           box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.24);
         }
         .live-vtt-hand-panel {
+          position: absolute;
+          right: 12px;
+          bottom: 12px;
+          z-index: 12;
           display: grid;
+          width: min(360px, calc(100% - 24px));
+          max-height: min(196px, calc(100% - 24px));
           gap: 7px;
-          border-bottom: 1px solid rgba(75, 85, 99, 0.9);
-          padding: 8px 12px;
-          background: rgba(15, 23, 42, 0.98);
+          overflow: hidden;
+          border: 1px solid rgba(245, 158, 11, 0.76);
+          border-radius: 4px;
+          padding: 8px 10px;
+          background: rgba(10, 12, 12, 0.96);
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
+        }
+        .live-vtt-hand-controls {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
+          min-width: 0;
         }
         .live-vtt-hand-summary {
           display: flex;
@@ -811,10 +788,6 @@
         .live-vtt-hand-empty {
           color: #6b7280;
           font: 600 11px/1.2 system-ui, sans-serif;
-        }
-        .live-vtt-window.is-minimized .live-vtt-hand-queue {
-          grid-template-columns: 1fr;
-          max-height: 68px;
         }
         .live-vtt-combat {
           position: absolute;
@@ -1169,20 +1142,6 @@
       root.hidden = true;
       root.setAttribute("aria-label", "VTT map");
       root.innerHTML = `
-        <header class="live-vtt-header">
-          <div class="live-vtt-title"></div>
-          <div class="live-vtt-window-actions">
-            <button class="live-vtt-hand" type="button" aria-pressed="false"></button>
-            <button class="live-vtt-minimize" type="button" aria-label="Minimizar VTT">-</button>
-          </div>
-        </header>
-        <section class="live-vtt-hand-panel" aria-live="polite">
-          <div class="live-vtt-hand-summary">
-            <span class="live-vtt-hand-queue-title"></span>
-            <span class="live-vtt-hand-status"></span>
-          </div>
-          <div class="live-vtt-hand-queue"></div>
-        </section>
         <div class="live-vtt-body">
           <div class="live-vtt-empty">Esperando mapa VTT del DM.</div>
           <div class="live-vtt-combat" aria-live="polite" hidden><div class="live-vtt-combat-track"></div></div>
@@ -1192,17 +1151,25 @@
           <div class="live-vtt-markers" hidden></div>
           <canvas class="live-vtt-fog" hidden></canvas>
           <div class="live-vtt-pings" hidden></div>
+          <section class="live-vtt-hand-panel" aria-live="polite">
+            <div class="live-vtt-hand-summary">
+              <span class="live-vtt-hand-queue-title"></span>
+              <div class="live-vtt-hand-controls">
+                <span class="live-vtt-hand-status"></span>
+                <button class="live-vtt-hand" type="button" aria-pressed="false"></button>
+              </div>
+            </div>
+            <div class="live-vtt-hand-queue"></div>
+          </section>
         </div>
       `;
       document.body.appendChild(root);
       const elements = {
         root,
-        title: root.querySelector(".live-vtt-title"),
         hand: root.querySelector(".live-vtt-hand"),
         handQueueTitle: root.querySelector(".live-vtt-hand-queue-title"),
         handStatus: root.querySelector(".live-vtt-hand-status"),
         handQueue: root.querySelector(".live-vtt-hand-queue"),
-        minimize: root.querySelector(".live-vtt-minimize"),
         body: root.querySelector(".live-vtt-body"),
         empty: root.querySelector(".live-vtt-empty"),
         combat: root.querySelector(".live-vtt-combat"),
@@ -1214,13 +1181,6 @@
         fog: root.querySelector(".live-vtt-fog"),
         pings: root.querySelector(".live-vtt-pings")
       };
-      elements.minimize.addEventListener("click", () => {
-        const minimized = !root.classList.contains("is-minimized");
-        root.classList.toggle("is-minimized", minimized);
-        elements.minimize.textContent = minimized ? "+" : "-";
-        elements.minimize.setAttribute("aria-label", minimized ? "Restaurar VTT" : "Minimizar VTT");
-        if (!minimized) requestAnimationFrame(updateLiveVttLayout);
-      });
       elements.hand.addEventListener("click", toggleLiveVttHand);
       elements.body.addEventListener("pointerdown", handleLiveVttPointerDown);
       elements.body.addEventListener("pointermove", handleLiveVttPointerMove);
@@ -1243,10 +1203,12 @@
           combatMapViewport.appendChild(elements.root);
         }
         elements.root.dataset.combatSurface = "true";
+        elements.root.hidden = !liveVttState?.active;
       } else {
         const returnParent = liveVttOriginalParent?.isConnected ? liveVttOriginalParent : document.body;
         if (elements.root.parentNode === combatMapViewport) returnParent.appendChild(elements.root);
         delete elements.root.dataset.combatSurface;
+        elements.root.hidden = true;
       }
       renderCombatBoard(liveVttState?.combat);
       requestAnimationFrame(updateLiveVttLayout);
@@ -2213,7 +2175,7 @@
 
     function handleLiveVttPointerDown(event) {
       if (event.button != null && event.button !== 0 && event.button !== 1) return;
-      if (event.target?.closest?.(".live-vtt-window-actions")) return;
+      if (event.target?.closest?.(".live-vtt-hand")) return;
       const point = liveVttPointFromEvent(event);
       if (!point) return;
       if (event.button === 1 && liveVttView.scale <= 1.001) return;
@@ -2293,7 +2255,6 @@
         liveVttView = { scale: 1, x: 0, y: 0 };
         liveVttViewKey = nextViewKey;
       }
-      elements.title.textContent = [state.title || "Mapa VTT", state.pageName || ""].filter(Boolean).join(" - ");
       if (liveVttImageDataUrl !== state.image.dataUrl) {
         elements.image.src = state.image.dataUrl;
         liveVttImageDataUrl = state.image.dataUrl;
@@ -2307,7 +2268,8 @@
       renderLiveVttCombat(state.combat);
       renderCombatBoard(state.combat);
       renderLiveVttMarkers(elements.markers, state.markers, state.sourceViewport);
-      elements.root.hidden = false;
+      // The player VTT has a single visible home: the combat map.
+      elements.root.hidden = !liveVttCombatSurfaceActive;
       requestAnimationFrame(updateLiveVttLayout);
     }
 
@@ -2513,6 +2475,8 @@
         liveSheetClientSocket = socket;
         socket.addEventListener("open", () => {
           setLiveSheetClientStatus(t("live.connectedTo", { url }), "ok");
+          const openCombat = globalThis.dndCharacterSheetCombatSurface?.open;
+          if (typeof openCombat === "function") Promise.resolve(openCombat()).catch(console.error);
           sendLiveSheetHello();
           sendLiveSheetSnapshot();
           showStatus(t("live.connectedStatus"));

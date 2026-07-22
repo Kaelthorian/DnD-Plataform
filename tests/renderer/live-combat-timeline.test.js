@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const rendererSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/renderer.js"), "utf8");
+const indexSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/index.html"), "utf8");
 const dmScreenSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/dm-screen/src/main.jsx"), "utf8");
 const serverSource = fs.readFileSync(path.join(__dirname, "../../src/services/live-sheet-server.js"), "utf8");
 
@@ -20,6 +21,10 @@ assert.match(serverSource, /function sanitizeVttCombat\(combat\)/);
 assert.match(serverSource, /combat: sanitizeVttCombat\(payload\.combat\)/);
 assert.match(rendererSource, /publicData\.__liveStatuses\s*=\s*Array\.isArray\(data\?\.__sheetMeta\?\.activeStatuses\)/, "the Live Sheet payload should expose only active status ids, not all private metadata");
 assert.match(rendererSource, /payload\?\.type === "dm:sheet:patch"/, "the player should keep using the existing DM sheet-patch channel");
+assert.match(rendererSource, /const openCombat = globalThis\.dndCharacterSheetCombatSurface\?\.open;/, "Live Sheet connection should open the combat surface");
+assert.match(rendererSource, /elements\.root\.hidden = !liveVttCombatSurfaceActive/, "the VTT should stay hidden outside the combat surface");
+assert.match(rendererSource, /elements\.root\.hidden = true/, "closing combat should hide the VTT instead of restoring a floating sheet");
+assert.match(indexSource, /globalThis\.dndCharacterSheetCombatSurface = \{/, "combat surface API is missing");
 assert.match(dmScreenSource, /function CharacterStatusBlock\(/, "live character notes should render a dedicated status section");
 assert.match(dmScreenSource, /<CharacterDetailSection title=\{`Status/, "the status list should use the existing collapsible character-note surface");
 assert.match(dmScreenSource, /function updateLiveCharacterStatuses\(noteId, statusIds\)/, "the DM should be able to update a connected character's statuses");

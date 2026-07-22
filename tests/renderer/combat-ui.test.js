@@ -178,6 +178,7 @@ assert.ok(styles.includes(".status-dock.is-combat-mode"), "shared combat status 
 assert.ok(styles.includes(".combat-board-main.is-context-hidden .combat-map-panel"), "VTT protection while hiding the log is missing");
 assert.ok(styles.includes(".combat-resolution-column"), "two-column combat resolution styling is missing");
 assert.ok(styles.includes('.live-vtt-window[data-combat-surface="true"] .live-vtt-hand-panel'), "combat VTT hand styling is missing");
+assert.match(styles, /\.live-vtt-window\[data-combat-surface="true"\] \.live-vtt-hand-panel[\s\S]{0,220}position:\s*absolute[\s\S]{0,220}bottom:\s*12px/, "combat VTT hand panel should be a lower-right overlay");
 assert.ok(styles.includes("@media (min-width: 721px) and (max-width: 1271px)"), "sheet sidebar spacing breakpoint is missing");
 assert.ok(styles.includes(".app-sidebar"), "character sheet sidebar styles are missing");
 assert.ok(styles.includes(".app-sidebar-dice-button"), "sidebar dice button styles are missing");

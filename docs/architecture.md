@@ -40,6 +40,10 @@ La ventana central de combate usa una frontera incremental:
 
 La ventana central mantiene un indice `Map` inmutable del catalogo y una fotografia revisionada de acciones. Una pasada comparte inventario, features, estados, Extra Attack y economia entre proveedores/render; los cambios relevantes invalidan esa fotografia.
 
+### Flujo VTT del jugador
+
+Cuando el cliente Live Sheet conecta con el DM, abre la superficie completa de Combat y monta el VTT en `#combatMapViewport`. `renderer.js` mantiene el root oculto fuera de esa superficie; cerrar Combat no devuelve el mapa a la hoja ni crea una segunda ventana.
+
 ### Carga de catalogos y PDF
 
 `items:load` delega el catálogo app-owned a `src/services/workers/item-data-worker.js`. El worker lee `src/data/items/items.json`, `items-base.json` e `item-automation.json`; firma tamaño/`mtime` de los tres y la versión del schema, reutiliza `userData/data-cache/items-catalog-v3.bin` cuando coincide y recompila al cambiar cualquier entrada. `data-loader.js` conserva además la promesa en memoria para solicitudes repetidas del mismo proceso.

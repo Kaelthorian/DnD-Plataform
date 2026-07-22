@@ -8,6 +8,9 @@ const serverSource = fs.readFileSync(path.join(__dirname, "../../src/services/li
 const dmScreenSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/dm-screen/src/main.jsx"), "utf8");
 const sheetSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer/index.html"), "utf8");
 assert.match(rendererSource, /class="live-vtt-hand-panel" aria-live="polite"/);
+assert.doesNotMatch(rendererSource, /class="live-vtt-title"/);
+assert.doesNotMatch(rendererSource, /class="live-vtt-minimize"/);
+assert.match(rendererSource, /class="live-vtt-hand-controls"/);
 assert.match(rendererSource, /function normalizeLiveVttHandQueue\(entries\)/);
 assert.match(rendererSource, /function renderLiveVttHandQueue\(entries = liveVttHandQueue\)/);
 assert.match(rendererSource, /ownHand\.position/);
