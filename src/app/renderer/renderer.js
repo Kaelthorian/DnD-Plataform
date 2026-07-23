@@ -577,7 +577,19 @@
       const state = liveVttState;
       const combatActive = Boolean(state?.active && state.combat?.active);
       const roster = { party: [], enemies: [], combatActive };
-      if (!combatActive) return roster;
+      const selfName = String(document.querySelector('[data-key="CharacterName"]')?.value
+        || document.querySelector('[data-key="CharacterName 2"]')?.value
+        || "Character").trim() || "Character";
+      const selfKey = selfName.toLocaleLowerCase();
+      const ensureSelf = () => {
+        if (!roster.party.some((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfKey)) {
+          roster.party.unshift({ id: "sheet:self", name: selfName });
+        }
+      };
+      if (!combatActive) {
+        ensureSelf();
+        return roster;
+      }
       const seen = {
         party: new Set(),
         enemies: new Set()
@@ -593,6 +605,7 @@
 
       visibleLiveVttCombatParticipants(state.combat)
         .forEach((participant) => addTarget(participant?.kind === "character" ? "party" : "enemies", participant));
+      ensureSelf();
       return roster;
     }
 
@@ -2292,6 +2305,7 @@
 
     function renderLiveVttState(state) {
       liveVttState = state || null;
+      globalThis.dndLiveVttCombatStateChanged?.(liveVttState?.combat || null);
       const elements = ensureLiveVttWindow();
       if (!state?.active || !state.image?.dataUrl) {
         liveVttView = { scale: 1, x: 0, y: 0 };

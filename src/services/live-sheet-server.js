@@ -594,10 +594,23 @@ function sanitizeVttCombat(combat) {
     : [];
   const participantIds = new Set(participants.map((participant) => participant.id));
   const activeId = sanitizeText(source.activeId || source.activeTokenId, 120);
+  const movementTokenKey = sanitizeText(source.movementTokenKey || source.movement?.tokenKey, 120);
+  const movementSpeedFeet = clampNumber(source.movementSpeedFeet ?? source.movement?.speedFeet, 0, 1000, 0);
+  const movementUsedFeet = clampNumber(source.movementUsedFeet ?? source.movement?.usedFeet, 0, movementSpeedFeet || 1000, 0);
+  const movementRemainingFeet = clampNumber(
+    source.movementRemainingFeet ?? source.movement?.remainingFeet,
+    0,
+    movementSpeedFeet || 1000,
+    Math.max(0, movementSpeedFeet - movementUsedFeet)
+  );
   return {
     active: source.active !== false && participants.length > 0,
     activeId: participantIds.has(activeId) ? activeId : "",
     round: Math.max(1, Math.min(9999, Math.floor(clampNumber(source.round, 1, 9999, 1)))),
+    movementTokenKey,
+    movementSpeedFeet,
+    movementUsedFeet,
+    movementRemainingFeet,
     participants
   };
 }

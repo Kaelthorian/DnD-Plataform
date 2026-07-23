@@ -2375,6 +2375,10 @@ async function mapCombatShareSnapshot(note, page, { includeImage = () => true } 
     active: timeline.active,
     activeId: participants.some((participant) => participant.id === timeline.activeTokenKey) ? timeline.activeTokenKey : "",
     round: timeline.round,
+    movementTokenKey: timeline.movementTokenKey,
+    movementSpeedFeet: timeline.movementSpeedFeet,
+    movementUsedFeet: timeline.movementUsedFeet,
+    movementRemainingFeet: timeline.movementRemainingFeet,
     participants
   };
 }

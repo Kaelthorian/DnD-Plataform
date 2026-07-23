@@ -735,7 +735,7 @@
       recordDamageRolls: recordCombatDamageRolls,
       triggeredDamageComponents: triggeredCombatDamageComponents,
       confirmConcentrationReplacement,
-      validateResolutionForConfirmation: validateCombatResolutionForConfirmation,
+      validateResolutionForConfirmation: validateCombatResolutionForConfirmationEngine,
       confirmResolution: confirmCombatResolution,
       cancelResolution: cancelCombatResolution
     } = globalThis.dndCombatResolutionEngine;
@@ -5543,10 +5543,41 @@
         damage: "",
         damageLabel: "Pool",
         damageType: "healing",
-        description: `Pool de curacion restante: ${pool.remaining}/${pool.max}. Abre el detalle para gastar, deshacer o resetear puntos del pool.`,
+        description: "Pool de curacion restante: " + pool.remaining + "/" + pool.max + ". Abre el detalle para gastar, deshacer o resetear puntos del pool.",
         poolRemaining: pool.remaining,
         poolMax: pool.max,
         level: 0
+      };
+    }
+
+    function layOnHandsCombatAction() {
+      const pool = layOnHandsPoolInfo();
+      if (!pool || pool.remaining <= 0) return null;
+      return {
+        key: "class:bonus:lay-on-hands",
+        id: "class:bonus:lay-on-hands",
+        type: ACTION_TYPES.bonus,
+        category: ACTION_CATEGORIES.bonusActions,
+        title: "Lay on Hands",
+        detail: pool.remaining + "/" + pool.max + " HP pool. 1 point restores 1 HP.",
+        description: "Touch a creature and restore Hit Points from your Lay on Hands pool.",
+        actionCost: [{ type: "bonusAction", amount: 1 }],
+        resolutionSteps: [
+          RESOLUTION_STEPS.selectTarget,
+          RESOLUTION_STEPS.chooseVariant,
+          RESOLUTION_STEPS.damageRoll,
+          RESOLUTION_STEPS.applyEffect,
+          RESOLUTION_STEPS.confirmResult
+        ],
+        targetRequired: true,
+        variantRequired: true,
+        healing: true,
+        damageFormula: "1",
+        damageType: "healing",
+        poolKey: pool.key,
+        poolRemaining: pool.remaining,
+        poolMax: pool.max,
+        source: "class"
       };
     }
 
@@ -8210,11 +8241,11 @@
       const remoteRoster = globalThis.dndLiveVttCombatTargetRoster?.() || {};
       const party = Array.isArray(remoteRoster.party) ? remoteRoster.party.slice() : [];
       const enemies = Array.isArray(remoteRoster.enemies) ? remoteRoster.enemies.slice() : [];
-      if (remoteRoster.combatActive === true) return { party, enemies };
       const selfName = characterCombatName();
       if (!party.some((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfName.toLocaleLowerCase())) {
         party.unshift({ id: "sheet:self", name: selfName });
       }
+
       return { party, enemies };
     }
 
@@ -8291,6 +8322,17 @@
         ...activeCombatResolution,
         results: { ...activeCombatResolution.results, ...patch }
       };
+    }
+
+    function validateCombatResolutionForConfirmation(session) {
+      const validation = validateCombatResolutionForConfirmationEngine(session);
+      if (!validation.ok) return validation;
+      if (session?.action?.id !== "class:bonus:lay-on-hands") return validation;
+      const pool = layOnHandsPoolInfo();
+      const amount = Math.max(0, Number.parseInt(session.results.variant?.amount || "0", 10) || 0);
+      if (!pool || pool.remaining <= 0) return { ok: false, reason: "Lay on Hands has no points remaining." };
+      if (!amount || amount > pool.remaining) return { ok: false, reason: "Choose between 1 and " + pool.remaining + " points." };
+      return validation;
     }
 
     function openCombatResolution(action) {
@@ -8389,7 +8431,12 @@
           trigger: "onHit",
           critical: choice.critical || "doubleDice"
         }));
-      const declaredComponents = action.damageComponents?.length
+      const layOnHandsAmount = action.id === "class:bonus:lay-on-hands"
+        ? Math.max(1, Number.parseInt(activeCombatResolution.results.variant?.amount || "0", 10) || 1)
+        : 0;
+      const declaredComponents = action.id === "class:bonus:lay-on-hands"
+        ? [{ id: "lay-on-hands", formula: String(layOnHandsAmount), type: "healing", source: "layOnHands", trigger: "onUse", critical: "none" }]
+        : action.damageComponents?.length
         ? (triggeredCombatDamageComponents?.(action, activeCombatResolution.results) || [])
         : (action.damageFormula ? [{ id: "legacy-damage", formula: action.damageFormula, type: action.damageType || "", source: "legacy", trigger: "onHit", critical: "doubleDice" }] : []);
       const components = [...declaredComponents, ...optionalComponents];
@@ -8575,6 +8622,26 @@
       sheetMeta.combatTurn = committed.economy;
       if (action.effect === "executeReady") sheetMeta.combatTurn.readyAction = null;
       const effectsApplied = applyCombatActionSideEffects(action);
+      if (action.id === "class:bonus:lay-on-hands") {
+        const pool = layOnHandsPoolInfo();
+        const amount = Math.max(1, Number.parseInt(activeCombatResolution.results.variant?.amount || "0", 10) || 1);
+        const targetName = String(activeCombatResolution.results.target?.name || "").trim();
+        if (!pool || amount > pool.remaining) {
+          showStatus("Lay on Hands no longer has enough points.");
+          return;
+        }
+        setLayOnHandsPoolUsed(null, pool.used + amount);
+        if (normalizeName(targetName) === normalizeName(characterCombatName())) {
+          const hpField = getCurrentHitPointsField();
+          const current = Math.max(0, Number.parseInt(hpField?.value || "0", 10) || 0);
+          const maximum = Math.max(current, Number.parseInt(fieldValue("HPMax") || String(current), 10) || current);
+          const healed = Math.max(0, Math.min(maximum, current + amount) - current);
+          if (hpField) hpField.value = String(current + healed);
+          effectsApplied.push("Lay on Hands: " + healed + " HP restored");
+        } else {
+          effectsApplied.push("Lay on Hands: " + amount + " HP proposed for " + targetName);
+        }
+      }
       if (createdItemEffect) effectsApplied.push(action.title);
       if (activatedItemStatus) effectsApplied.push(activatedItemStatus.name);
       if (itemCapabilityUsed) {
@@ -8750,6 +8817,24 @@
         });
         targetLabel.appendChild(targetSelect);
         fields.appendChild(targetLabel);
+      }
+
+      if (action.id === "class:bonus:lay-on-hands") {
+        const pool = layOnHandsPoolInfo();
+        const amount = document.createElement("label");
+        amount.textContent = "HP to restore";
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "1";
+        input.max = String(pool?.remaining || 1);
+        input.step = "1";
+        input.value = session.results.variant?.amount || "1";
+        input.addEventListener("input", () => setCombatSessionResults({
+          variant: { ...(activeCombatResolution.results.variant || {}), amount: input.value },
+          damageRoll: null
+        }));
+        amount.appendChild(input);
+        fields.appendChild(amount);
       }
 
       if (action.itemEffectExecution?.area) {
@@ -9004,6 +9089,30 @@
 
       combatResolution.append(header, steps, workspace, footer);
     }
+
+    function syncCombatMovementFromLiveVtt(combat) {
+      if (!combat?.active || !Object.prototype.hasOwnProperty.call(combat, "movementRemainingFeet")) return;
+      const active = (Array.isArray(combat.participants) ? combat.participants : [])
+        .find((participant) => participant.id === combat.activeId);
+      if (!active || active.kind !== "character") return;
+      if (normalizeName(active.name || "") !== normalizeName(characterCombatName())) return;
+      const speed = Number(combat.movementSpeedFeet);
+      const remaining = Number(combat.movementRemainingFeet);
+      if (!Number.isFinite(speed) || !Number.isFinite(remaining) || speed < 0 || remaining < 0) return;
+      const state = combatTurnState({ speed });
+      const nextRemaining = Math.min(speed, remaining);
+      if (Number(state.movementTotal) === speed && Number(state.movementRemaining) === nextRemaining) return;
+      sheetMeta.combatTurn = normalizeTurnEconomy({
+        ...state,
+        movementTotal: speed,
+        movementRemaining: nextRemaining
+      }, { speed });
+      invalidateCombatActionCache("live-vtt-movement");
+      scheduleTurnActionsPanelRefresh();
+      scheduleSave();
+    }
+
+    globalThis.dndLiveVttCombatStateChanged = syncCombatMovementFromLiveVtt;
 
     function renderTurnActionResources(resources = []) {
       if (!resources.length) return null;
@@ -21551,7 +21660,10 @@
         id: "class:features",
         order: 40,
         getActions(context) {
-          return { actions: featureActionItemsFromEntries(classFeatureEntriesForCharacter(), "class", context) };
+          const actions = featureActionItemsFromEntries(classFeatureEntriesForCharacter(), "class", context);
+          const layOnHands = layOnHandsCombatAction();
+          if (layOnHands) actions.push(layOnHands);
+          return { actions };
         }
       });
 

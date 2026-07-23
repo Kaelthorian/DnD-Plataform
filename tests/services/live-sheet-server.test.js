@@ -404,6 +404,10 @@ async function testVttStateBroadcastAndWelcomeReplay() {
         active: true,
         activeId: "combat-goblin",
         round: 2,
+        movementTokenKey: "combat-goblin",
+        movementSpeedFeet: 30,
+        movementUsedFeet: 10,
+        movementRemainingFeet: 20,
         participants: [{
           id: "combat-goblin",
           name: "Goblin",
@@ -470,6 +474,9 @@ async function testVttStateBroadcastAndWelcomeReplay() {
     assert.strictEqual(broadcast.state.combat.active, true);
     assert.strictEqual(broadcast.state.combat.activeId, "combat-goblin");
     assert.strictEqual(broadcast.state.combat.round, 2);
+    assert.strictEqual(broadcast.state.combat.movementTokenKey, "combat-goblin");
+    assert.strictEqual(broadcast.state.combat.movementUsedFeet, 10);
+    assert.strictEqual(broadcast.state.combat.movementRemainingFeet, 20);
     assert.strictEqual(broadcast.state.combat.participants.length, 3);
     assert.strictEqual(broadcast.state.combat.participants[0].initiative, "18");
     assert.strictEqual(broadcast.state.combat.participants[1].name, "???");

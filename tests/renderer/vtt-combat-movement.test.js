@@ -8,7 +8,10 @@ const indexSource = fs.readFileSync(path.join(__dirname, "../../src/app/renderer
 
 assert.match(dmSource, /const MAP_TOKEN_SIZE = vttMovementEngine\.MASTER_TOKEN_SIZE;/);
 assert.match(dmSource, /function mapTokenSpeedFeet\(token\)/);
-assert.match(dmSource, /movementUsedFeet: vttMovementEngine\.roundFeet/);
+assert.match(dmSource, /movementUsedFeet: vttMovementEngine.roundFeet/);
+assert.match(dmSource, /movementRemainingFeet: timeline.movementRemainingFeet/);
+assert.match(playerSource, /dndLiveVttCombatStateChanged/);
+assert.match(indexSource, /movementRemainingFeet/);
 assert.match(dmSource, /function startMapCombatTokenMove\(mapNoteId, pageId, tokenId, targetPoint\)/);
 assert.match(dmSource, /vttMovementEngine\.resolveMovement\(\{/);
 assert.match(dmSource, /mapCombatTokenKey\(page\?\.id, tokenId\)/);
