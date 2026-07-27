@@ -20,6 +20,7 @@
       id: input.id || `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       actor: String(input.actor || "Character"),
       action: String(input.action || "Action"),
+      targetId: String(input.targetId || ""),
       target: String(input.target || ""),
       timestamp: input.timestamp || new Date().toISOString(),
       turn: Math.max(1, Number.parseInt(input.turn, 10) || 1),

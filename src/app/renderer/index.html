@@ -5774,6 +5774,13 @@
 
     function castPreparedSpell(spell, options = {}) {
       if (!spell || spell.kind !== "spell") return false;
+      const actionDefinition = preparedSpellActionDefinition(spell);
+      if (actionDefinition.requiresCombat
+        && !options.fromCombat
+        && !turnActionsBackdrop?.classList.contains("visible")) {
+        showStatus(t("spell.requiresCombat", { spell: spell.name }));
+        return false;
+      }
       if (options.ritual && (!spell.ritual || spell.level <= 0)) {
         showStatus(t("spell.ritualUnavailable", { name: spell.name }));
         return false;
@@ -5832,6 +5839,44 @@
         ? `${spell.name}: status activo. Slots nivel ${castLevel}: ${remaining}/${total}`
         : `${spell.name} casteada a nivel ${castLevel}. Slots nivel ${castLevel}: ${remaining}/${total}`);
       recordSuccessfulSpellCast(spell, { ...options, statusChanged: statusResult.activated });
+      return true;
+    }
+
+    function preparedSpellActionDefinition(spell, overrides = {}) {
+      const spellData = spell?.spell || spell || {};
+      return createSpellActionDefinition({
+        name: spell?.sourceName || spell?.name || spellData.name || "Spell",
+        source: spell?.source || spellData.source || "",
+        level: spell?.level ?? spellData.level ?? 0,
+        spell: spellData
+      }, spell, overrides);
+    }
+
+    function openPreparedSpellTargetResolution(spell) {
+      const action = preparedSpellActionDefinition(spell, {
+        id: `spell:prepared:${normalizeName(spell?.sourceName || spell?.name || "spell")}`,
+        name: `Cast ${spell?.sourceName || spell?.name || "Spell"}`
+      });
+      const combatOpen = Boolean(turnActionsBackdrop?.classList.contains("visible"));
+      if (action.requiresCombat && !combatOpen) {
+        showStatus(t("spell.requiresCombat", { spell: spell?.name || "Spell" }));
+        return false;
+      }
+      const resolutionAction = combatOpen
+        ? action
+        : {
+            ...action,
+            type: ACTION_TYPES.none,
+            actionCost: [],
+            allowOutsideTurn: true,
+            requiresCombat: false
+          };
+      openTurnActionsPanel()
+        .then(() => openCombatResolution(resolutionAction))
+        .catch((error) => {
+          console.error(error);
+          showStatus(t("turn.spellCommitFailed"));
+        });
       return true;
     }
 
@@ -6949,6 +6994,7 @@
         } else if (spell.kind === "spell") {
           const sourceName = spell.sourceName || spell.name;
           const selectedCastLevel = spell.castLevel || spell.level;
+          const preparedAction = preparedSpellActionDefinition(spell);
           const spellFreeUse = spell.level > 0 && selectedCastLevel === spell.level ? freeSpellUseInfo(sourceName) : null;
           const hasFreeUse = Boolean(spellFreeUse && spellFreeUse.remaining > 0);
           castButton.textContent = spell.level > 0
@@ -6960,7 +7006,13 @@
               : `Castear ${spell.name} a nivel ${selectedCastLevel} y gastar 1 slot nivel ${selectedCastLevel}`
             : `${spell.name} es cantrip y no gasta slots`;
           castButton.disabled = spell.level > 0 && !hasFreeUse && spellSlotRemaining(selectedCastLevel) <= 0;
-          castButton.addEventListener("click", () => castPreparedSpell(spell));
+          castButton.addEventListener("click", () => {
+            if (preparedAction.targetRequired) {
+              openPreparedSpellTargetResolution(spell);
+              return;
+            }
+            castPreparedSpell(spell);
+          });
         } else if ((spell.kind === "activation" || spell.kind === "feature") && featureUseInfo(spell)) {
           const uses = featureUseInfo(spell);
           castButton.textContent = `${uses.remaining}/${uses.max}`;
@@ -8242,9 +8294,9 @@
       const party = Array.isArray(remoteRoster.party) ? remoteRoster.party.slice() : [];
       const enemies = Array.isArray(remoteRoster.enemies) ? remoteRoster.enemies.slice() : [];
       const selfName = characterCombatName();
-      if (!party.some((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfName.toLocaleLowerCase())) {
-        party.unshift({ id: "sheet:self", name: selfName });
-      }
+      const localTarget = party.find((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfName.toLocaleLowerCase());
+      if (localTarget) localTarget.id = "sheet:self";
+      else party.unshift({ id: "sheet:self", name: selfName });
 
       return { party, enemies };
     }
@@ -8255,10 +8307,12 @@
       group.label = label;
       targets.forEach((target) => {
         const name = String(target?.name || "").trim();
-        if (!name) return;
+        const id = String(target?.id || name).trim();
+        if (!name || !id) return;
         const option = document.createElement("option");
-        option.value = name;
+        option.value = id;
         option.textContent = name;
+        option.dataset.targetName = name;
         group.appendChild(option);
       });
       if (group.children.length) select.appendChild(group);
@@ -8273,6 +8327,7 @@
       const event = createCombatLogEvent({
         actor: characterCombatName(),
         action: session.action.title,
+        targetId: session.results.target?.id || "",
         target: session.results.target?.name || "",
         turn: state.turn,
         round: state.round,
@@ -8581,6 +8636,7 @@
       } else if (action.category === ACTION_CATEGORIES.spells && action.attack?.kind === "spell") {
         if (!castPreparedSpell(action.attack, {
           deferUi: true,
+          fromCombat: true,
           concentrationReplacementConfirmed: Boolean(committed.session.results.concentrationReplacementConfirmed)
         })) {
           showStatus(t("turn.spellCommitFailed"));
@@ -8625,13 +8681,15 @@
       if (action.id === "class:bonus:lay-on-hands") {
         const pool = layOnHandsPoolInfo();
         const amount = Math.max(1, Number.parseInt(activeCombatResolution.results.variant?.amount || "0", 10) || 1);
-        const targetName = String(activeCombatResolution.results.target?.name || "").trim();
+        const target = activeCombatResolution.results.target || {};
+        const targetId = String(target.id || "").trim();
+        const targetName = String(target.name || "").trim();
         if (!pool || amount > pool.remaining) {
           showStatus("Lay on Hands no longer has enough points.");
           return;
         }
         setLayOnHandsPoolUsed(null, pool.used + amount);
-        if (normalizeName(targetName) === normalizeName(characterCombatName())) {
+        if (targetId === "sheet:self" || (!targetId && normalizeName(targetName) === normalizeName(characterCombatName()))) {
           const hpField = getCurrentHitPointsField();
           const current = Math.max(0, Number.parseInt(hpField?.value || "0", 10) || 0);
           const maximum = Math.max(current, Number.parseInt(fieldValue("HPMax") || String(current), 10) || current);
@@ -8794,7 +8852,9 @@
         const targetLabel = document.createElement("label");
         targetLabel.textContent = t("turn.target");
         const targetSelect = document.createElement("select");
-        const selectedName = String(session.results.target?.name || "").trim();
+        const selectedTarget = session.results.target || {};
+        let selectedId = String(selectedTarget.id || "").trim();
+        let selectedName = String(selectedTarget.name || "").trim();
         const placeholder = document.createElement("option");
         placeholder.value = "";
         placeholder.textContent = t("turn.targetSelectPlaceholder");
@@ -8802,17 +8862,26 @@
         const roster = combatTargetRoster();
         appendCombatTargetOptions(targetSelect, roster.party, t("turn.targetParty"));
         appendCombatTargetOptions(targetSelect, roster.enemies, t("turn.targetEnemies"));
-        if (selectedName && ![...targetSelect.options].some((option) => option.value === selectedName)) {
-          const unavailable = document.createElement("option");
-          unavailable.value = selectedName;
-          unavailable.textContent = selectedName;
-          targetSelect.appendChild(unavailable);
+        const selectedOption = [...targetSelect.options].find((option) => (
+          selectedId && option.value === selectedId
+        ) || (
+          selectedName && (option.dataset.targetName === selectedName || option.value === selectedName)
+        ));
+        if (selectedName && !selectedOption) {
+          activeCombatResolution = recordCombatTarget(activeCombatResolution, { id: "", name: "" });
+          selectedId = "";
+          selectedName = "";
         }
-        targetSelect.value = selectedName;
-        targetSelect.disabled = targetSelect.options.length === 1;
+        targetSelect.value = selectedOption?.value || "";
+        const validTargetOptions = [...targetSelect.options].filter((option) => option.value && !option.disabled);
+        targetSelect.disabled = validTargetOptions.length === 0;
         targetSelect.title = targetSelect.disabled ? t("turn.targetNoOptions") : "";
         targetSelect.addEventListener("change", () => {
-          activeCombatResolution = recordCombatTarget(activeCombatResolution, { name: targetSelect.value });
+          const option = targetSelect.options[targetSelect.selectedIndex];
+          activeCombatResolution = recordCombatTarget(activeCombatResolution, {
+            id: option?.value || "",
+            name: option?.dataset?.targetName || option?.textContent || ""
+          });
           renderCombatResolution();
         });
         targetLabel.appendChild(targetSelect);
@@ -9596,6 +9665,15 @@
       if (!turnActionsBackdrop?.classList.contains("visible")) return;
       refreshTurnActionsPanel();
     }
+
+    globalThis.dndLiveVttCombatTargetsChanged = () => {
+      invalidateCombatActionCache("live-vtt-target-roster");
+      if (activeCombatResolution?.status === "resolving") {
+        renderCombatResolution();
+        return;
+      }
+      refreshTurnActionsPanelIfVisible();
+    };
 
     function pruneUnavailableSpellSelections() {
       sheetSpellFieldElements().forEach((field) => {
@@ -11310,6 +11388,7 @@
       if (target.closest?.("#familiarPickerBackdrop")) return;
       if (target.closest?.("[data-weapon-mastery-choice='true']")) return;
       if (target.closest?.(".spell-picker")) return;
+      if (target.closest?.("#turnActionsPanel, #combatResolution, .combat-resolution")) return;
       if (!target.matches?.("input[type='checkbox'], input[type='radio'], select")) return;
       event.preventDefault();
       event.stopImmediatePropagation();

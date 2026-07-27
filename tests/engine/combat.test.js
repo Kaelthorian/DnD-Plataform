@@ -44,6 +44,16 @@ let committed = resolution.confirmResolution(successfulAttackSession(base));
 assert.equal(committed.ok, true);
 assert.equal(committed.economy.actionsRemaining, 0);
 
+const targetIdentitySession = resolution.recordTarget(
+  resolution.createResolution(action({ targetRequired: true, resolutionSteps: ["selectTarget", "confirmResult"] }), base),
+  { id: "map:encounter:goblin-1", name: "Goblin" }
+);
+assert.deepEqual(targetIdentitySession.results.target, {
+  id: "map:encounter:goblin-1",
+  name: "Goblin",
+  ac: null
+});
+
 // 3. Extra Attack stays inside the same Attack action.
 let extraEconomy = economyEngine.createTurnEconomy({ speed: 30, maxAttacksPerAttackAction: 2 });
 let first = resolution.confirmResolution(successfulAttackSession(extraEconomy, { transactionId: "extra-1" }));
@@ -90,7 +100,43 @@ assert.equal(fireball.saveDamageRule, "half");
 // 10. Automatic damage skips Hit Roll and Saving Throw.
 const missile = actions.createSpellActionDefinition({ name: "Magic Missile", spell: { name: "Magic Missile", time: [{ unit: "action" }], description: "Each dart strikes and deals 1d4 + 1 Force damage." } }, { name: "Magic Missile", noAttackRoll: true, damage: "1d4+1", damageType: "force" });
 assert.equal(missile.automaticDamage, true);
+assert.equal(missile.requiresCombat, true);
 assert.deepEqual(missile.resolutionSteps.filter((step) => ["attackRoll", "savingThrow"].includes(step)), []);
+
+const guidance = actions.createSpellActionDefinition({
+  name: "Guidance",
+  spell: {
+    canonical: true,
+    name: "Guidance",
+    source: "XPHB",
+    time: [{ number: 1, unit: "action" }],
+    range: { type: "point", distance: { type: "touch" } },
+    spellAttack: [],
+    savingThrow: [],
+    damageInflict: [],
+    conditionInflict: [],
+    description: "You touch one willing creature."
+  }
+}, { name: "Guidance", noAttackRoll: true, damage: "" });
+assert.equal(guidance.requiresCombat, false);
+assert.equal(guidance.targetRequired, true);
+
+const fireBolt = actions.createSpellActionDefinition({
+  name: "Fire Bolt",
+  spell: {
+    canonical: true,
+    name: "Fire Bolt",
+    source: "XPHB",
+    time: [{ number: 1, unit: "action" }],
+    range: { type: "point", distance: { type: "feet", amount: 120 } },
+    spellAttack: ["R"],
+    savingThrow: [],
+    damageInflict: ["fire"],
+    conditionInflict: [],
+    description: "Make a ranged spell attack against the target."
+  }
+}, { name: "Fire Bolt", attackBonus: 7, damage: "1d10", damageType: "fire" });
+assert.equal(fireBolt.requiresCombat, true);
 
 // Structured spell fields take precedence over contradictory prose and expose effect metadata.
 const structuredSpell = actions.createSpellActionDefinition({
@@ -464,6 +510,7 @@ assert.equal(economyEngine.startTurn(concentrationCommit.economy, { concentratio
 const event = combatLog.createCombatLogEvent({
   actor: "Kael",
   action: "Shortsword",
+  targetId: "map:encounter:goblin-1",
   target: "Goblin",
   attackTotal: 19,
   hit: true,
@@ -475,6 +522,7 @@ const event = combatLog.createCombatLogEvent({
   resourcesConsumed: ["Action"],
   attacksRemaining: 1
 });
+assert.equal(event.targetId, "map:encounter:goblin-1");
 const formatted = combatLog.formatCombatLogEvent(event);
 assert.match(formatted, /Attack: 19 - Hit/);
 assert.doesNotMatch(formatted, /Formulas:/);

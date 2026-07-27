@@ -32,6 +32,10 @@ assert.ok(html.includes("castPreparedSpell(spell, { ritual: true })"), "ritual s
 assert.ok(/function wizardSpellbookManagerRow[\s\S]*castPreparedSpell\(row, \{ ritual: true \}\)/.test(html), "Wizards can ritual-cast an unprepared ritual from the spellbook");
 assert.ok(html.includes("state.concentration ="), "direct casts update the concentration manager");
 assert.ok(/function castPreparedSpell[\s\S]*confirmDirectConcentrationReplacement\(spell, options\)[\s\S]*interruptActiveRest\("spell"\)/.test(html), "direct casts confirm concentration replacement before spending resources or interrupting rest");
+assert.ok(html.includes("function preparedSpellActionDefinition"), "prepared spells reuse combat metadata for contextual availability");
+assert.ok(html.includes("function openPreparedSpellTargetResolution"), "targeted out-of-combat spells reuse the existing resolution UI");
+assert.ok(html.includes("spell.requiresCombat"), "combat-dependent spells expose a scoped availability message");
+assert.ok(html.includes("fromCombat: true"), "combat resolution marks spell commits as in-combat casts");
 assert.ok(html.includes("concentrationReplacementConfirmed: Boolean(committed.session.results.concentrationReplacementConfirmed)"), "combat-confirmed concentration replacement is reused during spell commit");
 assert.ok(html.includes("function endActiveConcentration"), "the prepared-spell UI exposes an explicit concentration end path");
 assert.ok(html.includes('section.classList.add("spell-category", `spell-category-${tone}`)'), "spellbook sections support semantic visual categories");

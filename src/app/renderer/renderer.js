@@ -575,16 +575,16 @@
 
     function liveVttCombatTargetRoster() {
       const state = liveVttState;
-      const combatActive = Boolean(state?.active && state.combat?.active);
+      const combatActive = Boolean(state?.combat?.active);
       const roster = { party: [], enemies: [], combatActive };
       const selfName = String(document.querySelector('[data-key="CharacterName"]')?.value
         || document.querySelector('[data-key="CharacterName 2"]')?.value
         || "Character").trim() || "Character";
       const selfKey = selfName.toLocaleLowerCase();
       const ensureSelf = () => {
-        if (!roster.party.some((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfKey)) {
-          roster.party.unshift({ id: "sheet:self", name: selfName });
-        }
+        const localTarget = roster.party.find((target) => String(target?.name || "").trim().toLocaleLowerCase() === selfKey);
+        if (localTarget) localTarget.id = "sheet:self";
+        else roster.party.unshift({ id: "sheet:self", name: selfName });
       };
       if (!combatActive) {
         ensureSelf();
@@ -609,7 +609,7 @@
       return roster;
     }
 
-    // Public roster intentionally exposes visible names only; AC and HP stay DM-private.
+    // Public roster exposes stable participant ids and visible names only; AC and HP stay DM-private.
     globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster;
 
     async function openDmScreen() {
@@ -2306,6 +2306,7 @@
     function renderLiveVttState(state) {
       liveVttState = state || null;
       globalThis.dndLiveVttCombatStateChanged?.(liveVttState?.combat || null);
+      globalThis.dndLiveVttCombatTargetsChanged?.(liveVttState?.combat || null);
       const elements = ensureLiveVttWindow();
       if (!state?.active || !state.image?.dataUrl) {
         liveVttView = { scale: 1, x: 0, y: 0 };

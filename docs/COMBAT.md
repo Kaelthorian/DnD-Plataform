@@ -45,7 +45,7 @@ El panel izquierdo mantiene fijo el texto de Movement y centra solo su ovalo de 
 | Condiciones | `__sheetMeta.activeStatuses` y `src/engine/conditions/statuses.js` |
 | Slots/usos/pools | helpers existentes del renderer y `src/engine/resources` |
 | Registro | `__sheetMeta.combatLog` con respaldo local `dnd-character-sheet-combat-log-v1` |
-| Selector de objetivos | `globalThis.dndLiveVttCombatTargetRoster()` en `renderer.js`, consumido por `index.html`; durante un combate VTT usa exactamente los participantes visibles del tracker y publica solo nombres |
+| Selector de objetivos | `globalThis.dndLiveVttCombatTargetRoster()` en `renderer.js`, consumido por `index.html`; durante un combate VTT usa exactamente los participantes visibles del tracker, conserva sus IDs estables para la selección y publica solo nombres/identidad visible |
 | Movimiento VTT | `src/engine/combat/vtt-movement.js` para escala/Speed/límite; interacción, animación y persistencia de `combatState.movement*` en `dm-screen/src/main.jsx` |
 
 ## Flujo
@@ -57,6 +57,14 @@ El panel izquierdo mantiene fijo el texto de Movement y centra solo su ovalo de 
 5. Los saves y el daño automático no crean Hit Roll. Si el modificador/AC del target es privado, el jugador marca el resultado comunicado por el DM.
 6. `Confirm Result` consume la economía y después usa los adaptadores existentes de slots, usos, inventario, munición, estados y log. `Cancel` revierte la reserva.
 7. `End Turn` deja la Reaction restante disponible para tarjetas `allowOutsideTurn`; `New Turn` la restaura y elimina Dodge/Ready vencidos.
+
+### Targets dinámicos y spells fuera de combate
+
+El roster de targets sigue la ruta DM map token marcado `inCombat` → `mapCombatShareSnapshot()` → snapshot/patch Live Sheet → `liveVttCombatTargetRoster()` → `combatTargetRoster()` → selector de la resolución. Solo se filtran participantes ocultos; al cerrar el combate se conserva el personaje local como opción mínima. `renderer.js` notifica cambios de participantes, alta/baja de combate y desconexión para repintar una resolución ya abierta. El `<option>` usa el ID del participante y guarda el nombre visible por separado; la sesión conserva ambos valores y descarta una selección que dejó de pertenecer al roster.
+
+El bloqueo de Character Ready no aplica a controles dentro de `#turnActionsPanel`/`#combatResolution`, porque esos selects son controles de ejecución y no edición de la hoja.
+
+La disponibilidad contextual de spells no depende de una prohibición global de combate. `spellRequiresCombat()` reutiliza el perfil estructurado y la evidencia de ataque, salvación, daño o condición: `Guidance` y otras utilidades quedan disponibles fuera de combate; un spell con target fuera de combate reutiliza el mismo stepper con coste de turno cero. Los ataques y spells con evidencia claramente combativa conservan la exigencia de una resolución activa.
 
 ## Cobertura actual
 

@@ -263,6 +263,34 @@
       || /\bmake (?:a|one) (?:melee |ranged )?attack with the weapon used in the spell(?:'|\u2019)s casting\b/i.test(description);
   }
 
+  function spellRequiresCombat(spellEntry = {}, row = {}) {
+    const spell = spellEntry?.spell || spellEntry || {};
+    if (typeof row.requiresCombat === "boolean") return row.requiresCombat;
+    if (typeof spell.requiresCombat === "boolean") return spell.requiresCombat;
+
+    const description = String(spell.description || "");
+    const profile = spellProfile(spell);
+    const canonical = spell?.canonical === true;
+    const attackMetadataKnown = canonical || owns(spell, "spellAttack");
+    const saveMetadataKnown = canonical || owns(spell, "savingThrow");
+    const damageMetadataKnown = canonical || owns(spell, "damageInflict");
+    const conditionMetadataKnown = canonical || owns(spell, "conditionInflict");
+    const rowDamageTypes = cleanStringList([
+      ...(Array.isArray(row.damageTypes) ? row.damageTypes : row.damageTypes ? [row.damageTypes] : []),
+      ...(row.damageType ? [row.damageType] : [])
+    ]);
+    const hasAttack = Boolean(row.embeddedWeaponAttack)
+      || (attackMetadataKnown ? profile.attacks.length > 0 : /\b(?:melee|ranged) spell attack\b|\bmake an attack roll\b/i.test(description));
+    const hasSave = saveMetadataKnown ? profile.savingThrows.length > 0 : Boolean(savingThrowAbility(description));
+    const hasDamage = (damageMetadataKnown ? profile.damageTypes.length > 0 : rowDamageTypes.length > 0)
+      && !profile.healing
+      && !profile.temporaryHitPoints
+      && !row.healing
+      && !row.temporaryHitPoints;
+    const hasCombatCondition = conditionMetadataKnown && profile.conditions.length > 0;
+    return hasAttack || hasSave || hasDamage || hasCombatCondition;
+  }
+
   function hasDeferredAttackDamage(spell = {}, description = "", embeddedWeaponAttack = false) {
     if (embeddedWeaponAttack) return false;
     if (typeof spellData.spellHasDeferredAttackDamage === "function") {
@@ -378,6 +406,7 @@
       spellId: identity.stable ? identity.id : "",
       spellSource: source,
       targetRequired: embeddedWeaponAttack ? true : range ? !rangeIsSelf(range) : !/\bRange:\s*Self\b|\byourself\b/i.test(description),
+      requiresCombat: spellRequiresCombat(spellEntry, row),
       attack: { ...row },
       attackTypes,
       saveAbility,
@@ -418,6 +447,7 @@
         embeddedWeaponAttack,
         deferredAttackDamage,
         guidedMultiMode,
+        requiresCombat: spellRequiresCombat(spellEntry, row),
         range,
         duration
       },
@@ -444,6 +474,7 @@
     criticalDamageFormula,
     createAttackActionDefinition,
     createSpellActionDefinition,
+    spellRequiresCombat,
     maxAttacksFromFeatureText,
     savingThrowAbility
   };

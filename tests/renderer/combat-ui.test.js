@@ -76,7 +76,10 @@ assert.ok(sidebarOrder.every((index, position) => index >= 0 && (position === 0 
   "dndLiveVttCombatTargetRoster",
   'document.createElement("select")',
   't("turn.targetParty")',
-  't("turn.targetEnemies")'
+  't("turn.targetEnemies")',
+  'option.dataset.targetName = name',
+  'targetSelect.disabled = validTargetOptions.length === 0',
+  'globalThis.dndLiveVttCombatTargetsChanged'
 ].forEach((needle) => assert.ok(html.includes(needle), `missing combat target selector integration: ${needle}`));
 
 [
@@ -107,12 +110,14 @@ assert.ok(renderer.includes("function liveVttCombatTargetRoster"), "live VTT tar
 assert.ok(renderer.includes("globalThis.dndLiveVttCombatTargetRoster = liveVttCombatTargetRoster"), "live VTT target roster is not exposed to Start Combat");
 assert.ok(renderer.includes("function visibleLiveVttCombatParticipants"), "combat tracker participant helper is missing");
 assert.ok(renderer.includes("visibleLiveVttCombatParticipants(state.combat)"), "combat target roster should use the combat tracker participants");
+assert.ok(renderer.includes("const combatActive = Boolean(state?.combat?.active)"), "target roster should depend on combat state, not map rendering state");
 assert.ok(!renderer.includes("Array.isArray(state.tokens) ? state.tokens"), "combat target roster should not use map-only tokens");
 assert.ok(html.includes("function combatTargetRoster()"), "combat target roster helper is missing");
 assert.ok(renderer.includes('roster.party.unshift({ id: "sheet:self", name: selfName })'), "combat target roster should always include the local character");
 assert.ok(html.includes('id: "class:bonus:lay-on-hands"'), "Lay on Hands should be a combat action");
 assert.ok(html.includes('type: ACTION_TYPES.bonus'), "Lay on Hands should consume a Bonus Action");
 assert.ok(html.includes('function syncCombatMovementFromLiveVtt'), "VTT movement should refresh the combat economy");
+assert.ok(html.includes('#turnActionsPanel, #combatResolution, .combat-resolution'), "Character Ready must not intercept combat resolution controls");
 assert.ok(renderer.includes("function applyCombatPanelVisibility"), "combat panel visibility controller is missing");
 assert.ok(renderer.includes("function toggleCombatPanel"), "combat panel toggle handler is missing");
 assert.ok(html.includes("function renderTurnActionStatuses"), "combat status renderer is missing");

@@ -72,7 +72,15 @@
   }
 
   function recordTarget(session, target = {}) {
-    return update(session, { results: { target: { name: String(target.name || "").trim(), ac: Number.isFinite(Number(target.ac)) ? Number(target.ac) : null } } });
+    return update(session, {
+      results: {
+        target: {
+          id: String(target.id || "").trim(),
+          name: String(target.name || "").trim(),
+          ac: Number.isFinite(Number(target.ac)) ? Number(target.ac) : null
+        }
+      }
+    });
   }
 
   function recordAttackRoll(session, roll = {}) {
