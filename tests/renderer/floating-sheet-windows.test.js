@@ -19,6 +19,8 @@ const i18n = fs.readFileSync(path.join(root, "src/app/renderer/i18n.js"), "utf8"
 ].forEach((needle) => assert.ok(html.includes(needle), `missing shared floating-window integration: ${needle}`));
 
 assert.ok(html.includes("free-dice-menu floating-sheet-window"), "Free Dice does not use the shared window chrome");
+assert.ok(html.includes('{ key: "8", label: "d8", expression: "d8", order: 8 }'), "Free Dice is missing d8");
+assert.ok(i18n.includes('"dice.freeSubtitle": "D2, d3, d4, d6, d8, d10'), "Free Dice subtitle is missing d8");
 assert.ok(html.includes("item-drawer floating-sheet-window"), "the shared left drawer does not use the floating window chrome");
 assert.ok(html.includes('pickerHeader.className = "status-picker-header floating-sheet-window-header"'), "Character Statuses does not use the shared header");
 assert.ok(html.includes('resizeCorner.className = "floating-sheet-window-resize floating-sheet-window-resize-corner app-resize-corner"'), "Character Statuses does not use the standard corner handle");

@@ -34,7 +34,7 @@ flowchart LR
 La ventana central de combate usa una frontera incremental:
 
 - `src/engine/combat` mantiene definiciones, economía, reservas, pipeline y contrato de log como módulos puros UMD/CommonJS.
-- `index.html` adapta el modelo real de la hoja (armas, spells, features, estados, slots, inventario) y ejecuta las tiradas existentes mediante `showDiceTray()`.
+- `index.html` adapta el modelo real de la hoja (armas, spells, features, estados, slots, inventario) y ejecuta las tiradas existentes mediante `showDiceTray()`. La ventana Free Dice mantiene un catálogo local de expresiones, incluido d8, y delega el cálculo en el parser común de tiradas; no crea un store ni un protocolo de red adicional.
 - `__sheetMeta.combatTurn` y `__sheetMeta.combatLog` persisten el turno/log con cada slot. Cancelar una sesión elimina la reserva sin consumir Action, slot, uso, munición ni consumible.
 - El cliente no lee datos privados del DM: el target se elige desde el roster compartido usando un ID estable opaco y mostrando solo el nombre visible; siempre incluye el propio personaje y la UI no solicita AC. Salvo natural 1/20, Hit/Miss queda para confirmación del DM antes de habilitar Damage.
 - Los cambios del snapshot/patch VTT invalidan la resolución visible para repintar targets sin crear un store paralelo. `spellRequiresCombat()` deriva disponibilidad desde metadata de la acción: la resolución guiada permite targets fuera de combate con coste cero cuando la acción no declara dependencia combativa.
